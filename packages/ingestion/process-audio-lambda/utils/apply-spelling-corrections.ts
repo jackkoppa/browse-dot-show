@@ -1,5 +1,8 @@
 import { log } from '@browse-dot-show/logging';
 import spellingCorrectionsConfig from './spelling-corrections.json' assert { type: 'json' };
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Types
 interface SpellingCorrection {
@@ -29,18 +32,27 @@ async function loadSpellingCorrections(): Promise<SpellingCorrection[]> {
   // Start with the base config
   let allCorrections = [...spellingCorrectionsConfig.correctionsToApply];
   
+  // Get the directory of the current file
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const customConfigPath = path.join(__dirname, '_custom-spelling-corrections.json');
+  
   // Try to load custom config if it exists
   try {
-    const customConfigModule = await import('./_custom-spelling-corrections.json', { assert: { type: 'json' } });
-    const customConfig = customConfigModule.default as SpellingCorrectionsConfig;
-    
-    if (customConfig && customConfig.correctionsToApply) {
-      log.debug(`Loaded ${customConfig.correctionsToApply.length} custom spelling corrections`);
-      allCorrections.push(...customConfig.correctionsToApply);
+    if (await fs.pathExists(customConfigPath)) {
+      const customConfigContent = await fs.readFile(customConfigPath, 'utf-8');
+      const customConfig = JSON.parse(customConfigContent) as SpellingCorrectionsConfig;
+      
+      if (customConfig && customConfig.correctionsToApply) {
+        log.debug(`Loaded ${customConfig.correctionsToApply.length} custom spelling corrections`);
+        allCorrections.push(...customConfig.correctionsToApply);
+      }
+    } else {
+      log.debug('No custom spelling corrections file found, using base config only');
     }
   } catch (error) {
-    // File doesn't exist or other import error - this is expected and OK
-    log.debug('No custom spelling corrections file found, using base config only');
+    // Other error - this is unexpected and should be logged
+    log.error('Error loading custom spelling corrections:', error);
   }
   
   log.debug(`Total spelling corrections loaded: ${allCorrections.length}`);
