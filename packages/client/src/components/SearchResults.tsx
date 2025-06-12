@@ -1,4 +1,4 @@
-import { ApiSearchResultHit, EpisodeManifest } from '@listen-fair-play/types'
+import { ApiSearchResultHit, EpisodeManifest } from '@browse-dot-show/types'
 import SearchResult from './SearchResult'
 import SearchResultsPagination from './SearchResultsPagination'
 import {

@@ -3,7 +3,7 @@ import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
 import { parsePubDate } from './utils/parse-pub-date.js';
 
 // Mock the logging module
-vi.mock('@listen-fair-play/logging', () => ({
+vi.mock('@browse-dot-show/logging', () => ({
   log: {
     info: vi.fn(),
     debug: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('@listen-fair-play/logging', () => ({
 }));
 
 // Mock the S3 module
-vi.mock('@listen-fair-play/s3', () => ({
+vi.mock('@browse-dot-show/s3', () => ({
   fileExists: vi.fn(),
   getFile: vi.fn(),
   saveFile: vi.fn(),
@@ -23,14 +23,14 @@ vi.mock('@listen-fair-play/s3', () => ({
 }));
 
 // Mock the config module
-vi.mock('@listen-fair-play/config', () => ({
+vi.mock('@browse-dot-show/config', () => ({
   RSS_CONFIG: {
     'test-podcast': 'https://example.com/rss.xml'
   }
 }));
 
 // Mock the constants module
-vi.mock('@listen-fair-play/constants', () => ({
+vi.mock('@browse-dot-show/constants', () => ({
   EPISODE_MANIFEST_KEY: 'episode-manifest/full-episode-manifest.json'
 }));
 

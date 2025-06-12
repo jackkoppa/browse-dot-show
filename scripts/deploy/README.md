@@ -34,7 +34,7 @@ This directory contains scripts for local deployment of the Listen Fair Play app
 
 ## AWS Authentication
 
-Log into an AWS Account / Role, with sufficient permissions to create both infrastructure resources & IAM Roles/Policies, in the AWS CLI via SSO. For @jackkoppa, the Role name used is kept at https://github.com/jackkoppa/listen-fair-play-private - you can use your own Account / Role to host the app, so long as it has sufficient permissions.
+Log into an AWS Account / Role, with sufficient permissions to create both infrastructure resources & IAM Roles/Policies, in the AWS CLI via SSO. For @jackkoppa, the Role name used is kept at https://github.com/jackkoppa/browse-dot-show-private - you can use your own Account / Role to host the app, so long as it has sufficient permissions.
 
 To configure AWS SSO:
 1. Run the AWS SSO configuration command:

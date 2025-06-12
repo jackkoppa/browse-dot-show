@@ -1,7 +1,7 @@
 import { create, insert, insertMultiple, search, save, load, SearchParams, Orama, AnyOrama } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
-import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@listen-fair-play/types';
-import { log } from '@listen-fair-play/logging';
+import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@browse-dot-show/types';
+import { log } from '@browse-dot-show/logging';
 
 // Type for Orama database instance
 export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;

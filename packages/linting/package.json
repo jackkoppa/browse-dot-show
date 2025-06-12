@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/linting",
+    "name": "@browse-dot-show/linting",
     "private": true,
     "version": "0.0.1",
     "description": "Linting utilities for the Listen Fair Play project",
@@ -24,11 +24,11 @@
         "@types/xml2js": "catalog:"
     },
     "dependencies": {
-        "@listen-fair-play/logging": "workspace:*",
-        "@listen-fair-play/s3": "workspace:*",
-        "@listen-fair-play/config": "workspace:*",
-        "@listen-fair-play/types": "workspace:*",
-        "@listen-fair-play/constants": "workspace:*"
+        "@browse-dot-show/logging": "workspace:*",
+        "@browse-dot-show/s3": "workspace:*",
+        "@browse-dot-show/config": "workspace:*",
+        "@browse-dot-show/types": "workspace:*",
+        "@browse-dot-show/constants": "workspace:*"
     },
     "exports": {
         ".": "./dist/index.js"

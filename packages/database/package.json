@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/database",
+    "name": "@browse-dot-show/database",
     "private": true,
     "version": "0.0.1",
     "description": "Database utility, used by multiple packages",
@@ -13,8 +13,8 @@
         "@orama/plugin-data-persistence": "catalog:"
     },
     "devDependencies": {
-        "@listen-fair-play/types": "workspace:*",
-        "@listen-fair-play/logging": "workspace:*",
+        "@browse-dot-show/types": "workspace:*",
+        "@browse-dot-show/logging": "workspace:*",
         "typescript": "catalog:"
     },
     "exports": {

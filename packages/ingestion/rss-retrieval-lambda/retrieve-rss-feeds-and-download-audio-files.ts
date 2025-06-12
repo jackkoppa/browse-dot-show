@@ -2,11 +2,11 @@ import * as xml2js from 'xml2js';
 import * as path from 'path';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
-import { log } from '@listen-fair-play/logging';
-import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@listen-fair-play/s3';
-import { RSS_CONFIG } from '@listen-fair-play/config';
-import { EpisodeManifest, EpisodeInManifest } from '@listen-fair-play/types';
-import { EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
+import { log } from '@browse-dot-show/logging';
+import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@browse-dot-show/s3';
+import { RSS_CONFIG } from '@browse-dot-show/config';
+import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
+import { EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
@@ -393,7 +393,7 @@ export async function handler(): Promise<void> {
     
     const episodeManifest = await getOrCreateEpisodeManifest();
     
-    // The RSS_CONFIG is now imported from @listen-fair-play/config
+    // The RSS_CONFIG is now imported from @browse-dot-show/config
     const activeFeeds = Object.values(RSS_CONFIG).filter(feed => feed.status === 'active');
     
     log.debug(`Found ${activeFeeds.length} active feeds to process based on version-controlled config.`);

@@ -1,5 +1,5 @@
 {
-  "name": "@listen-fair-play/process-audio-lambda",
+  "name": "@browse-dot-show/process-audio-lambda",
   "version": "0.0.1",
   "description": "Process audio files",
   "main": "process-new-audio-files-via-whisper.js",
@@ -13,13 +13,13 @@
     "run:spelling-corrections:local": "dotenvx run -f ../../../.env.local -- tsx run-apply-spelling-corrections.ts",
     "run:spelling-corrections:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx run-apply-spelling-corrections.ts",
     "test": "vitest run",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/process-audio-lambda"
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/process-audio-lambda"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/client-lambda": "catalog:",
-    "@listen-fair-play/logging": "workspace:*",
-    "@listen-fair-play/s3": "workspace:*",
+    "@browse-dot-show/logging": "workspace:*",
+    "@browse-dot-show/s3": "workspace:*",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
     "srt-parser-2": "catalog:",

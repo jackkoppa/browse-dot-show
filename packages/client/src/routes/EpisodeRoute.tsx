@@ -1,10 +1,10 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router'
 import { useState, useEffect, useRef } from 'react'
-import { EpisodeInManifest } from '@listen-fair-play/types'
+import { EpisodeInManifest } from '@browse-dot-show/types'
 import { CaretSortIcon, MinusCircledIcon, Share1Icon, Share2Icon, Cross2Icon, CopyIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
 import { log } from '../utils/logging';
-import { SearchEntry } from '@listen-fair-play/types'
+import { SearchEntry } from '@browse-dot-show/types'
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetClose } from '../components/ui/sheet'
 import { Badge } from "../components/ui/badge"

@@ -1,5 +1,5 @@
 {
-  "name": "@listen-fair-play/srt-indexing-lambda",
+  "name": "@browse-dot-show/srt-indexing-lambda",
   "version": "0.0.1",
   "description": "Index SRT files into a search index",
   "main": "convert-srt-files-into-indexed-search-entries.js",
@@ -11,15 +11,15 @@
     "run:local": "dotenvx run -f ../../../.env.local -- tsx convert-srt-files-into-indexed-search-entries.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx convert-srt-files-into-indexed-search-entries.ts",
     "test": "vitest run",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/srt-indexing-lambda"
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/srt-indexing-lambda"
   },
   "devDependencies": {
     "@aws-sdk/client-lambda": "catalog:",
-    "@listen-fair-play/constants": "workspace:*",
-    "@listen-fair-play/database": "workspace:*",
-    "@listen-fair-play/logging": "workspace:*",
-    "@listen-fair-play/s3": "workspace:*",
-    "@listen-fair-play/types": "workspace:*",
+    "@browse-dot-show/constants": "workspace:*",
+    "@browse-dot-show/database": "workspace:*",
+    "@browse-dot-show/logging": "workspace:*",
+    "@browse-dot-show/s3": "workspace:*",
+    "@browse-dot-show/types": "workspace:*",
     "@orama/orama": "catalog:",
     "@orama/plugin-data-persistence": "catalog:",
     "srt-parser-2": "catalog:",

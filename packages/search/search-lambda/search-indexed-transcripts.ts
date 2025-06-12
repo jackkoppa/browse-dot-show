@@ -1,13 +1,13 @@
 import { resolve } from 'node:path';
 import * as fs from 'fs/promises';
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@listen-fair-play/constants';
-import { SearchRequest, SearchResponse } from '@listen-fair-play/types';
-import { deserializeOramaIndex, searchOramaIndex, OramaSearchDatabase } from '@listen-fair-play/database';
-import { log } from '@listen-fair-play/logging';
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@browse-dot-show/constants';
+import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
+import { deserializeOramaIndex, searchOramaIndex, OramaSearchDatabase } from '@browse-dot-show/database';
+import { log } from '@browse-dot-show/logging';
 import {
   getFile,
   fileExists
-} from '@listen-fair-play/s3';
+} from '@browse-dot-show/s3';
 
 // Keep the Orama index in memory for reuse between lambda invocations
 let oramaIndex: OramaSearchDatabase | null = null;

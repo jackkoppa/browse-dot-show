@@ -1,5 +1,5 @@
 {
-  "name": "@listen-fair-play/search-lambda",
+  "name": "@browse-dot-show/search-lambda",
   "private": true,
   "version": "0.0.1",
   "description": "Search indexed podcast transcriptions",
@@ -9,18 +9,18 @@
     "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "dev:local": "dotenvx run -f ../../../.env.local -- tsx dev-server.ts",
     "test:local": "dotenvx run -f ../../../.env.local -- tsx simple-test-local.ts",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/search-lambda"
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/search-lambda"
   },
   "dependencies": {
     "@orama/orama": "catalog:",
     "@orama/plugin-data-persistence": "catalog:"
   },
   "devDependencies": {
-    "@listen-fair-play/constants": "workspace:*",
-    "@listen-fair-play/s3": "workspace:*",
-    "@listen-fair-play/logging": "workspace:*",
-    "@listen-fair-play/database": "workspace:*",
-    "@listen-fair-play/types": "workspace:*",
+    "@browse-dot-show/constants": "workspace:*",
+    "@browse-dot-show/s3": "workspace:*",
+    "@browse-dot-show/logging": "workspace:*",
+    "@browse-dot-show/database": "workspace:*",
+    "@browse-dot-show/types": "workspace:*",
     "rolldown": "catalog:",
     "typescript": "catalog:",
     "tsx": "^4.7.0"

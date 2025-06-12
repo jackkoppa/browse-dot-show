@@ -1,5 +1,5 @@
 {
-  "name": "@listen-fair-play/client",
+  "name": "@browse-dot-show/client",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,7 @@
     "_serve-s3-assets": "http-server ../../aws-local-dev/s3 --cors --port 8080"
   },
   "dependencies": {
-    "@listen-fair-play/types": "workspace:*",
+    "@browse-dot-show/types": "workspace:*",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-icons": "^1.3.2",

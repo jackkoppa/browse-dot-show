@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { performHealthCheck, performSearch } from '../search';
-import { SearchResponse } from '@listen-fair-play/types';
+import { SearchResponse } from '@browse-dot-show/types';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

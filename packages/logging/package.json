@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/logging",
+    "name": "@browse-dot-show/logging",
     "private": true,
     "version": "0.0.1",
     "description": "Server-side logging utility, used by multiple packages",
@@ -12,7 +12,7 @@
         "loglevel": "catalog:"
     },
     "devDependencies": {
-        "@listen-fair-play/types": "workspace:*",
+        "@browse-dot-show/types": "workspace:*",
         "typescript": "catalog:"
     },
     "exports": {

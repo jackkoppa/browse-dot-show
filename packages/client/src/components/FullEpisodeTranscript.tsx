@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { EpisodeInManifest, SearchEntry } from '@listen-fair-play/types'
+import { EpisodeInManifest, SearchEntry } from '@browse-dot-show/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatMillisecondsToMMSS } from '@/utils/time'
 import { Badge } from '../components/ui/badge'

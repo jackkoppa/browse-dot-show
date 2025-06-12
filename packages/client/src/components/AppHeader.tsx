@@ -30,12 +30,12 @@ function InfoDrawer() {
           <em>Listen, Fair Play</em> transcribes and indexes all episodes. Select a search result to jump to that point in the audio.
         </p>
         <p>
-          The code is fully open source, and available on <a href="https://github.com/jackkoppa/listen-fair-play" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a>.
+          The code is fully open source, and available on <a href="https://github.com/jackkoppa/browse-dot-show" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a>.
         </p>
         <br/>
         <p className="mb-2">Something not working? Suggestion for a new feature? Let me know.</p>
         <p>
-          <span><GitHubLogoIcon className="size-4 inline-block mr-1" /> <a href="https://github.com/jackkoppa/listen-fair-play/issues/new" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a></span>
+          <span><GitHubLogoIcon className="size-4 inline-block mr-1" /> <a href="https://github.com/jackkoppa/browse-dot-show/issues/new" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a></span>
           <span className="mx-6">|</span>
           <span><img src={BlueskyLogo} alt="Bluesky Logo" className="size-4 inline-block mr-1" /> <a href="https://bsky.app/profile/jackkoppa.dev" className="underline" target="_blank" rel="noopener noreferrer">Bluesky</a></span>
         </p>

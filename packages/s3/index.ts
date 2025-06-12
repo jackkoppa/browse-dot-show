@@ -4,7 +4,7 @@ import { getSignedUrl as createSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 
 // Configuration constants
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';

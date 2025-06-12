@@ -1,4 +1,4 @@
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 import spellingCorrectionsConfig from './spelling-corrections.json' assert { type: 'json' };
 
 // Types

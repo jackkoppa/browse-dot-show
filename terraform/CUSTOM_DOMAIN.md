@@ -35,7 +35,7 @@ If you need to set up a custom domain from scratch:
 2. **Initial Deploy**: Set `enable_custom_domain_on_cloudfront = false`, deploy, then add DNS validation records
 3. **Final Deploy**: After certificate validation, set `enable_custom_domain_on_cloudfront = true` and deploy again
 
-For detailed historical setup instructions, see commit history (e.g. [here](https://github.com/jackkoppa/listen-fair-play/commit/df6ab4871b0c9d024f44a39fd5c0ee8f1a129dd1)) for the original setup process.
+For detailed historical setup instructions, see commit history (e.g. [here](https://github.com/jackkoppa/browse-dot-show/commit/df6ab4871b0c9d024f44a39fd5c0ee8f1a129dd1)) for the original setup process.
 
 ## Maintenance
 

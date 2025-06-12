@@ -34,7 +34,7 @@ importers:
 
   packages/client:
     dependencies:
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: file:packages/types
       '@radix-ui/react-collapsible':
@@ -177,10 +177,10 @@ importers:
         specifier: 'catalog:'
         version: 3.1.7
     devDependencies:
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../logging
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
       typescript:
@@ -195,10 +195,10 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
         version: 3.787.0
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../../logging
-      '@listen-fair-play/s3':
+      '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../../s3
       '@types/fs-extra':
@@ -246,19 +246,19 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 'catalog:'
         version: 3.787.0
-      '@listen-fair-play/config':
+      '@browse-dot-show/config':
         specifier: workspace:*
         version: link:../../config
-      '@listen-fair-play/constants':
+      '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../../constants
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../../logging
-      '@listen-fair-play/s3':
+      '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../../s3
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../../types
       '@smithy/shared-ini-file-loader':
@@ -306,19 +306,19 @@ importers:
       '@aws-sdk/client-lambda':
         specifier: 'catalog:'
         version: 3.812.0
-      '@listen-fair-play/constants':
+      '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../../constants
-      '@listen-fair-play/database':
+      '@browse-dot-show/database':
         specifier: workspace:*
         version: link:../../database
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../../logging
-      '@listen-fair-play/s3':
+      '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../../s3
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../../types
       '@orama/orama':
@@ -342,19 +342,19 @@ importers:
 
   packages/linting:
     dependencies:
-      '@listen-fair-play/config':
+      '@browse-dot-show/config':
         specifier: workspace:*
         version: link:../config
-      '@listen-fair-play/constants':
+      '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../constants
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../logging
-      '@listen-fair-play/s3':
+      '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../s3
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -383,7 +383,7 @@ importers:
         specifier: 'catalog:'
         version: 1.9.2
     devDependencies:
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
       typescript:
@@ -404,13 +404,13 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 'catalog:'
         version: 3.787.0
-      '@listen-fair-play/database':
+      '@browse-dot-show/database':
         specifier: workspace:*
         version: link:../database
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../logging
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
       '@types/fs-extra':
@@ -432,19 +432,19 @@ importers:
         specifier: 'catalog:'
         version: 3.1.7
     devDependencies:
-      '@listen-fair-play/constants':
+      '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../../constants
-      '@listen-fair-play/database':
+      '@browse-dot-show/database':
         specifier: workspace:*
         version: link:../../database
-      '@listen-fair-play/logging':
+      '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../../logging
-      '@listen-fair-play/s3':
+      '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../../s3
-      '@listen-fair-play/types':
+      '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../../types
       rolldown:
@@ -1330,7 +1330,7 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@listen-fair-play/types@file:packages/types':
+  '@browse-dot-show/types@file:packages/types':
     resolution: {directory: packages/types, type: directory}
 
   '@msgpack/msgpack@2.8.0':
@@ -5840,7 +5840,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@listen-fair-play/types@file:packages/types': {}
+  '@browse-dot-show/types@file:packages/types': {}
 
   '@msgpack/msgpack@2.8.0': {}
 

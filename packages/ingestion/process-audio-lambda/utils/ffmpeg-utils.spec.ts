@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs-extra';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
-import { getFile } from '@listen-fair-play/s3';
+import { getFile } from '@browse-dot-show/s3';
 import {
   checkFfmpegAvailability,
   getAudioMetadata,
@@ -16,8 +16,8 @@ import {
 // Mock external dependencies
 vi.mock('child_process');
 vi.mock('fs-extra');
-vi.mock('@listen-fair-play/s3');
-vi.mock('@listen-fair-play/logging', () => ({
+vi.mock('@browse-dot-show/s3');
+vi.mock('@browse-dot-show/logging', () => ({
   log: {
     debug: vi.fn(),
     error: vi.fn(),

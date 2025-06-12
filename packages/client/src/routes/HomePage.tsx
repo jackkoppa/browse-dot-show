@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '../utils/logging';
-import { ApiSearchResultHit, SearchResponse } from '@listen-fair-play/types'
+import { ApiSearchResultHit, SearchResponse } from '@browse-dot-show/types'
 
 import '../App.css'
 

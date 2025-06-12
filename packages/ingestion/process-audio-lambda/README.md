@@ -1,4 +1,4 @@
-# @listen-fair-play/process-audio-lambda
+# @browse-dot-show/process-audio-lambda
 
 This Lambda function processes new audio files by transcribing them using Whisper API and applying spelling corrections to improve transcript accuracy.
 

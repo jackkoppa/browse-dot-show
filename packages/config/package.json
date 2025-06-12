@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/config",
+    "name": "@browse-dot-show/config",
     "private": true,
     "version": "0.0.1",
     "description": "JSON files used to configure podcast options, that benefit from being version-controlled",

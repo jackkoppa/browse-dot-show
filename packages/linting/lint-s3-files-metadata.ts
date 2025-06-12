@@ -1,7 +1,7 @@
 import * as xml2js from 'xml2js';
 import * as path from 'path';
 import { execSync } from 'child_process';
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 import { 
   fileExists, 
   getFile, 
@@ -9,10 +9,10 @@ import {
   listFiles, 
   listDirectories,
   deleteFile 
-} from '@listen-fair-play/s3';
-import { RSS_CONFIG } from '@listen-fair-play/config';
-import { EpisodeManifest, EpisodeInManifest, PodcastId } from '@listen-fair-play/types';
-import { EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
+} from '@browse-dot-show/s3';
+import { RSS_CONFIG } from '@browse-dot-show/config';
+import { EpisodeManifest, EpisodeInManifest, PodcastId } from '@browse-dot-show/types';
+import { EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
 import { parsePubDate } from './utils/parse-pub-date.js';
 

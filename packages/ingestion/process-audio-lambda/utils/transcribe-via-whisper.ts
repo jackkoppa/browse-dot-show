@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 
 const WHISPER_PROMPT = `Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!`;
 

@@ -1,11 +1,11 @@
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 import {
   listFiles,
   getFile,
   saveFile,
   fileExists,
   listDirectories
-} from '@listen-fair-play/s3';
+} from '@browse-dot-show/s3';
 import {
   applyCorrectionToFile,
   aggregateCorrectionResults,

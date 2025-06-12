@@ -1,6 +1,6 @@
 import SrtParser2 from "srt-parser-2";
-import { log } from '@listen-fair-play/logging';
-import { SearchEntry } from '@listen-fair-play/types';
+import { log } from '@browse-dot-show/logging';
+import { SearchEntry } from '@browse-dot-show/types';
 
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { EpisodeManifest } from '@listen-fair-play/types'
+import { EpisodeManifest } from '@browse-dot-show/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { log } from '../utils/logging'
 

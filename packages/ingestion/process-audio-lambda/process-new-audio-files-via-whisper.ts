@@ -2,7 +2,7 @@ import * as path from 'path';
 import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
-import { log } from '@listen-fair-play/logging';
+import { log } from '@browse-dot-show/logging';
 import {
   fileExists,
   getFile,
@@ -11,7 +11,7 @@ import {
   createDirectory,
   getDirectorySize,
   listDirectories,
-} from '@listen-fair-play/s3'
+} from '@browse-dot-show/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk } from './utils/ffmpeg-utils.js';
 import { 

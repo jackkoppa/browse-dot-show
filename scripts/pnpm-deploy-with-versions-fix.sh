@@ -3,7 +3,7 @@
 # workaround: https://github.com/pnpm/pnpm/issues/6269#issuecomment-1482879661
 
 # Usage: ./scripts/pnpm-deploy-with-versions-fix.sh <package-name>
-# Example: ./scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/rss-retrieval-lambda
+# Example: ./scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/rss-retrieval-lambda
 #
 # This script runs `pnpm deploy`, with a workaround for the pnpm versions issue.
 # It takes the package name as a command line argument.

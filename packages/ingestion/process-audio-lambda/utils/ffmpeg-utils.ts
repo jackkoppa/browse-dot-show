@@ -1,8 +1,8 @@
 import * as path from 'path';
 import fs from 'fs-extra';
 import { spawn } from 'child_process';
-import { log } from '@listen-fair-play/logging';
-import { getFile } from '@listen-fair-play/s3';
+import { log } from '@browse-dot-show/logging';
+import { getFile } from '@browse-dot-show/s3';
 
 // Constants
 const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB

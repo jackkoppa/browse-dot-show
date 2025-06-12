@@ -19,7 +19,7 @@ import {
 } from "./ui/drawer";
 import { Badge } from './ui/badge';
 import { trackEvent } from '../utils/goatcounter'
-import { PodcastId } from '@listen-fair-play/types';
+import { PodcastId } from '@browse-dot-show/types';
 
 const PODFOLLOW_LINK_FOOTBALL_CLICHES = 'https://podfollow.com/new-football-cliches';
 const PODFOLLOW_LINK_FOR_OUR_SINS = 'https://podfollow.com/football-cliches';

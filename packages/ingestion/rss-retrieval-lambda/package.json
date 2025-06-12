@@ -1,5 +1,5 @@
 {
-  "name": "@listen-fair-play/rss-retrieval-lambda",
+  "name": "@browse-dot-show/rss-retrieval-lambda",
   "version": "0.0.1",
   "description": "Retrieve RSS feeds and download audio files",
   "main": "retrieve-rss-feeds-and-download-audio-files.js",
@@ -11,7 +11,7 @@
     "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "dotenvx run -f ../../../.env.local -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
     "run:dev-s3": "dotenvx run -f ../../../.env.dev -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @listen-fair-play/rss-retrieval-lambda"
+    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/rss-retrieval-lambda"
   },
   "devDependencies": {
     "@smithy/shared-ini-file-loader": "^4.0.2",
@@ -20,15 +20,15 @@
     "@aws-sdk/client-s3": "catalog:",
     "@aws-sdk/credential-provider-sso": "catalog:",
     "@aws-sdk/s3-request-presigner": "catalog:",
-    "@listen-fair-play/config": "workspace:*",
-    "@listen-fair-play/constants": "workspace:*",
-    "@listen-fair-play/s3": "workspace:*",
-    "@listen-fair-play/logging": "workspace:*",
+    "@browse-dot-show/config": "workspace:*",
+    "@browse-dot-show/constants": "workspace:*",
+    "@browse-dot-show/s3": "workspace:*",
+    "@browse-dot-show/logging": "workspace:*",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "catalog:",
     "srt-parser-2": "catalog:",
     "xml2js": "catalog:",
-    "@listen-fair-play/types": "workspace:*",
+    "@browse-dot-show/types": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.24",
     "@types/fs-extra": "catalog:",
     "@types/node": "^20.0.0",

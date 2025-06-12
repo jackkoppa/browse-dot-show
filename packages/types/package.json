@@ -1,5 +1,5 @@
 {
-    "name": "@listen-fair-play/types",
+    "name": "@browse-dot-show/types",
     "private": true,
     "version": "0.0.1",
     "description": "TypeScript types, used by multiple packages",

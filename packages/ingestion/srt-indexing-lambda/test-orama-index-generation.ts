@@ -11,9 +11,9 @@ import {
   serializeOramaIndex, 
   deserializeOramaIndex,
   searchOramaIndex 
-} from '@listen-fair-play/database';
-import { SearchEntry, SearchRequest } from '@listen-fair-play/types';
-import { log } from '@listen-fair-play/logging';
+} from '@browse-dot-show/database';
+import { SearchEntry, SearchRequest } from '@browse-dot-show/types';
+import { log } from '@browse-dot-show/logging';
 
 // Set log level for testing
 log.setLevel('info');

@@ -1,14 +1,14 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@listen-fair-play/constants';
+import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
   serializeOramaIndex,
   type OramaSearchDatabase 
-} from '@listen-fair-play/database';
-import { log } from '@listen-fair-play/logging';
-import { SearchEntry, EpisodeInManifest, SearchRequest } from '@listen-fair-play/types';
+} from '@browse-dot-show/database';
+import { log } from '@browse-dot-show/logging';
+import { SearchEntry, EpisodeInManifest, SearchRequest } from '@browse-dot-show/types';
 import {
   fileExists, 
   getFile, 
@@ -16,7 +16,7 @@ import {
   listFiles,
   listDirectories,
   createDirectory
-} from '@listen-fair-play/s3'
+} from '@browse-dot-show/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 

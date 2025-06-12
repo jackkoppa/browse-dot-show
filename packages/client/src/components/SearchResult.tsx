@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { ApiSearchResultHit, EpisodeInManifest } from '@listen-fair-play/types'; // Import the new type
+import { ApiSearchResultHit, EpisodeInManifest } from '@browse-dot-show/types'; // Import the new type
 import {
   Card,
   CardContent,

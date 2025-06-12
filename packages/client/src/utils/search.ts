@@ -1,4 +1,4 @@
-import { SearchRequest, SearchResponse } from '@listen-fair-play/types';
+import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { SortOption } from '../types/search';
 
 export interface SearchParams {
