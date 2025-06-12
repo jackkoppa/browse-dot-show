@@ -285,13 +285,13 @@ describe('ffmpeg-utils', () => {
       const result = await promise;
 
       expect(result).toEqual({
-        filePath: '/tmp/podcast/episode.mp3',
+        filePath: expect.stringMatching(/^\/tmp\/process-\d+-\w+\/podcast\/episode\.mp3$/),
         metadata: expectedMetadata
       });
 
       expect(mockGetFile).toHaveBeenCalledWith(fileKey);
-      expect(mockFs.ensureDir).toHaveBeenCalledWith('/tmp/podcast');
-      expect(mockFs.writeFile).toHaveBeenCalledWith('/tmp/podcast/episode.mp3', expect.any(Buffer));
+      expect(mockFs.ensureDir).toHaveBeenCalledWith(expect.stringMatching(/^\/tmp\/process-\d+-\w+\/podcast$/));
+      expect(mockFs.writeFile).toHaveBeenCalledWith(expect.stringMatching(/^\/tmp\/process-\d+-\w+\/podcast\/episode\.mp3$/), expect.any(Buffer));
     });
   });
 }); 
