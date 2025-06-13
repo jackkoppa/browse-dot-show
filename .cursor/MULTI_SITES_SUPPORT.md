@@ -97,7 +97,7 @@ Expecially important:
 - ✅ `sites/types.ts` - Export interfaces for TypeScript support
 - ✅ `package.json` - Add site selection prompting to all pnpm scripts
 - ✅ `scripts/deploy/deploy.sh` - Add site parameter handling with prompting
-- ⚠️ Root `.env.dev`/`.env.prod` - Add `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT` (blocked by gitignore)
+- ✅ Root `.env.local`/`.env.dev` - Add `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT` (handled by user)
 - ✅ `scripts/utils/site-selector.js` - Create reusable site selection utility
 - ✅ `scripts/run-with-site-selection.js` - Site-aware wrapper script
 
