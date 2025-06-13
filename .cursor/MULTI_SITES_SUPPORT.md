@@ -93,30 +93,34 @@ Expecially important:
 ### Phase 1: Core Infrastructure & Site Management
 
 **Files to modify:**
-- `sites/index.ts` - Create site discovery and validation logic
-- `package.json` - Add site selection to all pnpm scripts
-- `scripts/deploy/deploy.sh` - Add site parameter handling
-- Root `.env.dev`/`.env.prod` - Add DEFAULT_SITE_ID
+- `sites/index.ts` - Create site discovery logic (prioritize `my-sites/`, fallback to `origin-sites/`)
+- `package.json` - Add site selection prompting to all pnpm scripts
+- `scripts/deploy/deploy.sh` - Add site parameter handling with prompting
+- Root `.env.dev`/`.env.prod` - Add `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT`
+- `scripts/utils/site-selector.js` - Create reusable site selection utility
 
 **Key tasks:**
-1. Create site discovery service that reads from both `origin-sites/` and `my-sites/`
-2. Add CLI prompting for site selection in all scripts
-3. Update root package.json scripts to accept `--site` parameter
-4. Create site validation (ensure site config exists, AWS profile is valid, etc.)
+1. Create site discovery service that prioritizes `/sites/my-sites/` over `/sites/origin-sites/`
+2. Add CLI prompting for site selection in all scripts (with DEFAULT_SITE_ID pre-selected)
+3. Support `SKIP_SITE_SELECTION_PROMPT=true` to bypass prompting
+4. Create site validation (ensure site config exists, `.env.aws` exists, AWS profile is valid)
+5. Create reusable site selection utility for consistent UX across all scripts
 
 ### Phase 2: Terraform Multi-Site Support
 
 **Files to modify:**
-- `terraform/variables.tf` - Add site_id variable, make bucket names site-specific
-- `terraform/main.tf` - Use site-specific resource naming and tagging
+- `terraform/variables.tf` - Add `site_id` variable, make all resource names site-specific
+- `terraform/main.tf` - Use site-specific resource naming and tagging for complete isolation
 - `terraform/modules/` - Update all modules to accept site context
-- `scripts/deploy/deploy.sh` - Update to use site-specific terraform state
+- `scripts/deploy/deploy.sh` - Use site-specific terraform state files (`.tfstate` per site)
+- `terraform/environments/` - Create site-specific `.tfvars` files
 
 **Key tasks:**
-1. Make all AWS resources site-specific (S3 buckets, Lambda names, CloudFront distributions)
-2. Implement site-specific Terraform state management (separate .tfstate files)
+1. Make ALL AWS resources site-specific: S3 buckets, Lambda names (search, process-audio, rss-retrieval, srt-indexing), CloudFront distributions
+2. Implement site-specific Terraform state management (separate `.tfstate` files per site)
 3. Add site tagging to all AWS resources for cost tracking and organization
-4. Support multiple AWS profiles/accounts through site configs
+4. Support multiple AWS profiles/accounts through site-specific `.env.aws` files
+5. Ensure complete infrastructure isolation between sites (even in same AWS account)
 
 ### Phase 3: Client Application Site-Awareness
 
@@ -124,13 +128,16 @@ Expecially important:
 - `packages/client/src/components/AppHeader.tsx` - Remove hardcoded Football Clichés references
 - `packages/client/src/components/PlayTimeLimitDialog.tsx` - Make podcast links dynamic
 - `packages/client/vite.config.ts` - Add site config injection at build time
-- `packages/client/src/config/` - Create runtime site config loading
+- `packages/client/src/config/site-config.ts` - Create build-time site config loading
+- `packages/client/package.json` - Update build scripts to accept site parameter
 
 **Key tasks:**
-1. Create site config loader that merges site.config.json with default values
-2. Replace hardcoded strings with dynamic site config values
+1. Create build-time site config injection (site.config.json → environment variables → React app)
+2. Replace ALL hardcoded strings with dynamic site config values
 3. Add site-specific styling support (CSS files from site directories)
-4. Generate site-specific client builds with appropriate configs
+4. Generate separate client builds per site (each deployed to different S3 buckets)
+5. Update build scripts to require site selection and load site-specific configs
+6. Ensure no runtime site switching - everything baked in at build time
 
 ### Phase 4: Lambda Functions & Processing
 
@@ -139,25 +146,32 @@ Expecially important:
 - `packages/search/` - Update search to work with site-specific data
 - `packages/s3/` - Update S3 paths to be site-specific
 - All lambda package.json scripts - Add site parameter support
+- `packages/config/rss-config.ts` - Remove hardcoded config in favor of site-specific configs
 
 **Key tasks:**
-1. Update S3 path structures to include site ID (e.g., `s3://bucket/sites/hardfork/audio/`)
-2. Make RSS processing read from site-specific configs
-3. Update search indexing to work with site-specific data
+1. Update S3 path structures to include site ID (e.g., `s3://bucket-siteid/audio/` or `s3://bucket/sites/hardfork/audio/`)
+2. Make RSS processing read from site-specific configs (each site's `includedPodcasts`)
+3. Update search indexing to work with site-specific data and indexes
 4. Ensure all lambdas receive site context through environment variables
+5. Remove centralized RSS_CONFIG in favor of site.config.json files
+6. Each site gets its own lambda instances (search-lambda-siteid, process-audio-lambda-siteid, etc.)
 
 ### Phase 5: Local Development & Testing
 
 **Files to modify:**
 - `scripts/trigger-ingestion-lambda.sh` - Add site parameter
 - `packages/client/package.json` - Update dev scripts for site selection
-- Development middleware in vite.config.ts - Serve site-specific transcript files
+- `packages/client/vite.config.ts` - Serve site-specific transcript files
+- All pnpm script commands - Add site selection prompting
+- `aws-local-dev/` - Create site-specific local data directories
 
 **Key tasks:**
-1. Update local dev server to serve site-specific assets
-2. Make transcript serving site-aware
-3. Update all local development scripts to prompt for site selection
-4. Create site-specific local data directories
+1. Update local dev server to serve site-specific assets from `aws-local-dev/s3/sites/{siteId}/`
+2. Make transcript serving site-aware (load from site-specific directories)
+3. Update ALL local development scripts to prompt for site selection
+4. Create site-specific local data directories for development
+5. Update all pnpm commands to load site-specific environment variables
+6. Ensure local development mirrors the site isolation of production
 
 ### Phase 6: Documentation & Developer Experience
 
@@ -175,11 +189,13 @@ Expecially important:
 
 ### Critical Implementation Notes:
 
-1. **Gradual Migration**: Each phase should maintain backwards compatibility with existing `listenfairplay.com` deployment
-2. **Site Isolation**: Ensure complete isolation between sites (separate S3 paths, separate terraform state, etc.)
-3. **Error Handling**: Robust validation at each step to prevent cross-site contamination
-4. **AWS Profile Management**: Proper handling of different AWS accounts through profile switching
-5. **State Management**: Careful handling of terraform state files to prevent conflicts
+1. **No Backwards Compatibility**: ALL operations require explicit site selection going forward - treat listenfairplay like any other site
+2. **Complete Site Isolation**: Ensure total isolation between sites (separate S3 buckets, terraform state, lambda instances, data paths)
+3. **Environment Variable Strategy**: Site-specific `.env.aws` files + shared root `.env` for common values (LOG_LEVEL, OPENAI_API_KEY, etc.)
+4. **Build-time Configuration**: All client builds are site-specific with config baked in at build time
+5. **AWS Profile Management**: Each site specifies its AWS profile in `.env.aws` for multi-account support
+6. **Site Discovery Logic**: Prioritize `/sites/my-sites/` over `/sites/origin-sites/` (allows overriding origin sites)
+7. **Minimal Downtime**: Existing listenfairplay.com should continue working during migration with careful terraform state management
 
 ### Most Relevant Files for Context:
 
