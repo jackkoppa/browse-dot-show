@@ -31,7 +31,7 @@ vi.mock('@browse-dot-show/config', () => ({
 
 // Mock the constants module
 vi.mock('@browse-dot-show/constants', () => ({
-  EPISODE_MANIFEST_KEY: 'episode-manifest/full-episode-manifest.json'
+      // Legacy constant removed - use getEpisodeManifestKey() function instead
 }));
 
 describe('parsePubDate', () => {

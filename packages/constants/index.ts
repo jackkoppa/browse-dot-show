@@ -11,8 +11,7 @@ export function getSearchIndexKey(): string {
   return 'search-index/orama_index.msp';
 }
 
-/** Legacy export for backwards compatibility */
-export const SEARCH_INDEX_DB_S3_KEY = 'search-index/orama_index.msp';
+
 
 /** 
  * Get site-aware local path for Orama search index in Lambda environment
@@ -26,8 +25,7 @@ export function getLocalDbPath(): string {
   return '/tmp/orama_index.msp';
 }
 
-/** Legacy export for backwards compatibility */
-export const LOCAL_DB_PATH = '/tmp/orama_index.msp';
+
 
 /** 
  * Get site-aware episode manifest key
@@ -42,5 +40,4 @@ export function getEpisodeManifestKey(): string {
   return 'episode-manifest/full-episode-manifest.json';
 }
 
-/** Legacy export for backwards compatibility */
-export const EPISODE_MANIFEST_KEY = 'episode-manifest/full-episode-manifest.json';
+

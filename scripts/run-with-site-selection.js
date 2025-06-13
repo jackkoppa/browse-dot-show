@@ -35,7 +35,8 @@ async function main() {
         const envVars = {
             ...process.env,
             ...siteEnvVars,
-            SELECTED_SITE_ID: siteId
+            SELECTED_SITE_ID: siteId,
+            CURRENT_SITE_ID: siteId  // Set for site-aware functions in @browse-dot-show/constants
         };
 
         console.log(`🚀 Running: ${command} ${commandArgs.join(' ')}`);
