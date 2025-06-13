@@ -46,17 +46,144 @@ Expecially important:
 
 ## Questions for Dev (dev's answers inline)
 
-1. 
+1. **Site Selection Strategy**: How should users select which site to work with? Should we:
+   - Use a default site from `.env` file (e.g., `DEFAULT_SITE_ID=listenfairplay`)?
+   - Always prompt users to select from available sites in `/sites/origin-sites/` or `/sites/my-sites/`?
+   - Pass site ID as a CLI argument (e.g., `pnpm client:dev --site=hardfork`)?
+   - **Answer**: 
 
+2. **AWS Account Separation**: For sites deployed to different AWS accounts, how should we handle:
+   - Terraform state files (separate `.tfstate` per site/account)?
+   - AWS profile management (should each site config specify its AWS profile)?
+   - S3 bucket naming (should bucket names include site ID to avoid conflicts)?
+   - **Answer**: 
 
-2. 
+3. **Build-time vs Runtime Configuration**: The React client currently has hardcoded Football Clichés references. Should we:
+   - Generate separate client builds per site (build-time config)?
+   - Use a single client that loads site config at runtime via API?
+   - Hybrid approach (some config at build-time, some at runtime)?
+   - **Answer**: 
 
+4. **Site Discovery**: How should scripts discover available sites? Should we:
+   - Always check both `/sites/origin-sites/` and `/sites/my-sites/` directories?
+   - Use the sites package's `index.ts` to export available sites?
+   - Have each site register itself in a central registry?
+   - **Answer**: 
 
-3. 
+5. **Backwards Compatibility**: For the existing `listenfairplay.com` deployment, should we:
+   - Maintain current behavior if no site is specified (defaulting to listenfairplay)?
+   - Require explicit site selection for all operations going forward?
+   - Gradually migrate existing scripts to be site-aware?
+   - **Answer**: 
 
-
+6. **Environment Variables**: Should site-specific env vars be:
+   - Stored in each site's directory (e.g., `sites/origin-sites/listenfairplay/.env`)?
+   - Merged into root `.env.dev`/`.env.prod` with site prefixes?
+   - Passed through command-line arguments?
+   - **Answer**: 
 
 ## Implementation Plan
+
+### Phase 1: Core Infrastructure & Site Management
+
+**Files to modify:**
+- `sites/index.ts` - Create site discovery and validation logic
+- `package.json` - Add site selection to all pnpm scripts
+- `scripts/deploy/deploy.sh` - Add site parameter handling
+- Root `.env.dev`/`.env.prod` - Add DEFAULT_SITE_ID
+
+**Key tasks:**
+1. Create site discovery service that reads from both `origin-sites/` and `my-sites/`
+2. Add CLI prompting for site selection in all scripts
+3. Update root package.json scripts to accept `--site` parameter
+4. Create site validation (ensure site config exists, AWS profile is valid, etc.)
+
+### Phase 2: Terraform Multi-Site Support
+
+**Files to modify:**
+- `terraform/variables.tf` - Add site_id variable, make bucket names site-specific
+- `terraform/main.tf` - Use site-specific resource naming and tagging
+- `terraform/modules/` - Update all modules to accept site context
+- `scripts/deploy/deploy.sh` - Update to use site-specific terraform state
+
+**Key tasks:**
+1. Make all AWS resources site-specific (S3 buckets, Lambda names, CloudFront distributions)
+2. Implement site-specific Terraform state management (separate .tfstate files)
+3. Add site tagging to all AWS resources for cost tracking and organization
+4. Support multiple AWS profiles/accounts through site configs
+
+### Phase 3: Client Application Site-Awareness
+
+**Files to modify:**
+- `packages/client/src/components/AppHeader.tsx` - Remove hardcoded Football Clichés references
+- `packages/client/src/components/PlayTimeLimitDialog.tsx` - Make podcast links dynamic
+- `packages/client/vite.config.ts` - Add site config injection at build time
+- `packages/client/src/config/` - Create runtime site config loading
+
+**Key tasks:**
+1. Create site config loader that merges site.config.json with default values
+2. Replace hardcoded strings with dynamic site config values
+3. Add site-specific styling support (CSS files from site directories)
+4. Generate site-specific client builds with appropriate configs
+
+### Phase 4: Lambda Functions & Processing
+
+**Files to modify:**
+- `packages/ingestion/` - Make RSS processing site-aware
+- `packages/search/` - Update search to work with site-specific data
+- `packages/s3/` - Update S3 paths to be site-specific
+- All lambda package.json scripts - Add site parameter support
+
+**Key tasks:**
+1. Update S3 path structures to include site ID (e.g., `s3://bucket/sites/hardfork/audio/`)
+2. Make RSS processing read from site-specific configs
+3. Update search indexing to work with site-specific data
+4. Ensure all lambdas receive site context through environment variables
+
+### Phase 5: Local Development & Testing
+
+**Files to modify:**
+- `scripts/trigger-ingestion-lambda.sh` - Add site parameter
+- `packages/client/package.json` - Update dev scripts for site selection
+- Development middleware in vite.config.ts - Serve site-specific transcript files
+
+**Key tasks:**
+1. Update local dev server to serve site-specific assets
+2. Make transcript serving site-aware
+3. Update all local development scripts to prompt for site selection
+4. Create site-specific local data directories
+
+### Phase 6: Documentation & Developer Experience
+
+**Files to create/modify:**
+- `sites/my-sites/README.md` - Instructions for users to create their own sites
+- `sites/my-sites/example-site/` - Template site configuration
+- Root `README.md` - Update with multi-site usage instructions
+- `scripts/create-new-site.sh` - Helper script for creating new sites
+
+**Key tasks:**
+1. Create comprehensive documentation for setting up new sites
+2. Provide template configurations and example sites
+3. Create helper scripts for common multi-site operations
+4. Add validation and error handling for site configurations
+
+### Critical Implementation Notes:
+
+1. **Gradual Migration**: Each phase should maintain backwards compatibility with existing `listenfairplay.com` deployment
+2. **Site Isolation**: Ensure complete isolation between sites (separate S3 paths, separate terraform state, etc.)
+3. **Error Handling**: Robust validation at each step to prevent cross-site contamination
+4. **AWS Profile Management**: Proper handling of different AWS accounts through profile switching
+5. **State Management**: Careful handling of terraform state files to prevent conflicts
+
+### Most Relevant Files for Context:
+
+- `sites/origin-sites/listenfairplay/site.config.json` - Current site structure
+- `packages/config/rss-config.ts` - Current RSS configuration
+- `terraform/main.tf` - Current infrastructure setup
+- `scripts/deploy/deploy.sh` - Current deployment process
+- `packages/client/src/components/AppHeader.tsx` - Hardcoded site content
+- `packages/client/vite.config.ts` - Build configuration
+- `terraform/variables.tf` - Infrastructure variables
 
 
 
