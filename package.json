@@ -10,6 +10,7 @@
     "all:deploy": "node scripts/run-with-site-selection.js \"deployment\" \"./scripts/deploy/deploy.sh\"",
     "lint:local": "node scripts/run-with-site-selection.js \"local linting\" \"pnpm --filter @browse-dot-show/linting lint:all:local\"",
     "lint:dev-s3": "node scripts/run-with-site-selection.js \"dev-s3 linting\" \"pnpm --filter @browse-dot-show/linting lint:all:dev-s3\"",
+    "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
     "client:dev": "node scripts/run-with-site-selection.js \"client development\" \"concurrently\" \"\\\"pnpm --filter @browse-dot-show/client _vite-dev\\\"\" \"\\\"pnpm --filter @browse-dot-show/client _serve-s3-assets\\\"\" \"\\\"pnpm search-lambda:dev:local\\\"\"",
     "client:build": "node scripts/run-with-site-selection.js \"client build\" \"pnpm --filter client build\"",
     "client:lint": "node scripts/run-with-site-selection.js \"client linting\" \"pnpm --filter client lint\"",

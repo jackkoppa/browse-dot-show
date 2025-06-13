@@ -7,7 +7,9 @@
     "type": "module",
     "scripts": {
         "build": "tsc",
-        "lint": "tsx lint.ts"
+        "lint": "tsx lint.ts",
+        "validate": "tsx lint.ts",
+        "validate:sites": "tsx lint.ts"
     },
     "devDependencies": {
         "typescript": "catalog:",
