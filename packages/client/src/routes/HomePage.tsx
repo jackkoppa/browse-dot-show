@@ -24,7 +24,7 @@ const SEARCH_LIMIT = 25;
 const ESTIMATED_TIME_FOR_LAMBDA_COLD_START = 10000; // 10 seconds
 
 /**
- * HomePage component that orchestrates the search functionality for the Football Clichés transcript search.
+ * HomePage component that orchestrates the search functionality for podcast transcript search.
  * 
  * Manages:
  * - Search state and API calls triggered by Enter key or button click

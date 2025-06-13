@@ -12,7 +12,8 @@ const __dirname = path.dirname(__filename);
  * If my-sites has any sites, origin-sites are ignored completely.
  */
 export function discoverSites(): SiteConfig[] {
-    const sitesDir = path.resolve(__dirname);
+    // Go up one level from dist/ to get to the sites directory
+    const sitesDir = path.resolve(__dirname, '..');
     const mySitesDir = path.join(sitesDir, 'my-sites');
     const originSitesDir = path.join(sitesDir, 'origin-sites');
 
@@ -122,7 +123,8 @@ export function validateSite(siteId: string): { valid: boolean; errors: string[]
  * Gets the directory path for a specific site
  */
 export function getSiteDirectory(siteId: string): string | null {
-    const sitesDir = path.resolve(__dirname);
+    // Go up one level from dist/ to get to the sites directory
+    const sitesDir = path.resolve(__dirname, '..');
     const mySitesDir = path.join(sitesDir, 'my-sites', siteId);
     const originSitesDir = path.join(sitesDir, 'origin-sites', siteId);
 

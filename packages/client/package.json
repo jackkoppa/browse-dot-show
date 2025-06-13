@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build",
-    "build-client:dev": "dotenvx run -f ../../.env.dev -- tsc -b && vite build",
-    "build-client:prod": "dotenvx run -f ../../.env.prod -- tsc -b && vite build",
+    "build": "echo 'Error: build requires SITE_ID. Use: SITE_ID=your-site-id pnpm build' && exit 1",
+    "build:site": "tsc -b && vite build",
+    "build-client:dev": "echo 'Deprecated: Use build:site with SITE_ID instead' && exit 1",
+    "build-client:prod": "echo 'Deprecated: Use build:site with SITE_ID instead' && exit 1",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
