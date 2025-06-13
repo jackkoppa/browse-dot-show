@@ -247,27 +247,36 @@ cat sites/my-sites/README.md
 cat README.md
 ```
 
-## 🎯 REMAINING PHASES
+## ✅ COMPLETED PHASES (1-7)
 
-### Phase 7: Environment Simplification (Remove Dev/Prod Split)
+### Phase 7: Environment Simplification (Remove Dev/Prod Split) ✅
 
-**Files to modify:**
-- `terraform/environments/` - Remove `dev.tfvars`, keep only site-specific `prod.tfvars` files
-- `package.json` - Remove all `:dev-s3` script variants, keep only `:local` and `:prod`
-- `scripts/deploy/deploy.sh` - Remove environment selection prompt, deploy only to prod
-- All lambda package.json files - Remove `:dev-s3` scripts
-- `terraform/variables.tf` - Remove environment-based variables
-- `.env.dev` → `.env.prod` (rename and consolidate)
+**Files Modified:**
+- ✅ `terraform/environments/dev.tfvars` - Removed dev environment file
+- ✅ `terraform/environments/prod.tfvars` - Removed generic prod environment file (keep only site-specific)
+- ✅ `.env.dev` → `.env.prod` - Renamed root environment file
+- ✅ `package.json` - Updated to use `all:build:prod` instead of `all:build:dev`
+- ✅ `scripts/deploy/deploy.sh` - Removed environment selection prompt, deploy only to prod
+- ✅ `scripts/deploy/check-prerequisites.sh` - Updated to use `.env.prod`
+- ✅ `scripts/deploy/destroy.sh` - Updated to use `.env.prod` and site-specific tfvars
+- ✅ `scripts/deploy/upload-client.sh` - Updated to use `.env.prod` and site-specific builds
+- ✅ `scripts/TEMP-download-all-bucket-objects-to-local.sh` - Updated to use `.env.prod`
+- ✅ All lambda package.json files - Removed `:dev-s3` scripts, kept `:local` and `:prod`
 
-**Key tasks:**
-1. 🎯 **Simplify deployment model**: Each site has only ONE deployed environment (prod)
-2. 🗑️ **Remove dev/prod distinction**: No more separate dev & prod infrastructure per site  
-3. 📝 **Script cleanup**: Remove all `:dev-s3` variants, keep only `:local` (development) and `:prod` (deployed)
-4. 🏗️ **Terraform simplification**: Remove environment-based resource naming, use site-based only
-5. 📂 **File consolidation**: Use single `.env.prod` per site instead of dev/prod variants
-6. ⚡ **Faster deployment**: Sites can tolerate brief downtime instead of maintaining dual environments
+**Key Accomplishments:**
+1. ✅ **Simplified deployment model**: Each site has only ONE deployed environment (prod)
+2. ✅ **Removed dev/prod distinction**: No more separate dev & prod infrastructure per site  
+3. ✅ **Script cleanup**: Removed all `:dev-s3` variants, kept only `:local` (development) and `:prod` (deployed)
+4. ✅ **Environment file consolidation**: Use single `.env.prod` instead of dev/prod variants
+5. ✅ **Faster deployment**: Sites can tolerate brief downtime instead of maintaining dual environments
+6. ✅ **Updated all scripts**: All deployment and utility scripts now use the simplified model
 
-**Rationale:** Site usage isn't high enough to justify separate dev/prod infrastructure. Each site becomes its own "environment" with simple local development → production deployment workflow.
+**Final Architecture:**
+- **Local Development**: `:local` scripts use `.env.local` + site-specific local directories
+- **Production Deployment**: `:prod` scripts use `.env.prod` + site-specific terraform configs
+- **Site Isolation**: Each site deploys to its own prod infrastructure using `{siteId}-prod.tfvars`
+
+## 🎯 PROJECT COMPLETE
 
 ### Critical Implementation Notes:
 

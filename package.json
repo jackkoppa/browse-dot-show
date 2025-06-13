@@ -5,7 +5,7 @@
   "description": "transcribe & search any podcast",
   "scripts": {
     "all:build": "pnpm --filter @browse-dot-show/* build",
-    "all:build:dev": "pnpm --filter @browse-dot-show/* build:dev",
+    "all:build:prod": "pnpm --filter @browse-dot-show/* build:prod",
     "all:test": "pnpm --filter @browse-dot-show/* test",
     "all:deploy": "node scripts/run-with-site-selection.js \"deployment\" \"./scripts/deploy/deploy.sh\"",
     "lint:local": "node scripts/run-with-site-selection.js \"local linting\" \"pnpm --filter @browse-dot-show/linting lint:all:local\"",

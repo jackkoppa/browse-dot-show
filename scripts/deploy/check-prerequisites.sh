@@ -22,9 +22,9 @@ else
     echo "✅ AWS CLI v$AWS_VERSION installed"
 fi
 
-# Load environment variables from .env.dev if it exists
-if [ -f ".env.dev" ]; then
-    source .env.dev
+# Load environment variables from .env.prod if it exists
+if [ -f ".env.prod" ]; then
+    source .env.prod
 fi
 
 # Check AWS SSO authentication
@@ -38,8 +38,8 @@ if [ -n "$AWS_PROFILE" ]; then
         echo "✅ AWS SSO authentication verified with profile: $AWS_PROFILE"
     fi
 else
-    echo "❌ AWS_PROFILE is not set in .env.dev"
-    echo "  Please add AWS_PROFILE to .env.dev for AWS SSO authentication"
+    echo "❌ AWS_PROFILE is not set in .env.prod"
+    echo "  Please add AWS_PROFILE to .env.prod for AWS SSO authentication"
     echo "  Run 'aws configure sso' to set up an SSO profile if needed"
     exit 1
 fi
@@ -74,21 +74,21 @@ else
     fi
 fi
 
-# Check if .env.dev exists
-if [ ! -f ".env.dev" ]; then
-    echo "❌ .env.dev file not found. Please create it from .env.dev.example"
+# Check if .env.prod exists
+if [ ! -f ".env.prod" ]; then
+    echo "❌ .env.prod file not found. Please create it with necessary credentials"
     exit 1
 else
-    echo "✅ .env.dev file exists"
+    echo "✅ .env.prod file exists"
     
-    # Check for required variables in .env.dev
-    if ! grep -q "OPENAI_API_KEY" .env.dev; then
-        echo "⚠️  Warning: OPENAI_API_KEY not found in .env.dev"
+    # Check for required variables in .env.prod
+    if ! grep -q "OPENAI_API_KEY" .env.prod; then
+        echo "⚠️  Warning: OPENAI_API_KEY not found in .env.prod"
     fi
     
     # Check for AWS profile
-    if ! grep -q "AWS_PROFILE" .env.dev; then
-        echo "⚠️  Warning: AWS_PROFILE not found in .env.dev"
+    if ! grep -q "AWS_PROFILE" .env.prod; then
+        echo "⚠️  Warning: AWS_PROFILE not found in .env.prod"
     fi
 fi
 

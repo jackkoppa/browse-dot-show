@@ -5,11 +5,11 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Load environment variables from .env.dev if it exists
+// Load environment variables from .env.prod if it exists
 function loadEnvFile() {
-    const envFile = path.join(process.cwd(), '.env.dev');
+    const envFile = path.join(process.cwd(), '.env.prod');
     if (fs.existsSync(envFile)) {
-        console.log('Loading environment variables from .env.dev');
+        console.log('Loading environment variables from .env.prod');
         const envContent = fs.readFileSync(envFile, 'utf8');
         envContent.split('\n').forEach(line => {
             const [key, value] = line.split('=');
@@ -18,7 +18,7 @@ function loadEnvFile() {
             }
         });
     } else {
-        console.log('Warning: .env.dev file not found. Make sure to create it with necessary credentials.');
+        console.log('Warning: .env.prod file not found. Make sure to create it with necessary credentials.');
     }
 }
 
@@ -80,25 +80,9 @@ async function main() {
 
         console.log(`🌐 Deploying site: ${SITE_ID}`);
 
-        // Environment selection prompt
-        const envResponse = await prompts({
-            type: 'select',
-            name: 'environment',
-            message: 'Select deployment environment:',
-            choices: [
-                { title: 'Development', value: 'dev' },
-                { title: 'Production', value: 'prod' }
-            ],
-            initial: 0
-        });
-
-        if (!envResponse.environment) {
-            console.log('Deployment cancelled.');
-            process.exit(0);
-        }
-
-        const ENV = envResponse.environment;
-        console.log(`Deploying to ${ENV} environment for site ${SITE_ID}...`);
+        // Deploy only to production (Phase 7: simplified environment model)
+        const ENV = 'prod';
+        console.log(`Deploying to production for site ${SITE_ID}...`);
 
         // Set environment variables for child processes
         process.env.ENV = ENV;
@@ -124,7 +108,7 @@ async function main() {
             message: 'Select pre-deployment steps to run:',
             choices: [
                 { title: 'Run tests (pnpm all:test)', value: 'test', selected: true },
-                { title: 'Run linting (pnpm lint:dev-s3)', value: 'lint', selected: true },
+                { title: 'Run linting (pnpm lint:prod)', value: 'lint', selected: true },
                 { title: 'Deploy client files to S3', value: 'client', selected: true }
             ],
             hint: '- Space to select/deselect. Return to continue'
@@ -144,7 +128,7 @@ async function main() {
         // Validate required environment variables
         if (!process.env.OPENAI_API_KEY) {
             console.log('Error: OpenAI API key is missing.');
-            console.log('Make sure .env.dev contains:');
+            console.log('Make sure .env.prod contains:');
             console.log('  OPENAI_API_KEY=your_openai_api_key');
             process.exit(1);
         }
@@ -172,7 +156,7 @@ async function main() {
 
         if (selectedOptions.includes('lint')) {
             console.log('Running linting...');
-            await runCommand('pnpm', ['lint:dev-s3']);
+            await runCommand('pnpm', ['lint:prod']);
         }
 
         console.log(`Building all packages for ${ENV} environment...`);
@@ -212,7 +196,7 @@ async function main() {
         // Set profile flag for Terraform commands if using AWS profile
         const terraformArgs = [
             'plan',
-            `-var-file=environments/${ENV}.tfvars`,
+            `-var-file=environments/${SITE_ID}-prod.tfvars`,
             `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
             `-var=site_id=${SITE_ID}`,
             '-out=tfplan'
