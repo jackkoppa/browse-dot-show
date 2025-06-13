@@ -50,37 +50,43 @@ Expecially important:
    - Use a default site from `.env` file (e.g., `DEFAULT_SITE_ID=listenfairplay`)?
    - Always prompt users to select from available sites in `/sites/origin-sites/` or `/sites/my-sites/`?
    - Pass site ID as a CLI argument (e.g., `pnpm client:dev --site=hardfork`)?
-   - **Answer**: 
+   - **Answer**: Always prompt users to select from available sites. We should always start with the one in `DEFAULT_SITE_ID=` (at a root .env file) as the first-selected `site`, but we should always prompt, **UNLESS** `SKIP_SITE_SELECTION_PROMPT=true`
 
 2. **AWS Account Separation**: For sites deployed to different AWS accounts, how should we handle:
    - Terraform state files (separate `.tfstate` per site/account)?
    - AWS profile management (should each site config specify its AWS profile)?
    - S3 bucket naming (should bucket names include site ID to avoid conflicts)?
    - **Answer**: 
+        * Terraform state files - **yes** - separate `.tfstate` per site
+        *  AWS profile management - **yes** - each site config should specify its AWS profile
+        * S3 bucket naming - **yes** - even though each site will _possibly_ be deployed to separate AWS accounts, some **could** be deployed to the same AWS account. Thus, their infrastructure (including S3 bucket names) should include their site id. To avoid conflicts.
+        Note: this also applies to the Lambdas - each `site` will have its own search Lambda, its own process-audio-lambda, its own rss-retrieval-lambda, and its own srt-indexign-lambda
 
 3. **Build-time vs Runtime Configuration**: The React client currently has hardcoded Football Clichés references. Should we:
    - Generate separate client builds per site (build-time config)?
    - Use a single client that loads site config at runtime via API?
    - Hybrid approach (some config at build-time, some at runtime)?
-   - **Answer**: 
+   - **Answer**: Absolutely these need to be different build-time configs. The static files for each site are going to be deployed to completely different S3 buckets, and as such, any site-specific values need to be set at build time
 
 4. **Site Discovery**: How should scripts discover available sites? Should we:
    - Always check both `/sites/origin-sites/` and `/sites/my-sites/` directories?
    - Use the sites package's `index.ts` to export available sites?
    - Have each site register itself in a central registry?
-   - **Answer**: 
+   - **Answer**:  You can have sites package's `index.ts` export the correct sites. And that can be handled at build time, such that elsewhere in the application, we just import from `@browse-dot-show/sites`. The behavior is: always export only the sites from `/sites/my-sites/`, **UNLESS* there are no sites there. Then export the sites from `/sites/origin-sites/`. See their respective README.md files for that info
 
 5. **Backwards Compatibility**: For the existing `listenfairplay.com` deployment, should we:
    - Maintain current behavior if no site is specified (defaulting to listenfairplay)?
    - Require explicit site selection for all operations going forward?
    - Gradually migrate existing scripts to be site-aware?
-   - **Answer**: 
+   - **Answer**: Require explicit site selection for all operations going forward. Going forward, it should be treated like all other `/sites`. Note that that domain does exist already, so we should try to have minimal impact on it. But we also already have the Terraform state for that domain specifically, so hopefully can update/deploy with limited downtime.
 
 6. **Environment Variables**: Should site-specific env vars be:
    - Stored in each site's directory (e.g., `sites/origin-sites/listenfairplay/.env`)?
    - Merged into root `.env.dev`/`.env.prod` with site prefixes?
    - Passed through command-line arguments?
-   - **Answer**: 
+   - **Answer**: Stored in each site's directory. Plan is for these to be called `sites/origin-sites/{siteID}/.env.aws`. The root `.env` file can still have values that are shared across all sites - good example is `LOG_LEVEL=` and `WHISPER_API_PROVIDER=` and `OPENAI_API_KEY=`
+
+   For reference: see `/Users/jackkoppa/Personal_Development/browse-dot-show/.cursor/EXAMPLES_OF_ENV_FILES.md` for what current .env files do.
 
 ## Implementation Plan
 
