@@ -1,0 +1,23 @@
+{
+    "id": "listenfairplay",
+    "domain": "listenfairplay.com",
+    "shortTitle": "Listen, Fair Play",
+    "fullTitle": "Listen, Fair Play",
+    "description": "search the Football Clichés record books",
+    "includedPodcasts": [
+        {
+            "id": "football-cliches",
+            "rssFeedFile": "football-cliches.xml",
+            "title": "Football Cliches",
+            "status": "active",
+            "url": "https://feeds.megaphone.fm/GLT7974369854"
+        },
+        {
+            "id": "for-our-sins-the-cliches-pod-archive",
+            "rssFeedFile": "for-our-sins-the-cliches-pod-archive.xml",
+            "title": "For Our Sins: The Clichés Pod Archive",
+            "status": "archived",
+            "url": "https://feeds.megaphone.fm/tamc1411507018"
+        }
+    ]
+}

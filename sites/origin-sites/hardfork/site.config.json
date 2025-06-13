@@ -1,0 +1,16 @@
+{
+    "id": "hardfork",
+    "domain": "hardfork.browse.show",
+    "shortTitle": "Hard Fork",
+    "fullTitle": "Hard Fork",
+    "description": "Search all Hard Fork episodes",
+    "includedPodcasts": [
+        {
+            "id": "hard-fork",
+            "rssFeedFile": "hard-fork.xml",
+            "title": "Hard Fork",
+            "status": "active",
+            "url": "https://feeds.simplecast.com/l2i9YnTd"
+        }
+    ]
+}

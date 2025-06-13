@@ -1,0 +1,16 @@
+{
+    "id": "naddpod",
+    "domain": "naddpod.browse.show",
+    "shortTitle": "NADDPOD",
+    "fullTitle": "Not Another D&D Podcast",
+    "description": "Search all NADDPOD episodes",
+    "includedPodcasts": [
+        {
+            "id": "not-another-d-and-d-podcast",
+            "rssFeedFile": "not-another-d-and-d-podcast.xml",
+            "title": "Not Another D&D Podcast",
+            "status": "active",
+            "url": "https://rss.art19.com/not-another-d-and-d-podcast"
+        }
+    ]
+}

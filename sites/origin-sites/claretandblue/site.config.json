@@ -1,0 +1,16 @@
+{
+    "id": "claretandblue",
+    "domain": "claretandblue.browse.show",
+    "shortTitle": "Claret & Blue",
+    "fullTitle": "Claret & Blue",
+    "description": "Search all Claret & Blue episodes",
+    "includedPodcasts": [
+        {
+            "id": "claret-and-blue",
+            "rssFeedFile": "claret-and-blue.xml",
+            "title": "Claret & Blue",
+            "status": "active",
+            "url": "https://feeds.megaphone.fm/RPSL1112526468"
+        }
+    ]
+}

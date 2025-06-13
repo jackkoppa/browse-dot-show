@@ -1,0 +1,20 @@
+{
+    "name": "@browse-dot-show/sites",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Deployed sites for browse-dot-show",
+    "main": "./dist/index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "lint": "tsx lint.ts"
+    },
+    "devDependencies": {
+        "typescript": "catalog:",
+        "tsx": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+  }
