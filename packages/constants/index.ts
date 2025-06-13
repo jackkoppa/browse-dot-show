@@ -1,8 +1,46 @@
-/** S3 key for the Orama search index file */
+/** 
+ * Get site-aware S3 key for the Orama search index file
+ * For site-aware operations, uses site-specific path
+ * For legacy operations, uses original path
+ */
+export function getSearchIndexKey(): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  if (siteId) {
+    return `sites/${siteId}/search-index/orama_index.msp`;
+  }
+  return 'search-index/orama_index.msp';
+}
+
+/** Legacy export for backwards compatibility */
 export const SEARCH_INDEX_DB_S3_KEY = 'search-index/orama_index.msp';
 
-/** Local path for Orama search index in Lambda environment */
+/** 
+ * Get site-aware local path for Orama search index in Lambda environment
+ * Each site gets its own temp file to avoid conflicts
+ */
+export function getLocalDbPath(): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  if (siteId) {
+    return `/tmp/orama_index_${siteId}.msp`;
+  }
+  return '/tmp/orama_index.msp';
+}
+
+/** Legacy export for backwards compatibility */
 export const LOCAL_DB_PATH = '/tmp/orama_index.msp';
 
-/** file key for the full episode manifest, where all basic episode metadata is stored */
+/** 
+ * Get site-aware episode manifest key
+ * For site-aware operations, uses site-specific path
+ * For legacy operations, uses original path
+ */
+export function getEpisodeManifestKey(): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  if (siteId) {
+    return `sites/${siteId}/episode-manifest/full-episode-manifest.json`;
+  }
+  return 'episode-manifest/full-episode-manifest.json';
+}
+
+/** Legacy export for backwards compatibility */
 export const EPISODE_MANIFEST_KEY = 'episode-manifest/full-episode-manifest.json';

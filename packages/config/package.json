@@ -8,6 +8,9 @@
     "scripts": {
         "build": "tsc"
     },
+    "dependencies": {
+        "@browse-dot-show/sites": "workspace:*"
+    },
     "devDependencies": {
         "typescript": "catalog:"
     },

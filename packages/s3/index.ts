@@ -6,7 +6,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@browse-dot-show/logging';
 
-// Configuration constants
+// Legacy configuration constants (will be replaced by site-specific buckets)
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
@@ -28,9 +28,19 @@ const s3 = new S3({
 });
 
 /**
- * Get the bucket name based on environment
+ * Get the bucket name based on environment and site
+ * For site-aware operations, uses site-specific bucket names
+ * For legacy operations, falls back to original bucket names
  */
 function getBucketName(): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  
+  if (siteId && FILE_STORAGE_ENV === 'prod-s3') {
+    // Site-specific bucket naming: browse-dot-show-{siteId}-s3-prod
+    return `browse-dot-show-${siteId}-s3-prod`;
+  }
+  
+  // Legacy bucket names for backwards compatibility
   switch (FILE_STORAGE_ENV) {
     case 'dev-s3':
       return DEV_BUCKET_NAME;
@@ -43,8 +53,17 @@ function getBucketName(): string {
 
 /**
  * Resolve a local file path from an S3 key
+ * For site-aware operations, includes site-specific subdirectories
  */
 function getLocalFilePath(key: string): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  
+  if (siteId) {
+    // Site-specific local path: aws-local-dev/s3/sites/{siteId}/{key}
+    return path.join(LOCAL_S3_PATH, 'sites', siteId, key);
+  }
+  
+  // Legacy path for backwards compatibility
   return path.join(LOCAL_S3_PATH, key);
 }
 

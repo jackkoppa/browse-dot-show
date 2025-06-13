@@ -202,6 +202,10 @@ importers:
         version: 1.6.1(@types/node@20.17.25)(jsdom@26.0.0)(lightningcss@1.30.1)
 
   packages/config:
+    dependencies:
+      '@browse-dot-show/sites':
+        specifier: workspace:*
+        version: link:../../sites
     devDependencies:
       typescript:
         specifier: 'catalog:'

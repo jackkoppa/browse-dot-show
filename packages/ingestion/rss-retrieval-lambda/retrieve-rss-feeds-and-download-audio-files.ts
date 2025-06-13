@@ -4,9 +4,9 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { log } from '@browse-dot-show/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@browse-dot-show/s3';
-import { RSS_CONFIG } from '@browse-dot-show/config';
+import { getCurrentSiteRSSConfig, getCurrentSiteId } from '@browse-dot-show/config';
 import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
-import { EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
+import { getEpisodeManifestKey } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
@@ -103,18 +103,20 @@ async function saveRSSFeedToS3(
 
 // Read or create Episode Manifest
 async function getOrCreateEpisodeManifest(): Promise<EpisodeManifest> {
+  const episodeManifestKey = getEpisodeManifestKey();
+  
   try {
-    if (await fileExists(EPISODE_MANIFEST_KEY)) {
-      const manifestBuffer = await getFile(EPISODE_MANIFEST_KEY);
+    if (await fileExists(episodeManifestKey)) {
+      const manifestBuffer = await getFile(episodeManifestKey);
       return JSON.parse(manifestBuffer.toString('utf-8')) as EpisodeManifest;
     } else {
-      log.info(`Episode manifest not found at ${EPISODE_MANIFEST_KEY}, creating a new one.`);
+      log.info(`Episode manifest not found at ${episodeManifestKey}, creating a new one.`);
       await createDirectory(EPISODE_MANIFEST_DIR_PREFIX); // Ensure directory exists
       const newManifest: EpisodeManifest = {
         lastUpdated: new Date().toISOString(),
         episodes: [],
       };
-      await saveFile(EPISODE_MANIFEST_KEY, JSON.stringify(newManifest, null, 2));
+      await saveFile(episodeManifestKey, JSON.stringify(newManifest, null, 2));
       return newManifest;
     }
   } catch (error) {
@@ -125,10 +127,12 @@ async function getOrCreateEpisodeManifest(): Promise<EpisodeManifest> {
 
 // Save Episode Manifest
 async function saveEpisodeManifest(manifest: EpisodeManifest): Promise<void> {
+  const episodeManifestKey = getEpisodeManifestKey();
+  
   try {
     manifest.lastUpdated = new Date().toISOString();
-    await saveFile(EPISODE_MANIFEST_KEY, JSON.stringify(manifest, null, 2));
-    log.debug(`Episode manifest saved to ${EPISODE_MANIFEST_KEY}`);
+    await saveFile(episodeManifestKey, JSON.stringify(manifest, null, 2));
+    log.debug(`Episode manifest saved to ${episodeManifestKey}`);
   } catch (error) {
     log.error('Error saving episode manifest:', error);
     throw error;
@@ -183,7 +187,7 @@ function getEpisodeSummary(rssItem: RssEpisode): string {
 // Identify new episodes from RSS and add them to the manifest
 async function updateManifestWithNewEpisodes(
   parsedFeed: any, 
-  podcastConfig: typeof RSS_CONFIG[keyof typeof RSS_CONFIG],
+  podcastConfig: any,
   episodeManifest: EpisodeManifest
 ): Promise<{ newEpisodesInManifest: EpisodeInManifest[], existingEpisodesInManifest: EpisodeInManifest[] }> {
   const rssEpisodes: RssEpisode[] = parsedFeed.rss.channel.item || [];
@@ -356,7 +360,8 @@ async function invalidateCloudFrontCacheForManifest(): Promise<void> {
   }
 
   // The path to invalidate must start with a leading '/'
-  const pathKey = EPISODE_MANIFEST_KEY.startsWith('/') ? EPISODE_MANIFEST_KEY : `/${EPISODE_MANIFEST_KEY}`;
+  const episodeManifestKey = getEpisodeManifestKey();
+  const pathKey = episodeManifestKey.startsWith('/') ? episodeManifestKey : `/${episodeManifestKey}`;
 
   log.info(`Invalidating CloudFront cache for: ${pathKey} in distribution: ${cloudfrontDistributionId}`);
 
@@ -393,8 +398,10 @@ export async function handler(): Promise<void> {
     
     const episodeManifest = await getOrCreateEpisodeManifest();
     
-    // The RSS_CONFIG is now imported from @browse-dot-show/config
-    const activeFeeds = Object.values(RSS_CONFIG).filter(feed => feed.status === 'active');
+    // Get site-aware RSS configuration
+    log.info(`🌐 Loading RSS configuration for site: ${getCurrentSiteId()}`);
+    const siteRSSConfig = getCurrentSiteRSSConfig();
+    const activeFeeds = Object.values(siteRSSConfig).filter(feed => feed.status === 'active');
     
     log.debug(`Found ${activeFeeds.length} active feeds to process based on version-controlled config.`);
     
@@ -550,8 +557,8 @@ export async function handler(): Promise<void> {
     if (totalNewManifestEntries > 0 || totalNewDownloads > 0) {
       log.info('\n📂 Breakdown by Podcast:');
       for (const [podcastName, counts] of podcastStats) {
-        // Find the title from RSS_CONFIG using podcastName (which is the ID)
-        const podcastTitle = RSS_CONFIG[podcastName as keyof typeof RSS_CONFIG]?.title || podcastName;
+        // Find the title from site RSS config using podcastName (which is the ID)
+        const podcastTitle = siteRSSConfig[podcastName]?.title || podcastName;
         log.info(`\n  Podcast: ${podcastTitle}`);
         log.info(`    ✉️  New Manifest Entries: ${counts.newManifestEntries}`);
         log.info(`    📥 New Audio Downloads: ${counts.newDownloads}`);
