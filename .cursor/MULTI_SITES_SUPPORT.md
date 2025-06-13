@@ -90,6 +90,41 @@ Expecially important:
 
 ## Implementation Plan
 
+## ✅ COMPLETED PHASES (1-5)
+
+**Multi-site support is now fully operational!** The repository successfully supports multiple sites with complete isolation in production and local development. Here's what's been achieved:
+
+### Summary of Completed Work
+- **🏗️ Complete Infrastructure**: Site-specific AWS resources, Terraform state management, deployment scripts
+- **⚙️ Lambda Processing**: Site-aware RSS processing, search indexing, and audio processing with isolated data
+- **🖥️ Client Applications**: Site-specific builds with dynamic configuration injection
+- **🛠️ Local Development**: Site-aware development server, asset serving, and local data organization
+- **📋 Site Management**: Comprehensive site selection, validation, and configuration system
+
+All scripts now prompt for site selection, all data is isolated by site, and the system supports deployment to multiple AWS accounts.
+
+### 🚀 Quick Start Examples
+
+```bash
+# Set up local development for any site
+pnpm setup:site-directories      # Create site-specific local directories
+pnpm client:dev                  # Start development server (prompts for site)
+pnpm rss-retrieval-lambda:run:local  # Run RSS ingestion locally
+
+# Deploy a site to production  
+pnpm all:deploy                  # Deploy site infrastructure (prompts for site)
+
+# Build and run site-specific lambdas
+cd packages/ingestion/rss-retrieval-lambda
+pnpm build:site listenfairplay   # Build lambda for specific site
+pnpm run:site listenfairplay     # Run lambda for specific site
+
+# Trigger production lambdas
+pnpm trigger:ingestion-lambda    # Trigger deployed lambdas (prompts for site)
+```
+
+---
+
 ### Phase 1: Core Infrastructure & Site Management ✅
 
 **Files to modify:**
@@ -128,58 +163,62 @@ Expecially important:
 5. ✅ Ensure complete infrastructure isolation between sites (even in same AWS account)
 6. ✅ Remove dev/prod environment distinction in favor of site-specific deployments
 
-### Phase 3: Client Application Site-Awareness
+### Phase 3: Client Application Site-Awareness ✅
 
-**Files to modify:**
-- `packages/client/src/components/AppHeader.tsx` - Remove hardcoded Football Clichés references
-- `packages/client/src/components/PlayTimeLimitDialog.tsx` - Make podcast links dynamic
-- `packages/client/vite.config.ts` - Add site config injection at build time
-- `packages/client/src/config/site-config.ts` - Create build-time site config loading
-- `packages/client/package.json` - Update build scripts to accept site parameter
+**Files Modified:**
+- ✅ `packages/client/src/components/AppHeader.tsx` - Replaced hardcoded Football Clichés references with dynamic site config
+- ✅ `packages/client/src/components/PlayTimeLimitDialog.tsx` - Made podcast links dynamic using site config
+- ✅ `packages/client/vite.config.ts` - Added site config injection at build time via `loadSiteConfig()`
+- ✅ `packages/client/src/config/site-config.ts` - Created build-time site config loading system
+- ✅ `packages/client/package.json` - Updated build scripts to require `SITE_ID` parameter
 
-**Key tasks:**
-1. Create build-time site config injection (site.config.json → environment variables → React app)
-2. Replace ALL hardcoded strings with dynamic site config values
-3. Add site-specific styling support (CSS files from site directories)
-4. Generate separate client builds per site (each deployed to different S3 buckets)
-5. Update build scripts to require site selection and load site-specific configs
-6. Ensure no runtime site switching - everything baked in at build time
+**Key Implementation Details:**
+- ✅ **Build-time Config Injection**: Site configuration loaded from `site.config.json` → environment variables → React app
+- ✅ **Dynamic Site Values**: All hardcoded strings replaced with `VITE_SITE_*` environment variables
+- ✅ **Site-Specific Builds**: Each site generates separate client build with baked-in configuration
+- ✅ **Error Handling**: Build scripts enforce site selection - no default fallback
+- ✅ **TypeScript Support**: Full type safety for site configuration throughout client code
 
-### Phase 4: Lambda Functions & Processing
+### Phase 4: Lambda Functions & Processing ✅
 
-**Files to modify:**
-- `packages/ingestion/` - Make RSS processing site-aware
-- `packages/search/` - Update search to work with site-specific data
-- `packages/s3/` - Update S3 paths to be site-specific
-- All lambda package.json scripts - Add site parameter support
-- `packages/config/rss-config.ts` - Remove hardcoded config in favor of site-specific configs
+**Files Modified:**
+- ✅ `packages/config/rss-config.ts` - Added site-aware functions: `getRSSConfigForSite()`, `getCurrentSiteId()`, `getCurrentSiteRSSConfig()`
+- ✅ `packages/s3/index.ts` - Updated S3 paths for site-specific buckets and local storage
+- ✅ `packages/constants/index.ts` - Added site-aware path functions: `getEpisodeManifestKey()`, `getSearchIndexKey()`, `getLocalDbPath()`
+- ✅ All lambda `package.json` files - Added site-specific scripts: `build:site`, `run:site`, `dev:site`, `test:site`
+- ✅ `packages/ingestion/rss-retrieval-lambda/` - Updated to use site-specific RSS config and S3 paths
+- ✅ `scripts/build-lambda-for-site.sh` - New script for building lambdas for specific sites
+- ✅ `scripts/run-lambda-for-site.sh` - New script for running lambdas for specific sites
 
-**Key tasks:**
-1. Update S3 path structures to include site ID (e.g., `s3://bucket-siteid/audio/` or `s3://bucket/sites/hardfork/audio/`)
-2. Make RSS processing read from site-specific configs (each site's `includedPodcasts`)
-3. Update search indexing to work with site-specific data and indexes
-4. Ensure all lambdas receive site context through environment variables
-5. Remove centralized RSS_CONFIG in favor of site.config.json files
-6. Each site gets its own lambda instances (search-lambda-siteid, process-audio-lambda-siteid, etc.)
+**Key Implementation Details:**
+- ✅ **Site-Specific S3 Structure**: Production buckets: `browse-dot-show-{siteId}-s3-prod`, Local: `aws-local-dev/s3/sites/{siteId}/`
+- ✅ **RSS Configuration**: Each site reads from its own `site.config.json` instead of hardcoded values
+- ✅ **Lambda Isolation**: Each site gets its own lambda instances with site-specific naming
+- ✅ **Environment Variables**: `CURRENT_SITE_ID` passed to all lambdas for site context
+- ✅ **Backwards Compatibility**: Legacy exports and paths maintained for existing deployments
+- ✅ **Data Isolation**: Complete separation of processing data between sites
 
-### Phase 5: Local Development & Testing
+### Phase 5: Local Development & Testing ✅
 
-**Files to modify:**
-- `scripts/trigger-ingestion-lambda.sh` - Add site parameter
-- `packages/client/package.json` - Update dev scripts for site selection
-- `packages/client/vite.config.ts` - Serve site-specific transcript files
-- All pnpm script commands - Add site selection prompting
-- `aws-local-dev/` - Create site-specific local data directories
+**Files Modified:**
+- ✅ `scripts/trigger-ingestion-lambda.sh` - Added site selection and site-specific lambda invocation
+- ✅ `packages/client/package.json` - Updated to use site-aware asset serving script
+- ✅ `packages/client/vite.config.ts` - Already serving site-specific transcript files (confirmed working)
+- ✅ `package.json` - Updated all pnpm scripts with site selection and removed `:dev-s3` variants
+- ✅ `scripts/serve-site-assets.js` - New script for serving site-specific assets
+- ✅ `scripts/setup-site-local-directories.js` - New script for creating site-specific local directories
 
-**Key tasks:**
-1. Update local dev server to serve site-specific assets from `aws-local-dev/s3/sites/{siteId}/`
-2. Make transcript serving site-aware (load from site-specific directories)
-3. Update ALL local development scripts to prompt for site selection
-4. Create site-specific local data directories for development
-5. Update all pnpm commands to load site-specific environment variables
-6. Ensure local development mirrors the site isolation of production
+**Key Implementation Details:**
+- ✅ **Site-Specific Local Structure**: `aws-local-dev/s3/sites/{siteId}/` with full directory hierarchy (audio, transcripts, search-entries, etc.)
+- ✅ **Asset Serving**: Dynamic asset serving from site-specific directories with legacy fallback
+- ✅ **Lambda Triggering**: Site selection + site-specific lambda names (e.g., `retrieve-rss-feeds-{siteId}`)
+- ✅ **Environment Loading**: Combines shared `.env.local` with site-specific `.env.aws` files
+- ✅ **Legacy Migration**: Automated migration of existing data to site-specific structure
+- ✅ **Complete Isolation**: Local development mirrors production site isolation perfectly
 
-### Phase 6: Documentation & Developer Experience
+## 🎯 REMAINING PHASES
+
+### Phase 6: Documentation & Developer Experience (NEXT PRIORITY)
 
 **Files to create/modify:**
 - `sites/my-sites/README.md` - Instructions for users to create their own sites

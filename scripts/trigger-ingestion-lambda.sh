@@ -5,12 +5,43 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Load environment variables from .env.dev if it exists
-function loadEnvFile() {
-    const envFile = path.join(process.cwd(), '.env.dev');
-    if (fs.existsSync(envFile)) {
-        console.log('Loading environment variables from .env.dev...');
-        const envContent = fs.readFileSync(envFile, 'utf8');
+// Import site loading utilities
+let getSiteById, getAvailableSiteIds;
+try {
+    const siteUtils = require('../sites/dist/index.js');
+    getSiteById = siteUtils.getSiteById;
+    getAvailableSiteIds = siteUtils.getAvailableSiteIds;
+} catch (error) {
+    console.error('❌ Failed to load site utilities. Make sure to build sites package first:');
+    console.error('   cd sites && pnpm build');
+    process.exit(1);
+}
+
+// Load environment variables from site-specific .env.aws file
+function loadSiteEnvFile(siteId) {
+    // First load general .env.local for shared settings
+    const localEnvFile = path.join(process.cwd(), '.env.local');
+    if (fs.existsSync(localEnvFile)) {
+        console.log('Loading shared environment variables from .env.local...');
+        const envContent = fs.readFileSync(localEnvFile, 'utf8');
+        envContent.split('\n').forEach(line => {
+            const [key, value] = line.split('=');
+            if (key && value) {
+                process.env[key.trim()] = value.trim();
+            }
+        });
+    }
+
+    // Then load site-specific .env.aws file
+    const siteConfig = getSiteById(siteId);
+    if (!siteConfig || !siteConfig.path) {
+        throw new Error(`Site configuration not found for: ${siteId}`);
+    }
+
+    const siteAwsEnvFile = path.join(siteConfig.path, '.env.aws');
+    if (fs.existsSync(siteAwsEnvFile)) {
+        console.log(`Loading site-specific AWS configuration from: ${siteAwsEnvFile}`);
+        const envContent = fs.readFileSync(siteAwsEnvFile, 'utf8');
         envContent.split('\n').forEach(line => {
             const [key, value] = line.split('=');
             if (key && value) {
@@ -18,7 +49,7 @@ function loadEnvFile() {
             }
         });
     } else {
-        console.log('Warning: .env.dev file not found. AWS_PROFILE might not be set.');
+        throw new Error(`Site-specific .env.aws file not found: ${siteAwsEnvFile}`);
     }
 }
 
@@ -112,25 +143,58 @@ async function invokeLambda(functionName, profile, region) {
 
 async function main() {
     try {
-        // Load environment variables
-        loadEnvFile();
+        // Site selection first
+        const availableSites = getAvailableSiteIds();
+        
+        if (availableSites.length === 0) {
+            console.error('❌ No sites found. Please create sites in sites/my-sites/ or sites/origin-sites/');
+            process.exit(1);
+        }
+
+        const siteChoices = availableSites.map(siteId => ({
+            title: siteId,
+            value: siteId
+        }));
+
+        // Check for default site
+        const defaultSiteId = process.env.DEFAULT_SITE_ID;
+        const defaultIndex = defaultSiteId ? availableSites.indexOf(defaultSiteId) : 0;
+
+        const siteResponse = await prompts({
+            type: 'select',
+            name: 'siteId',
+            message: 'Select site to trigger Lambda functions for:',
+            choices: siteChoices,
+            initial: Math.max(0, defaultIndex)
+        });
+
+        if (!siteResponse.siteId) {
+            console.log('Exiting...');
+            process.exit(0);
+        }
+
+        const selectedSiteId = siteResponse.siteId;
+        console.log(`Selected site: ${selectedSiteId}`);
+
+        // Load site-specific configuration
+        loadSiteEnvFile(selectedSiteId);
 
         // Configuration
         const awsRegion = await getAWSRegion();
         
-        // Define available Lambda functions
+        // Define available Lambda functions with site-specific names
         const lambdaFunctions = [
             {
                 title: 'RSS Feed Retrieval and Audio Download',
-                value: 'retrieve-rss-feeds-and-download-audio-files'
+                value: `retrieve-rss-feeds-and-download-audio-files-${selectedSiteId}`
             },
             {
                 title: 'Whisper Audio Processing',
-                value: 'process-new-audio-files-via-whisper'
+                value: `process-new-audio-files-via-whisper-${selectedSiteId}`
             },
             {
                 title: 'SRT to Search Index Conversion',
-                value: 'convert-srt-files-into-indexed-search-entries'
+                value: `convert-srt-files-into-indexed-search-entries-${selectedSiteId}`
             }
         ];
 
@@ -142,8 +206,8 @@ async function main() {
 
         // Check AWS SSO authentication
         if (!process.env.AWS_PROFILE) {
-            console.log('❌ AWS_PROFILE is not set. Please ensure it\'s defined in your .env.dev file or environment.');
-            console.log('  Example .env.dev entry: AWS_PROFILE=your_profile_name');
+            console.log('❌ AWS_PROFILE is not set in the site-specific .env.aws file.');
+            console.log('  Please ensure the site .env.aws file contains: AWS_PROFILE=your_profile_name');
             console.log('  If you haven\'t configured an SSO profile, run \'aws configure sso\'.');
             process.exit(1);
         }
@@ -162,7 +226,7 @@ async function main() {
         const response = await prompts({
             type: 'select',
             name: 'lambdaFunction',
-            message: 'Please select which Lambda function to trigger:',
+            message: `Select Lambda function to trigger for site '${selectedSiteId}':`,
             choices: lambdaFunctions,
             initial: 0
         });
