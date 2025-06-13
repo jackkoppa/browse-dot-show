@@ -90,21 +90,23 @@ Expecially important:
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure & Site Management
+### Phase 1: Core Infrastructure & Site Management ✅
 
 **Files to modify:**
-- `sites/index.ts` - Create site discovery logic (prioritize `my-sites/`, fallback to `origin-sites/`)
-- `package.json` - Add site selection prompting to all pnpm scripts
-- `scripts/deploy/deploy.sh` - Add site parameter handling with prompting
-- Root `.env.dev`/`.env.prod` - Add `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT`
-- `scripts/utils/site-selector.js` - Create reusable site selection utility
+- ✅ `sites/index.ts` - Create site discovery logic (prioritize `my-sites/`, fallback to `origin-sites/`)
+- ✅ `sites/types.ts` - Export interfaces for TypeScript support
+- ✅ `package.json` - Add site selection prompting to all pnpm scripts
+- ✅ `scripts/deploy/deploy.sh` - Add site parameter handling with prompting
+- ⚠️ Root `.env.dev`/`.env.prod` - Add `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT` (blocked by gitignore)
+- ✅ `scripts/utils/site-selector.js` - Create reusable site selection utility
+- ✅ `scripts/run-with-site-selection.js` - Site-aware wrapper script
 
 **Key tasks:**
-1. Create site discovery service that prioritizes `/sites/my-sites/` over `/sites/origin-sites/`
-2. Add CLI prompting for site selection in all scripts (with DEFAULT_SITE_ID pre-selected)
-3. Support `SKIP_SITE_SELECTION_PROMPT=true` to bypass prompting
-4. Create site validation (ensure site config exists, `.env.aws` exists, AWS profile is valid)
-5. Create reusable site selection utility for consistent UX across all scripts
+1. ✅ Create site discovery service that prioritizes `/sites/my-sites/` over `/sites/origin-sites/`
+2. ✅ Add CLI prompting for site selection in all scripts (with DEFAULT_SITE_ID pre-selected)
+3. ✅ Support `SKIP_SITE_SELECTION_PROMPT=true` to bypass prompting
+4. ✅ Create site validation (ensure site config exists, `.env.aws` exists, AWS profile is valid)
+5. ✅ Create reusable site selection utility for consistent UX across all scripts
 
 ### Phase 2: Terraform Multi-Site Support
 

@@ -70,6 +70,16 @@ async function askConfirmation(message) {
 
 async function main() {
     try {
+        // Get selected site from environment (set by site selection wrapper)
+        const SITE_ID = process.env.SELECTED_SITE_ID;
+        if (!SITE_ID) {
+            console.error('Error: No site selected. This script should be run through the site selection wrapper.');
+            console.error('Use: pnpm all:deploy');
+            process.exit(1);
+        }
+
+        console.log(`🌐 Deploying site: ${SITE_ID}`);
+
         // Environment selection prompt
         const envResponse = await prompts({
             type: 'select',
@@ -88,15 +98,16 @@ async function main() {
         }
 
         const ENV = envResponse.environment;
-        console.log(`Deploying to ${ENV} environment...`);
+        console.log(`Deploying to ${ENV} environment for site ${SITE_ID}...`);
 
         // Set environment variables for child processes
         process.env.ENV = ENV;
+        process.env.SITE_ID = SITE_ID;
 
-        // Terraform configuration
+        // Site-specific Terraform configuration
         const TF_DIR = "terraform";
-        const TF_STATE_FILENAME = "terraform.tfstate";
-        const TF_STATE_BUCKET = `listen-fair-play-terraform-state-${ENV}`;
+        const TF_STATE_FILENAME = `terraform-${SITE_ID}.tfstate`;
+        const TF_STATE_BUCKET = `${SITE_ID}-terraform-state-${ENV}`;
 
         // Variables to be exported for use by manage-tfstate.sh
         process.env.TF_STATE_FILENAME = TF_STATE_FILENAME;
@@ -203,6 +214,7 @@ async function main() {
             'plan',
             `-var-file=environments/${ENV}.tfvars`,
             `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
+            `-var=site_id=${SITE_ID}`,
             '-out=tfplan'
         ];
 
@@ -245,12 +257,12 @@ async function main() {
             if (selectedOptions.includes('client')) {
                 console.log('');
                 console.log('=== Uploading client files to S3 ===');
-                console.log('Uploading client files...');
-                await runCommand('./scripts/deploy/upload-client.sh', [ENV]);
+                console.log(`Uploading client files for site ${SITE_ID}...`);
+                await runCommand('./scripts/deploy/upload-client.sh', [ENV, SITE_ID]);
             } else {
                 console.log('');
                 console.log('=== Skipping client upload ===');
-                console.log(`Client upload was not selected. You can run it later with: ./scripts/deploy/upload-client.sh ${ENV}`);
+                console.log(`Client upload was not selected. You can run it later with: ./scripts/deploy/upload-client.sh ${ENV} ${SITE_ID}`);
             }
         } else {
             console.log('Deployment cancelled.');

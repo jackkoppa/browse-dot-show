@@ -1,4 +1,4 @@
-interface Podcast {
+export interface Podcast {
     id: string;
     rssFeedFile: string;
     title: string;
@@ -8,7 +8,7 @@ interface Podcast {
     url: string;
 }
 
-interface SiteConfig {
+export interface SiteConfig {
     /** site ID - needs to match the name of the directory */
     id: string;
     /** e.g. `mypodcast.browse.show` or `listenfairplay.com` (the latter being the first such site created by browse-dot-show) */
