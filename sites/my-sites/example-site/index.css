@@ -1,0 +1,38 @@
+/* Custom styling for your podcast archive site */
+/* This file is optional - remove it if you want to use default styling */
+
+/* Example: Custom brand colors */
+:root {
+  --primary-color: #007acc;
+  --secondary-color: #ff6b35; 
+  --background-color: #f8f9fa;
+  --text-color: #2c3e50;
+}
+
+/* Example: Custom header styling */
+.app-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+/* Example: Custom search box styling */
+.search-input {
+  border-radius: 25px;
+  border: 2px solid var(--primary-color);
+}
+
+/* Example: Custom episode card styling */
+.episode-card {
+  border-left: 4px solid var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Example: Custom typography */
+h1, h2, h3 {
+  font-family: 'Arial', sans-serif;
+  color: var(--text-color);
+}
+
+/* 
+Add your own custom styles here!
+You can override any of the default styles from the application.
+*/ 

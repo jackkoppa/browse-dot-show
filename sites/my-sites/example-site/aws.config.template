@@ -1,0 +1,9 @@
+# AWS Configuration Template
+# Copy this file to .env.aws and replace with your actual values
+
+# Your AWS profile name from ~/.aws/config
+# Example: MyCompany-AdministratorAccess-123456789012
+AWS_PROFILE=YourAWSProfileName-123456789012
+
+# Optional: Override default AWS region
+# AWS_REGION=us-east-1 

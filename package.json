@@ -25,7 +25,8 @@
     "srt-indexing-lambda:test": "node scripts/run-with-site-selection.js \"SRT indexing test\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda test\"",
     "search-lambda:dev:local": "node scripts/run-with-site-selection.js \"search lambda (local)\" \"pnpm --filter @browse-dot-show/search-lambda dev:local\"",
     "search-lambda:test:local": "node scripts/run-with-site-selection.js \"search lambda test\" \"pnpm --filter @browse-dot-show/search-lambda test:local\"",
-    "trigger:ingestion-lambda": "node scripts/trigger-ingestion-lambda.sh"
+    "trigger:ingestion-lambda": "node scripts/trigger-ingestion-lambda.sh",
+    "create:site": "./scripts/create-new-site.sh"
   },
   "engines": {
     "node": ">=20.0.0",
