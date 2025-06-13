@@ -10,16 +10,19 @@ variable "aws_profile" {
   default     = null
 }
 
-variable "environment" {
-  description = "The environment name (dev or prod)"
+variable "site_id" {
+  description = "The unique identifier for the site (e.g., listenfairplay, hardfork, naddpod)"
   type        = string
-  default     = "dev"
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.site_id))
+    error_message = "Site ID must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen."
+  }
 }
 
 variable "s3_bucket_name" {
-  description = "The name of the S3 bucket for storing podcast files and hosting the website"
+  description = "The name of the S3 bucket for storing podcast files and hosting the website (will be prefixed with site_id)"
   type        = string
-  default     = "listen-fair-play-s3-bucket"
+  default     = "browse-dot-show"
 }
 
 variable "openai_api_key" {

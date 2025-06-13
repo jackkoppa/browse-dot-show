@@ -108,21 +108,25 @@ Expecially important:
 4. ✅ Create site validation (ensure site config exists, `.env.aws` exists, AWS profile is valid)
 5. ✅ Create reusable site selection utility for consistent UX across all scripts
 
-### Phase 2: Terraform Multi-Site Support
+### Phase 2: Terraform Multi-Site Support ✅
 
 **Files to modify:**
-- `terraform/variables.tf` - Add `site_id` variable, make all resource names site-specific
-- `terraform/main.tf` - Use site-specific resource naming and tagging for complete isolation
-- `terraform/modules/` - Update all modules to accept site context
-- `scripts/deploy/deploy.sh` - Use site-specific terraform state files (`.tfstate` per site)
-- `terraform/environments/` - Create site-specific `.tfvars` files
+- ✅ `terraform/variables.tf` - Add `site_id` variable, make all resource names site-specific
+- ✅ `terraform/main.tf` - Use site-specific resource naming and tagging for complete isolation
+- ✅ `terraform/modules/s3/` - Update S3 module to use site_id instead of environment
+- ✅ `terraform/modules/cloudfront/` - Update CloudFront module for site-specific naming
+- ✅ `terraform/modules/lambda/` - Update Lambda module for site-specific functions
+- ✅ `terraform/modules/eventbridge/` - Update EventBridge module for site-specific schedules
+- ✅ `scripts/deploy/deploy.sh` - Use site-specific terraform state files (`.tfstate` per site)
+- ✅ `terraform/environments/listenfairplay-prod.tfvars` - Create site-specific `.tfvars` files
 
 **Key tasks:**
-1. Make ALL AWS resources site-specific: S3 buckets, Lambda names (search, process-audio, rss-retrieval, srt-indexing), CloudFront distributions
-2. Implement site-specific Terraform state management (separate `.tfstate` files per site)
-3. Add site tagging to all AWS resources for cost tracking and organization
-4. Support multiple AWS profiles/accounts through site-specific `.env.aws` files
-5. Ensure complete infrastructure isolation between sites (even in same AWS account)
+1. ✅ Make ALL AWS resources site-specific: S3 buckets, Lambda names (search, process-audio, rss-retrieval, srt-indexing), CloudFront distributions
+2. ✅ Implement site-specific Terraform state management (separate `.tfstate` files per site)
+3. ✅ Add site tagging to all AWS resources for cost tracking and organization
+4. ✅ Support multiple AWS profiles/accounts through site-specific `.env.aws` files
+5. ✅ Ensure complete infrastructure isolation between sites (even in same AWS account)
+6. ✅ Remove dev/prod environment distinction in favor of site-specific deployments
 
 ### Phase 3: Client Application Site-Awareness
 

@@ -26,9 +26,9 @@ provider "aws" {
   
   default_tags {
     tags = {
-      Project     = "listen-fair-play"
-      Environment = var.environment
-      ManagedBy   = "terraform"
+      Project   = "browse-dot-show"
+      Site      = var.site_id
+      ManagedBy = "terraform"
     }
   }
 }
@@ -40,9 +40,9 @@ provider "aws" {
   
   default_tags {
     tags = {
-      Project     = "listen-fair-play"
-      Environment = var.environment
-      ManagedBy   = "terraform"
+      Project   = "browse-dot-show"
+      Site      = var.site_id
+      ManagedBy = "terraform"
     }
   }
 }
@@ -51,21 +51,21 @@ provider "aws" {
 module "s3_bucket" {
   source = "./modules/s3"
   
-  bucket_name          = var.s3_bucket_name
-  environment          = var.environment
+  bucket_name          = "${var.site_id}-${var.s3_bucket_name}"
+  site_id              = var.site_id
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
 # FFmpeg Lambda Layer for media processing
 resource "aws_lambda_layer_version" "ffmpeg_layer" {
   filename         = "lambda-layers/ffmpeg-layer.zip"
-  layer_name       = "ffmpeg-${var.environment}"
+  layer_name       = "ffmpeg-${var.site_id}"
   source_code_hash = filebase64sha256("lambda-layers/ffmpeg-layer.zip")
   
   compatible_runtimes      = ["nodejs20.x"]
   compatible_architectures = ["arm64"]
   
-  description = "FFmpeg static binaries for audio/video processing"
+  description = "FFmpeg static binaries for audio/video processing - ${var.site_id}"
 }
 
 # SSL Certificate for custom domain (must be in us-east-1 for CloudFront)
@@ -83,8 +83,8 @@ resource "aws_acm_certificate" "custom_domain" {
   }
 
   tags = {
-    Name        = "listen-fair-play-${var.environment}"
-    Environment = var.environment
+    Name = "${var.site_id}-ssl-certificate"
+    Site = var.site_id
   }
 }
 
@@ -94,7 +94,7 @@ module "cloudfront" {
   
   bucket_name                 = module.s3_bucket.bucket_name
   bucket_regional_domain_name = module.s3_bucket.bucket_regional_domain_name
-  environment                 = var.environment
+  site_id                     = var.site_id
   
   # Add custom domain configuration
   custom_domain_name  = var.custom_domain_name
@@ -137,7 +137,7 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
 module "rss_lambda" {
   source = "./modules/lambda"
   
-  function_name        = "retrieve-rss-feeds-and-download-audio-files"
+  function_name        = "retrieve-rss-feeds-and-download-audio-files-${var.site_id}"
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
   runtime              = "nodejs20.x"
   timeout              = 300
@@ -146,10 +146,11 @@ module "rss_lambda" {
     S3_BUCKET_NAME            = module.s3_bucket.bucket_name
     LOG_LEVEL                 = var.log_level
     CLOUDFRONT_DISTRIBUTION_ID = module.cloudfront.cloudfront_id
+    SITE_ID                   = var.site_id
   }
   source_dir           = "../packages/ingestion/rss-retrieval-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
-  environment          = var.environment
+  site_id              = var.site_id
   lambda_architecture  = ["arm64"]
   cloudfront_distribution_arn = module.cloudfront.cloudfront_arn
 }
@@ -158,7 +159,7 @@ module "rss_lambda" {
 module "whisper_lambda" {
   source = "./modules/lambda"
   
-  function_name        = "process-new-audio-files-via-whisper"
+  function_name        = "process-new-audio-files-via-whisper-${var.site_id}"
   handler              = "process-new-audio-files-via-whisper.handler"
   runtime              = "nodejs20.x"
   timeout              = 900
@@ -167,10 +168,11 @@ module "whisper_lambda" {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     OPENAI_API_KEY     = var.openai_api_key
     LOG_LEVEL          = var.log_level
+    SITE_ID            = var.site_id
   }
   source_dir           = "../packages/ingestion/process-audio-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
-  environment          = var.environment
+  site_id              = var.site_id
   lambda_architecture  = ["arm64"]
   layers               = [aws_lambda_layer_version.ffmpeg_layer.arn]
 }
@@ -179,10 +181,10 @@ module "whisper_lambda" {
 module "eventbridge_schedule" {
   source = "./modules/eventbridge"
   
-  schedule_name        = "daily-rss-processing"
+  schedule_name        = "daily-rss-processing-${var.site_id}"
   schedule_expression  = "cron(0 1,8,16 * * ? *)"  # Run at 1 AM, 8 AM, and 4 PM UTC daily
   lambda_function_arn  = module.rss_lambda.lambda_function_arn
-  environment          = var.environment
+  site_id              = var.site_id
 }
 
 # IAM permissions to allow Lambda 1 to trigger Lambda 2
@@ -198,7 +200,7 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
 module "indexing_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "convert-srt-files-into-indexed-search-entries"
+  function_name        = "convert-srt-files-into-indexed-search-entries-${var.site_id}"
   handler              = "convert-srt-files-into-indexed-search-entries.handler"
   runtime              = "nodejs20.x"
   timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srt-files-into-indexed-search-entries.ts
@@ -207,10 +209,11 @@ module "indexing_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
+    SITE_ID            = var.site_id
   }
   source_dir           = "../packages/ingestion/srt-indexing-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
-  environment          = var.environment
+  site_id              = var.site_id
   lambda_architecture  = ["arm64"]
 }
 
@@ -227,7 +230,7 @@ resource "aws_lambda_permission" "allow_lambda2_to_invoke_lambda3" {
 module "search_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "search-indexed-transcripts"
+  function_name        = "search-indexed-transcripts-${var.site_id}"
   handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
   timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file
@@ -236,10 +239,11 @@ module "search_lambda" {
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
     LOG_LEVEL          = var.log_level
+    SITE_ID            = var.site_id
   }
   source_dir           = "../packages/search/search-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
-  environment          = var.environment
+  site_id              = var.site_id
   lambda_architecture  = ["arm64"]
 }
 
@@ -248,24 +252,22 @@ module "search_lambda_warming_schedule" {
   count  = var.enable_search_lambda_warming ? 1 : 0
   source = "./modules/eventbridge"
   
-  schedule_name        = "search-lambda-warming"
+  schedule_name        = "search-lambda-warming-${var.site_id}"
   schedule_expression  = var.search_lambda_warming_schedule
   lambda_function_arn  = module.search_lambda.lambda_function_arn
-  environment          = var.environment
+  site_id              = var.site_id
 }
 
 # API Gateway for Search Lambda
 resource "aws_apigatewayv2_api" "search_api" {
-  name          = "search-transcripts-api-${var.environment}"
+  name          = "search-transcripts-api-${var.site_id}"
   protocol_type = "HTTP"
   target        = module.search_lambda.lambda_function_arn
 
   cors_configuration {
     allow_origins = concat(
       ["https://${module.cloudfront.cloudfront_domain_name}"],
-      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : [],
-      # Always include the custom domain for production
-      var.environment == "prod" ? ["https://listenfairplay.com"] : []
+      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : []
     )
     allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]
@@ -275,7 +277,7 @@ resource "aws_apigatewayv2_api" "search_api" {
 
 resource "aws_apigatewayv2_stage" "search_api_stage" {
   api_id      = aws_apigatewayv2_api.search_api.id
-  name        = var.environment
+  name        = "prod"
   auto_deploy = true
 }
 
@@ -290,18 +292,18 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
   principal     = "apigateway.amazonaws.com"
 
   # The source_arn should be specific to the API Gateway execution ARN for the route and stage
-  source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/${var.environment}/*"
+  source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
 }
 
 # --- S3 Bucket for Terraform State ---
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "listen-fair-play-terraform-state-${var.environment}" # Ensuring unique bucket name per environment
+  bucket = "${var.site_id}-terraform-state" # Ensuring unique bucket name per site
 
   tags = {
-    Name        = "Terraform State Storage"
-    Environment = var.environment
-    Project     = "Listen Fair Play"
+    Name    = "Terraform State Storage - ${var.site_id}"
+    Site    = var.site_id
+    Project = "browse-dot-show"
   }
 }
 
