@@ -189,6 +189,26 @@ Expecially important:
 3. Create helper scripts for common multi-site operations
 4. Add validation and error handling for site configurations
 
+### Phase 7: Environment Simplification (Remove Dev/Prod Split)
+
+**Files to modify:**
+- `terraform/environments/` - Remove `dev.tfvars`, keep only site-specific `prod.tfvars` files
+- `package.json` - Remove all `:dev-s3` script variants, keep only `:local` and `:prod`
+- `scripts/deploy/deploy.sh` - Remove environment selection prompt, deploy only to prod
+- All lambda package.json files - Remove `:dev-s3` scripts
+- `terraform/variables.tf` - Remove environment-based variables
+- `.env.dev` → `.env.prod` (rename and consolidate)
+
+**Key tasks:**
+1. 🎯 **Simplify deployment model**: Each site has only ONE deployed environment (prod)
+2. 🗑️ **Remove dev/prod distinction**: No more separate dev & prod infrastructure per site  
+3. 📝 **Script cleanup**: Remove all `:dev-s3` variants, keep only `:local` (development) and `:prod` (deployed)
+4. 🏗️ **Terraform simplification**: Remove environment-based resource naming, use site-based only
+5. 📂 **File consolidation**: Use single `.env.prod` per site instead of dev/prod variants
+6. ⚡ **Faster deployment**: Sites can tolerate brief downtime instead of maintaining dual environments
+
+**Rationale:** Site usage isn't high enough to justify separate dev/prod infrastructure. Each site becomes its own "environment" with simple local development → production deployment workflow.
+
 ### Critical Implementation Notes:
 
 1. **No Backwards Compatibility**: ALL operations require explicit site selection going forward - treat listenfairplay like any other site
@@ -198,6 +218,7 @@ Expecially important:
 5. **AWS Profile Management**: Each site specifies its AWS profile in `.env.aws` for multi-account support
 6. **Site Discovery Logic**: Prioritize `/sites/my-sites/` over `/sites/origin-sites/` (allows overriding origin sites)
 7. **Minimal Downtime**: Existing listenfairplay.com should continue working during migration with careful terraform state management
+8. **🆕 Single Environment Per Site**: Each site deploys only to prod - no dev/prod infrastructure split
 
 ### Most Relevant Files for Context:
 
