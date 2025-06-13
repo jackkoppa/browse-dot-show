@@ -47,6 +47,15 @@ WHISPER_CPP_PATH=""
 # Required when WHISPER_API_PROVIDER=local-whisper.cpp - make sure to first follow setup steps for that model, for your machine - https://github.com/ggml-org/whisper.cpp/blob/master#quick-start
 # recommended: large-v3-turbo
 WHISPER_CPP_MODEL=""
+
+
+
+# Site Management Configuration
+# Default site to preselect in prompts (can be overridden by scripts)
+DEFAULT_SITE_ID=
+
+# Set to 'true' to skip site selection prompts and use DEFAULT_SITE_ID
+SKIP_SITE_SELECTION_PROMPT=false
 ```
 
 
@@ -99,6 +108,14 @@ WHISPER_CPP_PATH="/Users/jackkoppa/Personal_Development/whisper.cpp"
 # Required when WHISPER_API_PROVIDER=local-whisper.cpp - make sure to first follow setup steps for that model, for your machine - https://github.com/ggml-org/whisper.cpp/blob/master#quick-start
 # recommended: large-v3-turbo
 WHISPER_CPP_MODEL="large-v3-turbo"
+
+
+# Site Management Configuration
+# Default site to preselect in prompts (can be overridden by scripts)
+DEFAULT_SITE_ID=listenfairplay
+
+# Set to 'true' to skip site selection prompts and use DEFAULT_SITE_ID
+SKIP_SITE_SELECTION_PROMPT=false
 ```
 
 
