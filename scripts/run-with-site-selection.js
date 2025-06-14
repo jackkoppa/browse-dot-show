@@ -29,7 +29,13 @@ async function main() {
         console.log(`📍 Selected site: ${siteId}`);
 
         // Load site-specific environment variables
-        const siteEnvVars = loadSiteEnvVars(siteId, process.env.NODE_ENV || 'dev');
+        // For local development, use 'local' instead of 'dev'
+        const envType = process.env.NODE_ENV === 'production' ? 'prod' : 'local';
+        const siteEnvVars = loadSiteEnvVars(siteId, envType);
+        
+        // DEBUG: Log environment loading
+        console.log(`[DEBUG run-with-site-selection] Using env type: ${envType}`);
+        console.log(`[DEBUG run-with-site-selection] Loaded site env vars:`, Object.keys(siteEnvVars));
         
         // Merge with current environment, giving priority to site-specific vars
         const envVars = {

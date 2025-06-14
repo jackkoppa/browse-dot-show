@@ -14,6 +14,9 @@ const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 // This allows the package to work regardless of where the importing script is run from
 const LOCAL_S3_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), '../../../aws-local-dev/s3');
 
+// DEBUG: Log the computed LOCAL_S3_PATH at module load time
+console.log(`[DEBUG S3 Module] LOCAL_S3_PATH computed as: "${LOCAL_S3_PATH}"`);
+
 // IMPORTANT!!! CURSOR-TODO: This needs to be set at build time (rolldown) when building for Lambda deployment
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'dev-s3';
 
@@ -58,13 +61,29 @@ function getBucketName(): string {
 function getLocalFilePath(key: string): string {
   const siteId = process.env.CURRENT_SITE_ID;
   
-  if (siteId) {
+  // DEBUG: Add comprehensive logging to understand the path resolution
+  console.log(`[DEBUG getLocalFilePath] === PATH RESOLUTION DEBUG ===`);
+  console.log(`[DEBUG getLocalFilePath] input key: "${key}"`);
+  console.log(`[DEBUG getLocalFilePath] siteId from env: "${siteId}"`);
+  console.log(`[DEBUG getLocalFilePath] LOCAL_S3_PATH: "${LOCAL_S3_PATH}"`);
+  console.log(`[DEBUG getLocalFilePath] key.startsWith('sites/'): ${key.startsWith('sites/')}`);
+  console.log(`[DEBUG getLocalFilePath] __dirname: "${path.dirname(new URL(import.meta.url).pathname)}"`);
+  console.log(`[DEBUG getLocalFilePath] process.cwd(): "${process.cwd()}"`);
+  
+  if (siteId && !key.startsWith('sites/')) {
     // Site-specific local path: aws-local-dev/s3/sites/{siteId}/{key}
-    return path.join(LOCAL_S3_PATH, 'sites', siteId, key);
+    // Only add the site prefix if the key doesn't already include it
+    const result = path.join(LOCAL_S3_PATH, 'sites', siteId, key);
+    console.log(`[DEBUG getLocalFilePath] Adding site prefix, result: "${result}"`);
+    console.log(`[DEBUG getLocalFilePath] Path exists? ${require('fs').existsSync(result)}`);
+    return result;
   }
   
-  // Legacy path for backwards compatibility
-  return path.join(LOCAL_S3_PATH, key);
+  // Legacy path for backwards compatibility, or if key already includes site prefix
+  const result = path.join(LOCAL_S3_PATH, key);
+  console.log(`[DEBUG getLocalFilePath] Using legacy/direct path, result: "${result}"`);
+  console.log(`[DEBUG getLocalFilePath] Path exists? ${require('fs').existsSync(result)}`);
+  return result;
 }
 
 /**

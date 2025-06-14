@@ -1,43 +1,83 @@
-/** 
- * Get site-aware S3 key for the Orama search index file
- * For site-aware operations, uses site-specific path
- * For legacy operations, uses original path
- */
-export function getSearchIndexKey(): string {
+// CURSOR-TODO: We need to update the name of this package, since they're no longer strictly constants.
+
+function getSiteId(): string {
   const siteId = process.env.CURRENT_SITE_ID;
-  if (siteId) {
-    return `sites/${siteId}/search-index/orama_index.msp`;
+  
+  // DEBUG: Add comprehensive logging
+  console.log(`[DEBUG getSiteId] process.env.CURRENT_SITE_ID: "${siteId}"`);
+  console.log(`[DEBUG getSiteId] All env vars with SITE:`, Object.keys(process.env).filter(k => k.includes('SITE')).map(k => `${k}=${process.env[k]}`));
+  
+  if (!siteId) {
+    console.error(`[ERROR getSiteId] CURRENT_SITE_ID environment variable is required but not set`);
+    console.error(`[ERROR getSiteId] Available environment variables:`, Object.keys(process.env).sort());
+    throw new Error('CURRENT_SITE_ID environment variable is required');
   }
-  return 'search-index/orama_index.msp';
+  return siteId;
 }
 
-
+/** 
+ * Get site-aware S3 key for the Orama search index file
+ */
+export function getSearchIndexKey(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/search-index/orama_index.msp`;
+}
 
 /** 
  * Get site-aware local path for Orama search index in Lambda environment
  * Each site gets its own temp file to avoid conflicts
  */
 export function getLocalDbPath(): string {
-  const siteId = process.env.CURRENT_SITE_ID;
-  if (siteId) {
-    return `/tmp/orama_index_${siteId}.msp`;
-  }
-  return '/tmp/orama_index.msp';
+  const siteId = getSiteId();
+  return `/tmp/orama_index_${siteId}.msp`;
 }
-
-
 
 /** 
  * Get site-aware episode manifest key
- * For site-aware operations, uses site-specific path
- * For legacy operations, uses original path
  */
 export function getEpisodeManifestKey(): string {
-  const siteId = process.env.CURRENT_SITE_ID;
-  if (siteId) {
-    return `sites/${siteId}/episode-manifest/full-episode-manifest.json`;
-  }
-  return 'episode-manifest/full-episode-manifest.json';
+  const siteId = getSiteId();
+  return `sites/${siteId}/episode-manifest/full-episode-manifest.json`;
+}
+
+/** 
+ * Get site-aware audio directory prefix
+ */
+export function getAudioDirPrefix(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/audio/`;
+}
+
+/** 
+ * Get site-aware transcripts directory prefix
+ */
+export function getTranscriptsDirPrefix(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/transcripts/`;
+}
+
+/** 
+ * Get site-aware RSS directory prefix
+ */
+export function getRSSDirectoryPrefix(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/rss/`;
+}
+
+/** 
+ * Get site-aware search entries directory prefix
+ */
+export function getSearchEntriesDirPrefix(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/search-entries/`;
+}
+
+/** 
+ * Get site-aware episode manifest directory prefix
+ */
+export function getEpisodeManifestDirPrefix(): string {
+  const siteId = getSiteId();
+  return `sites/${siteId}/episode-manifest/`;
 }
 
 

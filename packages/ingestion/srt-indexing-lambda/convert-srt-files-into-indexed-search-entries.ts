@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey } from '@browse-dot-show/constants';
+import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix } from '@browse-dot-show/constants';
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
@@ -22,9 +22,7 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
 
-// Constants - S3 paths
-const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
-const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
+// Constants
 const PROGRESS_LOG_THRESHOLD = 5; // Log progress every 5% of SRT files processed
 const SEARCH_LAMBDA_NAME = 'search-indexed-transcripts'; // The name of the search lambda
 
@@ -49,7 +47,7 @@ let episodeManifestData: EpisodeManifestEntry[] = [];
 async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   return fileExists(searchEntriesKey);
 }
@@ -91,7 +89,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   // Save search entries to S3
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey)); // This might be simplified if manifest gives full path or structure
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   // Ensure the directory exists
   await createDirectory(path.dirname(searchEntriesKey));
@@ -109,7 +107,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
 async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string | false> {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   if (await fileExists(searchEntriesKey)) {
     return searchEntriesKey;
@@ -164,7 +162,7 @@ export async function handler(): Promise<any> {
     await fs.mkdir('/tmp', { recursive: true });
   }
   
-  await createDirectory(SEARCH_ENTRIES_DIR_PREFIX); // Ensure base search entries dir exists
+  await createDirectory(getSearchEntriesDirPrefix()); // Ensure base search entries dir exists
 
   // Always create a fresh Orama index
   log.info('Creating fresh Orama search index');
@@ -181,8 +179,8 @@ export async function handler(): Promise<any> {
   log.info('Created fresh Orama search index');
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
-  const podcastDirectoryPrefixes = await listDirectories(TRANSCRIPTS_DIR_PREFIX);
-  log.info(`[DEBUG] listDirectories('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} podcast directories.`);
+  const podcastDirectoryPrefixes = await listDirectories(getTranscriptsDirPrefix());
+  log.info(`[DEBUG] listDirectories('${getTranscriptsDirPrefix()}') returned ${podcastDirectoryPrefixes.length} podcast directories.`);
   if (podcastDirectoryPrefixes.length > 0) {
     log.debug(`[DEBUG] Podcast directories: ${JSON.stringify(podcastDirectoryPrefixes)}`);
   }

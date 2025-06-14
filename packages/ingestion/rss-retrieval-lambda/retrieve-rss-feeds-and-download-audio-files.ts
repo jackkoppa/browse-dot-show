@@ -6,7 +6,7 @@ import { log } from '@browse-dot-show/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@browse-dot-show/s3';
 import { getCurrentSiteRSSConfig, getCurrentSiteId } from '@browse-dot-show/config';
 import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
-import { getEpisodeManifestKey } from '@browse-dot-show/constants';
+import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
@@ -30,10 +30,7 @@ interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInM
   'itunes:duration'?: string; // For episode duration
 }
 
-// Constants - Define S3 paths
-const RSS_DIR_PREFIX = 'rss/';
-const AUDIO_DIR_PREFIX = 'audio/';
-const EPISODE_MANIFEST_DIR_PREFIX = 'episode-manifest/';
+// Constants
 const LAMBDA_CLIENT = new LambdaClient({});
 const CLOUDFRONT_CLIENT = new CloudFrontClient({});
 const WHISPER_LAMBDA_NAME = 'process-new-audio-files-via-whisper';
@@ -90,7 +87,7 @@ async function saveRSSFeedToS3(
   podcastId: string,
   feedFile: string,
 ): Promise<void> {
-  const filePath = path.join(RSS_DIR_PREFIX, feedFile);
+  const filePath = path.join(getRSSDirectoryPrefix(), feedFile);
   
   try {
     await saveFile(filePath, xmlContent);
@@ -111,7 +108,7 @@ async function getOrCreateEpisodeManifest(): Promise<EpisodeManifest> {
       return JSON.parse(manifestBuffer.toString('utf-8')) as EpisodeManifest;
     } else {
       log.info(`Episode manifest not found at ${episodeManifestKey}, creating a new one.`);
-      await createDirectory(EPISODE_MANIFEST_DIR_PREFIX); // Ensure directory exists
+      await createDirectory(getEpisodeManifestDirPrefix()); // Ensure directory exists
       const newManifest: EpisodeManifest = {
         lastUpdated: new Date().toISOString(),
         episodes: [],
@@ -276,7 +273,7 @@ async function identifyEpisodesToDownload(
   podcastId: string
 ): Promise<EpisodeInManifest[]> {
   log.info(`Identifying episodes to download for ${podcastId}`);
-  const podcastAudioDirS3 = path.join(AUDIO_DIR_PREFIX, podcastId);
+  const podcastAudioDirS3 = path.join(getAudioDirPrefix(), podcastId);
   await createDirectory(podcastAudioDirS3); // Ensure podcast-specific audio directory exists in S3
 
   let filesToDownload: EpisodeInManifest[] = [];
@@ -316,7 +313,7 @@ async function identifyEpisodesToDownload(
 async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string> {
   const url = episode.originalAudioURL;
   const audioFilename = getEpisodeAudioFilename(episode.fileKey);
-  const podcastAudioKey = path.join(AUDIO_DIR_PREFIX, episode.podcastId, audioFilename);
+  const podcastAudioKey = path.join(getAudioDirPrefix(), episode.podcastId, audioFilename);
   
   try {
     log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${url}`);
@@ -392,9 +389,9 @@ export async function handler(): Promise<void> {
 
   try {
     // Ensure base directories exist (S3 operations are generally idempotent for dir creation)
-    await createDirectory(RSS_DIR_PREFIX);
-    await createDirectory(AUDIO_DIR_PREFIX);
-    await createDirectory(EPISODE_MANIFEST_DIR_PREFIX); // For the manifest file
+    await createDirectory(getRSSDirectoryPrefix());
+    await createDirectory(getAudioDirPrefix());
+    await createDirectory(getEpisodeManifestDirPrefix()); // For the manifest file
     
     const episodeManifest = await getOrCreateEpisodeManifest();
     
