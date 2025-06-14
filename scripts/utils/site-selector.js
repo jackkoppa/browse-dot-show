@@ -210,8 +210,15 @@ function loadSiteEnvVars(siteId, env = 'dev') {
     if (fs.existsSync(envAwsPath)) {
         const envContent = fs.readFileSync(envAwsPath, 'utf8');
         envContent.split('\n').forEach(line => {
-            const [key, value] = line.split('=');
-            if (key && value) {
+            const trimmedLine = line.trim();
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                return;
+            }
+            
+            const [key, ...valueParts] = trimmedLine.split('=');
+            if (key && valueParts.length > 0) {
+                const value = valueParts.join('='); // Handle values with '=' in them
                 envVars[key.trim()] = value.trim();
             }
         });
@@ -227,8 +234,15 @@ function loadSiteEnvVars(siteId, env = 'dev') {
     if (fs.existsSync(rootEnvPath)) {
         const envContent = fs.readFileSync(rootEnvPath, 'utf8');
         envContent.split('\n').forEach(line => {
-            const [key, value] = line.split('=');
-            if (key && value) {
+            const trimmedLine = line.trim();
+            // Skip empty lines and comments
+            if (!trimmedLine || trimmedLine.startsWith('#')) {
+                return;
+            }
+            
+            const [key, ...valueParts] = trimmedLine.split('=');
+            if (key && valueParts.length > 0) {
+                const value = valueParts.join('='); // Handle values with '=' in them
                 // Don't override site-specific values
                 if (!envVars[key.trim()]) {
                     envVars[key.trim()] = value.trim();

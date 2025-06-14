@@ -163,7 +163,19 @@ pnpm srt-indexing-lambda:run:local
 - **Issue**: Need to verify LOCAL_S3_PATH is computed correctly at module load time
 - **Solution**: Added debug logging to show computed LOCAL_S3_PATH when S3 module loads
 - **Files Modified**: `packages/s3/index.ts`
-- **Test Result**: READY FOR TESTING - will show computed path on module load 
+- **Test Result**: READY FOR TESTING - will show computed path on module load
+
+### [2024-12-19 18:10] - CRITICAL BUG FIX: Environment Parsing
+- **Issue**: Environment file parsing was including comment lines as environment variables (e.g., treating `# Defined here: https://...` as a variable name)
+- **Solution**: Fixed both root `.env.local` and site-specific `.env.aws` parsing to skip comments and empty lines
+- **Files Modified**: `scripts/utils/site-selector.js` 
+- **Test Result**: READY FOR TESTING - should now parse environment files correctly
+
+### [2024-12-19 18:12] - Enhanced Environment Variable Debugging
+- **Issue**: Need to verify CURRENT_SITE_ID is properly set in final environment
+- **Solution**: Added debugging to show final environment variables before command execution
+- **Files Modified**: `scripts/run-with-site-selection.js`
+- **Test Result**: READY FOR TESTING - will show CURRENT_SITE_ID, SELECTED_SITE_ID, FILE_STORAGE_ENV values 
 
 ---
 
