@@ -227,10 +227,6 @@ function loadSiteEnvVars(siteId, env = 'dev') {
     // Load root env file
     const rootEnvPath = path.resolve(__dirname, '../../.env.' + env);
     
-    // DEBUG: Log environment file loading
-    console.log(`[DEBUG loadSiteEnvVars] Loading root env from: ${rootEnvPath}`);
-    console.log(`[DEBUG loadSiteEnvVars] Root env file exists: ${fs.existsSync(rootEnvPath)}`);
-    
     if (fs.existsSync(rootEnvPath)) {
         const envContent = fs.readFileSync(rootEnvPath, 'utf8');
         envContent.split('\n').forEach(line => {
@@ -250,9 +246,6 @@ function loadSiteEnvVars(siteId, env = 'dev') {
             }
         });
     }
-    
-    // DEBUG: Log final environment variables
-    console.log(`[DEBUG loadSiteEnvVars] Final env vars loaded:`, Object.keys(envVars));
 
     return envVars;
 }

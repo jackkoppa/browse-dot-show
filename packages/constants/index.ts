@@ -2,14 +2,7 @@
 
 function getSiteId(): string {
   const siteId = process.env.CURRENT_SITE_ID;
-  
-  // DEBUG: Add comprehensive logging
-  console.log(`[DEBUG getSiteId] process.env.CURRENT_SITE_ID: "${siteId}"`);
-  console.log(`[DEBUG getSiteId] All env vars with SITE:`, Object.keys(process.env).filter(k => k.includes('SITE')).map(k => `${k}=${process.env[k]}`));
-  
   if (!siteId) {
-    console.error(`[ERROR getSiteId] CURRENT_SITE_ID environment variable is required but not set`);
-    console.error(`[ERROR getSiteId] Available environment variables:`, Object.keys(process.env).sort());
     throw new Error('CURRENT_SITE_ID environment variable is required');
   }
   return siteId;

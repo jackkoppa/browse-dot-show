@@ -175,21 +175,34 @@ pnpm srt-indexing-lambda:run:local
 - **Issue**: Need to verify CURRENT_SITE_ID is properly set in final environment
 - **Solution**: Added debugging to show final environment variables before command execution
 - **Files Modified**: `scripts/run-with-site-selection.js`
-- **Test Result**: READY FOR TESTING - will show CURRENT_SITE_ID, SELECTED_SITE_ID, FILE_STORAGE_ENV values 
+- **Test Result**: ✅ VERIFIED - Environment variables now working correctly
+
+### [2024-12-19 18:20] - Fixed ES Module Compatibility
+- **Issue**: ES module error `require is not defined` in debugging code that used `require('fs')`
+- **Solution**: Changed debugging code to use `fs.pathExistsSync()` instead of `require('fs').existsSync()`
+- **Files Modified**: `packages/s3/index.ts`
+- **Test Result**: ✅ VERIFIED - Lambda executes successfully without ES module errors
+
+### [2024-12-19 18:25] - Cleaned Up Debug Logging
+- **Issue**: Verbose debug logging was cluttering the output after successful verification
+- **Solution**: Removed detailed debugging from site selector, path resolution, and environment loading
+- **Files Modified**: `scripts/utils/site-selector.js`, `scripts/run-with-site-selection.js`, `packages/constants/index.ts`, `packages/s3/index.ts`
+- **Test Result**: ✅ COMPLETED - Clean output while maintaining functionality 
 
 ---
 
 ## 📊 TESTING RESULTS
 
 ### Local Lambda Execution Tests
-- **RSS Retrieval Lambda**: ❌ FAILING - Files not found
-- **Process Audio Lambda**: ❌ FAILING - Files not found  
-- **SRT Indexing Lambda**: ⚠️ UNTESTED
-- **Search Lambda**: ⚠️ UNTESTED
+- **RSS Retrieval Lambda**: ✅ WORKING - Successfully processes hardfork site with correct paths
+- **Process Audio Lambda**: ⚠️ NEEDS TESTING - Should work with same fixes
+- **SRT Indexing Lambda**: ⚠️ NEEDS TESTING - Should work with same fixes
+- **Search Lambda**: ⚠️ NEEDS TESTING - Should work with same fixes
 
 ### Site-Specific Path Tests
-- **Hardfork Manifest**: ❌ FAILING - Should find `aws-local-dev/s3/sites/hardfork/episode-manifest/full-episode-manifest.json`
-- **Other Sites**: ⚠️ UNTESTED
+- **Hardfork Manifest**: ✅ WORKING - Found at `aws-local-dev/s3/sites/hardfork/episode-manifest/full-episode-manifest.json`
+- **Hardfork RSS/Audio**: ✅ WORKING - All site-specific paths resolving correctly
+- **Other Sites**: ⚠️ NEEDS TESTING - Should work with same logic
 
 ---
 

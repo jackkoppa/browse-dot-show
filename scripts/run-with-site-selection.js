@@ -33,10 +33,6 @@ async function main() {
         const envType = process.env.NODE_ENV === 'production' ? 'prod' : 'local';
         const siteEnvVars = loadSiteEnvVars(siteId, envType);
         
-        // DEBUG: Log environment loading
-        console.log(`[DEBUG run-with-site-selection] Using env type: ${envType}`);
-        console.log(`[DEBUG run-with-site-selection] Loaded site env vars:`, Object.keys(siteEnvVars));
-        
         // Merge with current environment, giving priority to site-specific vars
         const envVars = {
             ...process.env,
@@ -44,12 +40,6 @@ async function main() {
             SELECTED_SITE_ID: siteId,
             CURRENT_SITE_ID: siteId  // Set for site-aware functions in @browse-dot-show/constants
         };
-        
-        // DEBUG: Verify CURRENT_SITE_ID is set
-        console.log(`[DEBUG run-with-site-selection] Final environment variables:`);
-        console.log(`[DEBUG run-with-site-selection] CURRENT_SITE_ID: "${envVars.CURRENT_SITE_ID}"`);
-        console.log(`[DEBUG run-with-site-selection] SELECTED_SITE_ID: "${envVars.SELECTED_SITE_ID}"`);
-        console.log(`[DEBUG run-with-site-selection] FILE_STORAGE_ENV: "${envVars.FILE_STORAGE_ENV}"`);
 
         console.log(`🚀 Running: ${command} ${commandArgs.join(' ')}`);
         console.log(`   With site: ${siteId}`);
