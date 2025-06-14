@@ -7,7 +7,12 @@
 @import "./components/HighlightedText.css";
 @import "./components/ThemeToggle.css";
 
+/* Tailwind - https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
 /* Site-specific CSS loaded dynamically during build */
 @import "./temp-site.css";
 
-/* ✅ COMPLETED: Site-specific styles are now imported via temp-site.css during build */
+
+/* Site-specific styles are imported via temp-site.css during build */
