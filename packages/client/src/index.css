@@ -7,4 +7,7 @@
 @import "./components/HighlightedText.css";
 @import "./components/ThemeToggle.css";
 
-/* CURSOR-TODO: Styles have been moved to /sites, need to make sure those get imported during CSS build */
+/* Site-specific CSS loaded dynamically during build */
+@import "./temp-site.css";
+
+/* ✅ COMPLETED: Site-specific styles are now imported via temp-site.css during build */

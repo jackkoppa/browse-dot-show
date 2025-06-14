@@ -60,6 +60,8 @@ terraform/lambda-layers/**/*.tar.xz
 # Client build
 /client/public 
 
+# Temporary site-specific CSS files
+packages/client/src/temp-site.css
 
 # From /scripts/TEMP-download-all-bucket-objects-to-local.sh
 aws-local-dev-TEMP/

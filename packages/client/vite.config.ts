@@ -9,7 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
 
 // Import site loading utilities - using relative path for monorepo
-import { getSiteById } from '../../sites/dist/index.js';
+import { getSiteById, getSiteDirectory } from '../../sites/dist/index.js';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
@@ -42,6 +42,58 @@ function loadSiteConfig() {
     VITE_SITE_FULL_TITLE: siteConfig.fullTitle,
     VITE_SITE_DESCRIPTION: siteConfig.description,
     VITE_SITE_PODCAST_LINKS: JSON.stringify(podcastLinks),
+  };
+}
+
+// Function to load site-specific CSS content
+function loadSiteCss(siteId: string): string {
+  const siteDir = getSiteDirectory(siteId);
+  if (!siteDir) return '';
+  
+  const cssPath = path.join(siteDir, 'index.css');
+  if (fs.existsSync(cssPath)) {
+    return fs.readFileSync(cssPath, 'utf8');
+  }
+  
+  return '';
+}
+
+// Function to create site-specific CSS file
+function createSiteCssFile() {
+  const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+  const tempCssPath = path.resolve(__dirname, 'src', 'temp-site.css');
+  
+  if (siteId) {
+    const siteCss = loadSiteCss(siteId);
+    console.log(`Loading site-specific CSS for: ${siteId} (${siteCss.length} characters)`);
+    
+    // Write site CSS to temporary file
+    fs.writeFileSync(tempCssPath, siteCss || '/* No site-specific CSS found */');
+  } else {
+    // Write empty CSS if no site selected
+    fs.writeFileSync(tempCssPath, '/* No site selected */');
+  }
+}
+
+// Plugin to manage site-specific CSS file
+function siteSpecificCssPlugin() {
+  return {
+    name: 'site-specific-css',
+    buildStart() {
+      // Create the site CSS file at the start of the build
+      createSiteCssFile();
+    },
+    configureServer() {
+      // Also create the file when starting dev server
+      createSiteCssFile();
+    },
+    buildEnd() {
+      // Clean up temporary file after build
+      const tempCssPath = path.resolve(__dirname, 'src', 'temp-site.css');
+      if (fs.existsSync(tempCssPath)) {
+        fs.unlinkSync(tempCssPath);
+      }
+    }
   };
 }
 
@@ -157,6 +209,7 @@ export default defineConfig(() => {
       react(),
       svgr(),
       transcriptServerPlugin(),
+      siteSpecificCssPlugin(),
       {
         name: 'copy-favicon',
         writeBundle() {
