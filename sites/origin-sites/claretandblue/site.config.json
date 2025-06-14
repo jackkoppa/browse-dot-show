@@ -12,5 +12,6 @@
             "status": "active",
             "url": "https://feeds.megaphone.fm/RPSL1112526468"
         }
-    ]
+    ],
+    "whisperTranscriptionPrompt": "Hello, and welcome to the Claret & Blue Podcast. A podcast about Aston Villa Football Club, in the English Premier League. I'm your host for this one, Dan Ronanson, here with Mat Kendrick & John Townley. Let's get started - Up the Villa!"
 }

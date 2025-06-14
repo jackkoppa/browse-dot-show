@@ -6,7 +6,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { discoverSites, validateSite, getSiteDirectory } from './index.js';
+import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory } from './index.js';
 import { SiteConfig } from './types.js';
 
 interface ValidationResult {
@@ -24,6 +24,18 @@ export function validateAllSites(): {
     hasWarnings: boolean;
 } {
     const sites = discoverSites();
+    
+    // Log discovery results once at the beginning
+    const sitesDir = process.cwd();
+    const mySitesDir = path.join(sitesDir, 'my-sites');
+    const mySites = loadSitesFromDirectory(mySitesDir);
+    
+    if (mySites.length > 0) {
+        console.log(`Found ${sites.length} site(s) in my-sites/, ignoring origin-sites/`);
+    } else {
+        console.log(`No sites in my-sites/, using ${sites.length} site(s) from origin-sites/`);
+    }
+    
     const results: ValidationResult[] = [];
     
     console.log(`🔍 Validating ${sites.length} site(s)...`);
@@ -107,6 +119,10 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     
     if (!site.description) {
         result.errors.push('Missing required field: description');
+    }
+    
+    if (!site.whisperTranscriptionPrompt) {
+        result.errors.push('Missing required field: whisperTranscriptionPrompt');
     }
     
     if (!site.includedPodcasts || site.includedPodcasts.length === 0) {

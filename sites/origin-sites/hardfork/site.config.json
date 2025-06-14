@@ -12,5 +12,6 @@
             "status": "active",
             "url": "https://feeds.simplecast.com/l2i9YnTd"
         }
-    ]
+    ],
+    "whisperTranscriptionPrompt": "Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!"
 }

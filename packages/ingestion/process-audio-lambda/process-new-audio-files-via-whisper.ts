@@ -3,6 +3,7 @@ import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@browse-dot-show/logging';
+import { getSiteById } from '../../../sites/index.js';
 import {
   fileExists,
   getFile,
@@ -317,7 +318,7 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
 }
 
 // Helper function to process a single audio file
-async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult | null> {
+async function processAudioFile(fileKey: string, whisperPrompt: string): Promise<ApplyCorrectionsResult | null> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
@@ -371,7 +372,8 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
       const srtContent = await transcribeViaWhisper({
         filePath: chunk.filePath,
         whisperApiProvider: WHISPER_API_PROVIDER,
-        responseFormat: 'srt'
+        responseFormat: 'srt',
+        prompt: whisperPrompt
       });
       srtChunks.push(srtContent);
       // Clean up the individual chunk file
@@ -443,6 +445,24 @@ export async function handler(): Promise<void> {
   log.info('⏱️ Starting at', new Date().toISOString());
   log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
   log.info(`🔒 Process ID: ${PROCESS_ID}`);
+
+  // Get the current site ID and configuration
+  const siteId = process.env.CURRENT_SITE_ID;
+  if (!siteId) {
+    throw new Error('CURRENT_SITE_ID environment variable is required');
+  }
+  
+  const siteConfig = getSiteById(siteId);
+  if (!siteConfig) {
+    throw new Error(`Site configuration not found for site ID: ${siteId}`);
+  }
+  
+  if (!siteConfig.whisperTranscriptionPrompt) {
+    throw new Error(`whisperTranscriptionPrompt is required in site configuration for site: ${siteId}`);
+  }
+  
+  const whisperPrompt = siteConfig.whisperTranscriptionPrompt;
+  log.info(`🎙️  Using site-specific Whisper prompt for ${siteId}: "${whisperPrompt.substring(0, 50)}..."`);
 
   // Clean up stale lockfile entries from previous runs
   await cleanupStaleEntries();
@@ -569,7 +589,7 @@ export async function handler(): Promise<void> {
       // Increment incomplete transcripts counter before processing
       incompletedTranscripts++;
       
-      const correctionResult = await processAudioFile(fileKey);
+      const correctionResult = await processAudioFile(fileKey, whisperPrompt);
       
       // Calculate processing time for this file
       const fileProcessingTime = (Date.now() - fileStartTime) / 1000;

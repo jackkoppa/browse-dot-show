@@ -1,11 +1,9 @@
 import fs from 'fs';
 import OpenAI from 'openai';
 import path from 'path';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { log } from '@browse-dot-show/logging';
-
-const WHISPER_PROMPT = `Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!`;
 
 /**
  * `openai` has been confirmed to work
@@ -22,6 +20,8 @@ interface TranscribeOptions {
   filePath: string;
   /** The API provider to use for transcription */
   whisperApiProvider: WhisperApiProvider;
+  /** The prompt to provide to Whisper for improved transcription accuracy */
+  prompt: string;
   /** The response format to request - defaults to SRT */
   responseFormat?: ResponseFormat;
   /** The Whisper model to use */
@@ -41,10 +41,16 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
   const {
     filePath,
     whisperApiProvider,
+    prompt,
     responseFormat = 'srt',
     apiKey,
     whisperCppPath
   } = options;
+
+  // Validate required parameters
+  if (!prompt) {
+    throw new Error('Prompt is required for transcription. Please provide a whisperTranscriptionPrompt.');
+  }
 
   // Validate the file exists
   if (!fs.existsSync(filePath)) {
@@ -69,13 +75,13 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
       let transcriptionPromise: Promise<string>;
       switch (whisperApiProvider) {
         case 'openai':
-          transcriptionPromise = transcribeWithOpenAI(filePath, responseFormat, apiKey);
+          transcriptionPromise = transcribeWithOpenAI(filePath, responseFormat, prompt, apiKey);
           break;
         case 'replicate':
           transcriptionPromise = transcribeWithReplicate(filePath, apiKey);
           break;
         case 'local-whisper.cpp':
-          transcriptionPromise = transcribeWithLocalWhisperCpp(filePath, responseFormat, whisperCppPath);
+          transcriptionPromise = transcribeWithLocalWhisperCpp(filePath, responseFormat, prompt, whisperCppPath);
           break;
         default:
           throw new Error(`Unsupported API provider: ${whisperApiProvider}`);
@@ -119,6 +125,7 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
 async function transcribeWithOpenAI(
   filePath: string,
   responseFormat: ResponseFormat,
+  prompt: string,
   apiKey?: string
 ): Promise<string> {
   const openai = new OpenAI({ apiKey });
@@ -132,7 +139,7 @@ async function transcribeWithOpenAI(
     file: fs.createReadStream(filePath),
     model,
     response_format: responseFormat,
-    prompt: WHISPER_PROMPT
+    prompt: prompt
   });
 
   // Handle the return type correctly based on OpenAI API
@@ -196,15 +203,52 @@ async function transcribeWithReplicate(
 async function transcribeWithLocalWhisperCpp(
   filePath: string,
   responseFormat: string,
+  prompt: string,
   whisperCppPath?: string
 ): Promise<string> {
   const execPromise = promisify(exec);
+
+/**
+ * Run whisper command using spawn to avoid shell interpretation issues
+ */
+function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(whisperCliBin, args, { 
+      cwd,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        reject(new Error(`Command failed with exit code ${code}: ${stderr || stdout}`));
+      }
+    });
+
+    child.on('error', (error) => {
+      reject(error);
+    });
+  });
+}
 
   const whisperCPPModel = process.env.WHISPER_CPP_MODEL;
   
   // Get whisper.cpp directory from options or environment variable
   const whisperDir = whisperCppPath || process.env.WHISPER_CPP_PATH;
   
+
   if (!whisperDir) {
     throw new Error('WHISPER_CPP_PATH environment variable or whisperCppPath option is required for local-whisper.cpp');
   }
@@ -254,10 +298,16 @@ async function transcribeWithLocalWhisperCpp(
   }
   
   try {
-    // Run whisper.cpp command
-    const command = `cd "${whisperDir}" && "${whisperCliBin}" -m "${modelPath}" -f "${filePath}" ${formatFlag} -of "${tempOutputFile}" --prompt "${WHISPER_PROMPT}"`;
+    // Run whisper.cpp command using spawn to avoid shell interpretation issues with special characters
+    const args = [
+      '-m', modelPath,
+      '-f', filePath,
+      formatFlag,
+      '-of', tempOutputFile,
+      '--prompt', prompt
+    ];
 
-    const { stdout, stderr } = await execPromise(command);
+    const { stdout, stderr } = await runWhisperCommand(whisperCliBin, args, whisperDir);
     
     // Read the output file
     if (fs.existsSync(tempOutputFileWithExtension)) {

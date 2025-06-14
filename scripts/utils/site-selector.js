@@ -218,8 +218,14 @@ function loadSiteEnvVars(siteId, env = 'dev') {
             
             const [key, ...valueParts] = trimmedLine.split('=');
             if (key && valueParts.length > 0) {
-                const value = valueParts.join('='); // Handle values with '=' in them
-                envVars[key.trim()] = value.trim();
+                let value = valueParts.join('='); // Handle values with '=' in them
+                value = value.trim();
+                // Remove surrounding quotes if present
+                if ((value.startsWith('"') && value.endsWith('"')) || 
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
+                envVars[key.trim()] = value;
             }
         });
     }
@@ -238,10 +244,16 @@ function loadSiteEnvVars(siteId, env = 'dev') {
             
             const [key, ...valueParts] = trimmedLine.split('=');
             if (key && valueParts.length > 0) {
-                const value = valueParts.join('='); // Handle values with '=' in them
+                let value = valueParts.join('='); // Handle values with '=' in them
+                value = value.trim();
+                // Remove surrounding quotes if present
+                if ((value.startsWith('"') && value.endsWith('"')) || 
+                    (value.startsWith("'") && value.endsWith("'"))) {
+                    value = value.slice(1, -1);
+                }
                 // Don't override site-specific values
                 if (!envVars[key.trim()]) {
-                    envVars[key.trim()] = value.trim();
+                    envVars[key.trim()] = value;
                 }
             }
         });

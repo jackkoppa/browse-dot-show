@@ -10,7 +10,7 @@
     "test": "vitest run",
     "build:prod": "dotenvx run -f ../../../.env.prod -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "build:site": "../../../scripts/build-lambda-for-site.sh @browse-dot-show/rss-retrieval-lambda",
-    "run:local": "dotenvx run -f ../../../.env.local -- tsx retrieve-rss-feeds-and-download-audio-files.ts",
+    "run:local": "tsx retrieve-rss-feeds-and-download-audio-files.ts",
     "run:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/rss-retrieval-lambda retrieve-rss-feeds-and-download-audio-files.ts",
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/rss-retrieval-lambda"
   },

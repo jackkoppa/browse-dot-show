@@ -23,5 +23,13 @@ export interface SiteConfig {
     */
     includedPodcasts: Podcast[];
 
+    /** 
+     * Prompt passed to Whisper (locally or API), 
+     * that introduces the podcast, to improve transcription accuracy.
+     * 
+     * @example `Hi, I'm HostA, here with HostB, and this is the Example Podcast! Welcome, let's get started.`
+     */
+    whisperTranscriptionPrompt: string;
+
     // TODO: We will likely add additional customization options, including - perhaps - certain React component files
 }

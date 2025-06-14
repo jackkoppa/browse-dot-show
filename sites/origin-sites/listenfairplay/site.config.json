@@ -19,5 +19,6 @@
             "status": "inactive",
             "url": "https://feeds.megaphone.fm/tamc1411507018"
         }
-    ]
+    ],
+    "whisperTranscriptionPrompt": "Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe. I'm yourhost, Adam Hurrey, here with David Walker & Charlie Eccleshare. Let's begin!"
 }

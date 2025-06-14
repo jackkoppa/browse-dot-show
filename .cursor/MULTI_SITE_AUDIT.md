@@ -187,7 +187,19 @@ pnpm srt-indexing-lambda:run:local
 - **Issue**: Verbose debug logging was cluttering the output after successful verification
 - **Solution**: Removed detailed debugging from site selector, path resolution, and environment loading
 - **Files Modified**: `scripts/utils/site-selector.js`, `scripts/run-with-site-selection.js`, `packages/constants/index.ts`, `packages/s3/index.ts`
-- **Test Result**: ✅ COMPLETED - Clean output while maintaining functionality 
+- **Test Result**: ✅ COMPLETED - Clean output while maintaining functionality
+
+### [2024-12-19 18:30] - CRITICAL: Fixed Environment Loading Conflicts
+- **Issue**: Lambda `:run:local` scripts using `dotenvx` were overriding site selection wrapper environment variables, causing `WHISPER_CPP_PATH` and other vars to be lost
+- **Solution**: Removed `dotenvx run -f ../../../.env.local` from all lambda `:run:local` scripts since site selection wrapper already handles environment loading
+- **Files Modified**: `packages/ingestion/process-audio-lambda/package.json`, `packages/ingestion/rss-retrieval-lambda/package.json`, `packages/ingestion/srt-indexing-lambda/package.json`, `packages/search/search-lambda/package.json`
+- **Test Result**: ✅ VERIFIED - Environment variables now reach lambda processes
+
+### [2024-12-19 18:40] - CRITICAL: Fixed Quoted Environment Variable Values
+- **Issue**: Environment variable values were being read with surrounding quotes (e.g., `"/path/to/whisper.cpp"` instead of `/path/to/whisper.cpp`), causing whisper.cpp directory not found errors
+- **Solution**: Added quote stripping to environment variable parsing in `loadSiteEnvVars()` function
+- **Files Modified**: `scripts/utils/site-selector.js`
+- **Test Result**: READY FOR TESTING - Should now properly parse paths without quotes 
 
 ---
 

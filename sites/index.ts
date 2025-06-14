@@ -6,14 +6,39 @@ import { SiteConfig } from './types.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper function to find the workspace root by looking for package.json
+function findWorkspaceRoot(): string {
+    let currentDir = __dirname;
+    
+    while (currentDir !== path.dirname(currentDir)) {
+        const packageJsonPath = path.join(currentDir, 'package.json');
+        if (fs.existsSync(packageJsonPath)) {
+            try {
+                const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                // Check if this looks like the root package.json
+                if (packageJson.name === 'browse-dot-show' && packageJson.private === true) {
+                    return currentDir;
+                }
+            } catch (error) {
+                // Continue searching if we can't read the package.json
+            }
+        }
+        currentDir = path.dirname(currentDir);
+    }
+    
+    // Fallback: assume sites directory is a sibling of this directory
+    return path.dirname(__dirname);
+}
+
 /**
  * Discovers and loads all available sites.
  * Prioritizes /sites/my-sites/ over /sites/origin-sites/
  * If my-sites has any sites, origin-sites are ignored completely.
  */
 export function discoverSites(): SiteConfig[] {
-    // Go up one level from dist/ to get to the sites directory
-    const sitesDir = path.resolve(__dirname, '..');
+    // Find workspace root and navigate to sites directory
+    const workspaceRoot = findWorkspaceRoot();
+    const sitesDir = path.join(workspaceRoot, 'sites');
     const mySitesDir = path.join(sitesDir, 'my-sites');
     const originSitesDir = path.join(sitesDir, 'origin-sites');
 
@@ -21,20 +46,18 @@ export function discoverSites(): SiteConfig[] {
     const mySites = loadSitesFromDirectory(mySitesDir);
     
     if (mySites.length > 0) {
-        console.log(`Found ${mySites.length} site(s) in my-sites/, ignoring origin-sites/`);
         return mySites;
     }
 
     // Fallback to origin-sites if my-sites is empty
     const originSites = loadSitesFromDirectory(originSitesDir);
-    console.log(`No sites in my-sites/, using ${originSites.length} site(s) from origin-sites/`);
     return originSites;
 }
 
 /**
  * Loads sites from a specific directory
  */
-function loadSitesFromDirectory(directory: string): SiteConfig[] {
+export function loadSitesFromDirectory(directory: string): SiteConfig[] {
     if (!fs.existsSync(directory)) {
         return [];
     }
@@ -123,8 +146,9 @@ export function validateSite(siteId: string): { valid: boolean; errors: string[]
  * Gets the directory path for a specific site
  */
 export function getSiteDirectory(siteId: string): string | null {
-    // Go up one level from dist/ to get to the sites directory
-    const sitesDir = path.resolve(__dirname, '..');
+    // Find workspace root and navigate to sites directory
+    const workspaceRoot = findWorkspaceRoot();
+    const sitesDir = path.join(workspaceRoot, 'sites');
     const mySitesDir = path.join(sitesDir, 'my-sites', siteId);
     const originSitesDir = path.join(sitesDir, 'origin-sites', siteId);
 
