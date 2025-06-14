@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 import * as fs from 'fs/promises';
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH } from '@browse-dot-show/constants';
+import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { deserializeOramaIndex, searchOramaIndex, OramaSearchDatabase } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
@@ -39,24 +39,26 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
   }
 
   // Check if the index file exists in S3
-  const indexFileExistsInS3 = await fileExists(SEARCH_INDEX_DB_S3_KEY);
+  const searchIndexKey = getSearchIndexKey();
+  const localDbPath = getLocalDbPath();
+  const indexFileExistsInS3 = await fileExists(searchIndexKey);
   if (!indexFileExistsInS3) {
-    throw new Error(`Orama search index not found in S3 at: ${SEARCH_INDEX_DB_S3_KEY}. Exiting.`);
+    throw new Error(`Orama search index not found in S3 at: ${searchIndexKey}. Exiting.`);
   }
 
   // Download the Orama index file from S3 to the local /tmp path
-  log.info(`Downloading Orama index from S3 (${SEARCH_INDEX_DB_S3_KEY}) to local path (${LOCAL_DB_PATH})`);
+  log.info(`Downloading Orama index from S3 (${searchIndexKey}) to local path (${localDbPath})`);
   try {
-    const indexFileBuffer = await getFile(SEARCH_INDEX_DB_S3_KEY);
-    await fs.writeFile(LOCAL_DB_PATH, indexFileBuffer);
-    log.info(`Successfully downloaded and saved Orama index to ${LOCAL_DB_PATH}`);
+    const indexFileBuffer = await getFile(searchIndexKey);
+    await fs.writeFile(localDbPath, indexFileBuffer);
+    log.info(`Successfully downloaded and saved Orama index to ${localDbPath}`);
     
     // Log the file size of the downloaded index file
     try {
-      const stats = await fs.stat(LOCAL_DB_PATH);
+      const stats = await fs.stat(localDbPath);
       log.info(`Orama index file size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
     } catch (error) {
-      log.warn(`Failed to get file size for Orama index at ${LOCAL_DB_PATH}: ${error}`);
+      log.warn(`Failed to get file size for Orama index at ${localDbPath}: ${error}`);
     }
   } catch (error) {
     throw new Error(`Failed to download or save Orama index from S3: ${error}. Exiting.`);
@@ -64,7 +66,7 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
 
   // Deserialize the Orama index from the downloaded file
   try {
-    const indexData = await fs.readFile(LOCAL_DB_PATH);
+    const indexData = await fs.readFile(localDbPath);
     const index = await deserializeOramaIndex(indexData);
     
     log.info(`Orama search index loaded in ${Date.now() - startTime}ms`);

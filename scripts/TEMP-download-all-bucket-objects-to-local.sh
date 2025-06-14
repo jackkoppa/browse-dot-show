@@ -61,10 +61,10 @@ else
     echo "✅ AWS CLI v$AWS_VERSION installed"
 fi
 
-# Load environment variables from .env.dev if it exists in the script's directory or workspace root
+# Load environment variables from .env.prod if it exists in the script's directory or workspace root
 SCRIPT_DIR=$(dirname "$0")
-ENV_FILE_SCRIPT_DIR="$SCRIPT_DIR/.env.dev"
-ENV_FILE_ROOT=".env.dev"
+ENV_FILE_SCRIPT_DIR="$SCRIPT_DIR/.env.prod"
+ENV_FILE_ROOT=".env.prod"
 
 if [ -f "$ENV_FILE_SCRIPT_DIR" ]; then
     echo " sourcing $ENV_FILE_SCRIPT_DIR"
@@ -73,7 +73,7 @@ elif [ -f "$ENV_FILE_ROOT" ]; then
     echo "sourcing $ENV_FILE_ROOT"
     source "$ENV_FILE_ROOT"
 else
-    echo "ℹ️  .env.dev file not found in script directory or workspace root. Assuming AWS_PROFILE is globally available or not needed if using default profile."
+    echo "ℹ️  .env.prod file not found in script directory or workspace root. Assuming AWS_PROFILE is globally available or not needed if using default profile."
 fi
 
 
@@ -90,8 +90,8 @@ if [ -n "$AWS_PROFILE" ]; then
 elif aws sts get-caller-identity &> /dev/null; then
     echo "✅ AWS authentication verified with default credentials/profile."
 else
-    echo "❌ AWS_PROFILE is not set (e.g., in .env.dev) and default AWS credentials are not working or expired."
-    echo "  If using SSO, please add AWS_PROFILE to .env.dev and run 'aws sso login --profile <your-profile>'."
+    echo "❌ AWS_PROFILE is not set (e.g., in .env.prod) and default AWS credentials are not working or expired."
+    echo "  If using SSO, please add AWS_PROFILE to .env.prod and run 'aws sso login --profile <your-profile>'."
     echo "  Alternatively, configure your default AWS credentials."
     exit 1
 fi

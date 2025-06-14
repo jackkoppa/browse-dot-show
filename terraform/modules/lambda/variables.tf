@@ -48,8 +48,8 @@ variable "s3_bucket_name" {
   type        = string
 }
 
-variable "environment" {
-  description = "The deployment environment (e.g., dev, prod)"
+variable "site_id" {
+  description = "The unique identifier for the site"
   type        = string
 }
 

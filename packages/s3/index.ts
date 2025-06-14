@@ -6,13 +6,16 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@browse-dot-show/logging';
 
-// Configuration constants
+// Legacy configuration constants (will be replaced by site-specific buckets)
 const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
 // Fixed: Set path relative to this file's location instead of process.cwd()
 // This allows the package to work regardless of where the importing script is run from
 const LOCAL_S3_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), '../../../aws-local-dev/s3');
+
+// DEBUG: Log the computed LOCAL_S3_PATH at module load time
+console.log(`[DEBUG S3 Module] LOCAL_S3_PATH computed as: "${LOCAL_S3_PATH}"`);
 
 // IMPORTANT!!! CURSOR-TODO: This needs to be set at build time (rolldown) when building for Lambda deployment
 const FILE_STORAGE_ENV = process.env.FILE_STORAGE_ENV || 'dev-s3';
@@ -28,9 +31,19 @@ const s3 = new S3({
 });
 
 /**
- * Get the bucket name based on environment
+ * Get the bucket name based on environment and site
+ * For site-aware operations, uses site-specific bucket names
+ * For legacy operations, falls back to original bucket names
  */
 function getBucketName(): string {
+  const siteId = process.env.CURRENT_SITE_ID;
+  
+  if (siteId && FILE_STORAGE_ENV === 'prod-s3') {
+    // Site-specific bucket naming: browse-dot-show-{siteId}-s3-prod
+    return `browse-dot-show-${siteId}-s3-prod`;
+  }
+  
+  // Legacy bucket names for backwards compatibility
   switch (FILE_STORAGE_ENV) {
     case 'dev-s3':
       return DEV_BUCKET_NAME;
@@ -43,9 +56,34 @@ function getBucketName(): string {
 
 /**
  * Resolve a local file path from an S3 key
+ * For site-aware operations, includes site-specific subdirectories
  */
 function getLocalFilePath(key: string): string {
-  return path.join(LOCAL_S3_PATH, key);
+  const siteId = process.env.CURRENT_SITE_ID;
+  
+  // DEBUG: Add comprehensive logging to understand the path resolution
+  console.log(`[DEBUG getLocalFilePath] === PATH RESOLUTION DEBUG ===`);
+  console.log(`[DEBUG getLocalFilePath] input key: "${key}"`);
+  console.log(`[DEBUG getLocalFilePath] siteId from env: "${siteId}"`);
+  console.log(`[DEBUG getLocalFilePath] LOCAL_S3_PATH: "${LOCAL_S3_PATH}"`);
+  console.log(`[DEBUG getLocalFilePath] key.startsWith('sites/'): ${key.startsWith('sites/')}`);
+  console.log(`[DEBUG getLocalFilePath] __dirname: "${path.dirname(new URL(import.meta.url).pathname)}"`);
+  console.log(`[DEBUG getLocalFilePath] process.cwd(): "${process.cwd()}"`);
+  
+  if (siteId && !key.startsWith('sites/')) {
+    // Site-specific local path: aws-local-dev/s3/sites/{siteId}/{key}
+    // Only add the site prefix if the key doesn't already include it
+    const result = path.join(LOCAL_S3_PATH, 'sites', siteId, key);
+    console.log(`[DEBUG getLocalFilePath] Adding site prefix, result: "${result}"`);
+    console.log(`[DEBUG getLocalFilePath] Path exists? ${require('fs').existsSync(result)}`);
+    return result;
+  }
+  
+  // Legacy path for backwards compatibility, or if key already includes site prefix
+  const result = path.join(LOCAL_S3_PATH, key);
+  console.log(`[DEBUG getLocalFilePath] Using legacy/direct path, result: "${result}"`);
+  console.log(`[DEBUG getLocalFilePath] Path exists? ${require('fs').existsSync(result)}`);
+  return result;
 }
 
 /**

@@ -8,8 +8,8 @@ variable "bucket_regional_domain_name" {
   type        = string
 }
 
-variable "environment" {
-  description = "The environment name (dev or prod)"
+variable "site_id" {
+  description = "The unique identifier for the site"
   type        = string
 }
 
