@@ -32,6 +32,9 @@ interface TranscribeOptions {
   whisperCppPath?: string;
 }
 
+// Global variable to track current whisper process for cleanup
+let currentWhisperProcess: any = null;
+
 /**
  * Transcribes an audio file using either OpenAI or Replicate Whisper API
  * @param options Transcription options
@@ -57,22 +60,24 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const MAX_ATTEMPTS = 3;
-  const TIMEOUT_MS = 120 * 1000; // 2 minutes
+  const MAX_ATTEMPTS = 3; // Restored to original value
+  const BASE_TIMEOUT_MS = 90 * 1000; // Restored to 90 seconds for first attempt
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      log.info(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} for ${path.basename(filePath)} using ${whisperApiProvider}`);
+      // Calculate timeout: Increase with each attempt; max of MAX_ATTEMPTS * BASE_TIMEOUT_MS
+      const currentTimeoutMs = BASE_TIMEOUT_MS * attempt;
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Transcription timed out after ${TIMEOUT_MS / 1000} seconds`));
-        }, TIMEOUT_MS);
-      });
-
+      log.info(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} for ${path.basename(filePath)} using ${whisperApiProvider}`);
+      log.info(`⏱️  Timeout for this attempt: ${currentTimeoutMs / 1000} seconds`);
+      
+      // Log file details for debugging
+      const fileStats = fs.statSync(filePath);
+      log.info(`📁 File details: ${path.basename(filePath)}, Size: ${(fileStats.size / 1024 / 1024).toFixed(2)} MB, Modified: ${fileStats.mtime.toISOString()}`);
+      
       // Create the transcription promise based on provider
       let transcriptionPromise: Promise<string>;
+      
       switch (whisperApiProvider) {
         case 'openai':
           transcriptionPromise = transcribeWithOpenAI(filePath, responseFormat, prompt, apiKey);
@@ -87,15 +92,43 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
           throw new Error(`Unsupported API provider: ${whisperApiProvider}`);
       }
 
+      // Create a timeout promise with proper process cleanup
+      let timeoutId: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          // Kill the current whisper process immediately when timeout is reached
+          if (currentWhisperProcess && !currentWhisperProcess.killed) {
+            log.warn(`⏰ Timeout reached (${currentTimeoutMs / 1000}s), immediately killing whisper process PID ${currentWhisperProcess.pid}`);
+            try {
+              // Force kill immediately on timeout
+              currentWhisperProcess.kill('SIGKILL');
+              log.info(`🔪 Sent SIGKILL to PID ${currentWhisperProcess.pid} due to timeout`);
+            } catch (killError) {
+              log.error(`❌ Failed to kill process PID ${currentWhisperProcess.pid}: ${killError}`);
+            }
+          }
+          reject(new Error(`Transcription timed out after ${currentTimeoutMs / 1000} seconds`));
+        }, currentTimeoutMs);
+      });
+
       // Race between timeout and transcription
+      const transcriptionStartTime = Date.now();
+      log.info(`🚀 Starting transcription for ${path.basename(filePath)} at ${new Date().toISOString()}`);
+      
       const result = await Promise.race([transcriptionPromise, timeoutPromise]);
       
-      log.info(`Transcription attempt ${attempt} succeeded for ${path.basename(filePath)}`);
+      // Clear timeout if transcription completed successfully
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      const transcriptionDuration = (Date.now() - transcriptionStartTime) / 1000;
+      log.info(`✅ Transcription attempt ${attempt} succeeded for ${path.basename(filePath)} in ${transcriptionDuration.toFixed(2)} seconds`);
       return result;
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      log.warn(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} failed for ${path.basename(filePath)}: ${errorMessage}`);
+      log.warn(`❌ Transcription attempt ${attempt}/${MAX_ATTEMPTS} failed for ${path.basename(filePath)}: ${errorMessage}`);
       
       // If this was the last attempt, throw a detailed error
       if (attempt === MAX_ATTEMPTS) {
@@ -109,9 +142,11 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
       }
       
       // Wait a bit before retrying (exponential backoff)
-      const retryDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s...
-      log.info(`Waiting ${retryDelay}ms before retry...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+      if (attempt < MAX_ATTEMPTS) {
+        const retryDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s...
+        log.info(`⏳ Waiting ${retryDelay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+      }
     }
   }
 
@@ -213,6 +248,10 @@ async function transcribeWithLocalWhisperCpp(
  */
 function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+    log.info(`🎯 Starting whisper command: ${whisperCliBin} ${args.join(' ')}`);
+    log.info(`📂 Working directory: ${cwd}`);
+    
     const child = spawn(whisperCliBin, args, { 
       cwd,
       stdio: ['pipe', 'pipe', 'pipe']
@@ -220,26 +259,109 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
 
     let stdout = '';
     let stderr = '';
+    let lastProgressTime = Date.now();
+    let isResolved = false;
+
+    // Progress logging every 10 seconds
+    const progressInterval = setInterval(() => {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      log.info(`⏱️  Whisper process still running after ${elapsed}s for PID ${child.pid}`);
+    }, 10000);
+
+    // Cleanup function
+    const cleanup = () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      if (child && !child.killed) {
+        log.warn(`🔪 Forcefully killing whisper process PID ${child.pid}`);
+        try {
+          // Try SIGTERM first
+          child.kill('SIGTERM');
+          // Wait a moment then force kill
+          setTimeout(() => {
+            if (child && !child.killed) {
+              log.warn(`🔪 Process ${child.pid} didn't respond to SIGTERM, using SIGKILL`);
+              child.kill('SIGKILL');
+            }
+          }, 2000);
+        } catch (killError) {
+          log.error(`❌ Failed to kill process PID ${child.pid}: ${killError}`);
+          // Try SIGKILL as last resort
+          try {
+            child.kill('SIGKILL');
+          } catch (forceKillError) {
+            log.error(`❌ Failed to force kill process PID ${child.pid}: ${forceKillError}`);
+          }
+        }
+      }
+      // Clear global process reference
+      if (currentWhisperProcess === child) {
+        currentWhisperProcess = null;
+      }
+    };
 
     child.stdout?.on('data', (data) => {
-      stdout += data.toString();
+      const dataStr = data.toString();
+      stdout += dataStr;
+      lastProgressTime = Date.now();
+      
+      // Log any output from whisper for debugging
+      if (dataStr.trim()) {
+        log.info(`📝 Whisper stdout: ${dataStr.trim()}`);
+      }
     });
 
     child.stderr?.on('data', (data) => {
-      stderr += data.toString();
+      const dataStr = data.toString();
+      stderr += dataStr;
+      lastProgressTime = Date.now();
+      
+      // Log whisper stderr output which often contains progress info
+      if (dataStr.trim()) {
+        log.info(`🔍 Whisper stderr: ${dataStr.trim()}`);
+      }
     });
 
     child.on('close', (code) => {
+      if (isResolved) return;
+      isResolved = true;
+      
+      cleanup();
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      
       if (code === 0) {
+        log.info(`✅ Whisper command completed successfully in ${totalTime}s`);
         resolve({ stdout, stderr });
       } else {
+        log.error(`❌ Whisper command failed with exit code ${code} after ${totalTime}s`);
+        log.error(`Final stdout: ${stdout}`);
+        log.error(`Final stderr: ${stderr}`);
         reject(new Error(`Command failed with exit code ${code}: ${stderr || stdout}`));
       }
     });
 
     child.on('error', (error) => {
+      if (isResolved) return;
+      isResolved = true;
+      
+      cleanup();
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      log.error(`💥 Whisper process error after ${totalTime}s: ${error.message}`);
       reject(error);
     });
+
+    child.on('spawn', () => {
+      log.info(`🚀 Whisper process spawned with PID: ${child.pid}`);
+      // Track this process globally for timeout cleanup
+      currentWhisperProcess = child;
+    });
+
+    // Store child reference for external cleanup if needed
+    (runWhisperCommand as any).currentChild = child;
+    
+    // Clean up any previous child reference
+    (runWhisperCommand as any).previousChild = (runWhisperCommand as any).currentChild;
   });
 }
 
@@ -248,6 +370,9 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
   // Get whisper.cpp directory from options or environment variable
   const whisperDir = whisperCppPath || process.env.WHISPER_CPP_PATH;
   
+  log.info(`🔧 Whisper.cpp configuration:`);
+  log.info(`   Model: ${whisperCPPModel}`);
+  log.info(`   Directory: ${whisperDir}`);
 
   if (!whisperDir) {
     throw new Error('WHISPER_CPP_PATH environment variable or whisperCppPath option is required for local-whisper.cpp');
@@ -274,6 +399,9 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
     throw new Error(`Whisper model not found at: ${modelPath}`);
   }
 
+  log.info(`   Executable: ${whisperCliBin}`);
+  log.info(`   Model path: ${modelPath}`);
+
   // Create temporary output file for transcription
   const tempOutputDir = path.dirname(filePath);
 
@@ -298,6 +426,13 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
   }
   
   try {
+    // Log input file information
+    const inputFileStats = fs.statSync(filePath);
+    log.info(`📁 Input file: ${path.basename(filePath)}`);
+    log.info(`   Size: ${(inputFileStats.size / 1024 / 1024).toFixed(2)} MB`);
+    log.info(`   Path: ${filePath}`);
+    log.info(`   Output will be: ${tempOutputFileWithExtension}`);
+    
     // Run whisper.cpp command using spawn to avoid shell interpretation issues with special characters
     const args = [
       '-m', modelPath,
@@ -307,17 +442,38 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
       '--prompt', prompt
     ];
 
+    log.info(`🎯 About to run whisper command with args: ${JSON.stringify(args)}`);
     const { stdout, stderr } = await runWhisperCommand(whisperCliBin, args, whisperDir);
     
     // Read the output file
+    log.info(`🔍 Checking for output file: ${tempOutputFileWithExtension}`);
+    
     if (fs.existsSync(tempOutputFileWithExtension)) {
+      const outputStats = fs.statSync(tempOutputFileWithExtension);
+      log.info(`✅ Output file found! Size: ${outputStats.size} bytes`);
+      
       const transcription = fs.readFileSync(tempOutputFileWithExtension, 'utf-8');
+      log.info(`📄 Transcription length: ${transcription.length} characters`);
+      
       // Clean up temp file
       fs.unlinkSync(tempOutputFileWithExtension);
+      log.info(`🧹 Cleaned up temporary output file`);
+      
       return transcription;
     } else {
-      log.debug('\n◻️ whisper.cpp, stdout:\n', stdout, '\n\n');
-      log.debug('\n❌ whisper.cpp, stderr:\n', stderr, '\n\n');
+      log.error(`❌ Output file not found: ${tempOutputFileWithExtension}`);
+      
+      // List files in the temp directory to see what was created
+      const tempDir = path.dirname(tempOutputFileWithExtension);
+      if (fs.existsSync(tempDir)) {
+        const filesInTempDir = fs.readdirSync(tempDir);
+        log.error(`📂 Files in temp directory (${tempDir}):`, filesInTempDir);
+      } else {
+        log.error(`📂 Temp directory doesn't exist: ${tempDir}`);
+      }
+      
+      log.error('\n◻️ whisper.cpp stdout:\n', stdout, '\n');
+      log.error('\n❌ whisper.cpp stderr:\n', stderr, '\n');
       throw new Error(`Output file not created: ${tempOutputFileWithExtension}. See above for more details.`);
     }
   } catch (error) {
