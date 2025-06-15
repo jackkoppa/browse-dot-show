@@ -31,8 +31,8 @@ resource "aws_iam_role" "scheduler_role" {
   })
   
   tags = {
-    Name        = "${var.schedule_name}-role"
-    Environment = var.environment
+    Name = "${var.schedule_name}-role"
+    Site = var.site_id
   }
 }
 

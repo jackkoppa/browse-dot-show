@@ -2,21 +2,29 @@
 
 set -e
 
-# Default environment is dev
-ENV=${1:-dev}
+# Use production environment (Phase 7: simplified environment model)
+ENV="prod"
+
+# Get SITE_ID from environment variables (should be set by calling script)
+SITE_ID=${2:-$SITE_ID}
+if [ -z "$SITE_ID" ]; then
+  echo "Error: SITE_ID must be provided as second argument or environment variable"
+  echo "Usage: ./upload-client.sh prod SITE_ID"
+  exit 1
+fi
 
 # Source environment variables
-if [ -f ".env.$ENV" ]; then
-  echo "Loading environment variables from .env.$ENV"
-  source ".env.$ENV"
+if [ -f ".env.prod" ]; then
+  echo "Loading environment variables from .env.prod"
+  source ".env.prod"
 else
-  echo "Error: .env.$ENV file not found"
+  echo "Error: .env.prod file not found"
   exit 1
 fi
 
 # Validate AWS profile
 if [ -z "$AWS_PROFILE" ]; then
-  echo "Error: AWS_PROFILE is not set in .env.$ENV"
+  echo "Error: AWS_PROFILE is not set in .env.prod"
   exit 1
 fi
 
@@ -46,7 +54,8 @@ echo "Building client with manifest base URL: $S3_HOSTED_FILES_BASE_URL"
 cd packages/client
 export VITE_SEARCH_API_URL="$SEARCH_API_URL"
 export VITE_S3_HOSTED_FILES_BASE_URL="$S3_HOSTED_FILES_BASE_URL"
-pnpm build-client:$ENV
+export SITE_ID="$SITE_ID"
+pnpm build:site
 cd ../..
 
 echo "Uploading client files to S3 bucket: $BUCKET_NAME"

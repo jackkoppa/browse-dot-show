@@ -20,9 +20,7 @@ import {
 import { Badge } from './ui/badge';
 import { trackEvent } from '../utils/goatcounter'
 import { PodcastId } from '@browse-dot-show/types';
-
-const PODFOLLOW_LINK_FOOTBALL_CLICHES = 'https://podfollow.com/new-football-cliches';
-const PODFOLLOW_LINK_FOR_OUR_SINS = 'https://podfollow.com/football-cliches';
+import siteConfig from '../config/site-config';
 
 interface PlayTimeLimitDialogProps {
   isOpen: boolean;
@@ -42,21 +40,27 @@ export default function PlayTimeLimitDialog({
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handlePodcastLinkClick = () => {
-    const eventType = podcastId === 'football-cliches' ? 
-      'Open In Podcast App Link Clicked [Football Cliches]' : 
-      'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]';
+    const podcastInfo = siteConfig.podcastLinks[podcastId];
+    
+    // Use a generic event type for now, with specific event name
     trackEvent({
-      eventType,
+      eventType: podcastId === 'football-cliches' ? 'Open In Podcast App Link Clicked [Football Cliches]' : 'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]',
+      eventName: `Open In Podcast App Link Clicked [${podcastInfo?.title || 'Unknown Podcast'}]`
     })
-    const linkToOpen = podcastId === 'football-cliches' ? PODFOLLOW_LINK_FOOTBALL_CLICHES : PODFOLLOW_LINK_FOR_OUR_SINS;
-    window.open(linkToOpen, '_blank');
+    
+    const linkToOpen = podcastInfo?.url;
+    if (linkToOpen) {
+      window.open(linkToOpen, '_blank');
+    }
     onOpenChange(false);
   };
 
+  const podcastInfo = siteConfig.podcastLinks[podcastId];
+
   const dialogDescription = (
     <>
-      <span><em>Listen, Fair Play</em> sets a 5-minute listening limit <strong>per episode</strong>, per session.</span><br /><br />
-      <span>We want <span className="underline" onClick={handlePodcastLinkClick}>Football Clichés</span> to receive all its regular downloads & ad plays.<br />So to keep listening to this episode, please open in your podcast player of choice.</span>
+      <span><em>{siteConfig.shortTitle}</em> sets a 5-minute listening limit <strong>per episode</strong>, per session.</span><br /><br />
+      <span>We want <span className="underline" onClick={handlePodcastLinkClick}>{podcastInfo?.title || 'this podcast'}</span> to receive all its regular downloads & ad plays.<br />So to keep listening to this episode, please open in your podcast player of choice.</span>
     </>
   );
 

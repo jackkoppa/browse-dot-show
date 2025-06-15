@@ -12,7 +12,7 @@ import {
 } from '@browse-dot-show/s3';
 import { RSS_CONFIG } from '@browse-dot-show/config';
 import { EpisodeManifest, EpisodeInManifest, PodcastId } from '@browse-dot-show/types';
-import { EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
+import { getEpisodeManifestKey } from '@browse-dot-show/constants';
 import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
 import { parsePubDate } from './utils/parse-pub-date.js';
 
@@ -182,8 +182,9 @@ async function checkAWSCredentials(): Promise<void> {
  */
 async function loadEpisodeManifest(): Promise<EpisodeManifest | null> {
   try {
-    if (await fileExists(EPISODE_MANIFEST_KEY)) {
-      const manifestBuffer = await getFile(EPISODE_MANIFEST_KEY);
+    const episodeManifestKey = getEpisodeManifestKey();
+    if (await fileExists(episodeManifestKey)) {
+      const manifestBuffer = await getFile(episodeManifestKey);
       return JSON.parse(manifestBuffer.toString('utf-8')) as EpisodeManifest;
     }
     return null;
@@ -623,7 +624,7 @@ async function updateManifestFromExpectedEpisodes(expectedEpisodes: ExpectedEpis
     lastUpdated: new Date().toISOString()
   };
 
-  await saveFile(EPISODE_MANIFEST_KEY, JSON.stringify(updatedManifest, null, 2));
+  await saveFile(getEpisodeManifestKey(), JSON.stringify(updatedManifest, null, 2));
 }
 
 /**
@@ -647,7 +648,7 @@ export async function lintS3Files(applyFixes: boolean = false): Promise<LintResu
     if (manifest) {
       log.info(`Loaded manifest with ${manifest.episodes.length} episodes`);
     } else {
-      log.warn('Episode manifest not found at:', EPISODE_MANIFEST_KEY);
+      log.warn('Episode manifest not found at:', getEpisodeManifestKey());
     }
 
     // 3. Scan S3 files

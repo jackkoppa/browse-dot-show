@@ -11,6 +11,9 @@ packages:
   - packages/ingestion/process-audio-lambda
   - packages/ingestion/srt-indexing-lambda
   - packages/search/search-lambda
+  # Listed outside of /packages, because /sites is a top-level directory,
+  # determining all 'sites' deployed by this repository
+  - sites
 catalog:
   '@orama/orama': ^3.1.7
   '@orama/plugin-data-persistence': ^3.1.7

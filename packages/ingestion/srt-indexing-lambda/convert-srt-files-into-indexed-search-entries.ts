@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { SEARCH_INDEX_DB_S3_KEY, LOCAL_DB_PATH, EPISODE_MANIFEST_KEY } from '@browse-dot-show/constants';
+import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix } from '@browse-dot-show/constants';
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
@@ -22,9 +22,7 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
 
-// Constants - S3 paths
-const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
-const SEARCH_ENTRIES_DIR_PREFIX = 'search-entries/';
+// Constants
 const PROGRESS_LOG_THRESHOLD = 5; // Log progress every 5% of SRT files processed
 const SEARCH_LAMBDA_NAME = 'search-indexed-transcripts'; // The name of the search lambda
 
@@ -49,7 +47,7 @@ let episodeManifestData: EpisodeManifestEntry[] = [];
 async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   return fileExists(searchEntriesKey);
 }
@@ -91,7 +89,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   // Save search entries to S3
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey)); // This might be simplified if manifest gives full path or structure
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   // Ensure the directory exists
   await createDirectory(path.dirname(searchEntriesKey));
@@ -109,7 +107,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
 async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string | false> {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(SEARCH_ENTRIES_DIR_PREFIX, podcastName, `${srtFileName}.json`);
+  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
   
   if (await fileExists(searchEntriesKey)) {
     return searchEntriesKey;
@@ -124,8 +122,9 @@ export async function handler(): Promise<any> {
   log.info('⏱️ Starting at', new Date().toISOString())
 
   try {
-    log.info(`Fetching episode manifest from S3: ${EPISODE_MANIFEST_KEY}`);
-    const manifestBuffer = await getFile(EPISODE_MANIFEST_KEY);
+    const episodeManifestKey = getEpisodeManifestKey();
+    log.info(`Fetching episode manifest from S3: ${episodeManifestKey}`);
+    const manifestBuffer = await getFile(episodeManifestKey);
     const manifestContent = manifestBuffer.toString('utf-8');
     const parsedManifest = JSON.parse(manifestContent);
     if (parsedManifest && Array.isArray(parsedManifest.episodes)) {
@@ -140,7 +139,8 @@ export async function handler(): Promise<any> {
       episodeManifestData = []; // Ensure it's empty to prevent partial processing
     }
   } catch (error: any) {
-    log.error(`Failed to load or parse episode manifest from ${EPISODE_MANIFEST_KEY}: ${error.message}`, error);
+    const episodeManifestKey = getEpisodeManifestKey();
+    log.error(`Failed to load or parse episode manifest from ${episodeManifestKey}: ${error.message}`, error);
     log.error('Cannot proceed without episode manifest for new ID logic. Aborting.');
     return {
       status: 'error',
@@ -162,15 +162,15 @@ export async function handler(): Promise<any> {
     await fs.mkdir('/tmp', { recursive: true });
   }
   
-  await createDirectory(SEARCH_ENTRIES_DIR_PREFIX); // Ensure base search entries dir exists
+  await createDirectory(getSearchEntriesDirPrefix()); // Ensure base search entries dir exists
 
   // Always create a fresh Orama index
   log.info('Creating fresh Orama search index');
   
   // Clean up any existing local index file
   try {
-    await fs.unlink(LOCAL_DB_PATH);
-    log.debug(`Removed any existing local index at ${LOCAL_DB_PATH}`);
+    await fs.unlink(getLocalDbPath());
+    log.debug(`Removed any existing local index at ${getLocalDbPath()}`);
   } catch (e: any) {
     if (e.code !== 'ENOENT') log.warn(`Could not remove existing local index: ${e.message}`);
   }
@@ -179,8 +179,8 @@ export async function handler(): Promise<any> {
   log.info('Created fresh Orama search index');
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
-  const podcastDirectoryPrefixes = await listDirectories(TRANSCRIPTS_DIR_PREFIX);
-  log.info(`[DEBUG] listDirectories('${TRANSCRIPTS_DIR_PREFIX}') returned ${podcastDirectoryPrefixes.length} podcast directories.`);
+  const podcastDirectoryPrefixes = await listDirectories(getTranscriptsDirPrefix());
+  log.info(`[DEBUG] listDirectories('${getTranscriptsDirPrefix()}') returned ${podcastDirectoryPrefixes.length} podcast directories.`);
   if (podcastDirectoryPrefixes.length > 0) {
     log.debug(`[DEBUG] Podcast directories: ${JSON.stringify(podcastDirectoryPrefixes)}`);
   }
@@ -326,16 +326,16 @@ export async function handler(): Promise<any> {
     log.info(`All entries inserted into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
   }
 
-  log.info(`Serializing Orama index to binary format at ${LOCAL_DB_PATH}...`);
+  log.info(`Serializing Orama index to binary format at ${getLocalDbPath()}...`);
   try {
     const serializedIndexBuffer = await serializeOramaIndex(oramaIndex);
-    await fs.writeFile(LOCAL_DB_PATH, serializedIndexBuffer);
-    log.info(`Orama index successfully serialized to ${LOCAL_DB_PATH}`);
+    await fs.writeFile(getLocalDbPath(), serializedIndexBuffer);
+    log.info(`Orama index successfully serialized to ${getLocalDbPath()}`);
     
     // Upload to S3 (this will overwrite any existing index)
-    log.info(`Uploading Orama index from ${LOCAL_DB_PATH} to S3 at ${SEARCH_INDEX_DB_S3_KEY}...`);
-    await saveFile(SEARCH_INDEX_DB_S3_KEY, serializedIndexBuffer);
-    log.info(`Orama index successfully saved and exported to S3: ${SEARCH_INDEX_DB_S3_KEY}`);
+    log.info(`Uploading Orama index from ${getLocalDbPath()} to S3 at ${getSearchIndexKey()}...`);
+    await saveFile(getSearchIndexKey(), serializedIndexBuffer);
+    log.info(`Orama index successfully saved and exported to S3: ${getSearchIndexKey()}`);
 
     // If new entries were added, invoke the search lambda to force a refresh (only when running in AWS Lambda)
     if (newEntriesAddedInThisRun > 0) {
@@ -364,7 +364,7 @@ export async function handler(): Promise<any> {
     }
 
   } catch (error: any) {
-    log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${LOCAL_DB_PATH} but S3 is not updated.`, error);
+    log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${getLocalDbPath()} but S3 is not updated.`, error);
     return {
       status: 'error',
       message: `Failed to serialize or upload index: ${error.message}`,
@@ -376,8 +376,8 @@ export async function handler(): Promise<any> {
 
   // Clean up local index file
   try {
-    await fs.unlink(LOCAL_DB_PATH);
-    log.info(`Cleaned up local Orama index file: ${LOCAL_DB_PATH}`);
+    await fs.unlink(getLocalDbPath());
+    log.info(`Cleaned up local Orama index file: ${getLocalDbPath()}`);
   } catch (error: any) {
     if (error.code !== 'ENOENT') { // ENOENT means file not found, which is fine
       log.warn(`Could not clean up local Orama index file: ${error.message}`);

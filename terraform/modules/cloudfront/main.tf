@@ -107,7 +107,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   tags = {
-    Name        = "${var.bucket_name}-distribution"
-    Environment = var.environment
+    Name = "${var.bucket_name}-distribution"
+    Site = var.site_id
   }
 } 

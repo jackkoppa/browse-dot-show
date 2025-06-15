@@ -25,8 +25,8 @@ resource "aws_lambda_function" "lambda" {
   }
 
   tags = {
-    Name        = var.function_name
-    Environment = var.environment
+    Name = var.function_name
+    Site = var.site_id
   }
 }
 
@@ -48,8 +48,8 @@ resource "aws_iam_role" "lambda_exec" {
   })
 
   tags = {
-    Name        = "${var.function_name}-role"
-    Environment = var.environment
+    Name = "${var.function_name}-role"
+    Site = var.site_id
   }
 }
 

@@ -3,6 +3,7 @@ import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@browse-dot-show/logging';
+import { getSiteById } from '../../../sites/index.js';
 import {
   fileExists,
   getFile,
@@ -317,7 +318,7 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
 }
 
 // Helper function to process a single audio file
-async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult | null> {
+async function processAudioFile(fileKey: string, whisperPrompt: string): Promise<ApplyCorrectionsResult | null> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
@@ -371,7 +372,8 @@ async function processAudioFile(fileKey: string): Promise<ApplyCorrectionsResult
       const srtContent = await transcribeViaWhisper({
         filePath: chunk.filePath,
         whisperApiProvider: WHISPER_API_PROVIDER,
-        responseFormat: 'srt'
+        responseFormat: 'srt',
+        prompt: whisperPrompt
       });
       srtChunks.push(srtContent);
       // Clean up the individual chunk file
@@ -443,6 +445,24 @@ export async function handler(): Promise<void> {
   log.info('⏱️ Starting at', new Date().toISOString());
   log.info(`🤫  Whisper API Provider: ${WHISPER_API_PROVIDER}`);
   log.info(`🔒 Process ID: ${PROCESS_ID}`);
+
+  // Get the current site ID and configuration
+  const siteId = process.env.CURRENT_SITE_ID;
+  if (!siteId) {
+    throw new Error('CURRENT_SITE_ID environment variable is required');
+  }
+  
+  const siteConfig = getSiteById(siteId);
+  if (!siteConfig) {
+    throw new Error(`Site configuration not found for site ID: ${siteId}`);
+  }
+  
+  if (!siteConfig.whisperTranscriptionPrompt) {
+    throw new Error(`whisperTranscriptionPrompt is required in site configuration for site: ${siteId}`);
+  }
+  
+  const whisperPrompt = siteConfig.whisperTranscriptionPrompt;
+  log.info(`🎙️  Using site-specific Whisper prompt for ${siteId}: "${whisperPrompt.substring(0, 50)}..."`);
 
   // Clean up stale lockfile entries from previous runs
   await cleanupStaleEntries();
@@ -537,6 +557,26 @@ export async function handler(): Promise<void> {
   }
   log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
+  // Debug feature: only process specific file if DEBUG_SINGLE_FILE is set
+  const debugSingleFile = process.env.DEBUG_SINGLE_FILE;
+  if (debugSingleFile) {
+    const debugFile = filesToProcess.find(f => path.basename(f).includes(debugSingleFile));
+    if (debugFile) {
+      log.info(`🐛 DEBUG MODE: Only processing file matching "${debugSingleFile}": ${debugFile}`);
+      filesToProcess = [debugFile];
+      stats.totalFiles = 1;
+      stats.podcastStats.clear();
+      const podcastName = path.basename(path.dirname(debugFile));
+      const fileSizeMB = await getFileSizeMB(debugFile);
+      stats.podcastStats.set(podcastName, { total: 1, skipped: 0, processed: 0, sizeBytes: fileSizeMB * 1024 * 1024 });
+    } else {
+      log.warn(`🐛 DEBUG MODE: No file found matching "${debugSingleFile}". Available files:`);
+      filesToProcess.slice(0, 10).forEach(f => log.warn(`   - ${path.basename(f)}`));
+      if (filesToProcess.length > 10) log.warn(`   ... and ${filesToProcess.length - 10} more files`);
+      return;
+    }
+  }
+
   if (filesToProcess.length === 0) {
     log.info("No audio files found to process.");
     return;
@@ -544,32 +584,40 @@ export async function handler(): Promise<void> {
 
   for (const fileKey of filesToProcess) {
     try {
-      log.debug(`Processing file: ${fileKey}`);
+      log.info(`🔍 Processing file: ${fileKey}`);
       const podcastName = path.basename(path.dirname(fileKey));
 
       // Check if transcription exists
+      log.info(`📋 Checking if transcript exists for ${path.basename(fileKey)}`);
       if (await transcriptExists(fileKey)) {
         stats.skippedFiles++;
         stats.podcastStats.get(podcastName)!.skipped++;
-        log.debug(`Transcript already exists for ${fileKey}, skipping`);
+        log.info(`⏭️  Transcript already exists for ${fileKey}, skipping`);
         continue;
       }
+      log.info(`✅ No existing transcript found for ${path.basename(fileKey)}`);
 
       // Check if file is being processed
+      log.info(`🔒 Checking if file is being processed by another instance`);
       if (await isFileBeingProcessed(fileKey)) {
-        log.debug(`File ${fileKey} is already being processed, skipping`);
+        log.info(`🚫 File ${fileKey} is already being processed, skipping`);
         continue;
       }
+      log.info(`✅ File is not being processed by another instance`);
+
+      log.info(`🚀 Starting to process file: ${path.basename(fileKey)}`);
 
       // Track processing time and file size for individual file
       const fileStartTime = Date.now();
       const fileSizeMB = await getFileSizeMB(fileKey);
       const fileSizeBytes = fileSizeMB * 1024 * 1024;
       
+      log.info(`📊 File size: ${fileSizeMB.toFixed(2)} MB`);
+      
       // Increment incomplete transcripts counter before processing
       incompletedTranscripts++;
       
-      const correctionResult = await processAudioFile(fileKey);
+      const correctionResult = await processAudioFile(fileKey, whisperPrompt);
       
       // Calculate processing time for this file
       const fileProcessingTime = (Date.now() - fileStartTime) / 1000;
