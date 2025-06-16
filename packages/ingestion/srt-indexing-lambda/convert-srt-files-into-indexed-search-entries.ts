@@ -281,11 +281,6 @@ export async function handler(): Promise<any> {
     allSearchEntriesToInsert.push(...searchEntriesForFile);
     newEntriesAddedInThisRun += searchEntriesForFile.length;
 
-    // TODO: Remove this after testing
-    if (searchEntriesForFile.find(entry => entry.id.includes('271_'))) {
-      log.info(`[DEBUG] Found entry with id 271_ in ${srtFileKey}, search entries for file: ${JSON.stringify(searchEntriesForFile)}`);
-    }
-
     log.debug(`Queued ${searchEntriesForFile.length} entries for batch insertion from ${srtFileKey}`);
 
     srtFilesProcessedCount++;
