@@ -17,4 +17,4 @@ Before creating this request, please [search existing issues](../../issues) to s
 **Important Notes:**
 - Only a few additional podcasts will be added to the main [browse.show](https://browse.show) domain due to hosting and maintenance limitations
 - **Anyone can host their own podcast search site** using this repository! We'll happily link to your site on the main browse.show page
-- To get started with your own instance, follow the instructions in our [README.md](../../README.md) 
+- To get started with your own instance, follow the instructions in our [Getting Started guide](../../docs/GETTING_STARTED.md) 
