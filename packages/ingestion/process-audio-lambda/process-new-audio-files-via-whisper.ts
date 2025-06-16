@@ -627,7 +627,6 @@ export async function handler(): Promise<void> {
       const podcastName = path.basename(path.dirname(fileKey));
 
       // Check if transcription exists
-      log.info(`📋 Checking if transcript exists for ${path.basename(fileKey)}`);
       if (await transcriptExists(fileKey)) {
         stats.skippedFiles++;
         stats.podcastStats.get(podcastName)!.skipped++;
