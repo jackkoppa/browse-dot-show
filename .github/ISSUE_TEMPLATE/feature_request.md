@@ -1,20 +1,19 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
+name: Feature Request
+about: Suggest an improvement to existing sites
 title: ''
-labels: ''
-assignees: ''
+labels: 'feature-request'
+assignees: '@jackkoppa'
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Feature Request
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**What feature would you like?**
+<!-- Describe the feature you'd like to see -->
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Why is this useful?**
+<!-- How would this benefit users? -->
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Additional context:**
+<!-- Any other context, mockups, or examples --> 

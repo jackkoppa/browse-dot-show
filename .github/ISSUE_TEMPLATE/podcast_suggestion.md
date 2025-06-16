@@ -1,7 +1,16 @@
+---
+name: Suggest a New Podcast
+about: Suggest a podcast you'd like to be able to search
+title: ''
+labels: 'podcast-suggestion'
+assignees: '@jackkoppa'
+
+---
+
 ## Suggest a New Podcast
 
 **⚠️ Please search existing requests first!**
-Before creating this request, please [search existing issues](../../issues) to see if this podcast has already been suggested. If it has, please upvote that request instead.
+Before creating this request, please [search existing requests](https://github.com/jackkoppa/browse-dot-show/issues?q=is%3Aissue%20label%3Apodcast-suggestion) to see if this podcast has already been suggested. If it has, please upvote that request instead.
 
 **Podcast Name:**
 <!-- Name of the podcast -->
