@@ -14,7 +14,7 @@ import {
   listDirectories,
 } from '@browse-dot-show/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
-import { splitAudioFile, prepareAudioFile, TranscriptionChunk } from './utils/ffmpeg-utils.js';
+import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
 import { 
   applyCorrectionToFile,
   aggregateCorrectionResults,
@@ -28,7 +28,7 @@ const AUDIO_DIR_PREFIX = 'audio/';
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 const LOCKFILE_PATH = 'transcripts/.processing-lock.json';
 const MAX_FILE_SIZE_MB = 25;
-const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
+const MAX_DURATION_MINUTES = 20; // Maximum duration before chunking
 // Which Whisper API provider to use (can be configured via environment variable)
 const WHISPER_API_PROVIDER: WhisperApiProvider = (process.env.WHISPER_API_PROVIDER as WhisperApiProvider) || 'openai';
 const LAMBDA_CLIENT = new LambdaClient({});
@@ -230,8 +230,34 @@ async function getFileSizeMB(fileKey: string): Promise<number> {
   return buffer.length / (1024 * 1024);
 }
 
+// Helper function to get the audio duration in minutes
+async function getAudioDurationMinutes(fileKey: string): Promise<number> {
+  // Create a temporary file to analyze with ffprobe
+  const tempFilePath = path.join('/tmp', `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.mp3`);
+  
+  try {
+    // Download the file to temp location
+    const audioBuffer = await getFile(fileKey);
+    await fs.writeFile(tempFilePath, audioBuffer);
+    
+    // Get metadata using ffprobe
+    const metadata = await getAudioMetadata(tempFilePath);
+    const durationSeconds = metadata.format.duration || 0;
+    const durationMinutes = durationSeconds / 60;
+    
+    return durationMinutes;
+  } finally {
+    // Clean up temp file
+    try {
+      await fs.remove(tempFilePath);
+    } catch (error) {
+      log.debug(`Failed to clean up temp file ${tempFilePath}:`, error);
+    }
+  }
+}
+
 // Helper function to combine SRT files
-function combineSrtFiles(srtFiles: string[]): string {
+function combineSrtFiles(srtFiles: string[], chunks: TranscriptionChunk[]): string {
   const parser = new SrtParser();
   let combinedEntries: SrtEntry[] = [];
   let currentId = 1;
@@ -239,7 +265,8 @@ function combineSrtFiles(srtFiles: string[]): string {
   srtFiles.forEach((srtContent, index) => {
     try {
       const entries = parser.fromSrt(srtContent);
-      const offset = index * CHUNK_DURATION_MINUTES * 60;
+      // Use the actual chunk start time as offset (already in seconds)
+      const offset = chunks[index]?.startTime || 0;
 
       entries.forEach((entry: any) => {
         // Skip entries with invalid timestamps (sometimes Whisper can return these)
@@ -347,15 +374,27 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
       return null;
     }
 
-    // Get file size
+    // Get file size and duration
     const fileSizeMB = await getFileSizeMB(fileKey);
+    const durationMinutes = await getAudioDurationMinutes(fileKey);
 
     let chunks: TranscriptionChunk[] = [];
-    if (fileSizeMB > MAX_FILE_SIZE_MB) {
-      log.info(`File ${fileKey} is too large (${fileSizeMB.toFixed(2)}MB). Splitting into chunks...`);
-      chunks = await splitAudioFile(fileKey, PROCESS_ID);
+    const needsChunking = fileSizeMB > MAX_FILE_SIZE_MB || durationMinutes > MAX_DURATION_MINUTES;
+    
+    if (needsChunking) {
+      const reasons: string[] = [];
+      if (fileSizeMB > MAX_FILE_SIZE_MB) {
+        reasons.push(`too large (${fileSizeMB.toFixed(2)}MB > ${MAX_FILE_SIZE_MB}MB)`);
+      }
+      if (durationMinutes > MAX_DURATION_MINUTES) {
+        reasons.push(`too long (${durationMinutes.toFixed(2)} min > ${MAX_DURATION_MINUTES} min)`);
+      }
+      
+      log.info(`File ${fileKey} is ${reasons.join(' and ')}. Splitting into chunks...`);
+      chunks = await splitAudioFile(fileKey, fileSizeMB, PROCESS_ID);
     } else {
       // For small files, prepare them for processing
+      log.info(`File ${fileKey} is ${fileSizeMB.toFixed(2)}MB and ${durationMinutes.toFixed(2)} minutes - processing as single chunk`);
       const { filePath } = await prepareAudioFile(fileKey, PROCESS_ID);
 
       chunks = [{
@@ -382,7 +421,7 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
     }
 
     // Combine SRT files
-    const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks) : srtChunks[0];
+    const finalSrt = chunks.length > 1 ? combineSrtFiles(srtChunks, chunks) : srtChunks[0];
 
     // TODO: Remove this logging after debugging
     log.info(`Combined SRT files: ${srtChunks.length}`);

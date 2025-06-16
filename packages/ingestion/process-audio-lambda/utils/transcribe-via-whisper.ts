@@ -60,8 +60,8 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const MAX_ATTEMPTS = 3; // Restored to original value
-  const BASE_TIMEOUT_MS = 90 * 1000; // Restored to 90 seconds for first attempt
+  const MAX_ATTEMPTS = 3;
+  const BASE_TIMEOUT_MS = 120 * 1000; // 120 seconds for first attempt
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
@@ -308,7 +308,7 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
       
       // Log any output from whisper for debugging
       if (dataStr.trim()) {
-        log.info(`📝 Whisper stdout: ${dataStr.trim()}`);
+        log.debug(`📝 Whisper stdout: ${dataStr.trim()}`);
       }
     });
 
@@ -319,7 +319,7 @@ function runWhisperCommand(whisperCliBin: string, args: string[], cwd: string): 
       
       // Log whisper stderr output which often contains progress info
       if (dataStr.trim()) {
-        log.info(`🔍 Whisper stderr: ${dataStr.trim()}`);
+        log.debug(`🔍 Whisper stderr: ${dataStr.trim()}`);
       }
     });
 

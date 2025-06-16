@@ -5,7 +5,8 @@ import { log } from '@browse-dot-show/logging';
 import { getFile } from '@browse-dot-show/s3';
 
 // Constants
-const CHUNK_DURATION_MINUTES = 10; // Approximate chunk size to stay under 25MB
+const TARGET_CHUNK_SIZE_MB = 20; // Target chunk size (with 25MB as hard limit)
+const MAX_CHUNK_DURATION_MINUTES = 20; // Maximum chunk duration
 
 // Types
 export interface TranscriptionChunk {
@@ -228,9 +229,35 @@ export async function createAudioChunk(
 }
 
 /**
+ * Calculate optimal chunk duration based on file size and duration
+ * @param fileSizeMB Total file size in MB
+ * @param durationMinutes Total file duration in minutes
+ * @returns Optimal chunk duration in minutes
+ */
+function calculateOptimalChunkDuration(fileSizeMB: number, durationMinutes: number): number {
+  // Calculate compression ratio (MB per minute)
+  const mbPerMinute = fileSizeMB / durationMinutes;
+  
+  // Calculate max duration based on target size (20MB)
+  const maxDurationBySize = TARGET_CHUNK_SIZE_MB / mbPerMinute;
+  
+  // Take the minimum of size-based duration and max duration limit
+  const optimalDuration = Math.min(maxDurationBySize, MAX_CHUNK_DURATION_MINUTES);
+  
+  log.info(
+    `Chunk duration calculation: ` +
+    `${fileSizeMB.toFixed(2)}MB / ${durationMinutes.toFixed(2)}min = ${mbPerMinute.toFixed(2)} MB/min. ` +
+    `Target duration: ${optimalDuration.toFixed(2)} minutes ` +
+    `(limited by ${maxDurationBySize < MAX_CHUNK_DURATION_MINUTES ? 'size' : 'duration'})`
+  );
+  
+  return optimalDuration;
+}
+
+/**
  * Split audio file into chunks for processing
  */
-export async function splitAudioFile(fileKey: string, processId?: string): Promise<TranscriptionChunk[]> {
+export async function splitAudioFile(fileKey: string, fileSizeMB: number, processId?: string): Promise<TranscriptionChunk[]> {
   log.info(`Splitting audio file: ${fileKey}`);
 
   // Create process-specific temp directory to avoid conflicts between parallel processes
@@ -249,7 +276,11 @@ export async function splitAudioFile(fileKey: string, processId?: string): Promi
   // Get audio metadata
   const metadata = await getAudioMetadata(tempFilePath);
   const duration = metadata.format.duration || 0;
-  const chunkDuration = CHUNK_DURATION_MINUTES * 60;
+  const durationMinutes = duration / 60;
+  
+  // Calculate optimal chunk duration
+  const chunkDurationMinutes = calculateOptimalChunkDuration(fileSizeMB, durationMinutes);
+  const chunkDuration = chunkDurationMinutes * 60; // Convert to seconds
 
   const chunks: TranscriptionChunk[] = [];
   let currentStart = 0;
