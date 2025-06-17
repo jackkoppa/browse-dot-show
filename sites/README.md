@@ -10,4 +10,6 @@ Each site defines a few things, including its:
 * styling
 * a few .env variables, including AWS SSO username for deployment
 
-The primary repo - [jackkoppa/browse-dot-show](https://github.com/jackkoppa/browse-dot-show) - will define the sites it hosts, in 
+The primary repo - [jackkoppa/browse-dot-show](https://github.com/jackkoppa/browse-dot-show) - will define the sites it hosts, in [origin-sites/](./origin-sites/).
+
+All other repos will define their sites in [my-sites/](./my-sites/).
