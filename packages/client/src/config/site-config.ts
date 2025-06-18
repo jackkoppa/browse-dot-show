@@ -16,6 +16,7 @@ export interface SiteRuntimeConfig {
   };
   themeColor: string;
   themeColorDark: string;
+  searchPlaceholderOptions: string[];
 }
 
 // Read site config from environment variables injected at build time
@@ -28,6 +29,7 @@ const siteConfig: SiteRuntimeConfig = {
   podcastLinks: JSON.parse(import.meta.env.VITE_SITE_PODCAST_LINKS || '{}'),
   themeColor: import.meta.env.VITE_SITE_THEME_COLOR || '#000000',
   themeColorDark: import.meta.env.VITE_SITE_THEME_COLOR_DARK || '#000000',
+  searchPlaceholderOptions: import.meta.env.VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS || ['example search']
 };
 
 export default siteConfig; 

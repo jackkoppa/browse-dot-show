@@ -16,5 +16,12 @@
     ],
     "whisperTranscriptionPrompt": "Welcome to the campaign after the campaign! This is Not Another D&D Podcast. I'm your Dungeon Master, Emily Axford, here with Brian Murphy, Jake Hurwitz and Caldwell Tanner. Let's get started!",
     "themeColor": "#fd0e41",
-    "themeColorDark": "#a014b2"
+    "themeColorDark": "#a014b2",
+    "searchPlaceholderOptions": [
+        "duck team sucks",
+        "olaf dies",
+        "team sport",
+        "potions are enemas",
+        "throw a croissant"
+    ]
 }

@@ -39,5 +39,13 @@ export interface SiteConfig {
     /** e.g. `#136cba` */
     themeColorDark: string;
 
+    /** 
+     * a list of phrases that will be rotated between as the search input text,
+     * to give users an idea of what they can search for. Pick fun/key phrases from the podcast history, that users might recognize.
+     * 
+     * @example `["gets the shot away", "no disrespect to egg"]` 
+     */
+    searchPlaceholderOptions: string[];
+
     // TODO: We will likely add additional customization options, including - perhaps - certain React component files
 }

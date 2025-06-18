@@ -43,6 +43,7 @@ function loadSiteConfig() {
     VITE_SITE_PODCAST_LINKS: JSON.stringify(podcastLinks),
     VITE_SITE_THEME_COLOR: siteConfig.themeColor,
     VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
+    VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: siteConfig.searchPlaceholderOptions,
   };
 }
 

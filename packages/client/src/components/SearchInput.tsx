@@ -1,6 +1,7 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import siteConfig from '@/config/site-config'
 
 interface SearchInputProps {
   value: string
@@ -10,17 +11,10 @@ interface SearchInputProps {
   mostRecentSuccessfulSearchQuery: string | null
 }
 
-const PLACEHOLDER_OPTIONS = [
-  "gets the shot away",
-  "no disrespect to egg",
-  "corridor of uncertainty",
-  "football clubbing",
-  "come what February",
-  "seegs into"
-]
+const { searchPlaceholderOptions } = siteConfig
 
 // Do this outside of React component, so that we always get the same placeholder for each page load
-const placeholderBase = PLACEHOLDER_OPTIONS[Math.floor(Math.random() * PLACEHOLDER_OPTIONS.length)]
+const placeholderBase = searchPlaceholderOptions[Math.floor(Math.random() * searchPlaceholderOptions.length)]
 const placeholder = `e.g. "${placeholderBase}"`
 
 export default function SearchInput({ 
@@ -73,7 +67,7 @@ export default function SearchInput({
           {isLoading ? (
             <div className="border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-2 h-5 w-5"></div>
           ) : (
-            <MagnifyingGlassIcon className="text-foreground size-8" />
+            <MagnifyingGlassIcon className={`size-8 ${showInteractiveButton ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
           )}
         </Button>
       </div>
