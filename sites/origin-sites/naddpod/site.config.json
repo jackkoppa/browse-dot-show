@@ -15,6 +15,5 @@
         }
     ],
     "whisperTranscriptionPrompt": "Welcome to the campaign after the campaign! This is Not Another D&D Podcast. I'm your Dungeon Master, Emily Axford, here with Brian Murphy, Jake Hurwitz and Caldwell Tanner. Let's get started!",
-    "themeColor": "#fd0e41",
-    "fullSizeIconPath": "./assets/full-size-icon.jpg"
+    "themeColor": "#fd0e41"
 }

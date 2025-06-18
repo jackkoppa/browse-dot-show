@@ -2,7 +2,6 @@ packages:
   - packages/client
   - packages/config
   - packages/constants
-  - packages/favicon
   - packages/linting
   - packages/logging
   - packages/database

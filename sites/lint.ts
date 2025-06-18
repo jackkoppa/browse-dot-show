@@ -135,10 +135,6 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     if (!site.themeColor) {
         result.errors.push('Missing required field: themeColor');
     }
-
-    if (!site.fullSizeIconPath) {
-        result.errors.push('Missing required field: fullSizeIconPath');
-    }
     
     if (!site.includedPodcasts || site.includedPodcasts.length === 0) {
         result.errors.push('Missing or empty includedPodcasts array');
@@ -214,7 +210,7 @@ function validateSiteStyling(site: SiteConfig, result: ValidationResult): void {
 }
 
 /**
- * Validates that /assets directory contains the required full-size icon
+ * Validates that /assets directory contains all required files
  */
 function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): void {
     const siteDir = getSiteDirectory(site.id);
@@ -225,30 +221,49 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
     
     const assetsDir = path.join(siteDir, 'assets');
     
+    // Define expected asset files
+    const requiredAssetFiles = [
+        'apple-touch-icon.png',
+        'favicon-96x96.png', 
+        'favicon.ico',
+        'favicon.svg',
+        'simple-alert.mp3',
+        'site.webmanifest',
+        'web-app-manifest-192x192.png',
+        'web-app-manifest-512x512.png'
+    ];
+    
     // Check if assets directory exists
     if (!fs.existsSync(assetsDir)) {
-        result.errors.push('Missing /assets directory');
+        result.warnings.push('Missing /assets directory');
+        result.warnings.push(`Expected assets directory at: ${assetsDir}`);
+        result.warnings.push(`Should contain files: ${requiredAssetFiles.join(', ')}`);
         return;
     }
     
-    // Check if the full-size icon file exists at the specified path
-    if (!site.fullSizeIconPath) {
-        result.errors.push('Missing fullSizeIconPath in site config');
-        return;
+    // Check each required file
+    const missingFiles: string[] = [];
+    for (const fileName of requiredAssetFiles) {
+        const filePath = path.join(assetsDir, fileName);
+        if (!fs.existsSync(filePath)) {
+            missingFiles.push(fileName);
+        }
     }
     
-    const iconPath = path.join(siteDir, site.fullSizeIconPath);
-    if (!fs.existsSync(iconPath)) {
-        result.errors.push(`Missing full-size icon file: ${site.fullSizeIconPath} not found in site directory`);
-        return;
+    if (missingFiles.length > 0) {
+        result.warnings.push(`Missing asset files: ${missingFiles.join(', ')}`);
     }
     
-    // Validate that it's an image file (by checking file extension)
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
-    const fileExtension = path.extname(site.fullSizeIconPath).toLowerCase();
-    
-    if (!imageExtensions.includes(fileExtension)) {
-        result.warnings.push(`Full-size icon file (${site.fullSizeIconPath}) does not have a recognized image file extension. Expected: ${imageExtensions.join(', ')}`);
+    // Check for unexpected files (files that exist but aren't in our expected list)
+    try {
+        const actualFiles = fs.readdirSync(assetsDir);
+        const unexpectedFiles = actualFiles.filter(file => !requiredAssetFiles.includes(file));
+        
+        if (unexpectedFiles.length > 0) {
+            result.warnings.push(`Unexpected files in /assets directory: ${unexpectedFiles.join(', ')}`);
+        }
+    } catch (error) {
+        result.warnings.push(`Error reading /assets directory: ${error}`);
     }
 }
 

@@ -15,6 +15,5 @@
         }
     ],
     "whisperTranscriptionPrompt": "Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!",
-    "themeColor": "#e9ee1f",
-    "fullSizeIconPath": "./assets/full-size-icon.jpg"
+    "themeColor": "#e9ee1f"
 }
