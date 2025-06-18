@@ -1,0 +1,5 @@
+/* Custom colors for the app, can reference if something should stay the same regardless of light/dark mode */
+:root {
+    --browse-dot-show-theme-light: #e9ee1e;
+    --browse-dot-show-theme-dark: #258590;
+}

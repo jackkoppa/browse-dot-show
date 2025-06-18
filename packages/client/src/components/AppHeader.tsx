@@ -102,7 +102,7 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
   const primaryPodcast = activePodcasts.length > 0 ? activePodcasts[0] : null;
 
   return (
-    <header className={`fixed text-foreground top-0 left-0 right-0 z-20 bg-transparent light:bg-lfp-yellow dark:bg-lfp-blue border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)]`}>
+    <header className={`fixed text-foreground top-0 left-0 right-0 z-20 bg-transparent light:bg-browse-dot-show-theme-light dark:bg-browse-dot-show-theme-dark border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)]`}>
       <div className={`max-w-3xl mx-auto pr-3 pl-6 flex justify-end gap-2 sm:gap-4 transition-all duration-400 ease-in-out ${scrolled ? 'py-1 xs:py-2' : 'py-2 sm:py-5'}`}>
         <div className="flex flex-col justify-center text-right">
           <h1 className={`font-bold transition-all duration-200 ${scrolled ? 'text-xl xs:text-2xl mb-0' : 'text-2xl xs:text-3xl mb-1'}`}>

@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build:all-sites": "node build-all-sites.js",
+    "build:all-sites": "node build-sites.js all",
+    "build:specific-site": "node build-sites.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -35,6 +36,7 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
+    "@browse-dot-show/sites": "workspace:*",
     "@orama/highlight": "^0.1.9",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

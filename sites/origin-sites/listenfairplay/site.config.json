@@ -22,5 +22,6 @@
         }
     ],
     "whisperTranscriptionPrompt": "Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe. I'm yourhost, Adam Hurrey, here with David Walker & Charlie Eccleshare. Let's begin!",
-    "themeColor": "#fdf100"
+    "themeColor": "#fdf100",
+    "themeColorDark": "#136cba"
 }

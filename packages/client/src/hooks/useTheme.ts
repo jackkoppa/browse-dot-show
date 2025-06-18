@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 
+import siteConfig from '../config/site-config'  
+
 type Theme = 'light' | 'dark'
 
 export function useTheme() {
@@ -21,7 +23,7 @@ export function useTheme() {
     root.classList.add(theme)
 
     // set PWA theme color
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#136cba' : '#fdf100')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? siteConfig.themeColorDark : siteConfig.themeColor)
     
     // Store in localStorage
     localStorage.setItem('theme', theme)

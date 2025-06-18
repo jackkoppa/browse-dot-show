@@ -36,5 +36,8 @@ export interface SiteConfig {
     /** e.g. `#fdf100` */
     themeColor: string;
 
+    /** e.g. `#136cba` */
+    themeColorDark: string;
+
     // TODO: We will likely add additional customization options, including - perhaps - certain React component files
 }

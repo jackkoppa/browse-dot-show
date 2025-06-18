@@ -14,6 +14,8 @@ export interface SiteRuntimeConfig {
       status: 'active' | 'inactive';
     };
   };
+  themeColor: string;
+  themeColorDark: string;
 }
 
 // Read site config from environment variables injected at build time
@@ -24,6 +26,8 @@ const siteConfig: SiteRuntimeConfig = {
   fullTitle: import.meta.env.VITE_SITE_FULL_TITLE || 'Browse Dot Show',
   description: import.meta.env.VITE_SITE_DESCRIPTION || 'Search podcast episodes',
   podcastLinks: JSON.parse(import.meta.env.VITE_SITE_PODCAST_LINKS || '{}'),
+  themeColor: import.meta.env.VITE_SITE_THEME_COLOR || '#000000',
+  themeColorDark: import.meta.env.VITE_SITE_THEME_COLOR_DARK || '#000000',
 };
 
 export default siteConfig; 

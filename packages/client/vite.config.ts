@@ -8,9 +8,7 @@ import type { ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
 
-// Import site loading utilities - using relative path for monorepo
-import { getSiteById, getSiteDirectory } from '../../sites/dist/index.js';
-import type { SiteConfig } from '../../sites/types.js';
+import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
@@ -43,6 +41,8 @@ function loadSiteConfig() {
     VITE_SITE_FULL_TITLE: siteConfig.fullTitle,
     VITE_SITE_DESCRIPTION: siteConfig.description,
     VITE_SITE_PODCAST_LINKS: JSON.stringify(podcastLinks),
+    VITE_SITE_THEME_COLOR: siteConfig.themeColor,
+    VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
   };
 }
 
@@ -58,12 +58,22 @@ function loadSiteCss(siteId: string): string {
   const siteDir = getSiteDirectory(siteId);
   if (!siteDir) return '';
   
-  const cssPath = path.join(siteDir, 'index.css');
-  if (fs.existsSync(cssPath)) {
-    return fs.readFileSync(cssPath, 'utf8');
+  let combinedCss = '';
+  
+  // First, load key-colors.css if it exists (needs to come before index.css)
+  const keyColorsPath = path.join(siteDir, 'key-colors.css');
+  if (fs.existsSync(keyColorsPath)) {
+    combinedCss += fs.readFileSync(keyColorsPath, 'utf8');
+    combinedCss += '\n\n'; // Add some spacing between files
   }
   
-  return '';
+  // Then, load index.css
+  const cssPath = path.join(siteDir, 'index.css');
+  if (fs.existsSync(cssPath)) {
+    combinedCss += fs.readFileSync(cssPath, 'utf8');
+  }
+  
+  return combinedCss;
 }
 
 // Function to create site-specific CSS file
@@ -109,24 +119,68 @@ function siteSpecificCssPlugin() {
 function templateReplacementPlugin() {
   return {
     name: 'template-replacement',
-    generateBundle(options: any, bundle: any) {
+    transformIndexHtml(html: string) {
       const siteConfig = getSiteConfig();
-      if (!siteConfig) return;
+      if (!siteConfig) return html;
 
-      // Find the HTML file in the bundle
-      Object.keys(bundle).forEach(fileName => {
-        if (fileName.endsWith('.html')) {
-          const file = bundle[fileName];
-          if (file.type === 'asset' && typeof file.source === 'string') {
-            // Replace template variables with fallbacks for missing properties
-            file.source = file.source
-              .replace(/##CANONICAL_URL##/g, siteConfig.canonicalUrl || `https://${siteConfig.domain}`)
-              .replace(/##SITE_NAME##/g, siteConfig.shortTitle)
-              .replace(/##SITE_DESCRIPTION##/g, siteConfig.description)
-              .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000');
-          }
+      // Replace template variables with site config values
+      return html
+        .replace(/##CANONICAL_URL##/g, siteConfig.canonicalUrl || `https://${siteConfig.domain}`)
+        .replace(/##SITE_NAME##/g, siteConfig.shortTitle)
+        .replace(/##SITE_DESCRIPTION##/g, siteConfig.description)
+        .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000');
+    }
+  };
+}
+
+// Plugin to copy site-specific assets
+function siteAssetsPlugin() {
+  return {
+    name: 'site-assets-plugin',
+    writeBundle() {
+      const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+      if (!siteId) return;
+
+      const siteDir = getSiteDirectory(siteId);
+      if (!siteDir) return;
+
+      const sourceAssetsDir = path.join(siteDir, 'assets');
+      const targetAssetsDir = path.resolve(__dirname, process.env.BUILD_OUT_DIR || 'dist', 'assets');
+
+      // Check if source assets directory exists
+      if (!fs.existsSync(sourceAssetsDir)) {
+        console.warn(`No assets directory found for site: ${siteId} at ${sourceAssetsDir}`);
+        return;
+      }
+
+      console.log(`Copying site-specific assets from: ${sourceAssetsDir} to: ${targetAssetsDir}`);
+
+      // Ensure target directory exists
+      if (!fs.existsSync(targetAssetsDir)) {
+        fs.mkdirSync(targetAssetsDir, { recursive: true });
+      }
+
+      // Copy all files from source assets to target assets
+      const files = fs.readdirSync(sourceAssetsDir);
+      files.forEach(file => {
+        const sourcePath = path.join(sourceAssetsDir, file);
+        const targetPath = path.join(targetAssetsDir, file);
+        
+        // Only copy files, not subdirectories for now
+        if (fs.statSync(sourcePath).isFile()) {
+          fs.copyFileSync(sourcePath, targetPath);
+          console.log(`   Copied: ${file}`);
         }
       });
+
+      // Also copy favicon.ico to the root directory for SEO/indexing
+      const faviconInAssets = path.join(targetAssetsDir, 'favicon.ico');
+      const faviconInRoot = path.resolve(__dirname, process.env.BUILD_OUT_DIR || 'dist', 'favicon.ico');
+      
+      if (fs.existsSync(faviconInAssets)) {
+        fs.copyFileSync(faviconInAssets, faviconInRoot);
+        console.log(`   Copied favicon.ico to root directory for SEO`);
+      }
     }
   };
 }
@@ -245,14 +299,7 @@ export default defineConfig(() => {
       transcriptServerPlugin(),
       siteSpecificCssPlugin(),
       templateReplacementPlugin(),
-      {
-        name: 'copy-favicon',
-        writeBundle() {
-          const src = path.resolve(__dirname, 'favicon.ico');
-          const dest = path.resolve(__dirname, process.env.BUILD_OUT_DIR || 'dist', 'favicon.ico');
-          fs.copyFileSync(src, dest);
-        }
-      }
+      siteAssetsPlugin(),
     ],
     define: {
       // Inject site config as compile-time constants

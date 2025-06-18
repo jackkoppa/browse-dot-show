@@ -14,5 +14,5 @@
 /* Site-specific CSS loaded dynamically during build */
 @import "./temp-site.css";
 
-
-/* Site-specific styles are imported via temp-site.css during build */
+/* Additional theme classes, not covered by Tailwind by default */
+@import "./theme-additions.css";

@@ -82,6 +82,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@browse-dot-show/sites':
+        specifier: workspace:*
+        version: link:../../sites
       '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
