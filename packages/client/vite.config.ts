@@ -125,10 +125,16 @@ function templateReplacementPlugin() {
       if (!siteConfig) return html;
 
       // Replace template variables with site config values
+      const canonicalUrl = siteConfig.socialAndMetadata.canonicalUrl || `https://${siteConfig.domain}`;
+      const openGraphImageUrl = `${canonicalUrl}/${siteConfig.socialAndMetadata.openGraphImagePath.replace(/^\.\//, '')}`;
+      
       return html
-        .replace(/##CANONICAL_URL##/g, siteConfig.socialAndMetadata.canonicalUrl || `https://${siteConfig.domain}`)
-        .replace(/##SITE_NAME##/g, siteConfig.appHeader.primaryTitle)
-        .replace(/##SITE_DESCRIPTION##/g, siteConfig.socialAndMetadata.metaDescription)
+        .replace(/##CANONICAL_URL##/g, canonicalUrl)
+        .replace(/##PAGE_TITLE##/g, siteConfig.socialAndMetadata.pageTitle)
+        .replace(/##META_DESCRIPTION##/g, siteConfig.socialAndMetadata.metaDescription)
+        .replace(/##META_DESCRIPTION##/g, siteConfig.socialAndMetadata.metaDescription)
+        .replace(/##OPEN_GRAPH_IMAGE##/g, openGraphImageUrl)
+        .replace(/##META_TITLE##/g, siteConfig.socialAndMetadata.metaTitle)
         .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000');
     }
   };
