@@ -1,10 +1,20 @@
 {
     "id": "hardfork",
     "domain": "hardfork.browse.show",
-    "canonicalUrl": "https://hardfork.browse.show",
-    "shortTitle": "Hard Fork",
-    "fullTitle": "Hard Fork",
-    "description": "Search all Hard Fork episodes",
+    "appHeader": {
+        "primaryTitle": "Hard Fork",
+        "includeTitlePrefix": true,
+        "taglinePrimaryPodcastName": "Hard Fork",
+        "taglinePrimaryPodcastExternalURL": "https://www.nytimes.com/column/hard-fork",
+        "taglineSuffix": "podcast archives"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "[browse.show] Hard Fork",
+        "canonicalUrl": "https://hardfork.browse.show",
+        "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+        "metaDescription": "Search all episodes of the Hard Fork podcast",
+        "metaTitle": "[browse.show] Hard Fork"
+    },
     "includedPodcasts": [
         {
             "id": "hard-fork",
@@ -14,7 +24,7 @@
             "url": "https://feeds.simplecast.com/l2i9YnTd"
         }
     ],
-    "whisperTranscriptionPrompt": "Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that’s already here. Let's jump in!",
+    "whisperTranscriptionPrompt": "Hi, we're Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that's already here. Let's jump in!",
     "themeColor": "#e9ee1e",
     "themeColorDark": "#258590",
     "searchPlaceholderOptions": [

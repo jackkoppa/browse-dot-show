@@ -57,9 +57,8 @@ function loadSitesFromDirectory(directory) {
                     sites.push({
                         id: siteConfig.id,
                         domain: siteConfig.domain,
-                        shortTitle: siteConfig.shortTitle,
-                        fullTitle: siteConfig.fullTitle,
-                        description: siteConfig.description
+                        title: siteConfig.appHeader.primaryTitle,
+                        description: siteConfig.socialAndMetadata.metaDescription
                     });
                 } catch (error) {
                     console.error(`Error loading site config from ${configPath}:`, error);
@@ -160,7 +159,7 @@ async function selectSite(options = {}) {
 
     // Prepare choices for prompting
     const choices = sites.map(site => ({
-        title: `${site.shortTitle} (${site.domain})`,
+        title: `${site.title} (${site.domain})`,
         description: site.description,
         value: site.id
     }));

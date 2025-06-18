@@ -9,6 +9,7 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
 
 import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
+import type { SiteConfig } from '@browse-dot-show/sites';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
@@ -37,13 +38,12 @@ function loadSiteConfig() {
   return {
     VITE_SITE_ID: siteConfig.id,
     VITE_SITE_DOMAIN: siteConfig.domain,
-    VITE_SITE_SHORT_TITLE: siteConfig.shortTitle,
-    VITE_SITE_FULL_TITLE: siteConfig.fullTitle,
-    VITE_SITE_DESCRIPTION: siteConfig.description,
+    VITE_APP_HEADER: JSON.stringify(siteConfig.appHeader),
+    VITE_SOCIAL_AND_METADATA: JSON.stringify(siteConfig.socialAndMetadata),
     VITE_SITE_PODCAST_LINKS: JSON.stringify(podcastLinks),
     VITE_SITE_THEME_COLOR: siteConfig.themeColor,
     VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
-    VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: siteConfig.searchPlaceholderOptions,
+    VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: JSON.stringify(siteConfig.searchPlaceholderOptions),
   };
 }
 
@@ -126,9 +126,9 @@ function templateReplacementPlugin() {
 
       // Replace template variables with site config values
       return html
-        .replace(/##CANONICAL_URL##/g, siteConfig.canonicalUrl || `https://${siteConfig.domain}`)
-        .replace(/##SITE_NAME##/g, siteConfig.shortTitle)
-        .replace(/##SITE_DESCRIPTION##/g, siteConfig.description)
+        .replace(/##CANONICAL_URL##/g, siteConfig.socialAndMetadata.canonicalUrl || `https://${siteConfig.domain}`)
+        .replace(/##SITE_NAME##/g, siteConfig.appHeader.primaryTitle)
+        .replace(/##SITE_DESCRIPTION##/g, siteConfig.socialAndMetadata.metaDescription)
         .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000');
     }
   };

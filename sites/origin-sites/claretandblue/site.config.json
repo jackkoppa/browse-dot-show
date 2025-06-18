@@ -1,10 +1,20 @@
 {
     "id": "claretandblue",
     "domain": "claretandblue.browse.show",
-    "canonicalUrl": "https://claretandblue.browse.show",
-    "shortTitle": "Claret & Blue",
-    "fullTitle": "Claret & Blue",
-    "description": "Search all Claret & Blue episodes",
+    "appHeader": {
+        "primaryTitle": "Claret & Blue",
+        "includeTitlePrefix": true,
+        "taglinePrimaryPodcastName": "Claret & Blue",
+        "taglinePrimaryPodcastExternalURL": "https://podfollow.com/claret-blue-an-aston-villa-podcast",
+        "taglineSuffix": "podcast archives"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "[browse.show] Claret & Blue",
+        "canonicalUrl": "https://claretandblue.browse.show",
+        "openGraphImagePath": "TO_BE_ADDED",
+        "metaDescription": "Search all episodes of the Claret & Blue podcast",
+        "metaTitle": "[browse.show] Claret & Blue"
+    },
     "includedPodcasts": [
         {
             "id": "claret-and-blue",

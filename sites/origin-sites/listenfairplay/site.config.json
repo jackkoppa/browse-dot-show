@@ -1,10 +1,20 @@
 {
     "id": "listenfairplay",
     "domain": "listenfairplay.com",
-    "canonicalUrl": "https://listenfairplay.com",
-    "shortTitle": "Listen, Fair Play",
-    "fullTitle": "Listen, Fair Play",
-    "description": "search the Football Clichés record books",
+    "appHeader": {
+        "primaryTitle": "Listen, Fair Play",
+        "includeTitlePrefix": false,
+        "taglinePrimaryPodcastName": "Football Clichés",
+        "taglinePrimaryPodcastExternalURL": "https://podfollow.com/new-football-cliches",
+        "taglineSuffix": "record books"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "Listen, Fair Play | Search Football Clichés",
+        "canonicalUrl": "https://listenfairplay.com",
+        "openGraphImagePath": "TO_BE_ADDED",
+        "metaDescription": "Search the Football Clichés record books",
+        "metaTitle": "Listen, Fair Play | Search Football Clichés"
+    },
     "includedPodcasts": [
         {
             "id": "football-cliches",

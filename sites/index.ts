@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SiteConfig } from './types.js';
+import { Podcast, SiteConfig, AppHeader, SocialAndMetadata } from './types.js';
+
+export type { SiteConfig, AppHeader, SocialAndMetadata, Podcast };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

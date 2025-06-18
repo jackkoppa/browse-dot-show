@@ -17,7 +17,7 @@ if (!target) {
 
 // Function to build a single site
 function buildSite(siteConfig) {
-  console.log(`\n🏗️  Building site: ${siteConfig.id} (${siteConfig.shortTitle})`);
+  console.log(`\n🏗️  Building site: ${siteConfig.id} (${siteConfig.appHeader.primaryTitle})`);
   
   try {
     // Set environment variables for the build

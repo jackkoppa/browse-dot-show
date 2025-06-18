@@ -112,20 +112,54 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         result.errors.push('Missing required field: domain');
     }
     
-    if (!site.canonicalUrl) {
-        result.errors.push('Missing required field: canonicalUrl');
+    // Validate appHeader object
+    if (!site.appHeader) {
+        result.errors.push('Missing required field: appHeader');
+    } else {
+        if (!site.appHeader.primaryTitle) {
+            result.errors.push('Missing required field: appHeader.primaryTitle');
+        }
+        
+        if (typeof site.appHeader.includeTitlePrefix !== 'boolean') {
+            result.errors.push('Missing or invalid field: appHeader.includeTitlePrefix (must be boolean)');
+        }
+        
+        if (!site.appHeader.taglinePrimaryPodcastName) {
+            result.errors.push('Missing required field: appHeader.taglinePrimaryPodcastName');
+        }
+        
+        if (!site.appHeader.taglinePrimaryPodcastExternalURL) {
+            result.errors.push('Missing required field: appHeader.taglinePrimaryPodcastExternalURL');
+        }
+        
+        if (!site.appHeader.taglineSuffix) {
+            result.errors.push('Missing required field: appHeader.taglineSuffix');
+        }
     }
     
-    if (!site.shortTitle) {
-        result.errors.push('Missing required field: shortTitle');
-    }
-    
-    if (!site.fullTitle) {
-        result.errors.push('Missing required field: fullTitle');
-    }
-    
-    if (!site.description) {
-        result.errors.push('Missing required field: description');
+    // Validate socialAndMetadata object
+    if (!site.socialAndMetadata) {
+        result.errors.push('Missing required field: socialAndMetadata');
+    } else {
+        if (!site.socialAndMetadata.pageTitle) {
+            result.errors.push('Missing required field: socialAndMetadata.pageTitle');
+        }
+        
+        if (!site.socialAndMetadata.canonicalUrl) {
+            result.errors.push('Missing required field: socialAndMetadata.canonicalUrl');
+        }
+        
+        if (!site.socialAndMetadata.openGraphImagePath) {
+            result.errors.push('Missing required field: socialAndMetadata.openGraphImagePath');
+        }
+        
+        if (!site.socialAndMetadata.metaDescription) {
+            result.errors.push('Missing required field: socialAndMetadata.metaDescription');
+        }
+        
+        if (!site.socialAndMetadata.metaTitle) {
+            result.errors.push('Missing required field: socialAndMetadata.metaTitle');
+        }
     }
     
     if (!site.whisperTranscriptionPrompt) {
@@ -243,11 +277,15 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
         'web-app-manifest-512x512.png'
     ];
     
+    // Define expected directories
+    const expectedDirectories = ['social-cards'];
+    
     // Check if assets directory exists
     if (!fs.existsSync(assetsDir)) {
         result.warnings.push('Missing /assets directory');
         result.warnings.push(`Expected assets directory at: ${assetsDir}`);
         result.warnings.push(`Should contain files: ${requiredAssetFiles.join(', ')}`);
+        result.warnings.push(`Should contain directories: ${expectedDirectories.join(', ')}`);
         return;
     }
     
@@ -264,13 +302,34 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
         result.warnings.push(`Missing asset files: ${missingFiles.join(', ')}`);
     }
     
+    // Validate social-cards directory and its contents
+    const socialCardsDir = path.join(assetsDir, 'social-cards');
+    if (!fs.existsSync(socialCardsDir)) {
+        result.warnings.push('Missing social-cards directory in /assets');
+    } else {
+        // Check for required open graph image
+        const openGraphPath = path.join(socialCardsDir, 'open-graph-card-1200x630.jpg');
+        if (!fs.existsSync(openGraphPath)) {
+            result.warnings.push('Missing open-graph-card-1200x630.jpg in /assets/social-cards');
+        }
+        
+        // Validate that site config openGraphImagePath matches the expected file
+        if (site.socialAndMetadata?.openGraphImagePath) {
+            const expectedPath = './assets/social-cards/open-graph-card-1200x630.jpg';
+            if (site.socialAndMetadata.openGraphImagePath !== expectedPath) {
+                result.warnings.push(`Site config openGraphImagePath should be "${expectedPath}", but is "${site.socialAndMetadata.openGraphImagePath}"`);
+            }
+        }
+    }
+    
     // Check for unexpected files (files that exist but aren't in our expected list)
     try {
-        const actualFiles = fs.readdirSync(assetsDir);
-        const unexpectedFiles = actualFiles.filter(file => !requiredAssetFiles.includes(file));
+        const actualItems = fs.readdirSync(assetsDir);
+        const allowedItems = [...requiredAssetFiles, ...expectedDirectories];
+        const unexpectedItems = actualItems.filter(item => !allowedItems.includes(item));
         
-        if (unexpectedFiles.length > 0) {
-            result.warnings.push(`Unexpected files in /assets directory: ${unexpectedFiles.join(', ')}`);
+        if (unexpectedItems.length > 0) {
+            result.warnings.push(`Unexpected files/directories in /assets directory: ${unexpectedItems.join(', ')}`);
         }
     } catch (error) {
         result.warnings.push(`Error reading /assets directory: ${error}`);
