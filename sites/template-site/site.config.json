@@ -1,0 +1,19 @@
+{
+    "id": "",
+    "domain": "",
+    "canonicalUrl": "",
+    "shortTitle": "",
+    "fullTitle": "",
+    "description": "",
+    "includedPodcasts": [
+        {
+            "id": "",
+            "rssFeedFile": "",
+            "title": "",
+            "status": "",
+            "url": ""
+        }
+    ],
+    "whisperTranscriptionPrompt": "",
+    "themeColor": ""
+}
