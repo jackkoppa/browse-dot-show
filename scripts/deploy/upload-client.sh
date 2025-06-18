@@ -66,8 +66,7 @@ export VITE_SEARCH_API_URL="$SEARCH_API_URL"
 export VITE_S3_HOSTED_FILES_BASE_URL="$S3_HOSTED_FILES_BASE_URL"
 export SITE_ID="$SITE_ID"
 
-# CURSOR-TODO: *potentially* switch this to only build the specific site
-pnpm client:build:all-sites
+pnpm client:build:specific-site "$SITE_ID"
 
 echo "Uploading client files to S3 bucket: $BUCKET_NAME"
 echo "CloudFront domain: $CLOUDFRONT_DOMAIN"
