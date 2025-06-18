@@ -227,7 +227,6 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
         'favicon-96x96.png', 
         'favicon.ico',
         'favicon.svg',
-        'simple-alert.mp3',
         'site.webmanifest',
         'web-app-manifest-192x192.png',
         'web-app-manifest-512x512.png'
