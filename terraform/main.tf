@@ -236,7 +236,7 @@ module "search_lambda" {
   handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
   timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file
-  memory_size          = 3008 # Trying to allow the search to be performed as quickly as possible (3008 is current max)
+  memory_size          = var.search_lambda_memory_size # Configurable per-site, default 3008
   ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name

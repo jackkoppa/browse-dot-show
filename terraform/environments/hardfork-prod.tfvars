@@ -9,8 +9,8 @@ root_domain_name = "hardfork.browse.show"
 enable_custom_domain_on_cloudfront = true
 
 # Lambda warming
-enable_search_lambda_warming = false
-search_lambda_warming_schedule = "rate(10 minutes)"
+enable_search_lambda_warming = true
+search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Logging
 log_level = "info" 

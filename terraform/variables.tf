@@ -67,3 +67,9 @@ variable "search_lambda_warming_schedule" {
   type        = string
   default     = "rate(5 minutes)"
 }
+
+variable "search_lambda_memory_size" {
+  description = "Memory size in MB for the search lambda function"
+  type        = number
+  default     = 3008
+}
