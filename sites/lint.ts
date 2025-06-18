@@ -135,6 +135,17 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     if (!site.themeColor) {
         result.errors.push('Missing required field: themeColor');
     }
+
+    if (!site.themeColorDark) {
+        result.errors.push('Missing required field: themeColorDark');
+    }
+
+    if (!site.searchPlaceholderOptions) {
+        result.errors.push('Missing required field: searchPlaceholderOptions');
+    } else if (site.searchPlaceholderOptions.length < 1) {
+        result.errors.push('searchPlaceholderOptions must have at least 1 option');
+    }
+
     
     if (!site.includedPodcasts || site.includedPodcasts.length === 0) {
         result.errors.push('Missing or empty includedPodcasts array');
