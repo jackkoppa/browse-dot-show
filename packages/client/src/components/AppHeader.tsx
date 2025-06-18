@@ -106,7 +106,7 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
       <div className={`max-w-3xl mx-auto pr-3 pl-6 flex justify-end gap-2 sm:gap-4 transition-all duration-400 ease-in-out ${scrolled ? 'py-1 xs:py-2' : 'py-2 sm:py-5'}`}>
         <div className="flex flex-col justify-center text-right">
           <h1 className={`font-bold transition-all duration-200 ${scrolled ? 'text-xl xs:text-2xl mb-0' : 'text-2xl xs:text-3xl mb-1'}`}>
-            {siteConfig.appHeader.includeTitlePrefix ? <span className={`font-bold italic${scrolled ? 'text-md xs:text-lg' : 'text-xl xs:text-2xl'}`}>[browse.show] </span> : null}
+            {siteConfig.appHeader.includeTitlePrefix ? <span className={`font-bold ${scrolled ? 'text-[12px] xs:text-[18px]' : 'text-[18px] xs:text-lg'}`}>[browse.show] </span> : null}
             <span className="font-thin">{siteConfig.appHeader.primaryTitle}</span>
           </h1>
           <p className={`text-[12px] italic transition-all duration-200 ${scrolled ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100'}`}>

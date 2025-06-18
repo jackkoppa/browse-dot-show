@@ -167,18 +167,33 @@ function siteAssetsPlugin() {
         fs.mkdirSync(targetAssetsDir, { recursive: true });
       }
 
-      // Copy all files from source assets to target assets
-      const files = fs.readdirSync(sourceAssetsDir);
-      files.forEach(file => {
-        const sourcePath = path.join(sourceAssetsDir, file);
-        const targetPath = path.join(targetAssetsDir, file);
+      // Copy all files and directories from source assets to target assets
+      function copyRecursive(sourceDir: string, targetDir: string, relativePath: string = '') {
+        const items = fs.readdirSync(sourceDir);
         
-        // Only copy files, not subdirectories for now
-        if (fs.statSync(sourcePath).isFile()) {
-          fs.copyFileSync(sourcePath, targetPath);
-          console.log(`   Copied: ${file}`);
-        }
-      });
+        items.forEach(item => {
+          const sourcePath = path.join(sourceDir, item);
+          const targetPath = path.join(targetDir, item);
+          const displayPath = relativePath ? `${relativePath}/${item}` : item;
+          
+          if (fs.statSync(sourcePath).isDirectory()) {
+            // Create directory if it doesn't exist
+            if (!fs.existsSync(targetPath)) {
+              fs.mkdirSync(targetPath, { recursive: true });
+            }
+            console.log(`   Created directory: ${displayPath}/`);
+            
+            // Recursively copy contents
+            copyRecursive(sourcePath, targetPath, displayPath);
+          } else {
+            // Copy file
+            fs.copyFileSync(sourcePath, targetPath);
+            console.log(`   Copied: ${displayPath}`);
+          }
+        });
+      }
+      
+      copyRecursive(sourceAssetsDir, targetAssetsDir);
 
       // Also copy favicon.ico to the root directory for SEO/indexing
       const faviconInAssets = path.join(targetAssetsDir, 'favicon.ico');
