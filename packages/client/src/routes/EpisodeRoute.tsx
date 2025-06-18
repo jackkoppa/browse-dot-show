@@ -20,6 +20,7 @@ import { useAudioSource } from '@/hooks/useAudioSource'
 import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
 import { usePlayTimeLimit } from '@/hooks/usePlayTimeLimit'
 import { trackEvent } from '@/utils/goatcounter';
+import { encodeFileKey } from '@/utils/encode';
 
 // Add a simple check for whether this is iOS or Mac, vs anything else:
 const isIOSOrMac = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -338,7 +339,7 @@ export default function EpisodeRoute() {
     // Use the .mp3 file from the RSS feed
     baseAudioUrl = originalAudioURL
   } else {
-    baseAudioUrl = `${S3_HOSTED_FILES_BASE_URL}audio/${episodeData.podcastId}/${episodeData.fileKey}.mp3`
+    baseAudioUrl = `${S3_HOSTED_FILES_BASE_URL}audio/${episodeData.podcastId}/${encodeFileKey(episodeData.fileKey)}.mp3`
   }
 
   /** 

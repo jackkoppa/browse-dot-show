@@ -3,9 +3,10 @@ import { EpisodeInManifest, SearchEntry } from '@browse-dot-show/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatMillisecondsToMMSS } from '@/utils/time'
 import { Badge } from '../components/ui/badge'
+import { encodeFileKey } from '@/utils/encode'
 
 async function getFullEpisodeSearchEntryFile(fileKey: string, podcastId: string): Promise<SearchEntry[]> {
-    const response = await fetch(`${S3_HOSTED_FILES_BASE_URL}search-entries/${podcastId}/${fileKey}.json`);
+    const response = await fetch(`${S3_HOSTED_FILES_BASE_URL}search-entries/${podcastId}/${encodeFileKey(fileKey)}.json`);
     const data = await response.json();
     return data;
 }
