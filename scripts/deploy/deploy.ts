@@ -3,7 +3,7 @@
 import { join } from 'path';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { execCommandOrThrow } from '../utils/shell-exec.js';
+import { execCommandOrThrow, execCommand, execCommandLive } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
 import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
@@ -124,6 +124,62 @@ async function runPreDeploymentSteps(options: DeploymentOptions, env: string): P
   await execCommandOrThrow('pnpm', [`all:build:${env}`]);
 }
 
+async function applyTerraformWithProgress(): Promise<void> {
+  const { spawn } = await import('child_process');
+  
+  return new Promise((resolve, reject) => {
+    const child = spawn('terraform', ['apply', '-auto-approve', 'tfplan'], {
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+
+    let lastOutput = '';
+    let progressInterval: NodeJS.Timeout;
+    let progressCounter = 0;
+
+    // Set up progress indicator
+    const showProgress = () => {
+      process.stdout.write(`\r🔄 Terraform applying... (${++progressCounter * 5}s) | Latest: ${lastOutput.substring(0, 40).trim()}...`);
+    };
+
+    progressInterval = setInterval(showProgress, 5000);
+
+    // Capture stdout
+    child.stdout?.on('data', (data: Buffer) => {
+      const output = data.toString().trim();
+      if (output) {
+        lastOutput = output.split('\n').pop() || output;
+        // Show real-time updates for important lines
+        if (output.includes('Creating...') || output.includes('Modifying...') || output.includes('Destroying...')) {
+          process.stdout.write(`\r🔄 ${lastOutput.substring(0, 80)}...                    \n`);
+        }
+      }
+    });
+
+    // Capture stderr
+    let errorOutput = '';
+    child.stderr?.on('data', (data: Buffer) => {
+      errorOutput += data.toString();
+    });
+
+    child.on('close', (code: number | null) => {
+      clearInterval(progressInterval);
+      process.stdout.write('\r                                                                                                \r');
+      
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Terraform apply failed with exit code ${code}${errorOutput ? `\nError: ${errorOutput}` : ''}`));
+      }
+    });
+
+    child.on('error', (error: Error) => {
+      clearInterval(progressInterval);
+      process.stdout.write('\r                                                                                                \r');
+      reject(error);
+    });
+  });
+}
+
 async function runTerraformDeployment(siteId: string): Promise<void> {
   const TF_DIR = 'terraform';
   const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
@@ -160,17 +216,68 @@ async function runTerraformDeployment(siteId: string): Promise<void> {
       terraformArgs.splice(-1, 0, `-var=aws_profile=${process.env.AWS_PROFILE}`);
     }
 
-    // Plan the deployment
-    await execCommandOrThrow('terraform', terraformArgs);
+    // Plan the deployment and capture output
+    printInfo('Planning deployment changes...');
+    const planResult = await execCommand('terraform', terraformArgs);
+    
+    if (planResult.exitCode !== 0) {
+      throw new Error(`Terraform plan failed: ${planResult.stderr}`);
+    }
+
+    // Save plan output to temp file for user review
+    const { writeFile, mkdtemp } = await import('fs/promises');
+    const { join } = await import('path');
+    const { tmpdir } = await import('os');
+    
+    const tempDir = await mkdtemp(join(tmpdir(), 'terraform-plan-'));
+    const planOutputFile = join(tempDir, `terraform-plan-${siteId}-${Date.now()}.txt`);
+    
+    const fullPlanOutput = `
+TERRAFORM PLAN OUTPUT FOR SITE: ${siteId}
+Generated: ${new Date().toISOString()}
+
+COMMAND EXECUTED:
+terraform ${terraformArgs.join(' ')}
+
+PLAN OUTPUT:
+${planResult.stdout}
+
+${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
+`;
+    
+    await writeFile(planOutputFile, fullPlanOutput);
+    
+    console.log('');
+    printSuccess('📋 Terraform plan completed successfully!');
+    printInfo(`📄 Full plan details saved to: ${planOutputFile}`);
+    printInfo('💡 You can review the file in another terminal or text editor');
+    console.log('');
+    
+    // Show a summary of the plan output (first 50 lines)
+    const lines = planResult.stdout.split('\n');
+    const summaryLines = lines.slice(0, 50);
+    
+    printInfo('📋 Plan Summary (first 20 lines):');
+    console.log('┌─────────────────────────────────────────────────────────────────┐');
+    summaryLines.forEach((line: string) => {
+      console.log(`│ ${line.padEnd(100).substring(0, 100)} │`);
+    });
+    if (lines.length > 20) {
+      console.log(`│ ... (${lines.length - 20} more lines in full file)                        │`);
+    }
+    console.log('└─────────────────────────────────────────────────────────────────┘');
+    console.log('');
 
     // Ask for confirmation before applying
     const applyConfirmed = await askConfirmation('Do you want to apply this Terraform plan?');
     
     if (applyConfirmed) {
       printInfo('Applying Terraform plan...');
-      await execCommandOrThrow('terraform', ['apply', '-auto-approve', 'tfplan']);
       
-      printInfo('Terraform apply completed.');
+      // Apply terraform with progress monitoring
+      await applyTerraformWithProgress();
+      
+      printSuccess('✅ Terraform apply completed successfully!');
       printInfo('State is automatically managed by S3 backend.');
 
       // Display outputs
@@ -193,6 +300,7 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
     printInfo('=== Uploading client files to S3 ===');
     printInfo(`Uploading client files for site ${siteId}...`);
     await execCommandOrThrow('tsx', ['scripts/deploy/upload-client.ts', env, siteId]);
+    printSuccess('✅ Client files uploaded successfully to S3!');
   } else {
     console.log('');
     printInfo('=== Skipping client upload ===');
