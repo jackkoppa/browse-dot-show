@@ -172,15 +172,7 @@ async function syncFolder(
 }
 
 // Main sync function
-async function performSync(options: SyncOptions): Promise<SyncStats> {
-  const foldersToSync = [
-    'audio',
-    'transcripts', 
-    'episode-manifest',
-    'rss',
-    'search-entries',
-    'search-index'
-  ];
+async function performSync(options: SyncOptions, foldersToSync: string[]): Promise<SyncStats> {
   
   const stats: SyncStats = {
     audio: { synced: 0, skipped: 0, overwritten: 0 },
@@ -319,6 +311,57 @@ async function main() {
       process.exit(0);
     }
     
+    // Prompt for sync scope (entire bucket vs specific directories)
+    const scopeResponse = await prompts({
+      type: 'select',
+      name: 'scope',
+      message: 'What would you like to sync?',
+      choices: [
+        { title: 'Entire bucket (all directories)', value: 'entire-bucket' },
+        { title: 'Select specific directories only', value: 'specific-directories' }
+      ],
+      initial: 0
+    });
+    
+    if (scopeResponse.scope === undefined) {
+      console.log('Sync cancelled.');
+      process.exit(0);
+    }
+    
+    // Determine which folders to sync
+    const allFolders = [
+      'audio',
+      'transcripts', 
+      'episode-manifest',
+      'rss',
+      'search-entries',
+      'search-index'
+    ];
+    
+    let foldersToSync = allFolders;
+    
+    if (scopeResponse.scope === 'specific-directories') {
+      const directoryResponse = await prompts({
+        type: 'multiselect',
+        name: 'directories',
+        message: 'Select directories to sync:',
+        choices: allFolders.map(folder => ({
+          title: folder,
+          value: folder,
+          selected: false
+        })),
+        min: 1
+      });
+      
+      if (!directoryResponse.directories || directoryResponse.directories.length === 0) {
+        console.log('No directories selected. Sync cancelled.');
+        process.exit(0);
+      }
+      
+      foldersToSync = directoryResponse.directories;
+      console.log(`\n📁 Selected directories: ${foldersToSync.join(', ')}`);
+    }
+    
     // Set up paths and options
     const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
     const s3BucketName = `${siteId}-browse-dot-show`;
@@ -342,7 +385,7 @@ async function main() {
     console.log(`🪣 S3 bucket: s3://${s3BucketName}`);
     
     // Perform the sync
-    const stats = await performSync(syncOptions);
+    const stats = await performSync(syncOptions, foldersToSync);
     
     // Display results
     displaySyncStats(stats, directionResponse.direction);

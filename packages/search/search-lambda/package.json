@@ -6,11 +6,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build:dev": "dotenvx run -f ../../../.env.dev -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
+    "build:prod": "dotenvx run -f ../../../.env.prod -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "dev:local": "tsx dev-server.ts",
-    "dev:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/search-lambda dev-server.ts",
-    "test:local": "tsx simple-test-local.ts",
-    "test:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/search-lambda simple-test-local.ts",
     "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/search-lambda"
   },
   "dependencies": {

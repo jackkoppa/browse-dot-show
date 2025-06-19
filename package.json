@@ -23,9 +23,7 @@
     "process-audio-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"audio processing (prod)\" \"pnpm --filter @browse-dot-show/process-audio-lambda run run:site\"",
     "srt-indexing-lambda:run:local": "tsx scripts/run-with-site-selection.ts \"SRT indexing (local)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:local\"",
     "srt-indexing-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"SRT indexing (prod)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:site\"",
-    "srt-indexing-lambda:test": "tsx scripts/run-with-site-selection.ts \"SRT indexing test\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda test\"",
     "search-lambda:dev:local": "tsx scripts/run-with-site-selection.ts \"search lambda (local)\" \"pnpm --filter @browse-dot-show/search-lambda dev:local\"",
-    "search-lambda:test:local": "tsx scripts/run-with-site-selection.ts \"search lambda test\" \"pnpm --filter @browse-dot-show/search-lambda test:local\"",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
     "trigger:ingestion-lambda": "node scripts/trigger-ingestion-lambda.sh",
     "create:site": "./scripts/create-new-site.sh"

@@ -13,21 +13,62 @@ import {
 let oramaIndex: OramaSearchDatabase | null = null;
 
 /**
+ * Memory monitoring utility functions
+ */
+function getMemoryUsage() {
+  const memUsage = process.memoryUsage();
+  return {
+    rss: Math.round(memUsage.rss / 1024 / 1024 * 100) / 100, // MB
+    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024 * 100) / 100, // MB
+    heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024 * 100) / 100, // MB
+    external: Math.round(memUsage.external / 1024 / 1024 * 100) / 100, // MB
+    arrayBuffers: Math.round(memUsage.arrayBuffers / 1024 / 1024 * 100) / 100 // MB
+  };
+}
+
+function logMemoryUsage(stage: string, additionalInfo?: any) {
+  // Only log memory usage if debug logging is enabled
+  if (log.getLevel() > log.levels.DEBUG) {
+    return;
+  }
+  
+  const memory = getMemoryUsage();
+  log.debug(`MEMORY [${stage}]: RSS=${memory.rss}MB, HeapTotal=${memory.heapTotal}MB, HeapUsed=${memory.heapUsed}MB, External=${memory.external}MB, ArrayBuffers=${memory.arrayBuffers}MB`, additionalInfo);
+}
+
+function forceGarbageCollection() {
+  if (global.gc) {
+    log.info('Forcing garbage collection...');
+    global.gc();
+    logMemoryUsage('After GC');
+  } else {
+    log.warn('Garbage collection not available (run with --expose-gc for manual GC)');
+  }
+}
+
+/**
  * Initialize the Orama search index from S3
  */
 async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise<OramaSearchDatabase> {
+  logMemoryUsage('Function Entry');
+
   if (oramaIndex && !forceFreshDBFileDownload) {
+    logMemoryUsage('Using Cached Index');
     return oramaIndex;
   }
 
   if (oramaIndex && forceFreshDBFileDownload) {
     log.info('Forcing fresh DB file download. Clearing existing Orama index from memory.');
+    logMemoryUsage('Before Clearing Cache');
     oramaIndex = null;
     // Setting to null allows the object to be garbage collected if no other references exist.
+    forceGarbageCollection();
+    logMemoryUsage('After Clearing Cache');
   }
 
   log.info('Initializing Orama search index from S3...');
   const startTime = Date.now();
+  logMemoryUsage('Init Start');
 
   // Ensure the local /tmp/ directory is available
   try {
@@ -41,22 +82,31 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
   // Check if the index file exists in S3
   const searchIndexKey = getSearchIndexKey();
   const localDbPath = getLocalDbPath();
+  logMemoryUsage('Before S3 Check', { searchIndexKey, localDbPath });
+  
   const indexFileExistsInS3 = await fileExists(searchIndexKey);
   if (!indexFileExistsInS3) {
     throw new Error(`Orama search index not found in S3 at: ${searchIndexKey}. Exiting.`);
   }
+  logMemoryUsage('After S3 Check');
 
   // Download the Orama index file from S3 to the local /tmp path
   log.info(`Downloading Orama index from S3 (${searchIndexKey}) to local path (${localDbPath})`);
+  let indexFileBuffer: Buffer;
   try {
-    const indexFileBuffer = await getFile(searchIndexKey);
+    logMemoryUsage('Before S3 Download');
+    indexFileBuffer = await getFile(searchIndexKey);
+    logMemoryUsage('After S3 Download', { bufferSize: `${Math.round(indexFileBuffer.length / 1024 / 1024 * 100) / 100}MB` });
+    
     await fs.writeFile(localDbPath, indexFileBuffer);
     log.info(`Successfully downloaded and saved Orama index to ${localDbPath}`);
+    logMemoryUsage('After File Write');
     
     // Log the file size of the downloaded index file
     try {
       const stats = await fs.stat(localDbPath);
       log.info(`Orama index file size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+      logMemoryUsage('After File Stat', { fileSize: `${(stats.size / 1024 / 1024).toFixed(2)}MB` });
     } catch (error) {
       log.warn(`Failed to get file size for Orama index at ${localDbPath}: ${error}`);
     }
@@ -64,17 +114,34 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
     throw new Error(`Failed to download or save Orama index from S3: ${error}. Exiting.`);
   }
 
+  // Clear the buffer reference to help with memory management
+  // @ts-ignore - we want to explicitly clear this reference
+  indexFileBuffer = null;
+  forceGarbageCollection();
+
   // Deserialize the Orama index from the downloaded file
   try {
+    logMemoryUsage('Before File Read');
     const indexData = await fs.readFile(localDbPath);
+    logMemoryUsage('After File Read', { indexDataSize: `${Math.round(indexData.length / 1024 / 1024 * 100) / 100}MB` });
+    
+    logMemoryUsage('Before Orama Deserialization');
     const index = await deserializeOramaIndex(indexData);
+    logMemoryUsage('After Orama Deserialization');
     
     log.info(`Orama search index loaded in ${Date.now() - startTime}ms`);
     
+    // Clear the indexData reference to help with memory management
+    // @ts-ignore - we want to explicitly clear this reference
+    // indexData = null; // Can't reassign const, but it should go out of scope
+    forceGarbageCollection();
+    
     // Cache the index for future invocations
     oramaIndex = index;
+    logMemoryUsage('Final - Index Cached');
     return index;
   } catch (error) {
+    logMemoryUsage('Error During Deserialization');
     throw new Error(`Failed to deserialize Orama index: ${error}. Exiting.`);
   }
 }
@@ -83,6 +150,7 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
  * Main Lambda handler function
  */
 export async function handler(event: any): Promise<SearchResponse> {
+  logMemoryUsage('Handler Entry');
   log.info('Search request received:', JSON.stringify(event));
   const startTime = Date.now();
 
@@ -111,7 +179,9 @@ export async function handler(event: any): Promise<SearchResponse> {
   }
 
   try {
+    logMemoryUsage('Before Index Init');
     const index = await initializeOramaIndex(forceFreshDBFileDownload);
+    logMemoryUsage('After Index Init');
 
     // Extract search parameters from the event
     let searchRequest: SearchRequest = {
@@ -193,6 +263,7 @@ export async function handler(event: any): Promise<SearchResponse> {
     if (searchRequest.isHealthCheckOnly) {
       const processingTimeMs = Date.now() - startTime;
       log.info(`Health check completed in ${processingTimeMs}ms - Lambda is now warm`);
+      logMemoryUsage('Health Check Complete');
       return {
         hits: [],
         totalHits: 0,
@@ -207,10 +278,16 @@ export async function handler(event: any): Promise<SearchResponse> {
     // await new Promise(resolve => setTimeout(resolve, 5000));
 
     // Perform the search using Orama
+    logMemoryUsage('Before Search Execution');
     const searchResponse = await searchOramaIndex(index, searchRequest);
+    logMemoryUsage('After Search Execution', { 
+      totalHits: searchResponse.totalHits, 
+      hitCount: searchResponse.hits.length 
+    });
 
     return searchResponse;
   } catch (error) {
+    logMemoryUsage('Error in Handler');
     log.error('Error searching indexed transcripts:', error);
     throw error;
   }

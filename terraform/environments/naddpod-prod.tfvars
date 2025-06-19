@@ -12,7 +12,7 @@ enable_search_lambda_warming = false
 search_lambda_warming_schedule = "rate(10 minutes)"
 
 # Search lambda configuration
-search_lambda_memory_size = 3008 # TODO - switch to >= 5120 after support case increasing limit is completed
+search_lambda_memory_size = 3004 # TODO - switch to >= 5120 if AWS Support is able to increase the current hard cap for the account of 3 GB
 
 # Logging
 log_level = "info" 
