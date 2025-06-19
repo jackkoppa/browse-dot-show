@@ -19,7 +19,7 @@ const colors = {
   red: '\x1b[31m',
   green: '\x1b[32m',
   yellow: '\x1b[33m',
-  blue: '\x1b[34m',
+  // blue: '\x1b[34m', // NOTE: too dark for terminal
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
   white: '\x1b[37m',
@@ -59,7 +59,7 @@ class Logger {
           formatted = `${colors.gray}${formatted}${colors.reset}`;
           break;
         case LogLevel.INFO:
-          formatted = `${colors.blue}${formatted}${colors.reset}`;
+          formatted = `${colors.cyan}${formatted}${colors.reset}`;
           break;
         case LogLevel.WARN:
           formatted = `${colors.yellow}${formatted}${colors.reset}`;
@@ -125,7 +125,7 @@ export function logWarning(message: string, ...args: any[]): void {
 }
 
 export function logInfo(message: string, ...args: any[]): void {
-  console.log(`${colors.blue}ℹ️  ${message}${colors.reset}`, ...args);
+  console.log(`${colors.cyan}ℹ️  ${message}${colors.reset}`, ...args);
 }
 
 export function logDebug(message: string, ...args: any[]): void {
@@ -148,7 +148,7 @@ export function logHeader(message: string): void {
 }
 
 export function logSubHeader(message: string): void {
-  console.log(`\n${colors.bold}${colors.blue}📋 ${message}${colors.reset}`);
+  console.log(`\n${colors.bold}${colors.cyan}📋 ${message}${colors.reset}`);
 }
 
 export function logSeparator(): void {
