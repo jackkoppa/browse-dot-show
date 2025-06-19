@@ -5,7 +5,7 @@ s3_bucket_name = "browse-dot-show"
 # Custom domain configuration
 custom_domain_name = "claretandblue.browse.show"
 root_domain_name = "claretandblue.browse.show"
-enable_custom_domain_on_cloudfront = false  # Set to true after DNS setup
+enable_custom_domain_on_cloudfront = true
 
 # Lambda warming
 enable_search_lambda_warming = false
