@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
-function main() {
+function main(): void {
   // Get the current site ID from environment
   const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
   
@@ -19,7 +19,7 @@ function main() {
   const siteAssetsPath = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId);
   const legacyAssetsPath = path.join(rootDir, 'aws-local-dev', 's3');
 
-  let assetsPath;
+  let assetsPath: string;
   
   // Check if site-specific directory exists
   if (fs.existsSync(siteAssetsPath)) {
@@ -47,7 +47,7 @@ function main() {
 
   // Handle server exit
   server.on('close', (code) => {
-    if (code !== 0) {
+    if (code !== null && code !== 0) {
       console.error(`❌ Asset server exited with code ${code}`);
       process.exit(code);
     }

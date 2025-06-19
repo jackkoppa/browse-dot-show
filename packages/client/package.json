@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "_vite-dev": "vite",
-    "_serve-s3-assets": "node ../../scripts/serve-site-assets.js"
+    "_serve-s3-assets": "tsx ../../scripts/serve-site-assets.ts"
   },
   "dependencies": {
     "@browse-dot-show/types": "workspace:*",

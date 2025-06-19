@@ -1,9 +1,9 @@
-const http = require('http');
-const { spawn } = require('child_process');
+import http from 'http';
+import { spawn } from 'child_process';
 
 const searchServerUrl = 'http://localhost:3001/api/health'; // Health check endpoint
 
-const checkServer = () => {
+const checkServer = (): void => {
   http.get(searchServerUrl, (res) => {
     if (res.statusCode === 200) {
       console.log('Search dev server is running. Starting client...');

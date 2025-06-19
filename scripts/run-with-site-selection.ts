@@ -1,40 +1,42 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
+import { spawn } from 'child_process';
+import * as path from 'path';
+
+// Import site loading utilities
 const { selectSite, loadSiteEnvVars } = require('./utils/site-selector.js');
-const { spawn } = require('child_process');
-const path = require('path');
 
 /**
  * Wrapper script that handles site selection and runs commands with site context
- * Usage: node scripts/run-with-site-selection.js <operation> <command> [args...]
+ * Usage: tsx scripts/run-with-site-selection.ts <operation> <command> [args...]
  */
-async function main() {
-    const args = process.argv.slice(2);
+async function main(): Promise<void> {
+    const args: string[] = process.argv.slice(2);
     
     if (args.length < 2) {
-        console.error('Usage: node run-with-site-selection.js <operation> <command> [args...]');
-        console.error('Example: node run-with-site-selection.js "client development" "pnpm --filter @browse-dot-show/client _vite-dev"');
+        console.error('Usage: tsx run-with-site-selection.ts <operation> <command> [args...]');
+        console.error('Example: tsx run-with-site-selection.ts "client development" "pnpm --filter @browse-dot-show/client _vite-dev"');
         process.exit(1);
     }
 
-    const operation = args[0];
-    const command = args[1];
-    const commandArgs = args.slice(2);
+    const operation: string = args[0];
+    const command: string = args[1];
+    const commandArgs: string[] = args.slice(2);
 
     try {
         // Select site
         console.log(`🌐 Selecting site for ${operation}...`);
-        const siteId = await selectSite({ operation });
+        const siteId: string = await selectSite({ operation });
         
         console.log(`📍 Selected site: ${siteId}`);
 
         // Load site-specific environment variables
         // For local development, use 'local' instead of 'dev'
-        const envType = process.env.NODE_ENV === 'production' ? 'prod' : 'local';
-        const siteEnvVars = loadSiteEnvVars(siteId, envType);
+        const envType: string = process.env.NODE_ENV === 'production' ? 'prod' : 'local';
+        const siteEnvVars: Record<string, string> = loadSiteEnvVars(siteId, envType);
         
         // Merge with current environment, giving priority to site-specific vars
-        const envVars = {
+        const envVars: NodeJS.ProcessEnv = {
             ...process.env,
             ...siteEnvVars,
             SELECTED_SITE_ID: siteId,
@@ -52,16 +54,16 @@ async function main() {
             cwd: process.cwd()
         });
 
-        child.on('close', (code) => {
-            process.exit(code);
+        child.on('close', (code: number | null) => {
+            process.exit(code || 0);
         });
 
-        child.on('error', (error) => {
+        child.on('error', (error: Error) => {
             console.error('Error executing command:', error);
             process.exit(1);
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error:', error.message);
         process.exit(1);
     }

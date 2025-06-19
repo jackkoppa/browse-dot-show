@@ -1,13 +1,25 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
-const fs = require('fs');
-const path = require('path');
-const prompts = require('prompts');
+import fs from 'fs';
+import path from 'path';
+import prompts from 'prompts';
+
+// Define types for site utilities
+interface SiteUtils {
+  getSiteById: (siteId: string) => any;
+  getAvailableSiteIds: () => string[];
+}
+
+interface LegacyDir {
+  name: string;
+  path: string;
+  files: string[];
+}
 
 // Import site loading utilities
-let getSiteById, getAvailableSiteIds;
+let getSiteById: (siteId: string) => any, getAvailableSiteIds: () => string[];
 try {
-    const siteUtils = require('../sites/dist/index.js');
+    const siteUtils: SiteUtils = require('../sites/dist/index.js');
     getSiteById = siteUtils.getSiteById;
     getAvailableSiteIds = siteUtils.getAvailableSiteIds;
 } catch (error) {
@@ -27,7 +39,7 @@ const SITE_DIRECTORIES = [
     'assets'
 ];
 
-function createSiteDirectories(siteId) {
+function createSiteDirectories(siteId: string): string {
     const rootDir = path.resolve(__dirname, '..');
     const siteDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId);
     
@@ -64,12 +76,12 @@ function createSiteDirectories(siteId) {
     return siteDir;
 }
 
-function checkLegacyData() {
+function checkLegacyData(): LegacyDir[] {
     const rootDir = path.resolve(__dirname, '..');
     const legacyDir = path.join(rootDir, 'aws-local-dev', 's3');
     
     // Check if legacy directories exist with data
-    const legacyDirs = [];
+    const legacyDirs: LegacyDir[] = [];
     SITE_DIRECTORIES.forEach(dir => {
         const legacyPath = path.join(legacyDir, dir);
         if (fs.existsSync(legacyPath)) {
@@ -85,7 +97,7 @@ function checkLegacyData() {
     return legacyDirs;
 }
 
-async function offerDataMigration(legacyDirs, targetSiteId) {
+async function offerDataMigration(legacyDirs: LegacyDir[], targetSiteId: string): Promise<void> {
     if (legacyDirs.length === 0) {
         console.log('ℹ️  No legacy data found to migrate.');
         return;
@@ -126,7 +138,7 @@ async function offerDataMigration(legacyDirs, targetSiteId) {
                 console.log(`   ✅ ${file}`);
                 copiedFiles++;
             } catch (error) {
-                console.log(`   ❌ Failed to copy ${file}: ${error.message}`);
+                console.log(`   ❌ Failed to copy ${file}: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         });
     });
@@ -149,7 +161,7 @@ async function offerDataMigration(legacyDirs, targetSiteId) {
                     fs.unlinkSync(filePath);
                     console.log(`🗑️  Removed legacy file: ${dir.name}/${file}`);
                 } catch (error) {
-                    console.log(`   ❌ Failed to remove ${dir.name}/${file}: ${error.message}`);
+                    console.log(`   ❌ Failed to remove ${dir.name}/${file}: ${error instanceof Error ? error.message : 'Unknown error'}`);
                 }
             });
         });
@@ -157,7 +169,7 @@ async function offerDataMigration(legacyDirs, targetSiteId) {
     }
 }
 
-async function main() {
+async function main(): Promise<void> {
     console.log('🏗️  Site Local Directory Setup');
     console.log('================================\n');
     
@@ -226,6 +238,6 @@ process.on('SIGINT', () => {
 });
 
 main().catch(error => {
-    console.error('Error:', error.message);
+    console.error('Error:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
 }); 
