@@ -48,17 +48,17 @@ Converting all bash scripts to TypeScript for better consistency, type safety, a
 2. ✅ **`run-lambda-for-site.ts`** - Run lambda locally with site context
 3. ✅ **`trigger-ingestion-lambda.ts`** - Complex AWS lambda invocation
 
-### Phase 4: Convert Site Management Scripts
-1. **`create-new-site.ts`** - Interactive site creation
-2. **`upload-client.ts`** - Client deployment
-3. **`manage-tfstate.ts`** - Terraform state management
+### Phase 4: Convert Site Management Scripts ✅ COMPLETED
+1. ✅ **`create-new-site.ts`** - Interactive site creation
+2. ✅ **`upload-client.ts`** - Client deployment
+3. ✅ **`manage-tfstate.ts`** - Terraform state management
 
-### Phase 5: Convert Deployment Scripts
-1. **`destroy.ts`** - Infrastructure teardown
-2. **`deploy.ts`** - Main deployment orchestration (most complex)
+### Phase 5: Convert Deployment Scripts ✅ COMPLETED
+1. ✅ **`destroy.ts`** - Infrastructure teardown
+2. ✅ **`deploy.ts`** - Main deployment orchestration (most complex)
 
-### Phase 6: Convert Terraform Layer Script
-1. **`1-prepare-ffmpeg-layer.ts`** - FFmpeg layer preparation
+### Phase 6: Convert Terraform Layer Script ✅ COMPLETED
+1. ✅ **`1-prepare-ffmpeg-layer.ts`** - FFmpeg layer preparation
 
 ### Phase 7: Update Package.json References
 Update all `package.json` files that reference the converted scripts:
