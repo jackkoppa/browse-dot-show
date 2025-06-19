@@ -33,9 +33,9 @@ describe('S3 Client', () => {
   });
 
   describe('Environment Detection', () => {
-    test('should default to dev-s3 when FILE_STORAGE_ENV is not set', () => {
+    test('should default to prod-s3 when FILE_STORAGE_ENV is not set', () => {
       delete process.env.FILE_STORAGE_ENV;
-      expect(getFileStorageEnv()).toBe('dev-s3');
+      expect(getFileStorageEnv()).toBe('prod-s3');
     });
 
     test('should use FILE_STORAGE_ENV when set', () => {
@@ -120,8 +120,8 @@ describe('S3 Client', () => {
         expect(result).toBe(correctBucketName);
       });
 
-      test('should use correct Terraform bucket pattern for dev-s3 with site ID', () => {
-        process.env.FILE_STORAGE_ENV = 'dev-s3';
+      test('should use correct Terraform bucket pattern for prod-s3 with site ID', () => {
+        process.env.FILE_STORAGE_ENV = 'prod-s3';
         const result = getBucketName();
         
         // Should use site-specific bucket even for dev when site ID is present
@@ -143,11 +143,6 @@ describe('S3 Client', () => {
       beforeEach(() => {
         delete process.env.CURRENT_SITE_ID;
         delete process.env.SITE_ID;
-      });
-
-      test('should fall back to legacy bucket for dev-s3', () => {
-        process.env.FILE_STORAGE_ENV = 'dev-s3';
-        expect(getBucketName()).toBe('listen-fair-play-s3-dev');
       });
 
       test('should fall back to legacy bucket for prod-s3', () => {

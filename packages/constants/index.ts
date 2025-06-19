@@ -16,7 +16,7 @@ function getSiteId(): string {
  * Check if we're running in local development environment
  */
 function isLocalEnvironment(): boolean {
-  return (process.env.FILE_STORAGE_ENV || 'dev-s3') === 'local';
+  return (process.env.FILE_STORAGE_ENV ?? '') === 'local';
 }
 
 /** 

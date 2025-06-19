@@ -16,7 +16,7 @@ const LOCAL_S3_PATH = path.join(path.dirname(new URL(import.meta.url).pathname),
 
 // Dynamic function to get FILE_STORAGE_ENV instead of a constant
 function getFileStorageEnv(): string {
-  return process.env.FILE_STORAGE_ENV || 'dev-s3';
+  return process.env.FILE_STORAGE_ENV || 'prod-s3';
 }
 
 const AWS_PROFILE = process.env.AWS_PROFILE;
@@ -50,15 +50,13 @@ function getBucketName(): string {
   }
   
   // For AWS environments with site ID, use Terraform bucket naming pattern
-  if (siteId && (fileStorageEnv === 'prod-s3' || fileStorageEnv === 'dev-s3')) {
+  if (siteId && (fileStorageEnv === 'prod-s3')) {
     // Match Terraform pattern: ${site_id}-browse-dot-show
     return `${siteId}-browse-dot-show`;
   }
   
   // Legacy bucket names for backwards compatibility (non-site-aware operations)
   switch (fileStorageEnv) {
-    case 'dev-s3':
-      return DEV_BUCKET_NAME;
     case 'prod-s3':
       return PROD_BUCKET_NAME;
     default:

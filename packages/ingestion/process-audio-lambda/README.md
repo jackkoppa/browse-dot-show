@@ -52,11 +52,7 @@ The system:
 To apply spelling corrections to all existing SRT files:
 
 ```bash
-# Against local S3 (using .env.local)
-pnpm process-audio-lambda:run:spelling-corrections:local
-
-# Against dev S3 (using .env.dev)
-pnpm process-audio-lambda:run:spelling-corrections:dev-s3
+# CURSOR-TODO: List correct commands here
 ```
 
 These commands will:
@@ -73,13 +69,7 @@ These commands will:
 You can also run the corrections script directly from within the package:
 
 ```bash
-cd packages/ingestion/process-audio-lambda
-
-# Local S3
-pnpm run:spelling-corrections:local
-
-# Dev S3  
-pnpm run:spelling-corrections:dev-s3
+# CURSOR-TODO: List correct commands here
 ```
 
 ### Adding New Corrections

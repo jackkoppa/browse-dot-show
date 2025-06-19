@@ -7,7 +7,6 @@ This utility provides a consistent interface for file operations, whether runnin
 The utility supports three modes, controlled by the `FILE_STORAGE_ENV` environment variable:
 
 - `local` (default): Files are stored in the local filesystem at `aws-local-dev/s3/`
-- `dev-s3`: Files are stored in the dev S3 bucket
 - `prod-s3`: Files are stored in the prod S3 bucket
 
 ## API
