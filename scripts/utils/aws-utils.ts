@@ -62,9 +62,21 @@ export async function awsCommand(
 }
 
 /**
- * Check if AWS credentials are configured
+ * Check if AWS SSO credentials are configured and active
  */
 export async function checkAwsCredentials(profile?: string): Promise<boolean> {
+  try {
+    await awsCommand('sts get-caller-identity', [], { profile, silent: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if AWS SSO profile is logged in
+ */
+export async function checkAwsSsoLogin(profile: string): Promise<boolean> {
   try {
     await awsCommand('sts get-caller-identity', [], { profile, silent: true });
     return true;
@@ -250,12 +262,13 @@ export async function waitForStackOperation(
 }
 
 /**
- * Validate AWS environment and credentials
+ * Validate AWS SSO environment and credentials
  */
 export async function validateAwsEnvironment(profile?: string): Promise<{
   valid: boolean;
   identity?: any;
   errors: string[];
+  requiresSsoLogin?: boolean;
 }> {
   const errors: string[] = [];
 
@@ -265,13 +278,16 @@ export async function validateAwsEnvironment(profile?: string): Promise<{
     return { valid: false, errors };
   }
 
-  // Check credentials
-  if (!(await checkAwsCredentials(profile))) {
-    errors.push(profile 
-      ? `AWS credentials not configured for profile: ${profile}`
-      : 'AWS credentials not configured'
-    );
+  // If no profile provided, that's an error
+  if (!profile) {
+    errors.push('AWS_PROFILE not specified in site .env.aws-sso file');
     return { valid: false, errors };
+  }
+
+  // Check SSO credentials
+  if (!(await checkAwsSsoLogin(profile))) {
+    errors.push(`AWS SSO session not active for profile: ${profile}`);
+    return { valid: false, errors, requiresSsoLogin: true };
   }
 
   try {

@@ -50,25 +50,12 @@ async function askMultiSelect(message: string, choices: MultiSelectChoice[]): Pr
 }
 
 async function validateEnvironment(): Promise<void> {
-  // Check if .env.prod exists and load it
-  if (!(await exists('.env.prod'))) {
-    printError('Warning: .env.prod file not found. Make sure to create it with necessary credentials.');
-    process.exit(1);
-  }
-
-  printInfo('Loading environment variables from .env.prod');
-  const envVars = await loadEnvFile('.env.prod');
-
-  // Set environment variables for the process
-  Object.entries(envVars).forEach(([key, value]) => {
-    process.env[key] = value;
-  });
-
+  // Note: AWS_PROFILE should already be loaded from site .env.aws-sso by the run-with-site-selection script
+  
   // Validate required environment variables
   if (!process.env.OPENAI_API_KEY) {
     printError('Error: OpenAI API key is missing.');
-    printError('Make sure .env.prod contains:');
-    printError('  OPENAI_API_KEY=your_openai_api_key');
+    printError('Please set OPENAI_API_KEY environment variable.');
     process.exit(1);
   }
 

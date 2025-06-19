@@ -11,9 +11,9 @@
         "lint:all:local": "pnpm lint:s3-files-metadata:local",
         "lint:all:prod": "pnpm lint:s3-files-metadata:prod",
         "lint:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./lint-s3-files-metadata.ts",
-        "lint:s3-files-metadata:prod": "dotenvx run -f ../../.env.prod -- tsx ./lint-s3-files-metadata.ts",
+        "lint:s3-files-metadata:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./lint-s3-files-metadata.ts",
         "lint:transcript-files-content:local": "dotenvx run -f ../../.env.local -- tsx ./lint-transcript-files-content.ts",
-        "lint:transcript-files-content:prod": "dotenvx run -f ../../.env.prod -- tsx ./lint-transcript-files-content.ts"
+        "lint:transcript-files-content:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./lint-transcript-files-content.ts"
     },
     "devDependencies": {
         "typescript": "catalog:",

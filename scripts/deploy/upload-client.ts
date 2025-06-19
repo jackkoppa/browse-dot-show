@@ -26,30 +26,12 @@ async function validateInputs(siteId: string): Promise<void> {
 }
 
 async function loadEnvironment(siteId: string): Promise<{ awsProfile: string }> {
-  // Load shared environment variables
-  const prodEnvFile = '.env.prod';
-  if (!(await exists(prodEnvFile))) {
-    printError('.env.prod file not found');
-    process.exit(1);
-  }
-
-  printInfo('Loading environment variables from .env.prod');
-  await loadEnvFile(prodEnvFile);
-
-  // Load site-specific environment variables
-  const siteEnvFile = join('sites/origin-sites', siteId, '.env.aws-sso');
-  if (!(await exists(siteEnvFile))) {
-    printError(`Site-specific environment file not found: ${siteEnvFile}`);
-    process.exit(1);
-  }
-
-  printInfo(`Loading site-specific environment variables from ${siteEnvFile}`);
-  const siteEnvVars = await loadEnvFile(siteEnvFile);
-
-  // Validate AWS profile
-  const awsProfile = siteEnvVars.AWS_PROFILE;
+  // Note: Environment should already be loaded from site .env.aws-sso by the run-with-site-selection script
+  
+  // Validate AWS profile is available from environment
+  const awsProfile = process.env.AWS_PROFILE;
   if (!awsProfile) {
-    printError('AWS_PROFILE is not set in environment files');
+    printError('AWS_PROFILE is not set. Please ensure your site .env.aws-sso file contains AWS_PROFILE=your-profile-name');
     process.exit(1);
   }
 

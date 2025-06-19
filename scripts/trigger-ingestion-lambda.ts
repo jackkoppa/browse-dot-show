@@ -248,7 +248,7 @@ async function main(): Promise<void> {
     if (!process.env.AWS_PROFILE) {
       logError('❌ AWS_PROFILE is not set in the site-specific .env.aws-sso file.');
       printError('  Please ensure the site .env.aws-sso file contains: AWS_PROFILE=your_profile_name');
-      printError('  If you haven\'t configured an SSO profile, run \'aws configure sso\'.');
+              printError('  If you haven\'t configured an SSO profile, run \'aws configure sso\' to set it up.');
       process.exit(1);
     }
 

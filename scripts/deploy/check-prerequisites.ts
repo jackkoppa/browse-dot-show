@@ -129,88 +129,61 @@ async function checkAwsCli(): Promise<PrerequisiteCheck> {
   );
 }
 
-async function checkEnvironmentFile(): Promise<PrerequisiteCheck> {
-  const envFile = '.env.prod';
+async function checkSiteAwsSsoConfig(): Promise<PrerequisiteCheck> {
+  // Check that AWS_PROFILE is set from site-specific .env.aws-sso
+  const awsProfile = process.env.AWS_PROFILE;
   
-  if (!(await exists(envFile))) {
+  if (!awsProfile) {
     return {
-      name: '.env.prod file',
+      name: 'Site AWS SSO Configuration',
       passed: false,
-      error: '.env.prod file not found. Please create it with necessary credentials'
+      error: 'AWS_PROFILE not found. Please ensure your site .env.aws-sso file contains AWS_PROFILE=your-profile-name'
     };
   }
 
-  try {
-    const envVars = await loadEnvFile(envFile);
-    const warnings: string[] = [];
-    
-    if (!envVars.OPENAI_API_KEY) {
-      warnings.push('OPENAI_API_KEY not found in .env.prod');
-    }
-
-    return {
-      name: '.env.prod file',
-      passed: true,
-      warning: warnings.length > 0 ? warnings.join(', ') : undefined
-    };
-    
-  } catch (error: any) {
-    return {
-      name: '.env.prod file',
-      passed: false,
-      error: `Failed to read .env.prod: ${error.message}`
-    };
-  }
+  return {
+    name: 'Site AWS SSO Configuration',
+    passed: true,
+    version: `Profile: ${awsProfile}`
+  };
 }
 
 async function checkAwsAuthentication(): Promise<PrerequisiteCheck> {
   try {
-    // Load environment variables from .env.prod if it exists
-    let envVars: Record<string, string> = {};
-    if (await exists('.env.prod')) {
-      envVars = await loadEnvFile('.env.prod');
-    }
-
-    // Check for site-specific environment
-    const siteId = process.env.SITE_ID;
-    if (siteId && (await exists(`sites/${siteId}/.env.aws`))) {
-      const siteEnvVars = await loadEnvFile(`sites/${siteId}/.env.aws`);
-      envVars = { ...envVars, ...siteEnvVars };
-    }
-
-    const awsProfile = envVars.AWS_PROFILE || process.env.AWS_PROFILE;
+    // Get AWS profile from environment (should be loaded from site .env.aws-sso)
+    const awsProfile = process.env.AWS_PROFILE;
 
     if (!awsProfile) {
       return {
-        name: 'AWS Authentication',
+        name: 'AWS SSO Authentication',
         passed: false,
-        error: 'AWS_PROFILE is not set. Please add AWS_PROFILE to .env.prod or run \'aws configure sso\' to set up an SSO profile'
+        error: 'AWS_PROFILE not set. Please ensure your site .env.aws-sso file contains AWS_PROFILE=your-profile-name'
       };
     }
 
     const validation = await validateAwsEnvironment(awsProfile);
     
     if (!validation.valid) {
-      const errorMsg = validation.errors.includes('AWS credentials not configured') 
-        ? `AWS SSO credentials are not working or expired. Please run 'aws sso login --profile ${awsProfile}' to authenticate`
+      const errorMsg = validation.requiresSsoLogin
+        ? `AWS SSO session not active for profile: ${awsProfile}. Please run 'aws sso login --profile ${awsProfile}' to authenticate`
         : validation.errors.join(', ');
         
       return {
-        name: 'AWS Authentication',
+        name: 'AWS SSO Authentication',
         passed: false,
         error: errorMsg
       };
     }
 
     return {
-      name: 'AWS Authentication',
+      name: 'AWS SSO Authentication',
       passed: true,
       version: `Profile: ${awsProfile}`
     };
 
   } catch (error: any) {
     return {
-      name: 'AWS Authentication',
+      name: 'AWS SSO Authentication',
       passed: false,
       error: `AWS authentication check failed: ${error.message}`
     };
@@ -225,7 +198,7 @@ async function main(): Promise<void> {
     checkAwsCli(),
     checkNodejs(),
     checkPnpm(),
-    checkEnvironmentFile(),
+    checkSiteAwsSsoConfig(),
     checkAwsAuthentication()
   ]);
 
