@@ -285,7 +285,17 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
 
       // Display outputs
       printSuccess('======= Deployment Complete =======');
-      await execCommandOrThrow('terraform', ['output']);
+      const outputResult = await execCommandOrThrow('terraform', ['output']);
+      if (outputResult.stdout.trim()) {
+        console.log('\n📊 Terraform Outputs:');
+        console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+        outputResult.stdout.trim().split('\n').forEach((line: string) => {
+          console.log(`│ ${line.padEnd(104).substring(0, 104)} │`);
+        });
+        console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+      } else {
+        printInfo('No Terraform outputs to display.');
+      }
       return true;
     } else {
       printInfo('Deployment cancelled.');
