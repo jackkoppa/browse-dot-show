@@ -49,8 +49,8 @@ if [ -n "$AWS_PROFILE" ]; then
         echo "✅ AWS SSO authentication verified with profile: $AWS_PROFILE"
     fi
 else
-    echo "❌ AWS_PROFILE is not set in .env.prod"
-    echo "  Please add AWS_PROFILE to .env.prod for AWS SSO authentication"
+    echo "❌ AWS_PROFILE is not set in sites/$SITE_ID/.env.aws"
+    echo "  Please add AWS_PROFILE to sites/$SITE_ID/.env.aws for AWS SSO authentication"
     echo "  Run 'aws configure sso' to set up an SSO profile if needed"
     exit 1
 fi
@@ -95,11 +95,6 @@ else
     # Check for required variables in .env.prod
     if ! grep -q "OPENAI_API_KEY" .env.prod; then
         echo "⚠️  Warning: OPENAI_API_KEY not found in .env.prod"
-    fi
-    
-    # Check for AWS profile
-    if ! grep -q "AWS_PROFILE" .env.prod; then
-        echo "⚠️  Warning: AWS_PROFILE not found in .env.prod"
     fi
 fi
 
