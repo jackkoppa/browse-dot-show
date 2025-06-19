@@ -1,6 +1,6 @@
 # browse.show
 
-### 📝🔍🎙️ transcribe & search any podcast** 
+### 📝🔍🎙️ transcribe & search any podcast
 
 Deploy your own podcast archive and search engine
 <br/>
