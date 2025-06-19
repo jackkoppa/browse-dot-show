@@ -1,15 +1,49 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 
 const prompts = require('prompts');
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * Site information loaded from site configuration
+ */
+export interface Site {
+  id: string;
+  domain: string;
+  title: string;
+  description: string;
+}
+
+/**
+ * Site selection options
+ */
+export interface SiteSelectionOptions {
+  defaultSiteId?: string;
+  skipPrompt?: boolean;
+  operation?: string;
+}
+
+/**
+ * Site validation result
+ */
+export interface SiteValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+/**
+ * Environment variables object
+ */
+export interface EnvVars {
+  [key: string]: string;
+}
 
 /**
  * Discovers available sites following the priority logic:
  * 1. Use sites from /sites/my-sites/ if any exist
  * 2. Otherwise use sites from /sites/origin-sites/
  */
-function discoverSites() {
+export function discoverSites(): Site[] {
     const sitesDir = path.resolve(__dirname, '../../sites');
     const mySitesDir = path.join(sitesDir, 'my-sites');
     const originSitesDir = path.join(sitesDir, 'origin-sites');
@@ -31,12 +65,12 @@ function discoverSites() {
 /**
  * Loads sites from a specific directory
  */
-function loadSitesFromDirectory(directory) {
+function loadSitesFromDirectory(directory: string): Site[] {
     if (!fs.existsSync(directory)) {
         return [];
     }
 
-    const sites = [];
+    const sites: Site[] = [];
     const entries = fs.readdirSync(directory, { withFileTypes: true });
 
     for (const entry of entries) {
@@ -73,10 +107,10 @@ function loadSitesFromDirectory(directory) {
 /**
  * Validates that a site exists and has required files
  */
-function validateSite(siteId) {
+export function validateSite(siteId: string): SiteValidationResult {
     const sites = discoverSites();
     const site = sites.find(s => s.id === siteId);
-    const errors = [];
+    const errors: string[] = [];
 
     if (!site) {
         errors.push(`Site "${siteId}" not found`);
@@ -101,7 +135,7 @@ function validateSite(siteId) {
 /**
  * Gets the directory path for a specific site
  */
-function getSiteDirectory(siteId) {
+export function getSiteDirectory(siteId: string): string | null {
     const sitesDir = path.resolve(__dirname, '../../sites');
     const mySitesDir = path.join(sitesDir, 'my-sites', siteId);
     const originSitesDir = path.join(sitesDir, 'origin-sites', siteId);
@@ -119,13 +153,10 @@ function getSiteDirectory(siteId) {
 
 /**
  * Prompts user to select a site
- * @param {Object} options - Configuration options
- * @param {string} options.defaultSiteId - Default site to preselect
- * @param {boolean} options.skipPrompt - Whether to skip prompting (use default)
- * @param {string} options.operation - Description of the operation being performed
- * @returns {Promise<string>} Selected site ID
+ * @param options - Configuration options
+ * @returns Selected site ID
  */
-async function selectSite(options = {}) {
+export async function selectSite(options: SiteSelectionOptions = {}): Promise<string> {
     const {
         defaultSiteId = process.env.DEFAULT_SITE_ID,
         skipPrompt = process.env.SKIP_SITE_SELECTION_PROMPT === 'true',
@@ -192,17 +223,17 @@ async function selectSite(options = {}) {
 
 /**
  * Loads environment variables for a specific site
- * @param {string} siteId - Site ID
- * @param {string} env - Environment (dev, prod, local)
- * @returns {Object} Environment variables object
+ * @param siteId - Site ID
+ * @param env - Environment (dev, prod, local)
+ * @returns Environment variables object
  */
-function loadSiteEnvVars(siteId, env = 'dev') {
+export function loadSiteEnvVars(siteId: string, env: string = 'dev'): EnvVars {
     const siteDir = getSiteDirectory(siteId);
     if (!siteDir) {
         throw new Error(`Site directory for "${siteId}" not found`);
     }
 
-    const envVars = {};
+    const envVars: EnvVars = {};
 
     // Load site-specific .env.aws-sso
     const envAwsPath = path.join(siteDir, '.env.aws-sso');
@@ -259,12 +290,4 @@ function loadSiteEnvVars(siteId, env = 'dev') {
     }
 
     return envVars;
-}
-
-module.exports = {
-    discoverSites,
-    selectSite,
-    validateSite,
-    getSiteDirectory,
-    loadSiteEnvVars
-}; 
+} 

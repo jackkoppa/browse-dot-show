@@ -4,6 +4,7 @@ import * as path from 'path';
 import { execCommandOrThrow } from './utils/shell-exec';
 import { exists, isDirectory } from './utils/file-operations';
 import { logInfo, logError, printInfo, printError, logProgress, logSuccess } from './utils/logging';
+import { getLambdaDirectory } from './utils/lambda-utils';
 
 /**
  * Run a lambda for a specific site
@@ -38,21 +39,7 @@ async function findSiteDirectory(siteId: string): Promise<string> {
   throw new Error(`Site '${siteId}' not found in sites/my-sites/ or sites/origin-sites/`);
 }
 
-/**
- * Determine lambda directory based on package name
- */
-function getLambdaDirectory(lambdaPackageName: string): string {
-  // Remove @browse-dot-show/ prefix
-  const cleanName = lambdaPackageName.replace('@browse-dot-show/', '');
-  
-  if (cleanName.includes('search')) {
-    return `packages/search/${cleanName}`;
-  } else {
-    // For ingestion lambdas, remove -lambda suffix and add it back
-    const baseName = cleanName.replace('-lambda', '');
-    return `packages/ingestion/${baseName}-lambda`;
-  }
-}
+
 
 /**
  * Validate run configuration
