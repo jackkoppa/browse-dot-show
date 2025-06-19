@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import { join } from 'path';
-import { execCommandOrThrow } from '../utils/shell-exec.js';
+import { execCommandOrThrow, execCommand, execCommandLive } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
 import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
@@ -75,41 +75,96 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   
   // Change to terraform directory
   const originalCwd = process.cwd();
+  printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
   process.chdir(TF_DIR);
 
   try {
     // Bootstrap terraform state bucket if needed (ensures backend exists)
     printInfo('Ensuring Terraform state bucket exists...');
+    printInfo(`Expected bucket name: ${siteId}-terraform-state`);
     await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-terraform-state.ts', siteId, process.env.AWS_PROFILE || '']);
+    printSuccess('✅ Terraform state bucket bootstrap completed');
 
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
+    printInfo(`Command: terraform init -backend-config ${BACKEND_CONFIG_FILE} -reconfigure`);
     await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+    printSuccess('✅ Terraform initialization completed');
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
     await execCommandOrThrow('terraform', ['validate']);
+    printSuccess('✅ Terraform configuration validation passed');
 
-    // Set profile flag if using AWS profile
-    const terraformArgs = [
-      'destroy',
+    // Set up Terraform plan arguments for destroy
+    const planArgs = [
+      'plan',
+      '-destroy',
       `-var-file=environments/${siteId}-prod.tfvars`,
       `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
       `-var=site_id=${siteId}`,
-      '-auto-approve'
+      '-out=destroy.tfplan'
     ];
 
     if (process.env.AWS_PROFILE) {
-      terraformArgs.splice(-1, 0, `-var=aws_profile=${process.env.AWS_PROFILE}`);
+      planArgs.splice(-1, 0, `-var=aws_profile=${process.env.AWS_PROFILE}`);
     }
 
-    // Destroy the infrastructure
-    await execCommandOrThrow('terraform', terraformArgs);
+    // Plan the destruction and capture output
+    printInfo('Planning destruction changes...');
+    printInfo(`Command: terraform ${planArgs.join(' ')}`);
+    const planResult = await execCommand('terraform', planArgs);
+    
+    if (planResult.exitCode !== 0) {
+      printError('Terraform destroy plan failed!');
+      printError('STDOUT:');
+      console.log(planResult.stdout);
+      printError('STDERR:');
+      console.log(planResult.stderr);
+      throw new Error(`Terraform destroy plan failed: ${planResult.stderr}`);
+    }
+
+    // Show the plan output
+    console.log('');
+    printSuccess('📋 Terraform destroy plan completed successfully!');
+    console.log('');
+    printInfo('📋 Destruction Plan:');
+    console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+    const lines = planResult.stdout.split('\n');
+    lines.forEach((line: string) => {
+      console.log(`│ ${line.padEnd(104).substring(0, 104)} │`);
+    });
+    console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+    console.log('');
+
+    if (planResult.stderr) {
+      printWarning('Plan warnings:');
+      console.log(planResult.stderr);
+      console.log('');
+    }
+
+    // Set up destroy arguments
+    const destroyArgs = [
+      'apply',
+      'destroy.tfplan'
+    ];
+
+    // Execute the destruction with live output
+    printInfo('Applying destruction plan...');
+    printInfo(`Command: terraform ${destroyArgs.join(' ')}`);
+    console.log('');
+    
+    const destroyExitCode = await execCommandLive('terraform', destroyArgs);
+    
+    if (destroyExitCode !== 0) {
+      throw new Error(`Terraform destroy failed with exit code ${destroyExitCode}`);
+    }
 
     printSuccess('======= Destruction Complete =======');
   } finally {
     // Return to original directory
     process.chdir(originalCwd);
+    printInfo(`Returned to ${process.cwd()}`);
   }
 }
 
