@@ -4,7 +4,7 @@ import { join } from 'path';
 import { execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
-import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess, logHeader, promptUser } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 
 interface DeploymentOptions {
@@ -19,14 +19,7 @@ interface MultiSelectChoice {
   selected: boolean;
 }
 
-function promptUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-}
+
 
 async function askConfirmation(message: string): Promise<boolean> {
   const response = await promptUser(`${message} (y/N): `);

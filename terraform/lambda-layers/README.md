@@ -28,7 +28,7 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
 
 2. **Prepare the Lambda layer:**
    ```bash
-   ./1-prepare-ffmpeg-layer.sh
+   tsx 1-prepare-ffmpeg-layer.ts
    ```
 
    This script will:

@@ -172,6 +172,39 @@ export function printSuccess(message: string, ...args: any[]): void {
   logSuccess(message, ...args);
 }
 
+/**
+ * Setup stdin for interactive mode
+ */
+export function setupInteractiveMode(): void {
+  if (process.stdin.setRawMode) {
+    process.stdin.setRawMode(true);
+  }
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+}
+
+/**
+ * Cleanup stdin after interactive mode
+ */
+export function cleanupInteractiveMode(): void {
+  if (process.stdin.setRawMode) {
+    process.stdin.setRawMode(false);
+  }
+  process.stdin.pause();
+}
+
+/**
+ * Prompt user for input with a question
+ */
+export function promptUser(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    process.stdout.write(question);
+    process.stdin.once('data', (data) => {
+      resolve(data.toString().trim());
+    });
+  });
+}
+
 // Export the Logger class and default instance
 export { Logger };
 export const logger = defaultLogger; 

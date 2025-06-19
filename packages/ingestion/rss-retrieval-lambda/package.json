@@ -10,8 +10,8 @@
     "test": "vitest run",
     "build:prod": "dotenvx run -f ../../../.env.prod -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "tsx retrieve-rss-feeds-and-download-audio-files.ts",
-    "run:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/rss-retrieval-lambda retrieve-rss-feeds-and-download-audio-files.ts",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/rss-retrieval-lambda"
+    "run:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/rss-retrieval-lambda retrieve-rss-feeds-and-download-audio-files.ts",
+    "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/rss-retrieval-lambda"
   },
   "devDependencies": {
     "@smithy/shared-ini-file-loader": "^4.0.2",

@@ -9,11 +9,11 @@
   "scripts": {
     "build:prod": "dotenvx run -f ../../../.env.prod -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "run:local": "tsx process-new-audio-files-via-whisper.ts",
-    "run:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/process-audio-lambda process-new-audio-files-via-whisper.ts",
+    "run:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/process-audio-lambda process-new-audio-files-via-whisper.ts",
     "run:spelling-corrections:local": "tsx run-apply-spelling-corrections.ts",
-    "run:spelling-corrections:site": "../../../scripts/run-lambda-for-site.sh @browse-dot-show/process-audio-lambda run-apply-spelling-corrections.ts",
+    "run:spelling-corrections:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/process-audio-lambda run-apply-spelling-corrections.ts",
     "test": "vitest run",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/process-audio-lambda"
+    "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/process-audio-lambda"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "catalog:",

@@ -13,7 +13,7 @@
 import { join } from 'path';
 import { execCommand, execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists, readTextFile, writeTextFile } from '../utils/file-operations.js';
-import { printInfo, printError, printWarning, printSuccess } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess, promptUser } from '../utils/logging.js';
 
 interface TfStateConfig {
   s3TfStateUri: string;
@@ -21,14 +21,7 @@ interface TfStateConfig {
   awsProfile?: string;
 }
 
-function promptUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-}
+
 
 /**
  * Internal helper function for AWS CLI S3 commands.

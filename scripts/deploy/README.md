@@ -92,7 +92,7 @@ To configure AWS SSO:
 aws sso login --profile YourProfileName
 
 # Then deploy
-./scripts/deploy/deploy.sh dev
+tsx scripts/deploy/deploy.ts
 ```
 
 
@@ -102,7 +102,7 @@ Be careful when destroying environments, as this will delete all resources creat
 
 ```bash
 # Destroy development environment
-./scripts/deploy/destroy.sh dev
+tsx scripts/deploy/destroy.ts
 ```
 
 ## What the Deployment Does

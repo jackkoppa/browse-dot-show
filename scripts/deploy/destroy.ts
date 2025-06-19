@@ -4,17 +4,10 @@ import { join } from 'path';
 import { execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
-import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess, logHeader, promptUser } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 
-function promptUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-}
+
 
 async function validateEnvironment(): Promise<void> {
   // Check if .env.prod exists and load it

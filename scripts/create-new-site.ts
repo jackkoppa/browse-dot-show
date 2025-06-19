@@ -4,7 +4,7 @@ import { readdir, mkdir, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { execCommand } from './utils/shell-exec.js';
 import { ensureDir, exists, writeTextFile } from './utils/file-operations.js';
-import { printInfo, printSuccess, printWarning, printError } from './utils/logging.js';
+import { printInfo, printSuccess, printWarning, printError, promptUser } from './utils/logging.js';
 
 interface SiteConfig {
   siteId: string;
@@ -73,14 +73,7 @@ function validateRssUrl(url: string): { isValid: boolean; error?: string } {
   return { isValid: true };
 }
 
-function promptUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-}
+
 
 async function getValidSiteId(): Promise<string> {
   while (true) {

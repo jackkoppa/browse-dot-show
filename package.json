@@ -7,7 +7,7 @@
     "all:build": "pnpm --filter @browse-dot-show/* build",
     "all:build:prod": "pnpm --filter @browse-dot-show/* build:prod",
     "all:test": "pnpm --filter @browse-dot-show/* test",
-    "all:deploy": "tsx scripts/run-with-site-selection.ts \"deployment\" \"./scripts/deploy/deploy.sh\"",
+    "all:deploy": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/deploy.ts\"",
     "lint:local": "tsx scripts/run-with-site-selection.ts \"local linting\" \"pnpm --filter @browse-dot-show/linting lint:all:local\"",
     "lint:prod": "tsx scripts/run-with-site-selection.ts \"prod linting\" \"pnpm --filter @browse-dot-show/linting lint:all:prod\"",
     "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
@@ -25,8 +25,8 @@
     "srt-indexing-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"SRT indexing (prod)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:site\"",
     "search-lambda:dev:local": "tsx scripts/run-with-site-selection.ts \"search lambda (local)\" \"pnpm --filter @browse-dot-show/search-lambda dev:local\"",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
-    "trigger:ingestion-lambda": "node scripts/trigger-ingestion-lambda.sh",
-    "create:site": "./scripts/create-new-site.sh"
+    "trigger:ingestion-lambda": "tsx scripts/trigger-ingestion-lambda.ts",
+    "create:site": "tsx scripts/create-new-site.ts"
   },
   "engines": {
     "node": ">=20.0.0",

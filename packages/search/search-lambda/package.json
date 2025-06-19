@@ -8,7 +8,7 @@
   "scripts": {
     "build:prod": "dotenvx run -f ../../../.env.prod -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "dev:local": "tsx dev-server.ts",
-    "__prepare-for-aws": "../../../scripts/pnpm-deploy-with-versions-fix.sh @browse-dot-show/search-lambda"
+    "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/search-lambda"
   },
   "dependencies": {
     "@orama/orama": "catalog:",
