@@ -13,7 +13,9 @@
 import { join } from 'path';
 import { execCommand, execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists, readTextFile, writeTextFile } from '../utils/file-operations.js';
-import { printInfo, printError, printWarning, printSuccess, promptUser } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess } from '../utils/logging.js';
+// @ts-ignore - prompts types not resolving properly but runtime works
+import prompts from 'prompts';
 
 interface TfStateConfig {
   s3TfStateUri: string;
@@ -61,9 +63,14 @@ export async function compareTfStates(config: TfStateConfig): Promise<void> {
     
     if (!localStateExists) {
       printWarning(`Local state file ${tfStateFilename} does not exist in ${process.cwd()}.`);
-      const confirm = await promptUser('Do you want to use the S3 state backup as your local state? (y/N): ');
+      const response = await prompts({
+        type: 'confirm',
+        name: 'confirmed',
+        message: 'Do you want to use the S3 state backup as your local state?',
+        initial: false
+      });
       
-      if (/^[yY]$/.test(confirm)) {
+      if (response.confirmed) {
         const s3Content = await readTextFile(tfStateDownloadTempName);
         await writeTextFile(tfStateFilename, s3Content);
         printSuccess(`Restored S3 state backup to ${tfStateFilename}.`);
@@ -82,9 +89,22 @@ export async function compareTfStates(config: TfStateConfig): Promise<void> {
         printWarning('Differences detected between local state and S3 backup');
         console.log();
         
-        const action = await promptUser('Choose an action: (L)oad S3 backup to local, (C)ontinue with local (S3 backup will be overwritten), or (A)bort: ');
+        const response = await prompts({
+          type: 'select',
+          name: 'action',
+          message: 'Choose an action:',
+          choices: [
+            { title: 'Load S3 backup to local', value: 'l' },
+            { title: 'Continue with local (S3 backup will be overwritten)', value: 'c' },
+            { title: 'Abort', value: 'a' }
+          ]
+        });
         
-        switch (action.toLowerCase()) {
+        if (!response.action) {
+          response.action = 'a'; // Default to abort if cancelled
+        }
+        
+        switch (response.action.toLowerCase()) {
           case 'l':
             await writeTextFile(tfStateFilename, s3Content);
             printSuccess(`S3 state backup has been loaded to local ${tfStateFilename}.`);

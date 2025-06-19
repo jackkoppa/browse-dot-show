@@ -4,8 +4,10 @@ import { join } from 'path';
 import { execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
-import { printInfo, printError, printWarning, printSuccess, logHeader, promptUser } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
+// @ts-ignore - prompts types not resolving properly but runtime works
+import prompts from 'prompts';
 
 
 
@@ -51,8 +53,14 @@ async function confirmDestruction(env: string): Promise<void> {
   // Warn if trying to destroy production
   if (env === 'prod') {
     printWarning('WARNING: You are about to destroy the PRODUCTION environment!');
-    const confirmation = await promptUser('Type \'destroy-prod\' to confirm: ');
-    if (confirmation !== 'destroy-prod') {
+    const response = await prompts({
+      type: 'text',
+      name: 'confirmation',
+      message: 'Type \'destroy-prod\' to confirm:',
+      validate: (value: string) => value === 'destroy-prod' ? true : 'You must type exactly \'destroy-prod\' to confirm'
+    });
+    
+    if (!response.confirmation || response.confirmation !== 'destroy-prod') {
       printInfo('Destruction cancelled.');
       process.exit(1);
     }

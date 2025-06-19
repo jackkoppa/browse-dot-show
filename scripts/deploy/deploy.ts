@@ -1,10 +1,12 @@
 #!/usr/bin/env tsx
 
 import { join } from 'path';
+// @ts-ignore - prompts types not resolving properly but runtime works
+import prompts from 'prompts';
 import { execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
 import { loadEnvFile } from '../utils/env-validation.js';
-import { printInfo, printError, printWarning, printSuccess, logHeader, promptUser } from '../utils/logging.js';
+import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 
 interface DeploymentOptions {
@@ -19,34 +21,31 @@ interface MultiSelectChoice {
   selected: boolean;
 }
 
-
-
 async function askConfirmation(message: string): Promise<boolean> {
-  const response = await promptUser(`${message} (y/N): `);
-  return /^[yY]$/.test(response);
+  const response = await prompts({
+    type: 'confirm',
+    name: 'confirmed',
+    message: message,
+    initial: false
+  });
+  return response.confirmed;
 }
 
 async function askMultiSelect(message: string, choices: MultiSelectChoice[]): Promise<string[]> {
-  console.log(`\n${message}`);
-  console.log('Select options (enter numbers separated by commas, or press Enter for defaults):');
-  
-  choices.forEach((choice, index) => {
-    const selected = choice.selected ? '✓' : ' ';
-    console.log(`  ${index + 1}. [${selected}] ${choice.title}`);
+  const response = await prompts({
+    type: 'multiselect',
+    name: 'selectedOptions',
+    message: message,
+    choices: choices,
+    hint: '- Space to select/deselect. Return to continue'
   });
 
-  const input = await promptUser('\nYour selection (e.g., 1,2,3): ');
-  
-  if (!input.trim()) {
-    // Return default selected choices
-    return choices.filter(choice => choice.selected).map(choice => choice.value);
+  if (!response.selectedOptions) {
+    printInfo('Deployment cancelled.');
+    process.exit(0);
   }
 
-  const selectedIndices = input.split(',')
-    .map(s => parseInt(s.trim()) - 1)
-    .filter(i => i >= 0 && i < choices.length);
-
-  return selectedIndices.map(i => choices[i].value);
+  return response.selectedOptions;
 }
 
 async function validateEnvironment(): Promise<void> {
@@ -88,7 +87,7 @@ async function checkAwsAuthentication(): Promise<void> {
 }
 
 async function askDeploymentOptions(): Promise<DeploymentOptions> {
-  const choices: MultiSelectChoice[] = [
+  const choices = [
     { title: 'Run tests (pnpm all:test)', value: 'test', selected: true },
     { title: 'Run linting (pnpm lint:prod)', value: 'lint', selected: true },
     { title: 'Deploy client files to S3', value: 'client', selected: true }
@@ -138,7 +137,7 @@ async function runTerraformDeployment(siteId: string): Promise<void> {
   try {
     // Bootstrap terraform state bucket if needed
     printInfo('Bootstrapping Terraform state bucket...');
-    await execCommandOrThrow('../scripts/deploy/bootstrap-terraform-state.ts', [siteId, process.env.AWS_PROFILE || '']);
+    await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-terraform-state.ts', siteId, process.env.AWS_PROFILE || '']);
 
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
@@ -202,11 +201,6 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
 }
 
 async function main(): Promise<void> {
-  // Setup stdin for interactive mode
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.setEncoding('utf8');
-
   try {
     logHeader('Deploy Infrastructure and Applications');
 
@@ -252,17 +246,12 @@ async function main(): Promise<void> {
   } catch (error) {
     printError(`Deployment failed: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
-  } finally {
-    process.stdin.setRawMode(false);
-    process.stdin.pause();
   }
 }
 
 // Handle Ctrl+C gracefully
 process.on('SIGINT', () => {
   console.log('\nDeployment cancelled...');
-  process.stdin.setRawMode(false);
-  process.stdin.pause();
   process.exit(0);
 });
 

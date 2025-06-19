@@ -65,10 +65,6 @@ catalogs:
 importers:
 
   .:
-    dependencies:
-      prompts:
-        specifier: ^2.4.2
-        version: 2.4.2
     devDependencies:
       '@dotenvx/dotenvx':
         specifier: ^1.44.0
@@ -76,6 +72,9 @@ importers:
       '@types/prompts':
         specifier: ^2.4.9
         version: 2.4.9
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
       tsx:
         specifier: 'catalog:'
         version: 4.19.3

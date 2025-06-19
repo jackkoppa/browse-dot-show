@@ -1,10 +1,12 @@
 #!/usr/bin/env tsx
 
 import { readdir, mkdir, writeFile, access } from 'fs/promises';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { execCommand } from './utils/shell-exec.js';
 import { ensureDir, exists, writeTextFile } from './utils/file-operations.js';
-import { printInfo, printSuccess, printWarning, printError, promptUser } from './utils/logging.js';
+import { printInfo, printSuccess, printWarning, printError } from './utils/logging.js';
+// @ts-ignore - prompts types not resolving properly but runtime works
+import prompts from 'prompts';
 
 interface SiteConfig {
   siteId: string;
@@ -73,57 +75,82 @@ function validateRssUrl(url: string): { isValid: boolean; error?: string } {
   return { isValid: true };
 }
 
-
-
 async function getValidSiteId(): Promise<string> {
   while (true) {
-    const siteId = await promptUser('Enter your site ID (lowercase, hyphens only): ');
-    
-    const basicValidation = validateSiteId(siteId);
-    if (!basicValidation.isValid) {
-      printError(basicValidation.error!);
-      console.log();
-      continue;
+    const response = await prompts({
+      type: 'text',
+      name: 'siteId',
+      message: 'Enter your site ID (lowercase, hyphens only):',
+      validate: (value: string) => {
+        const basicValidation = validateSiteId(value);
+        if (!basicValidation.isValid) {
+          return basicValidation.error!;
+        }
+        return true;
+      }
+    });
+
+    if (!response.siteId) {
+      printError('Site creation cancelled.');
+      process.exit(0);
     }
 
-    const uniqueValidation = await validateSiteIdUnique(siteId);
+    const uniqueValidation = await validateSiteIdUnique(response.siteId);
     if (!uniqueValidation.isValid) {
       printError(uniqueValidation.error!);
       console.log();
       continue;
     }
 
-    return siteId;
+    return response.siteId;
   }
 }
 
 async function getValidDomain(): Promise<string> {
   while (true) {
-    const domain = await promptUser('Enter your domain (e.g., my-podcast.browse.show): ');
-    
-    const validation = validateDomain(domain);
-    if (!validation.isValid) {
-      printError(validation.error!);
-      console.log();
-      continue;
+    const response = await prompts({
+      type: 'text',
+      name: 'domain',
+      message: 'Enter your domain (e.g., my-podcast.browse.show):',
+      validate: (value: string) => {
+        const validation = validateDomain(value);
+        if (!validation.isValid) {
+          return validation.error!;
+        }
+        return true;
+      }
+    });
+
+    if (!response.domain) {
+      printError('Site creation cancelled.');
+      process.exit(0);
     }
 
-    return domain;
+    return response.domain;
   }
 }
 
 async function getValidRssUrl(): Promise<string> {
   while (true) {
-    const rssUrl = await promptUser('Enter RSS feed URL: ');
-    
-    const validation = validateRssUrl(rssUrl);
-    if (!validation.isValid) {
-      printError(validation.error!);
-      console.log();
-      continue;
+    const response = await prompts({
+      type: 'text',
+      name: 'rssUrl',
+      message: 'Enter RSS feed URL:',
+      validate: (value: string) => {
+        const validation = validateRssUrl(value);
+        if (!validation.isValid) {
+          return validation.error!;
+        }
+        return true;
+      }
+    });
+
+    if (!response.rssUrl) {
+      printError('Site creation cancelled.');
+      process.exit(0);
     }
 
-    return rssUrl;
+    return response.rssUrl;
   }
 }
 
@@ -214,19 +241,68 @@ async function main(): Promise<void> {
     const domain = await getValidDomain();
     console.log();
 
-    const shortTitle = await promptUser('Enter short title for your site: ');
-    const fullTitle = await promptUser('Enter full title for your site: ');
-    const description = await promptUser('Enter description for your site: ');
+    // Collect remaining site details
+    const details = await prompts([
+      {
+        type: 'text',
+        name: 'shortTitle',
+        message: 'Enter short title for your site:',
+        validate: (value: string) => value ? true : 'Short title is required'
+      },
+      {
+        type: 'text',
+        name: 'fullTitle',
+        message: 'Enter full title for your site:',
+        validate: (value: string) => value ? true : 'Full title is required'
+      },
+      {
+        type: 'text',
+        name: 'description',
+        message: 'Enter description for your site:',
+        validate: (value: string) => value ? true : 'Description is required'
+      },
+      {
+        type: 'text',
+        name: 'podcastTitle',
+        message: 'Enter podcast title:',
+        validate: (value: string) => value ? true : 'Podcast title is required'
+      },
+      {
+        type: 'text',
+        name: 'rssFilename',
+        message: 'Enter RSS feed filename (e.g., my-podcast.xml):',
+        validate: (value: string) => {
+          if (!value) return 'RSS filename is required';
+          if (!value.endsWith('.xml')) return 'RSS filename must end with .xml';
+          return true;
+        }
+      },
+      {
+        type: 'text',
+        name: 'awsProfile',
+        message: 'Enter your AWS profile name (from ~/.aws/config):',
+        validate: (value: string) => value ? true : 'AWS profile is required'
+      },
+      {
+        type: 'text',
+        name: 'awsRegion',
+        message: 'Enter AWS region (press Enter for us-east-1):',
+        initial: 'us-east-1'
+      }
+    ]);
 
-    const podcastTitle = await promptUser('Enter podcast title: ');
-    const rssFilename = await promptUser('Enter RSS feed filename (e.g., my-podcast.xml): ');
+    // Check if user cancelled
+    if (!details.shortTitle || !details.fullTitle || !details.description || 
+        !details.podcastTitle || !details.rssFilename || !details.awsProfile) {
+      printError('Site creation cancelled.');
+      process.exit(0);
+    }
 
     const rssUrl = await getValidRssUrl();
     console.log();
 
-    const awsProfile = await promptUser('Enter your AWS profile name (from ~/.aws/config): ');
-    const awsRegionInput = await promptUser('Enter AWS region (press Enter for us-east-1): ');
-    const awsRegion = awsRegionInput.trim() || 'us-east-1';
+    const { shortTitle, fullTitle, description, podcastTitle, rssFilename, awsProfile } = details;
+    const awsRegion = details.awsRegion || 'us-east-1';
 
     const config: SiteConfig = {
       siteId,
@@ -255,8 +331,14 @@ async function main(): Promise<void> {
     console.log(`  AWS Region: ${config.awsRegion}`);
     console.log();
 
-    const confirm = await promptUser('Continue? (y/N): ');
-    if (!/^[Yy]$/.test(confirm)) {
+    const response = await prompts({
+      type: 'confirm',
+      name: 'confirmed',
+      message: 'Continue with site creation?',
+      initial: false
+    });
+    
+    if (!response.confirmed) {
       printInfo('Site creation cancelled.');
       process.exit(0);
     }

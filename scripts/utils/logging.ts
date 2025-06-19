@@ -193,17 +193,7 @@ export function cleanupInteractiveMode(): void {
   process.stdin.pause();
 }
 
-/**
- * Prompt user for input with a question
- */
-export function promptUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    process.stdin.once('data', (data) => {
-      resolve(data.toString().trim());
-    });
-  });
-}
+
 
 // Export the Logger class and default instance
 export { Logger };
