@@ -43,10 +43,10 @@ Converting all bash scripts to TypeScript for better consistency, type safety, a
 2. ✅ **`pnpm-deploy-with-versions-fix.ts`** - Simple pnpm wrapper  
 3. ✅ **`bootstrap-terraform-state.ts`** - Terraform state setup
 
-### Phase 3: Convert Lambda Management Scripts  
-1. **`build-lambda-for-site.ts`** - Build lambda packages
-2. **`run-lambda-for-site.ts`** - Run lambda locally with site context
-3. **`trigger-ingestion-lambda.ts`** - Complex AWS lambda invocation
+### Phase 3: Convert Lambda Management Scripts ✅ COMPLETED
+1. ✅ **`build-lambda-for-site.ts`** - Build lambda packages
+2. ✅ **`run-lambda-for-site.ts`** - Run lambda locally with site context
+3. ✅ **`trigger-ingestion-lambda.ts`** - Complex AWS lambda invocation
 
 ### Phase 4: Convert Site Management Scripts
 1. **`create-new-site.ts`** - Interactive site creation
