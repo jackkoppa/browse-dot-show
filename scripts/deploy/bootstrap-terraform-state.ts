@@ -75,7 +75,7 @@ async function main(): Promise<void> {
 
       await awsCommand('s3api put-bucket-encryption', [
         '--bucket', bucketName,
-        '--server-side-encryption-configuration', encryptionConfig
+        '--server-side-encryption-configuration', `'${encryptionConfig}'`
       ], { profile: awsProfile });
 
       // Block public access
@@ -88,7 +88,7 @@ async function main(): Promise<void> {
 
       await awsCommand('s3api put-public-access-block', [
         '--bucket', bucketName,
-        '--public-access-block-configuration', publicAccessConfig
+        '--public-access-block-configuration', `'${publicAccessConfig}'`
       ], { profile: awsProfile });
 
       logSuccess(`✅ Successfully created and configured bucket: ${bucketName}`);
