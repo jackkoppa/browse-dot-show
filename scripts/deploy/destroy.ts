@@ -70,14 +70,25 @@ async function confirmDestruction(env: string): Promise<void> {
 async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   printInfo(`Destroying ${env} environment...`);
   
+  const TF_DIR = 'terraform';
+  const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
+  
   // Change to terraform directory
   const originalCwd = process.cwd();
-  process.chdir('terraform');
+  process.chdir(TF_DIR);
 
   try {
-    // Initialize Terraform (if needed)
-    printInfo('Initializing Terraform...');
-    await execCommandOrThrow('terraform', ['init']);
+    // Bootstrap terraform state bucket if needed (ensures backend exists)
+    printInfo('Ensuring Terraform state bucket exists...');
+    await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-terraform-state.ts', siteId, process.env.AWS_PROFILE || '']);
+
+    // Initialize Terraform with site-specific backend config
+    printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+
+    // Validate Terraform configuration
+    printInfo('Validating Terraform configuration...');
+    await execCommandOrThrow('terraform', ['validate']);
 
     // Set profile flag if using AWS profile
     const terraformArgs = [
@@ -115,10 +126,10 @@ async function main(): Promise<void> {
     const env = 'prod';
 
     // Get selected site from environment (set by site selection wrapper)
-    const siteId = process.env.SITE_ID;
+    const siteId = process.env.SELECTED_SITE_ID;
     if (!siteId) {
-      printError('Error: No site selected. SITE_ID environment variable must be set.');
-      printError('Use: SITE_ID=your-site-id tsx scripts/deploy/destroy.ts');
+      printError('Error: No site selected. This script should be run through the site selection wrapper.');
+      printError('Use: tsx scripts/run-with-site-selection.ts "infrastructure destruction" "tsx scripts/deploy/destroy.ts"');
       process.exit(1);
     }
 
