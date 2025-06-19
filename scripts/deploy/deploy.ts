@@ -103,6 +103,10 @@ async function askDeploymentOptions(): Promise<DeploymentOptions> {
 }
 
 async function runPreDeploymentSteps(options: DeploymentOptions, env: string): Promise<void> {
+  // Install dependencies first
+  printInfo('Installing dependencies...');
+  await execCommandOrThrow('pnpm', ['install']);
+
   // Run optional pre-deployment steps based on user selection
   if (options.test) {
     printInfo('Running all tests...');
@@ -115,7 +119,6 @@ async function runPreDeploymentSteps(options: DeploymentOptions, env: string): P
   }
 
   printInfo(`Building all packages for ${env} environment...`);
-  await execCommandOrThrow('pnpm', ['install']);
   
   // Build shared packages
   await execCommandOrThrow('pnpm', ['all:build']);
@@ -180,7 +183,7 @@ async function applyTerraformWithProgress(): Promise<void> {
   });
 }
 
-async function runTerraformDeployment(siteId: string): Promise<void> {
+async function runTerraformDeployment(siteId: string): Promise<boolean> {
   const TF_DIR = 'terraform';
   const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
 
@@ -255,17 +258,17 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
     
     // Show a summary of the plan output (first 50 lines)
     const lines = planResult.stdout.split('\n');
-    const summaryLines = lines.slice(0, 50);
+    const summaryLines = lines.slice(0, 20);
     
     printInfo('📋 Plan Summary (first 20 lines):');
-    console.log('┌─────────────────────────────────────────────────────────────────┐');
+    console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
     summaryLines.forEach((line: string) => {
-      console.log(`│ ${line.padEnd(100).substring(0, 100)} │`);
+      console.log(`│ ${line.padEnd(104).substring(0, 104)} │`);
     });
     if (lines.length > 20) {
-      console.log(`│ ... (${lines.length - 20} more lines in full file)                        │`);
+      console.log(`│ ... (${lines.length - 20} more lines in full file)                                                     │`);
     }
-    console.log('└─────────────────────────────────────────────────────────────────┘');
+    console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
     console.log('');
 
     // Ask for confirmation before applying
@@ -283,9 +286,10 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
       // Display outputs
       printSuccess('======= Deployment Complete =======');
       await execCommandOrThrow('terraform', ['output']);
+      return true;
     } else {
       printInfo('Deployment cancelled.');
-      return;
+      return false;
     }
   } finally {
     // Return to the project root
@@ -346,10 +350,14 @@ async function main(): Promise<void> {
     await runPreDeploymentSteps(deploymentOptions, env);
 
     // Run Terraform deployment
-    await runTerraformDeployment(siteId);
+    const terraformSuccess = await runTerraformDeployment(siteId);
 
-    // Upload client files if selected
-    await uploadClientFiles(siteId, env, deploymentOptions.client);
+    // Only upload client files if Terraform deployment was successful
+    if (terraformSuccess) {
+      await uploadClientFiles(siteId, env, deploymentOptions.client);
+    } else {
+      printInfo('Skipping client upload due to cancelled Terraform deployment.');
+    }
 
   } catch (error) {
     printError(`Deployment failed: ${error instanceof Error ? error.message : String(error)}`);
