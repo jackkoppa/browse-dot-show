@@ -1,0 +1,33 @@
+{
+    "id": "searchengine",
+    "domain": "searchengine.browse.show",
+    "appHeader": {
+        "primaryTitle": "Search Engine",
+        "includeTitlePrefix": true,
+        "taglinePrimaryPodcastName": "Search Engine",
+        "taglinePrimaryPodcastExternalURL": "https://www.searchengine.show/",
+        "taglineSuffix": "podcast archives"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "[browse.show] Search Engine",
+        "canonicalUrl": "https://searchengine.browse.show",
+        "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+        "metaDescription": "A Search Engine for Search Engine - search the podcast archives",
+        "metaTitle": "[browse.show] Search Engine"
+    },
+    "includedPodcasts": [
+        {
+            "id": "search-engine",
+            "rssFeedFile": "search-engine.xml",
+            "title": "Search Engine",
+            "status": "active",
+            "url": "https://feeds.megaphone.fm/search-engine"
+        }
+    ],
+    "whisperTranscriptionPrompt": "Welcome to the Search Engine podcast. I'm your host, PJ Vogt. Search Engine is me, Sruthi Pinnamaneni, and Garrott Graham. No question too big, no question too small. What are the things in the world or in your life that you can’t stop wondering about, that you want explained? Let's get started.",
+    "themeColor": "#ff7154",
+    "themeColorDark": "#073234",
+    "searchPlaceholderOptions": [
+        "coffee on airplanes"
+    ]
+}

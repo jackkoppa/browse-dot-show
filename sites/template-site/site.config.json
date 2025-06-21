@@ -1,10 +1,20 @@
 {
     "id": "",
     "domain": "",
-    "canonicalUrl": "",
-    "shortTitle": "",
-    "fullTitle": "",
-    "description": "",
+    "appHeader": {
+        "primaryTitle": "",
+        "includeTitlePrefix": false,
+        "taglinePrimaryPodcastName": "",
+        "taglinePrimaryPodcastExternalURL": "",
+        "taglineSuffix": ""
+    },
+    "socialAndMetadata": {
+        "pageTitle": "",
+        "canonicalUrl": "",
+        "openGraphImagePath": "",
+        "metaDescription": "",
+        "metaTitle": ""
+    },
     "includedPodcasts": [
         {
             "id": "",

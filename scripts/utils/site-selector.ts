@@ -1,8 +1,12 @@
 #!/usr/bin/env tsx
 
-const prompts = require('prompts');
+import prompts from 'prompts';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Site information loaded from site configuration

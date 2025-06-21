@@ -2,11 +2,15 @@
   "name": "browse-dot-show",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "description": "transcribe & search any podcast",
   "scripts": {
     "all:build": "pnpm --filter @browse-dot-show/* build",
     "all:build:prod": "pnpm --filter @browse-dot-show/* build:prod",
     "all:test": "pnpm --filter @browse-dot-show/* test",
+    "typecheck:all": "pnpm --filter @browse-dot-show/* typecheck && pnpm typecheck:root",
+    "lint:all": "eslint .",
+    "lint:fix": "eslint . --fix",
     "deploy:site": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/deploy.ts\"",
     "destroy:site": "tsx scripts/run-with-site-selection.ts \"infrastructure destruction\" \"tsx scripts/deploy/destroy.ts\"",
     "lint:local": "tsx scripts/run-with-site-selection.ts \"local linting\" \"pnpm --filter @browse-dot-show/linting lint:all:local\"",
@@ -25,6 +29,7 @@
     "srt-indexing-lambda:run:local": "tsx scripts/run-with-site-selection.ts \"SRT indexing (local)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:local\"",
     "srt-indexing-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"SRT indexing (prod)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:site\"",
     "search-lambda:dev:local": "tsx scripts/run-with-site-selection.ts \"search lambda (local)\" \"pnpm --filter @browse-dot-show/search-lambda dev:local\"",
+    "all:combined-retrieve-and-process:local": "tsx scripts/run-combined-retrieve-and-process-all-sites.ts",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
     "trigger:ingestion-lambda": "tsx scripts/trigger-ingestion-lambda.ts",
     "create:site": "tsx scripts/create-new-site.ts"
@@ -37,6 +42,16 @@
     "@dotenvx/dotenvx": "^1.44.0",
     "@types/prompts": "^2.4.9",
     "tsx": "catalog:",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "eslint": "catalog:",
+    "@eslint/js": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
+    "eslint-plugin-unused-imports": "catalog:",
+    "typescript-eslint": "catalog:",
+    "typescript": "catalog:",
+    "globals": "catalog:"
   }
 }
