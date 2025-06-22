@@ -172,7 +172,7 @@ async function checkAWSCredentials(): Promise<void> {
   } catch (error) {
     log.error('❌ AWS SSO credentials are not working or expired.');
     log.error(`  Please run 'aws sso login --profile ${awsProfile}' to authenticate`);
-    log.error('  Then retry the linting command.');
+    log.error('  Then retry the validation command.');
     process.exit(1);
   }
 }
@@ -628,10 +628,10 @@ async function updateManifestFromExpectedEpisodes(expectedEpisodes: ExpectedEpis
 }
 
 /**
- * Main linting function
+ * Main validation function
  */
-export async function lintS3Files(applyFixes: boolean = false): Promise<LintResult> {
-  log.info('🔍 Starting S3 files metadata linting...');
+export async function validateS3Files(applyFixes: boolean = false): Promise<LintResult> {
+  log.info('🔍 Starting S3 files metadata validation...');
   
   try {
     // 0. Check AWS credentials for non-local environments
@@ -702,7 +702,7 @@ export async function lintS3Files(applyFixes: boolean = false): Promise<LintResu
     return result;
 
   } catch (error) {
-    log.error('❌ Fatal error during linting:', error);
+    log.error('❌ Fatal error during validation:', error);
     throw error;
   }
 }
@@ -714,7 +714,7 @@ async function main() {
   const applyFixes = process.argv.includes('--apply-fixes');
   
   try {
-    const result = await lintS3Files(applyFixes);
+    const result = await validateS3Files(applyFixes);
     
     // Exit with error code if there are errors
     if (result.hasErrors) {

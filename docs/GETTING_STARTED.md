@@ -129,7 +129,7 @@ pnpm search-lambda:dev:local           # Start search API server
 pnpm all:build               # Build all packages
 pnpm all:test                # Run all tests
 pnpm client:build            # Build client for specific site
-pnpm lint:local              # Run linting
+pnpm validate:local          # Run validation
 ```
 
 ### Production Deployment

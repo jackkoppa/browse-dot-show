@@ -1,4 +1,4 @@
-// Transcript linting script to find SRT files with lengthy sections without proper punctuation
+// Transcript validation script to find SRT files with lengthy sections without proper punctuation
 
 import SrtParser from "srt-parser-2";
 import fs from "fs";
@@ -20,7 +20,7 @@ const TRANSCRIPTS_DIR = path.resolve(__dirname, "../../aws-local-dev/s3/transcri
 // We don't care about the punctuation being at the end of a given .srt item - just that there *is* sentence-ending punctuation within the target duration
 const sentenceEndRegex = /[.!?]/;
 
-// If we don't find any punctuation within 45 seconds, we consider it a lint issue
+// If we don't find any punctuation within 45 seconds, we consider it a validation issue
 const DURATION_REQUIRING_PUNCTUATION_SECONDS = 45;
 
 // Interface for SRT items from the parser
@@ -69,8 +69,8 @@ async function findSrtFiles(dir: string): Promise<string[]> {
   return result;
 }
 
-// Check a file for lint issues
-async function lintFile(filePath: string): Promise<{ passes: boolean; failingText?: string }> {
+// Check a file for validation issues
+async function validateFile(filePath: string): Promise<{ passes: boolean; failingText?: string }> {
   try {
     const fileContent = await readFile(filePath, "utf-8");
     const parser = new SrtParser();
@@ -97,7 +97,7 @@ async function lintFile(filePath: string): Promise<{ passes: boolean; failingTex
       const lastPunctuatedTime = getTimeInSeconds(lastPunctuatedItem.startTime);
       const currentEndTime = getTimeInSeconds(currentItem.endTime);
       
-      // If the gap is >= 45 seconds, this file fails the lint check
+      // If the gap is >= 45 seconds, this file fails the validation check
       if (currentEndTime - lastPunctuatedTime >= DURATION_REQUIRING_PUNCTUATION_SECONDS) {
         // Collect text from the last punctuated item to the current item for the example
         const startIndex = srtItems.findIndex(item => item.id === lastPunctuatedItem!.id);
@@ -133,7 +133,7 @@ async function main() {
     // Process each file
     for (const file of srtFiles) {
       const relativePath = path.relative(TRANSCRIPTS_DIR, file);
-      const result = await lintFile(file);
+      const result = await validateFile(file);
       
       if (result.passes) {
         passingFiles.push(relativePath);
@@ -166,7 +166,7 @@ async function main() {
     // Exit with error code if any files fail
     process.exit(failingFiles.length > 0 ? 1 : 0);
   } catch (error) {
-    console.error("Error running lint script:", error);
+    console.error("Error running validation script:", error);
     process.exit(1);
   }
 }

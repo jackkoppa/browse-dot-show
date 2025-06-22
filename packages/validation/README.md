@@ -4,7 +4,7 @@ Full-project validation scripts, used to confirm files match expected patterns.
 
 
 TODO: Re-enable `validate:transcript-files-content:___`, as part part of `validate:all:___`
-This will require fixing transcription chunking + Whisper processing such that we _never_ end up in scenarios that fail that linter.
+This will require fixing transcription chunking + Whisper processing such that we _never_ end up in scenarios that fail that validation.
 Current best guess: some episodes, during chunking, result in large transcription gaps, and thus the total time between punctuation ends up being longer than the allowed max (45 seconds)
 Possible improvements:
  - do overlapping chunks with ffmpeg (e.g. overlap by 10 seconds), and resolve the transcription overlap when combining chunks into the final transcript
