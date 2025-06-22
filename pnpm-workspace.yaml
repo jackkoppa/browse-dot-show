@@ -2,15 +2,18 @@ packages:
   - packages/client
   - packages/config
   - packages/constants
+  - packages/homepage
   - packages/linting
   - packages/logging
   - packages/database
   - packages/s3
   - packages/types
+  - packages/ui
   - packages/ingestion/rss-retrieval-lambda
   - packages/ingestion/process-audio-lambda
   - packages/ingestion/srt-indexing-lambda
   - packages/search/search-lambda
+  - scripts
   # Listed outside of /packages, because /sites is a top-level directory,
   # determining all 'sites' deployed by this repository
   - sites

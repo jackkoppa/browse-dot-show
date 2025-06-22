@@ -36,8 +36,6 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.44.0",
-    "@types/prompts": "^2.4.9",
-    "tsx": "catalog:",
-    "prompts": "^2.4.2"
+    "tsx": "catalog:"
   }
 }

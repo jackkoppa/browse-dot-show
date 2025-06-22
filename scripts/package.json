@@ -1,0 +1,14 @@
+{
+    "name": "@browse-dot-show/scripts",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Scripts used during development & deployment",
+    "scripts": {
+        "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'"
+    },
+    "devDependencies": {
+        "typescript": "catalog:",
+        "prompts": "^2.4.2",
+        "@types/prompts": "^2.4.9"
+    }
+}

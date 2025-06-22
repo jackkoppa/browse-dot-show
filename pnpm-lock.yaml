@@ -69,12 +69,6 @@ importers:
       '@dotenvx/dotenvx':
         specifier: ^1.44.0
         version: 1.44.0
-      '@types/prompts':
-        specifier: ^2.4.9
-        version: 2.4.9
-      prompts:
-        specifier: ^2.4.2
-        version: 2.4.2
       tsx:
         specifier: 'catalog:'
         version: 4.19.3
@@ -237,6 +231,12 @@ importers:
       '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
+  packages/homepage:
+    devDependencies:
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
@@ -516,6 +516,24 @@ importers:
 
   packages/types:
     devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
+  packages/ui:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+
+  scripts:
+    devDependencies:
+      '@types/prompts':
+        specifier: ^2.4.9
+        version: 2.4.9
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
