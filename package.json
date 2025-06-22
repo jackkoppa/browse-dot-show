@@ -14,7 +14,6 @@
     "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
     "setup:site-directories": "tsx scripts/setup-site-local-directories.ts",
     "client:dev": "tsx scripts/run-with-site-selection.ts \"client development\" \"concurrently\" \"\\\"pnpm --filter @browse-dot-show/client _vite-dev\\\"\" \"\\\"pnpm --filter @browse-dot-show/client _serve-s3-assets\\\"\" \"\\\"pnpm search-lambda:dev:local\\\"\"",
-    "client:lint": "tsx scripts/run-with-site-selection.ts \"client linting\" \"pnpm --filter client lint\"",
     "client:test": "tsx scripts/run-with-site-selection.ts \"client testing\" \"pnpm --filter client test\"",
     "client:build:all-sites": "pnpm --filter client build:all-sites",
     "client:build:specific-site": "pnpm --filter client build:specific-site",

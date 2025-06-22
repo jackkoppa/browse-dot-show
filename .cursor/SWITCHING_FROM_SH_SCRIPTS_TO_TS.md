@@ -34,10 +34,6 @@ Converting all bash scripts to TypeScript for better consistency, type safety, a
    - ✅ `aws-utils.ts` - AWS CLI operations wrapper
    - ✅ `terraform-utils.ts` - Terraform command wrappers
 
-2. **Add linter rule to prevent cross-boundary dependencies:** ✅
-   - ✅ Create ESLint rule to prevent imports outside `/scripts` for script files
-   - ✅ Add to `scripts/eslint.config.js`
-
 ### Phase 2: Convert Core Infrastructure Scripts ✅ COMPLETED
 1. ✅ **`check-prerequisites.ts`** - Core dependency validation
 2. ✅ **`pnpm-deploy-with-versions-fix.ts`** - Simple pnpm wrapper  
@@ -92,22 +88,11 @@ Update all `package.json` files that reference the converted scripts:
 - ✅ Proper error handling and logging throughout
 - ✅ **Bonus: Converted site-selector.js to TypeScript** - All utility modules now in TypeScript
 
-### Phase 10: Add Linting & Validation [NOTE FROM USER - SKIP THIS FOR NOW. ADDING ESLINT TO REPO LATER]
-1. **ESLint rule for script isolation:**
-   ```typescript
-   // Prevent imports outside /scripts for files in /scripts
-   '@typescript-eslint/no-restricted-imports': [
-     'error',
-     {
-       patterns: ['../*', '../../*', '../../../*']
-     }
-   ]
-   ```
-
-2. **Validation script:**
-   - Check that all shell scripts have been converted
-   - Verify no remaining `.sh` references in package.json files
-   - Ensure all scripts can run with `tsx`
+### Phase 10: Validation ✅ COMPLETED
+1. **Validation script:**
+   - ✅ Check that all shell scripts have been converted
+   - ✅ Verify no remaining `.sh` references in package.json files
+   - ✅ Ensure all scripts can run with `tsx`
 
 ## Dependencies & Constraints
 
