@@ -7,6 +7,7 @@
     "all:build": "pnpm --filter @browse-dot-show/* build",
     "all:build:prod": "pnpm --filter @browse-dot-show/* build:prod",
     "all:test": "pnpm --filter @browse-dot-show/* test",
+    "all:lint": "oxlint",
     "deploy:site": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/deploy.ts\"",
     "destroy:site": "tsx scripts/run-with-site-selection.ts \"infrastructure destruction\" \"tsx scripts/deploy/destroy.ts\"",
     "validate:local": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:all:local\"",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.44.0",
+    "oxlint": "^1.2.0",
     "tsx": "catalog:"
   }
 }
