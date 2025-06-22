@@ -28,7 +28,8 @@
     "all:combined-retrieve-and-process:local": "tsx scripts/run-combined-retrieve-and-process-all-sites.ts",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
     "trigger:ingestion-lambda": "tsx scripts/trigger-ingestion-lambda.ts",
-    "create:site": "tsx scripts/create-new-site.ts"
+    "create:site": "tsx scripts/create-new-site.ts",
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -36,7 +37,12 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.44.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "oxlint": "^1.2.0",
     "tsx": "catalog:"
+  },
+  "lint-staged": {
+    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint"
   }
 }
