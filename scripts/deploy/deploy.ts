@@ -8,6 +8,7 @@ import { checkAwsCredentials } from '../utils/aws-utils.js';
 
 interface DeploymentOptions {
   test: boolean;
+  lint: boolean;
   validate: boolean;
   client: boolean;
 }
@@ -86,6 +87,7 @@ async function checkAwsAuthentication(): Promise<void> {
 async function askDeploymentOptions(): Promise<DeploymentOptions> {
   const choices = [
     { title: 'Run tests (pnpm all:test)', value: 'test', selected: true },
+    { title: 'Run linting (pnpm all:lint)', value: 'lint', selected: true },
     { title: 'Run validation (pnpm validate:prod)', value: 'validate', selected: true },
     { title: 'Deploy client files to S3', value: 'client', selected: true }
   ];
@@ -94,6 +96,7 @@ async function askDeploymentOptions(): Promise<DeploymentOptions> {
 
   return {
     test: selectedOptions.includes('test'),
+    lint: selectedOptions.includes('lint'),
     validate: selectedOptions.includes('validate'),
     client: selectedOptions.includes('client')
   };
@@ -108,6 +111,11 @@ async function runPreDeploymentSteps(options: DeploymentOptions, env: string): P
   if (options.test) {
     printInfo('Running all tests...');
     await execCommandOrThrow('pnpm', ['all:test']);
+  }
+
+  if (options.lint) {
+    printInfo('Running linting...');
+    await execCommandOrThrow('pnpm', ['all:lint']);
   }
 
   if (options.validate) {
