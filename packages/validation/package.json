@@ -1,19 +1,17 @@
 {
-    "name": "@browse-dot-show/linting",
+    "name": "@browse-dot-show/validation",
     "private": true,
     "version": "0.0.1",
-    "description": "Linting utilities for the Listen Fair Play project",
+    "description": "Validation utilities for the Listen Fair Play project - e.g. confirming file names, or directory structures",
     "main": "index.js",
     "type": "module",
     "scripts": {
         "build": "tsc",
         "test": "vitest run",
-        "lint:all:local": "pnpm lint:s3-files-metadata:local",
-        "lint:all:prod": "pnpm lint:s3-files-metadata:prod",
-        "lint:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./lint-s3-files-metadata.ts",
-        "lint:s3-files-metadata:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./lint-s3-files-metadata.ts",
-        "lint:transcript-files-content:local": "dotenvx run -f ../../.env.local -- tsx ./lint-transcript-files-content.ts",
-        "lint:transcript-files-content:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./lint-transcript-files-content.ts"
+        "validate:all:local": "pnpm validate:s3-files-metadata:local",
+        "validate:all:prod": "pnpm validate:s3-files-metadata:prod",
+        "validate:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./validate-s3-files-metadata.ts",
+        "validate:s3-files-metadata:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./validate-s3-files-metadata.ts"
     },
     "devDependencies": {
         "typescript": "catalog:",

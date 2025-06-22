@@ -3,7 +3,7 @@ packages:
   - packages/config
   - packages/constants
   - packages/homepage
-  - packages/linting
+  - packages/validation
   - packages/logging
   - packages/database
   - packages/s3

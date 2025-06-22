@@ -379,43 +379,6 @@ importers:
         specifier: 'catalog:'
         version: 1.6.1(@types/node@22.13.11)(jsdom@26.0.0)(lightningcss@1.30.1)
 
-  packages/linting:
-    dependencies:
-      '@browse-dot-show/config':
-        specifier: workspace:*
-        version: link:../config
-      '@browse-dot-show/constants':
-        specifier: workspace:*
-        version: link:../constants
-      '@browse-dot-show/logging':
-        specifier: workspace:*
-        version: link:../logging
-      '@browse-dot-show/s3':
-        specifier: workspace:*
-        version: link:../s3
-      '@browse-dot-show/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@types/xml2js':
-        specifier: 'catalog:'
-        version: 0.4.14
-      srt-parser-2:
-        specifier: 'catalog:'
-        version: 1.2.3
-      tsx:
-        specifier: 'catalog:'
-        version: 4.19.3
-      typescript:
-        specifier: 'catalog:'
-        version: 5.7.3
-      vitest:
-        specifier: 'catalog:'
-        version: 1.6.1(@types/node@22.13.11)(jsdom@26.0.0)(lightningcss@1.30.1)
-      xml2js:
-        specifier: 'catalog:'
-        version: 0.6.2
-
   packages/logging:
     dependencies:
       loglevel:
@@ -510,6 +473,43 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.7.3
+
+  packages/validation:
+    dependencies:
+      '@browse-dot-show/config':
+        specifier: workspace:*
+        version: link:../config
+      '@browse-dot-show/constants':
+        specifier: workspace:*
+        version: link:../constants
+      '@browse-dot-show/logging':
+        specifier: workspace:*
+        version: link:../logging
+      '@browse-dot-show/s3':
+        specifier: workspace:*
+        version: link:../s3
+      '@browse-dot-show/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@types/xml2js':
+        specifier: 'catalog:'
+        version: 0.4.14
+      srt-parser-2:
+        specifier: 'catalog:'
+        version: 1.2.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.19.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.7.3
+      vitest:
+        specifier: 'catalog:'
+        version: 1.6.1(@types/node@22.13.11)(jsdom@26.0.0)(lightningcss@1.30.1)
+      xml2js:
+        specifier: 'catalog:'
+        version: 0.6.2
 
   scripts:
     devDependencies:
