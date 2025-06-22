@@ -42,27 +42,6 @@ async function checkAWSAuth(profile?: string): Promise<boolean> {
   });
 }
 
-// Get file count for a directory (including subdirectories)
-async function getFileCount(dirPath: string): Promise<number> {
-  return new Promise((resolve) => {
-    if (!fs.existsSync(dirPath)) {
-      resolve(0);
-      return;
-    }
-
-    const findCmd = spawn('find', [dirPath, '-type', 'f'], { stdio: 'pipe' });
-    let count = 0;
-    
-    findCmd.stdout.on('data', (data) => {
-      count += data.toString().split('\n').filter((line: string) => line.trim()).length;
-    });
-    
-    findCmd.on('close', () => {
-      resolve(count);
-    });
-  });
-}
-
 // Execute AWS S3 sync command
 async function executeS3Sync(
   source: string,

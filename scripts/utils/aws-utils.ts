@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
-import { execCommand, execCommandOrThrow, commandExists, ShellExecOptions } from './shell-exec';
-import { logInfo, logError, logWarning } from './logging';
+import { execCommandOrThrow, commandExists, ShellExecOptions } from './shell-exec';
+import { logInfo, logError } from './logging';
 
 export interface AwsCliOptions extends ShellExecOptions {
   profile?: string;

@@ -31,7 +31,6 @@ export async function execCommand(
   const {
     cwd = process.cwd(),
     env = process.env,
-    shell = true,
     timeout = 30000,
     silent = false
   } = options;

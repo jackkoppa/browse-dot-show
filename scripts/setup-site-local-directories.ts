@@ -1,28 +1,29 @@
 #!/usr/bin/env tsx
 
+// CURSOR-TODO - Delete/rework this file, to use new template
+
 import fs from 'fs';
 import path from 'path';
 import prompts from 'prompts';
 
 // Define types for site utilities
 interface SiteUtils {
-  getSiteById: (siteId: string) => any;
-  getAvailableSiteIds: () => string[];
+    getSiteById: (siteId: string) => any;
+    getAvailableSiteIds: () => string[];
 }
 
 interface LegacyDir {
-  name: string;
-  path: string;
-  files: string[];
+    name: string;
+    path: string;
+    files: string[];
 }
 
 // Import site loading utilities
-let getSiteById: (siteId: string) => any, getAvailableSiteIds: () => string[];
+let getAvailableSiteIds: () => string[];
 try {
     const siteUtils: SiteUtils = require('../sites/dist/index.js');
-    getSiteById = siteUtils.getSiteById;
     getAvailableSiteIds = siteUtils.getAvailableSiteIds;
-} catch (error) {
+} catch {
     console.error('❌ Failed to load site utilities. Make sure to build sites package first:');
     console.error('   cd sites && pnpm build');
     process.exit(1);
@@ -31,7 +32,7 @@ try {
 // Directory structure that should exist for each site
 const SITE_DIRECTORIES = [
     'audio',
-    'transcripts', 
+    'transcripts',
     'search-entries',
     'search-index',
     'episode-manifest',
@@ -42,10 +43,10 @@ const SITE_DIRECTORIES = [
 function createSiteDirectories(siteId: string): string {
     const rootDir = path.resolve(__dirname, '..');
     const siteDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId);
-    
+
     console.log(`📁 Creating directories for site: ${siteId}`);
     console.log(`   Base directory: ${siteDir}`);
-    
+
     // Create the site base directory
     if (!fs.existsSync(siteDir)) {
         fs.mkdirSync(siteDir, { recursive: true });
@@ -53,7 +54,7 @@ function createSiteDirectories(siteId: string): string {
     } else {
         console.log(`   📁 Base directory already exists: ${siteDir}`);
     }
-    
+
     // Create subdirectories
     let createdCount = 0;
     SITE_DIRECTORIES.forEach(dir => {
@@ -66,20 +67,20 @@ function createSiteDirectories(siteId: string): string {
             console.log(`   📁 Already exists: ${dir}/`);
         }
     });
-    
+
     if (createdCount > 0) {
         console.log(`   🎉 Created ${createdCount} new directories for site: ${siteId}`);
     } else {
         console.log(`   ℹ️  All directories already exist for site: ${siteId}`);
     }
-    
+
     return siteDir;
 }
 
 function checkLegacyData(): LegacyDir[] {
     const rootDir = path.resolve(__dirname, '..');
     const legacyDir = path.join(rootDir, 'aws-local-dev', 's3');
-    
+
     // Check if legacy directories exist with data
     const legacyDirs: LegacyDir[] = [];
     SITE_DIRECTORIES.forEach(dir => {
@@ -93,7 +94,7 @@ function checkLegacyData(): LegacyDir[] {
             }
         }
     });
-    
+
     return legacyDirs;
 }
 
@@ -102,37 +103,37 @@ async function offerDataMigration(legacyDirs: LegacyDir[], targetSiteId: string)
         console.log('ℹ️  No legacy data found to migrate.');
         return;
     }
-    
+
     console.log('\n📋 Found legacy data in the following directories:');
     legacyDirs.forEach(dir => {
         console.log(`   ${dir.name}/ (${dir.files.length} files)`);
     });
-    
+
     const response = await prompts({
         type: 'confirm',
         name: 'migrate',
         message: `Would you like to copy this legacy data to the '${targetSiteId}' site directory?`,
         initial: true
     });
-    
+
     if (!response.migrate) {
         console.log('⏭️  Skipping data migration.');
         return;
     }
-    
+
     // Perform the migration
     const rootDir = path.resolve(__dirname, '..');
     const targetDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', targetSiteId);
-    
+
     let copiedFiles = 0;
     legacyDirs.forEach(dir => {
         const targetPath = path.join(targetDir, dir.name);
         console.log(`📂 Copying ${dir.name}/ -> sites/${targetSiteId}/${dir.name}/`);
-        
+
         dir.files.forEach(file => {
             const sourcePath = path.join(dir.path, file);
             const destPath = path.join(targetPath, file);
-            
+
             try {
                 fs.copyFileSync(sourcePath, destPath);
                 console.log(`   ✅ ${file}`);
@@ -142,17 +143,17 @@ async function offerDataMigration(legacyDirs: LegacyDir[], targetSiteId: string)
             }
         });
     });
-    
+
     console.log(`🎉 Successfully copied ${copiedFiles} files to site: ${targetSiteId}`);
-    
+
     // Ask about cleaning up legacy data
     const cleanupResponse = await prompts({
-        type: 'confirm', 
+        type: 'confirm',
         name: 'cleanup',
         message: 'Would you like to remove the legacy data (keeping only the site-specific copies)?',
         initial: false
     });
-    
+
     if (cleanupResponse.cleanup) {
         legacyDirs.forEach(dir => {
             dir.files.forEach(file => {
@@ -172,29 +173,29 @@ async function offerDataMigration(legacyDirs: LegacyDir[], targetSiteId: string)
 async function main(): Promise<void> {
     console.log('🏗️  Site Local Directory Setup');
     console.log('================================\n');
-    
+
     const availableSites = getAvailableSiteIds();
-    
+
     if (availableSites.length === 0) {
         console.error('❌ No sites found. Please create sites in sites/my-sites/ or sites/origin-sites/');
         process.exit(1);
     }
-    
+
     // Check for legacy data first
     const legacyDirs = checkLegacyData();
-    
+
     // Site selection
     const siteChoices = availableSites.map(siteId => ({
         title: siteId,
         value: siteId
     }));
-    
+
     // Add option to set up all sites
     siteChoices.unshift({
         title: 'All sites',
         value: '__ALL__'
     });
-    
+
     const siteResponse = await prompts({
         type: 'select',
         name: 'siteSelection',
@@ -202,28 +203,28 @@ async function main(): Promise<void> {
         choices: siteChoices,
         initial: 0
     });
-    
+
     if (!siteResponse.siteSelection) {
         console.log('Exiting...');
         process.exit(0);
     }
-    
+
     const sitesToSetup = siteResponse.siteSelection === '__ALL__' ? availableSites : [siteResponse.siteSelection];
-    
+
     // Set up directories for selected sites
     console.log(`\n🎯 Setting up directories for ${sitesToSetup.length} site(s)...\n`);
-    
+
     for (const siteId of sitesToSetup) {
         createSiteDirectories(siteId);
-        
+
         // Offer data migration only for the first site if legacy data exists
         if (legacyDirs.length > 0 && sitesToSetup.indexOf(siteId) === 0) {
             await offerDataMigration(legacyDirs, siteId);
         }
-        
+
         console.log(''); // Add spacing between sites
     }
-    
+
     console.log('✅ Site directory setup complete!');
     console.log('\nNext steps:');
     console.log('1. Run ingestion commands to populate site-specific data');

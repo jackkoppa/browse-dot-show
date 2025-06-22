@@ -3,7 +3,7 @@
 import * as path from 'path';
 import { execCommandOrThrow } from './utils/shell-exec';
 import { exists, isDirectory } from './utils/file-operations';
-import { logInfo, logError, printInfo, printError, logProgress, logSuccess } from './utils/logging';
+import { logError, printInfo, printError, logProgress, logSuccess } from './utils/logging';
 import { getLambdaDirectory } from './utils/lambda-utils';
 
 /**

@@ -1,4 +1,4 @@
-import { create, insert, insertMultiple, search, save, load, SearchParams, Orama, AnyOrama } from '@orama/orama';
+import { create, insert, insertMultiple, search, SearchParams, AnyOrama } from '@orama/orama';
 import { persist, restore } from '@orama/plugin-data-persistence';
 import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@browse-dot-show/types';
 import { log } from '@browse-dot-show/logging';

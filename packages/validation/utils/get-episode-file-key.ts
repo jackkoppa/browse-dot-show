@@ -12,7 +12,7 @@ export function getEpisodeFileKey(episodeTitle: string, pubDateStr: string): str
     // Replace invalid characters for filenames
     const sanitizedTitle = episodeTitle
         .normalize('NFC') // Normalize Unicode to ensure consistent encoding
-        .replace(/[/\\?%*:|"<>\.]/g, '-') // Added . to the list of replaced characters
+        .replace(/[/\\?%*:|"<>.]/g, '-')
         .replace(/\s+/g, '-')
         .substring(0, 50); // Limit title length
 

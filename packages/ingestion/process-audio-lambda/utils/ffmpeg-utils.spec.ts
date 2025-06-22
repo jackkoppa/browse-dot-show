@@ -7,9 +7,7 @@ import {
   checkFfmpegAvailability,
   getAudioMetadata,
   createAudioChunk,
-  splitAudioFile,
   prepareAudioFile,
-  TranscriptionChunk,
   FfprobeMetadata
 } from './ffmpeg-utils.js';
 

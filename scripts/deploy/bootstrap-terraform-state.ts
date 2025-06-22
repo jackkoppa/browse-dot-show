@@ -6,8 +6,7 @@ import {
   createS3Bucket, 
   awsCommand 
 } from '../utils/aws-utils';
-import { logInfo, logError, printInfo, printError, logProgress, logSuccess } from '../utils/logging';
-import { requireEnvVars } from '../utils/env-validation';
+import { logError, printInfo, printError, logProgress, logSuccess } from '../utils/logging';
 
 /**
  * Bootstrap script to create Terraform state S3 bucket for a site

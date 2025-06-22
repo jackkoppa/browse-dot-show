@@ -169,7 +169,7 @@ async function checkAWSCredentials(): Promise<void> {
       timeout: 10000
     });
     log.info(`✅ AWS SSO authentication verified with profile: ${awsProfile}`);
-  } catch (error) {
+  } catch {
     log.error('❌ AWS SSO credentials are not working or expired.');
     log.error(`  Please run 'aws sso login --profile ${awsProfile}' to authenticate`);
     log.error('  Then retry the validation command.');
@@ -444,7 +444,7 @@ function displayIssues(issues: LintIssue[]): void {
 
   for (const [type, typeIssues] of Object.entries(groupedIssues)) {
     log.info(`\n📋 ${type.toUpperCase().replace('-', ' ')} (${typeIssues.length} issues):`);
-    typeIssues.forEach((issue, index) => {
+    typeIssues.forEach((issue) => {
       const severity = issue.severity === 'error' ? '❌' : '⚠️';
       log.info(`  ${severity} ${issue.description}`);
       if (issue.filePath) log.info(`      Current: ${issue.filePath}`);

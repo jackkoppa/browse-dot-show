@@ -1,9 +1,6 @@
 #!/usr/bin/env tsx
 
-import { join } from 'path';
 import { execCommandOrThrow, execCommand, execCommandLive } from '../utils/shell-exec.js';
-import { exists } from '../utils/file-operations.js';
-import { loadEnvFile } from '../utils/env-validation.js';
 import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
@@ -29,7 +26,7 @@ async function checkPrerequisites(): Promise<void> {
   printInfo('Running prerequisite checks...');
   try {
     await execCommandOrThrow('tsx', ['scripts/deploy/check-prerequisites.ts']);
-  } catch (error) {
+  } catch {
     printError('Prerequisite check failed. Please address the issues above before destroying.');
     process.exit(1);
   }

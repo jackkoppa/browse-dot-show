@@ -6,8 +6,6 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@browse-dot-show/logging';
 
-// Legacy configuration constants (will be replaced by site-specific buckets)
-const DEV_BUCKET_NAME = 'listen-fair-play-s3-dev';
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
 // Fixed: Set path relative to this file's location instead of process.cwd()

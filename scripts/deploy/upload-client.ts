@@ -3,7 +3,6 @@
 import { join } from 'path';
 import { execCommandOrThrow } from '../utils/shell-exec.js';
 import { exists } from '../utils/file-operations.js';
-import { loadEnvFile } from '../utils/env-validation.js';
 import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 import { terraformOutput } from '../utils/terraform-utils.js';
@@ -25,9 +24,7 @@ async function validateInputs(siteId: string): Promise<void> {
   }
 }
 
-async function loadEnvironment(siteId: string): Promise<{ awsProfile: string }> {
-  // Note: Environment should already be loaded from site .env.aws-sso by the run-with-site-selection script
-  
+async function loadEnvironment(): Promise<{ awsProfile: string }> {  
   // Validate AWS profile is available from environment
   const awsProfile = process.env.AWS_PROFILE;
   if (!awsProfile) {
@@ -47,7 +44,7 @@ async function checkAwsSession(awsProfile: string): Promise<void> {
   }
 }
 
-async function getTerraformOutputs(awsProfile: string): Promise<{
+async function getTerraformOutputs(): Promise<{
   bucketName: string;
   cloudfrontDomain: string;
   cloudfrontId: string;
@@ -164,9 +161,6 @@ async function main(): Promise<void> {
   try {
     logHeader('Upload Client Files to S3');
 
-    // Use production environment (Phase 7: simplified environment model)
-    const env = 'prod';
-
     // Get SITE_ID from command line arguments or environment
     const siteId = process.argv[3] || process.env.SITE_ID || '';
     await validateInputs(siteId);
@@ -174,13 +168,13 @@ async function main(): Promise<void> {
     printInfo(`Uploading client files for site: ${siteId}`);
 
     // Load environment configuration
-    const { awsProfile } = await loadEnvironment(siteId);
+    const { awsProfile } = await loadEnvironment();
 
     // Check AWS authentication
     await checkAwsSession(awsProfile);
 
     // Get deployment details from Terraform
-    const terraformOutputs = await getTerraformOutputs(awsProfile);
+    const terraformOutputs = await getTerraformOutputs();
 
     const config: UploadConfig = {
       siteId,

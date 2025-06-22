@@ -43,15 +43,6 @@ interface EpisodeManifestEntry {
 
 let episodeManifestData: EpisodeManifestEntry[] = [];
 
-// Function to check if search entries already exist for a transcript
-async function searchEntriesExist(srtFileKey: string): Promise<boolean> {
-  const srtFileName = path.basename(srtFileKey, '.srt');
-  const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
-  
-  return fileExists(searchEntriesKey);
-}
-
 // Function to process a single SRT file
 async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   log.debug(`Processing SRT file: ${srtFileKey}`);
@@ -157,7 +148,7 @@ export async function handler(): Promise<any> {
 
   try {
     await fs.access('/tmp');
-  } catch (error) {
+  } catch  {
     log.info("Local /tmp directory not accessible or doesn't exist. Creating it.");
     await fs.mkdir('/tmp', { recursive: true });
   }

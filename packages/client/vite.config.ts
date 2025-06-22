@@ -9,12 +9,11 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
 
 import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
-import type { SiteConfig } from '@browse-dot-show/sites';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
   const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
-  
+
   if (!siteId) {
     throw new Error('SELECTED_SITE_ID or SITE_ID environment variable is required for building');
   }
@@ -26,7 +25,7 @@ function loadSiteConfig() {
 
   // Transform podcast links for client consumption
   const podcastLinks: Record<string, { title: string; url: string; status: 'active' | 'inactive' }> = {};
-  
+
   siteConfig.includedPodcasts.forEach(podcast => {
     podcastLinks[podcast.id] = {
       title: podcast.title,
@@ -58,22 +57,22 @@ function getSiteConfig() {
 function loadSiteCss(siteId: string): string {
   const siteDir = getSiteDirectory(siteId);
   if (!siteDir) return '';
-  
+
   let combinedCss = '';
-  
+
   // First, load key-colors.css if it exists (needs to come before index.css)
   const keyColorsPath = path.join(siteDir, 'key-colors.css');
   if (fs.existsSync(keyColorsPath)) {
     combinedCss += fs.readFileSync(keyColorsPath, 'utf8');
     combinedCss += '\n\n'; // Add some spacing between files
   }
-  
+
   // Then, load index.css
   const cssPath = path.join(siteDir, 'index.css');
   if (fs.existsSync(cssPath)) {
     combinedCss += fs.readFileSync(cssPath, 'utf8');
   }
-  
+
   return combinedCss;
 }
 
@@ -81,11 +80,11 @@ function loadSiteCss(siteId: string): string {
 function createSiteCssFile() {
   const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
   const tempCssPath = path.resolve(__dirname, 'src', 'temp-site.css');
-  
+
   if (siteId) {
     const siteCss = loadSiteCss(siteId);
     console.log(`Loading site-specific CSS for: ${siteId} (${siteCss.length} characters)`);
-    
+
     // Write site CSS to temporary file
     fs.writeFileSync(tempCssPath, siteCss || '/* No site-specific CSS found */');
   } else {
@@ -127,7 +126,7 @@ function templateReplacementPlugin() {
       // Replace template variables with site config values
       const canonicalUrl = siteConfig.socialAndMetadata.canonicalUrl || `https://${siteConfig.domain}`;
       const openGraphImageUrl = `${canonicalUrl}/${siteConfig.socialAndMetadata.openGraphImagePath.replace(/^\.\//, '')}`;
-      
+
       return html
         .replace(/##CANONICAL_URL##/g, canonicalUrl)
         .replace(/##PAGE_TITLE##/g, siteConfig.socialAndMetadata.pageTitle)
@@ -170,19 +169,19 @@ function siteAssetsPlugin() {
       // Copy all files and directories from source assets to target assets
       function copyRecursive(sourceDir: string, targetDir: string, relativePath: string = '') {
         const items = fs.readdirSync(sourceDir);
-        
+
         items.forEach(item => {
           const sourcePath = path.join(sourceDir, item);
           const targetPath = path.join(targetDir, item);
           const displayPath = relativePath ? `${relativePath}/${item}` : item;
-          
+
           if (fs.statSync(sourcePath).isDirectory()) {
             // Create directory if it doesn't exist
             if (!fs.existsSync(targetPath)) {
               fs.mkdirSync(targetPath, { recursive: true });
             }
             console.log(`   Created directory: ${displayPath}/`);
-            
+
             // Recursively copy contents
             copyRecursive(sourcePath, targetPath, displayPath);
           } else {
@@ -192,13 +191,13 @@ function siteAssetsPlugin() {
           }
         });
       }
-      
+
       copyRecursive(sourceAssetsDir, targetAssetsDir);
 
       // Also copy favicon.ico to the root directory for SEO/indexing
       const faviconInAssets = path.join(targetAssetsDir, 'favicon.ico');
       const faviconInRoot = path.resolve(__dirname, process.env.BUILD_OUT_DIR || 'dist', 'favicon.ico');
-      
+
       if (fs.existsSync(faviconInAssets)) {
         fs.copyFileSync(faviconInAssets, faviconInRoot);
         console.log(`   Copied favicon.ico to root directory for SEO`);
@@ -226,7 +225,7 @@ function transcriptServerPlugin() {
           const rootDir = path.resolve(__dirname, '..', '..');
           const transcriptsDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId, 'transcripts');
           const files = findSrtFiles(transcriptsDir);
-          
+
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ files: files.map(f => path.basename(f)) }));
         } catch (error) {
@@ -249,23 +248,23 @@ function transcriptServerPlugin() {
           const rootDir = path.resolve(__dirname, '..', '..');
           const transcriptsDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId, 'transcripts');
           const requestedFile = req.url?.substring(1); // Remove leading slash
-          
+
           if (!requestedFile) {
             res.statusCode = 400;
             res.end(JSON.stringify({ error: 'No file specified' }));
             return;
           }
-          
+
           // Find the file in site-specific transcripts directory
           const files = findSrtFiles(transcriptsDir);
           const matchingFile = files.find(f => path.basename(f) === requestedFile);
-          
+
           if (!matchingFile) {
             res.statusCode = 404;
             res.end(JSON.stringify({ error: 'File not found' }));
             return;
           }
-          
+
           const fileContent = fs.readFileSync(matchingFile, 'utf-8');
           res.setHeader('Content-Type', 'text/plain');
           res.end(fileContent);
@@ -282,13 +281,13 @@ function transcriptServerPlugin() {
 // Helper function to find all .srt files in a directory and its subdirectories
 function findSrtFiles(dir: string): string[] {
   let results: string[] = [];
-  
+
   const items = fs.readdirSync(dir);
-  
+
   for (const item of items) {
     const fullPath = path.join(dir, item);
     const stat = fs.statSync(fullPath);
-    
+
     if (stat.isDirectory()) {
       // Recurse into subdirectories, excluding node_modules
       if (item !== 'node_modules') {
@@ -298,7 +297,7 @@ function findSrtFiles(dir: string): string[] {
       results.push(fullPath);
     }
   }
-  
+
   return results;
 }
 
@@ -323,15 +322,12 @@ export default defineConfig(() => {
       templateReplacementPlugin(),
       siteAssetsPlugin(),
     ],
-    define: {
-      // Inject site config as compile-time constants
-      ...Object.fromEntries(
-        Object.entries(siteEnvVars).map(([key, value]) => [
-          `import.meta.env.${key}`,
-          JSON.stringify(value)
-        ])
-      )
-    },
+    define: Object.fromEntries(
+      Object.entries(siteEnvVars).map(([key, value]) => [
+        `import.meta.env.${key}`,
+        JSON.stringify(value)
+      ])
+    ),
     build: {
       outDir: process.env.BUILD_OUT_DIR || 'dist',
       assetsDir: 'assets',

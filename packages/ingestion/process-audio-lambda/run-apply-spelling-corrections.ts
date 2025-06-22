@@ -3,7 +3,6 @@ import {
   listFiles,
   getFile,
   saveFile,
-  fileExists,
   listDirectories
 } from '@browse-dot-show/s3';
 import {
@@ -141,7 +140,6 @@ export async function handler(): Promise<void> {
 
 // For direct script execution
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 const scriptPath = path.resolve(process.argv[1]);
 const scriptUrl = import.meta.url;

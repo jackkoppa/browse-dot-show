@@ -9,7 +9,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execCommandOrThrow, execCommand } from '../../scripts/utils/shell-exec.js';
 import { exists, removeDir, ensureDir } from '../../scripts/utils/file-operations.js';
-import { printInfo, printError, printSuccess, printWarning, logHeader } from '../../scripts/utils/logging.js';
+import { printInfo, printError, printSuccess, logHeader } from '../../scripts/utils/logging.js';
 
 // Get the current script directory (ESM equivalent of __dirname)
 const __filename = fileURLToPath(import.meta.url);

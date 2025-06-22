@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
 
 import { spawn } from 'child_process';
-import * as path from 'path';
 
 // Import site loading utilities
 import { selectSite, loadSiteEnvVars } from './utils/site-selector.js';

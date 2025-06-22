@@ -10,8 +10,7 @@
  * All functions in this script assume they are executed from WITHIN the Terraform configuration directory.
  */
 
-import { join } from 'path';
-import { execCommand, execCommandOrThrow } from '../utils/shell-exec.js';
+import { execCommand } from '../utils/shell-exec.js';
 import { exists, readTextFile, writeTextFile } from '../utils/file-operations.js';
 import { printInfo, printError, printWarning, printSuccess } from '../utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
@@ -39,7 +38,7 @@ async function runAwsS3Command(command: string, args: string[], awsProfile?: str
   try {
     const result = await execCommand('', awsArgs, { shell: true });
     return { success: result.exitCode === 0, output: result.stdout };
-  } catch (error) {
+  } catch {
     return { success: false };
   }
 }

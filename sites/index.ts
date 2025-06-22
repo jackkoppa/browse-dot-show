@@ -21,7 +21,7 @@ function findWorkspaceRoot(): string {
                 if (packageJson.name === 'browse-dot-show' && packageJson.private === true) {
                     return currentDir;
                 }
-            } catch (error) {
+            } catch {
                 // Continue searching if we can't read the package.json
             }
         }

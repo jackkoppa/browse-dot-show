@@ -1,4 +1,3 @@
-import { resolve } from 'node:path';
 import * as fs from 'fs/promises';
 import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';

@@ -1,12 +1,12 @@
 import React from 'react'
 import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { BrowserRouter, MemoryRouter } from 'react-router'
 import '@testing-library/jest-dom'
 
 import App from '../../App'
 import { useEpisodeManifest } from '../../hooks/useEpisodeManifest'
+import { EpisodeManifest } from '@browse-dot-show/types'
 
 // Mock the search API and S3 assets
 const mockSearchResponse = {
@@ -24,7 +24,7 @@ const mockSearchResponse = {
   processingTimeMs: 50
 }
 
-const mockEpisodeManifest = {
+const mockEpisodeManifest: EpisodeManifest = {
   lastUpdated: '2022-01-01T00:00:00Z',
   episodes: [
     {
@@ -34,7 +34,7 @@ const mockEpisodeManifest = {
       publishedAt: '2022-01-01T00:00:00Z',
       originalAudioURL: 'https://example.com/audio1.mp3',
       fileKey: 'test-episode-1',
-      podcastId: 'test-podcast',
+      podcastId: 'hard-fork',
       hasCompletedLLMAnnotations: false,
       llmAnnotations: {}
     },
@@ -45,7 +45,7 @@ const mockEpisodeManifest = {
       publishedAt: '2022-01-02T00:00:00Z',
       originalAudioURL: 'https://example.com/audio2.mp3',
       fileKey: 'test-episode-2',
-      podcastId: 'test-podcast',
+      podcastId: 'hard-fork',
       hasCompletedLLMAnnotations: false,
       llmAnnotations: {}
     }
@@ -321,8 +321,7 @@ describe('Routing', () => {
 
   describe('Navigation Behavior', () => {
     it('navigates from home to episode route', async () => {
-      const user = userEvent.setup()
-      
+
       await act(async () => {
         render(
           <BrowserRouter>

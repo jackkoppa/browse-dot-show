@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { SearchEntry } from '@browse-dot-show/types';
 import { convertSrtFileIntoSearchEntryArray } from './convert-srt-file-into-search-entry-array.js';
 
 const testSequentialEpisodeId = 123;
