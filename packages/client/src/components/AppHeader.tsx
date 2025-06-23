@@ -1,4 +1,4 @@
-import { Button } from '../components/ui/button'
+import { Button } from '@browse-dot-show/ui'
 import ResponsiveDrawerOrDialog from './ResponsiveDrawerOrDialog'
 import { ThemeToggle } from './ThemeToggle'
 

@@ -1,0 +1,2 @@
+# Ignore all site-specific dist folders
+dist-*/

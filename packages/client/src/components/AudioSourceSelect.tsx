@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
   SelectItem,
-} from "@/components/ui/select";
+} from "@browse-dot-show/ui";
 
 export function AudioSourceSelect() {
   const { audioSource, setAudioSource } = useAudioSource()

@@ -2,6 +2,7 @@ packages:
   - packages/client
   - packages/config
   - packages/constants
+  - packages/blocks
   - packages/homepage
   - packages/validation
   - packages/logging
@@ -14,28 +15,29 @@ packages:
   - packages/ingestion/srt-indexing-lambda
   - packages/search/search-lambda
   - scripts
-  # Listed outside of /packages, because /sites is a top-level directory,
-  # determining all 'sites' deployed by this repository
   - sites
+
 catalog:
   '@orama/orama': ^3.1.7
   '@orama/plugin-data-persistence': ^3.1.7
   typescript: ^5.3.3
-  '@aws-sdk/client-cloudfront': ^3.787.0
-  '@aws-sdk/client-lambda': ^3.787.0
-  '@aws-sdk/client-s3': ^3.787.0
-  '@aws-sdk/credential-provider-sso': ^3.787.0
-  '@aws-sdk/lib-storage': ^3.787.0
-  '@aws-sdk/s3-request-presigner': ^3.787.0
+  '@aws-sdk/client-cloudfront': ^3.830.0
+  '@aws-sdk/client-lambda': ^3.830.0
+  '@aws-sdk/client-s3': ^3.830.0
+  '@aws-sdk/credential-provider-sso': ^3.830.0
+  '@aws-sdk/lib-storage': ^3.830.0
+  '@aws-sdk/s3-request-presigner': ^3.830.0
   fs-extra: ^11.3.0
   '@types/fs-extra': ^11.0.4
   loglevel: ^1.9.2
   rolldown: ^1.0.0-beta.8
-  tsx: ^4.7.0
+  tsx: ^4.20.3
   srt-parser-2: ^1.2.3
   xml2js: ^0.6.2
   '@types/xml2js': ^0.4.14
-  vitest: ^1.6.1 # CURSOR-TODO - update to 3.2.3
-injectWorkspacePackages: true
+  vitest: ^1.6.1
+
 ignoredBuiltDependencies:
   - '@tailwindcss/oxide'
+
+injectWorkspacePackages: true

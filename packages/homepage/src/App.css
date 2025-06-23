@@ -1,0 +1,11 @@
+/* NOTE: This file should be mostly empty - rely on shadcn + Tailwind */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+

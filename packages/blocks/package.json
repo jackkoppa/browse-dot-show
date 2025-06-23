@@ -1,0 +1,18 @@
+{
+    "name": "@browse-dot-show/blocks",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Shared React components & utils, for layout & simple shared functionality, used by client & homepage",
+    "main": "./index.ts",
+    "type": "module",
+    "scripts": {
+        "build": "echo 'No build step for blocks package - components are imported from source, & built by client and/or homepage'"
+    },
+    "devDependencies": {
+        "typescript": "catalog:"
+    },
+    "exports": {
+        ".": "./index.ts"
+    },
+    "types": "./index.ts"
+}

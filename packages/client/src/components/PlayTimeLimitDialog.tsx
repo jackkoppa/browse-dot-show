@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { Button } from './ui/button';
 import {
+  Button,
+  Badge,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -16,8 +15,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from "./ui/drawer";
-import { Badge } from './ui/badge';
+} from '@browse-dot-show/ui';
 import { trackEvent } from '../utils/goatcounter'
 import { PodcastId } from '@browse-dot-show/types';
 import siteConfig from '../config/site-config';
@@ -41,13 +39,13 @@ export default function PlayTimeLimitDialog({
 
   const handlePodcastLinkClick = () => {
     const podcastInfo = siteConfig.podcastLinks[podcastId];
-    
+
     // Use a generic event type for now, with specific event name
     trackEvent({
       eventType: podcastId === 'football-cliches' ? 'Open In Podcast App Link Clicked [Football Cliches]' : 'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]',
       eventName: `Open In Podcast App Link Clicked [${podcastInfo?.title || 'Unknown Podcast'}]`
     })
-    
+
     const linkToOpen = podcastInfo?.url;
     if (linkToOpen) {
       window.open(linkToOpen, '_blank');
@@ -64,7 +62,7 @@ export default function PlayTimeLimitDialog({
     </>
   );
 
-  useEffect(() => { 
+  useEffect(() => {
     trackEvent({
       eventType: 'Play Time Limit Dialog Opened',
     });

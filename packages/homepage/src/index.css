@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "react-h5-audio-player/lib/styles.css";
+
+/* TODO: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
+@import "./components/AudioPlayer/AudioPlayer.css";
+@import "./components/HighlightedText.css";
+@import "./components/ThemeToggle.css";
+
+/* Tailwind - https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
+/* Site-specific CSS loaded dynamically during build */
+@import "./temp-site.css";
+
+/* Additional theme classes, not covered by Tailwind by default */
+@import "./theme-additions.css";

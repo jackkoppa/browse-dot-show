@@ -5,7 +5,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@browse-dot-show/ui";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();

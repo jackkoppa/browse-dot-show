@@ -1,0 +1,12 @@
+/* Added as overrides, not included in Tailwind or shadcn theme */
+
+@theme inline {
+    --breakpoint-xs: 25rem;
+    --text-xs: 10px;
+
+    --color-browse-dot-show-theme-light: var(--browse-dot-show-theme-light);
+    --color-browse-dot-show-theme-dark: var(--browse-dot-show-theme-dark);
+
+    /* Specific new vars not neatly covered by existing Tailwind theme */
+    --color-dark-mode-muted-highlight: rgb(30, 30, 30);
+}
