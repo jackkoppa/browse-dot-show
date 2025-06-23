@@ -19,7 +19,10 @@
         "@radix-ui/react-tooltip": "^1.2.7",
         "clsx": "^2.1.1",
         "tailwind-merge": "^3.3.0",
-        "class-variance-authority": "^0.7.1"
+        "class-variance-authority": "^0.7.1",
+        "vaul": "^1.1.2",
+        "lucide-react": "^0.511.0",
+        "react": "^19.1.0"
     },
     "exports": {
         ".": "./index.ts"

@@ -5,8 +5,8 @@ import {
   Card,
   CardContent,
   CardFooter,
-} from "@browse-dot-show/ui;
-import { Badge } from "@browse-dot-show/ui;
+} from "@browse-dot-show/ui";
+import { Badge } from "@browse-dot-show/ui";
 
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';

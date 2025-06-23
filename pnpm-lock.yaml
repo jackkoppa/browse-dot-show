@@ -135,9 +135,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.7
         version: 4.1.7
-      vaul:
-        specifier: ^1.1.2
-        version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@browse-dot-show/sites':
         specifier: workspace:*
@@ -267,9 +264,6 @@ importers:
       tailwindcss:
         specifier: ^4.1.7
         version: 4.1.7
-      vaul:
-        specifier: ^1.1.2
-        version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@browse-dot-show/sites':
         specifier: workspace:*
@@ -585,12 +579,24 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.7
         version: 1.2.7(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lucide-react:
+        specifier: ^0.511.0
+        version: 0.511.0(react@19.1.0)
+      react:
+        specifier: ^19.1.0
+        version: 19.1.0
       tailwind-merge:
         specifier: ^3.3.0
         version: 3.3.0
+      vaul:
+        specifier: ^1.1.2
+        version: 1.1.2(@types/react-dom@19.1.5(@types/react@19.1.6))(@types/react@19.1.6)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
   packages/validation:
     dependencies:

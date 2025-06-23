@@ -26,8 +26,7 @@
     "react-h5-audio-player": "^3.10.0",
     "react-router": "7.6.1",
     "tailwind-merge": "^3.3.0",
-    "tailwindcss": "^4.1.7",
-    "vaul": "^1.1.2"
+    "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
     "@browse-dot-show/sites": "workspace:*",
