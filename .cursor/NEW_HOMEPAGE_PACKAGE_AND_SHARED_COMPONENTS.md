@@ -278,3 +278,19 @@ And here are important technical considerations as we get started on the impleme
 - Maintain visual consistency while giving homepage its own identity
 
 **Ready to Start:** Phases 2-3 can begin immediately as they involve cleanup and refactoring existing code.
+
+---
+
+## Reference Screenshots
+
+For context on current state and styling consistency goals:
+
+- **Homepage (current state - incomplete):**
+  - Mobile: `@example-screenshot-of-homepage-INCOMPLETE-MISSING-ALL-FEATURES.png.png`
+  - Desktop: `@example-screenshot-of-homepage-INCOMPLETE-MISSING-ALL-FEATURES(desktop).png`
+
+- **Individual Site Example (NADDPOD):**
+  - Mobile: `@example-screenshot-of-site--naddpod.png`
+  - Desktop: `@example-screenshot-of-site--naddpod(desktop).png`
+
+- **Configuration:** `@deployed-sites.config.jsonc` ✅ Ready
