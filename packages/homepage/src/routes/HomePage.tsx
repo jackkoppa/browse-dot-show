@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@browse-dot-show/blocks'
-import { Button } from '@browse-dot-show/ui'
+import { Button, Card, CardContent } from '@browse-dot-show/ui'
 import SearchInput from '../components/SearchInput'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { log } from '../utils/logging'
@@ -100,91 +100,93 @@ function HomePage() {
         }}
       />
       
-      <div className="max-w-4xl mx-auto p-4 pt-28">
+      <div className="max-w-5xl mx-auto p-4 pt-28">
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+        <div className="text-center mb-20">
+          <div className="homepage-emoji-large mb-8">
             📝🔍🎙️
-          </h1>
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+          </div>
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 homepage-gradient-text">
             transcribe & search any podcast
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Find exact moments in your favorite podcasts with AI-powered transcription and search.
             Currently available for select shows, with more being added regularly.
           </p>
         </div>
 
         {/* Universal Search Section */}
-        <div className="mb-16">
-          <h3 className="text-xl font-semibold mb-6 text-center">
-            Try it now with an existing podcast:
-          </h3>
-          
-          <div className="max-w-2xl mx-auto space-y-4">
-            {/* Site Selection */}
-            <div>
-              <label htmlFor="site-select" className="block text-sm font-medium mb-2">
-                Choose a podcast:
-              </label>
-              <select
-                id="site-select"
-                value={selectedSite}
-                onChange={(e) => setSelectedSite(e.target.value)}
-                className="w-full p-3 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="">Select a podcast...</option>
-                {deployedSites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <Card className="homepage-search-section mb-20 p-8">
+          <CardContent className="p-0">
+            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
+              Try it now with an existing podcast
+            </h2>
+            
+            <div className="max-w-2xl mx-auto space-y-6">
+              {/* Site Selection */}
+              <div>
+                <label htmlFor="site-select" className="block text-sm font-semibold mb-3 text-foreground">
+                  Choose a podcast:
+                </label>
+                <select
+                  id="site-select"
+                  value={selectedSite}
+                  onChange={(e) => setSelectedSite(e.target.value)}
+                  className="homepage-select w-full"
+                >
+                  <option value="">Select a podcast...</option>
+                  {deployedSites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Search Input */}
-            <div>
-              {selectedSite ? (
-                <SearchInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  onSearch={handleUniversalSearch}
-                  isLoading={false}
-                  mostRecentSuccessfulSearchQuery={null}
-                />
-              ) : (
-                <div className="relative">
-                  <input
-                    type="text"
+              {/* Search Input */}
+              <div>
+                {selectedSite ? (
+                  <SearchInput
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Select a podcast first"
-                    disabled={true}
-                    className="w-full p-3 border border-input rounded-md bg-muted text-muted-foreground cursor-not-allowed"
+                    onChange={setSearchQuery}
+                    onSearch={handleUniversalSearch}
+                    isLoading={false}
+                    mostRecentSuccessfulSearchQuery={null}
                   />
-                </div>
-              )}
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Select a podcast first"
+                      disabled={true}
+                      className="w-full p-4 border-2 border-muted rounded-xl bg-muted text-muted-foreground cursor-not-allowed text-lg"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* CTA Section */}
-        <div className="text-center space-y-8">
-          <div>
-            <h3 className="text-2xl font-bold mb-4">
+        <div className="text-center mb-24">
+          <div className="mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
               Want your favorite podcast searchable?
-            </h3>
-            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+            </h2>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
               Vote for podcasts you'd like to see added, or set up your own instance 
               to search any podcast you want.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <Button
               onClick={handleRequestPodcastClick}
               size="lg"
-              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold"
+              className="homepage-cta-primary w-full sm:w-auto px-10 py-4 text-xl font-bold rounded-xl"
             >
               🗳️ Request a podcast
             </Button>
@@ -193,7 +195,7 @@ function HomePage() {
               onClick={handleSelfHostClick}
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto px-8 py-3 text-lg"
+              className="w-full sm:w-auto px-10 py-4 text-xl font-semibold rounded-xl border-2 hover:bg-muted"
             >
               🚀 Self-host your own
             </Button>
@@ -201,41 +203,47 @@ function HomePage() {
         </div>
 
         {/* Features Section */}
-        <div className="mt-20 mb-12">
-          <h3 className="text-xl font-semibold mb-8 text-center">
-            How it works:
-          </h3>
+        <div className="mb-20">
+          <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">
+            How it works
+          </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="text-3xl mb-4">📝</div>
-              <h4 className="font-semibold mb-2">Transcribe</h4>
-              <p className="text-sm text-muted-foreground">
-                AI-powered transcription converts podcast audio to searchable text
-              </p>
-            </div>
+            <Card className="homepage-feature-card p-6 text-center">
+              <CardContent className="p-0">
+                <div className="text-5xl mb-6">📝</div>
+                <h3 className="text-xl font-bold mb-4">Transcribe</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  AI-powered transcription converts podcast audio to searchable text with high accuracy
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="text-center">
-              <div className="text-3xl mb-4">🔍</div>
-              <h4 className="font-semibold mb-2">Search</h4>
-              <p className="text-sm text-muted-foreground">
-                Find exact moments, quotes, or topics across all episodes
-              </p>
-            </div>
+            <Card className="homepage-feature-card p-6 text-center">
+              <CardContent className="p-0">
+                <div className="text-5xl mb-6">🔍</div>
+                <h3 className="text-xl font-bold mb-4">Search</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Find exact moments, quotes, or topics across all episodes instantly
+                </p>
+              </CardContent>
+            </Card>
             
-            <div className="text-center">
-              <div className="text-3xl mb-4">🎙️</div>
-              <h4 className="font-semibold mb-2">Listen</h4>
-              <p className="text-sm text-muted-foreground">
-                Jump directly to the relevant moment in the original audio
-              </p>
-            </div>
+            <Card className="homepage-feature-card p-6 text-center">
+              <CardContent className="p-0">
+                <div className="text-5xl mb-6">🎙️</div>
+                <h3 className="text-xl font-bold mb-4">Listen</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  Jump directly to the relevant moment in the original audio
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
       {/* Theme Toggle - positioned absolutely */}
-      <div className="fixed bottom-4 right-4">
+      <div className="fixed bottom-6 right-6">
         <ThemeToggle />
       </div>
     </div>

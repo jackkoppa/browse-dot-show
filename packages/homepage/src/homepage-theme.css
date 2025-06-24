@@ -51,9 +51,15 @@ However, we can customize / change homepage if we so choose
     --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
     --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
     --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
-  }
-  
-  .dark {
+    --homepage-primary: #f59e0b; /* amber-500 */
+    --homepage-primary-dark: #d97706; /* amber-600 */
+    --homepage-secondary: #8b5cf6; /* violet-500 */
+    --homepage-accent: #06b6d4; /* cyan-500 */
+    --homepage-hero-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%);
+    --homepage-card-gradient: linear-gradient(145deg, rgba(245, 158, 11, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.dark {
     --background: rgb(0, 0, 0);
     --foreground: rgb(255, 255, 255);
     --card: rgb(51, 51, 51);
@@ -98,9 +104,9 @@ However, we can customize / change homepage if we so choose
     --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
     --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
     --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
-  }
-  
-  @theme inline {
+}
+
+@theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
     --color-card: var(--card);
@@ -133,16 +139,16 @@ However, we can customize / change homepage if we so choose
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
-  
+
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
     --font-serif: var(--font-serif);
-  
+
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
     --radius-lg: var(--radius);
     --radius-xl: calc(var(--radius) + 4px);
-  
+
     --shadow-2xs: var(--shadow-2xs);
     --shadow-xs: var(--shadow-xs);
     --shadow-sm: var(--shadow-sm);
@@ -151,5 +157,119 @@ However, we can customize / change homepage if we so choose
     --shadow-lg: var(--shadow-lg);
     --shadow-xl: var(--shadow-xl);
     --shadow-2xl: var(--shadow-2xl);
-  }
+}
+
+/* Homepage-specific styling */
+.homepage-hero {
+    background: var(--homepage-hero-gradient);
+    background-attachment: fixed;
+}
+
+.homepage-hero-content {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .homepage-hero-content {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.homepage-feature-card {
+    background: var(--homepage-card-gradient);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    transition: all 0.3s ease;
+}
+
+.homepage-feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(245, 158, 11, 0.15), 0 10px 10px -5px rgba(245, 158, 11, 0.08);
+}
+
+.homepage-cta-primary {
+    background: var(--homepage-primary);
+    border: 2px solid var(--homepage-primary-dark);
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 0 var(--homepage-primary-dark);
+}
+
+.homepage-cta-primary:hover {
+    background: var(--homepage-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 0 #92400e;
+}
+
+.homepage-cta-primary:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #92400e;
+}
+
+.homepage-search-section {
+    background: linear-gradient(to bottom right, rgba(245, 158, 11, 0.03), rgba(139, 92, 246, 0.03));
+    border: 1px solid rgba(245, 158, 11, 0.1);
+    border-radius: 1rem;
+}
+
+.homepage-emoji-large {
+    font-size: 4rem;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    animation: gentle-bounce 3s ease-in-out infinite;
+}
+
+@keyframes gentle-bounce {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.homepage-gradient-text {
+    background: var(--homepage-hero-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: gradient-shift 4s ease-in-out infinite;
+}
+
+@keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Enhanced select styling */
+.homepage-select {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.homepage-select:focus {
+    border-color: var(--homepage-primary);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    outline: none;
+}
+
+.dark .homepage-select {
+    background: #1f2937;
+    border-color: #374151;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .homepage-emoji-large {
+        font-size: 3rem;
+    }
+    
+    .homepage-hero-content {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+    }
+}
   
