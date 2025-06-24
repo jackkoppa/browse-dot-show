@@ -1,8 +1,9 @@
 interface DeployedSite {
   isOriginSite: boolean;
-  name: string;
-  podcastFullDescription: string;
-  url: string;
+  siteName: string;
+  displayedPodcastName: string;
+  podcastTagline: string;
+  domain: string;
   imageUrl: string;
 }
 
@@ -12,7 +13,7 @@ interface DeployedSitesConfig {
   };
 }
 
-declare module '../deployed-sites.config.jsonc' {
+declare module '*/deployed-sites.config.jsonc' {
   const config: DeployedSitesConfig;
   export default config;
 } 

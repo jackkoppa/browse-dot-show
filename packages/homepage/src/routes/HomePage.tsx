@@ -5,15 +5,15 @@ import SearchInput from '../components/SearchInput'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { log } from '../utils/logging'
 import { trackEvent } from '../utils/goatcounter'
-import deployedSitesConfig from '../deployed-sites.config.jsonc'
+import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 
 import '../App.css'
 
 // Transform the deployed sites config into an array format
 const deployedSites = Object.entries(deployedSitesConfig.sites).map(([id, site]) => ({
   id,
-  displayName: site.name,
-  url: site.url
+  displayName: site.displayedPodcastName,
+  url: `https://${site.domain}`
 }))
 
 /**
