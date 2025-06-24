@@ -1,333 +1,243 @@
-import { useState, useEffect, useRef } from 'react'
-import { Outlet, useSearchParams } from 'react-router'
-
-import { log } from '../utils/logging';
-import { ApiSearchResultHit, SearchResponse } from '@browse-dot-show/types'
+import { useState, useEffect } from 'react'
+import { AppHeader } from '@browse-dot-show/blocks'
+import { Button } from '@browse-dot-show/ui'
+import SearchInput from '../components/SearchInput'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { log } from '../utils/logging'
+import { trackEvent } from '../utils/goatcounter'
+import deployedSitesConfig from '../deployed-sites.config.jsonc'
 
 import '../App.css'
 
-import AppHeader from '../components/AppHeader'
-import SearchInput from '../components/SearchInput'
-import SearchResults from '../components/SearchResults'
-import { performSearch, performHealthCheck } from '../utils/search'
-import { SortOption } from '../types/search'
-import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
-import { trackEvent } from '@/utils/goatcounter';
-
-// Get the search API URL from environment variable, fallback to localhost for development
-const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
-
-const SEARCH_LIMIT = 25;
-
-// Estimated time for Lambda cold start - if more than this time has passed since page load,
-// we won't show the ColdStartLoader and will just use normal loading states
-const ESTIMATED_TIME_FOR_LAMBDA_COLD_START = 10000; // 10 seconds
+// Transform the deployed sites config into an array format
+const deployedSites = Object.entries(deployedSitesConfig.sites).map(([id, site]) => ({
+  id,
+  displayName: site.name,
+  url: site.url
+}))
 
 /**
- * HomePage component that orchestrates the search functionality for podcast transcript search.
- * 
- * Manages:
- * - Search state and API calls triggered by Enter key or button click
- * - Episode manifest fetching and filtering
- * - Scroll detection for header effects
- * - Coordination between child components
- * - Renders Outlet for child routes (episode sheet overlay)
+ * Homepage component for browse.show - a landing page that introduces the app
+ * and provides universal search across all deployed podcast sites.
  */
 function HomePage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // URL-driven state - read from search params
-  const searchQuery = searchParams.get('q') || '';
-  const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
-  const currentPage = parseInt(searchParams.get('page') || '1', 10);
-
-  // Local component state
-  const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [totalHits, setTotalHits] = useState<number>(0);
-  const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
-  const [isLambdaWarm, setIsLambdaWarm] = useState(false);
-  const [showColdStartLoader, setShowColdStartLoader] = useState(false);
-  const [mostRecentSuccessfulSearchQuery, setMostRecentSuccessfulSearchQuery] = useState<string | null>(null);
-
-  // Use the shared episode manifest hook
-  const { episodeManifest, isLoading: isManifestLoading, error: manifestError } = useEpisodeManifest();
-
-  // Local state for search input (not synced to URL until search is performed)
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
-
-  // Ref to track if health check has been initiated to prevent multiple calls
-  const healthCheckInitiated = useRef(false);
-  // Ref to track when the page was loaded for cold start timeout logic
-  const pageLoadTime = useRef(Date.now());
-  // Ref to track the last search parameters to prevent duplicate searches
-  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number} | null>(null);
-
-  // Sync local search query when URL changes (browser back/forward, direct navigation)
-  useEffect(() => {
-    setLocalSearchQuery(searchQuery);
-  }, [searchQuery]);
-
-  // URL update functions
-  const updateSearchQuery = (query: string) => {
-    setLocalSearchQuery(query);
-  };
-
-  const updateSortOption = (sort: SortOption) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (sort !== 'relevance') {
-        newParams.set('sort', sort);
-      } else {
-        newParams.delete('sort');
-      }
-      // Reset to page 1 when sort changes
-      newParams.delete('page');
-      return newParams;
-    });
-  };
-
-  const handlePageChange = (page: number) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (page > 1) {
-        newParams.set('page', page.toString());
-      } else {
-        newParams.delete('page');
-      }
-      return newParams;
-    });
-  };
+  const [scrolled, setScrolled] = useState(false)
+  const [selectedSite, setSelectedSite] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   /**
    * Handle scroll detection for header visual effects
    */
   useEffect(() => {
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
+      const isScrolled = window.scrollY > 10
       if (isScrolled !== scrolled) {
-        setScrolled(isScrolled);
+        setScrolled(isScrolled)
       }
-    };
+    }
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [scrolled]);
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [scrolled])
 
   /**
-   * Perform health check on app initialization to warm up the Lambda
+   * Handle universal search - redirect to selected site with query
    */
-  useEffect(() => {
-    if (healthCheckInitiated.current) {
-      return;
+  const handleUniversalSearch = () => {
+    if (!selectedSite || !searchQuery.trim()) {
+      return
     }
 
-    const performLambdaHealthCheck = async () => {
-      healthCheckInitiated.current = true;
-      
-      try {
-        await performHealthCheck(SEARCH_API_BASE_URL);
-        setIsLambdaWarm(true);
-      } catch (e: any) {
-        log.warn('[HomePage.tsx] Lambda health check failed, but continuing normally:', e);
-        // Set as warm anyway to prevent blocking search functionality
-        setIsLambdaWarm(true);
-      }
-    };
+    const trimmedQuery = searchQuery.trim()
+    const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
+    
+    if (!selectedSiteConfig) {
+      log.error('[HomePage.tsx] Selected site not found in config:', selectedSite)
+      return
+    }
 
-    performLambdaHealthCheck();
-  }, []);
+    // Track the search event
+    trackEvent({
+      eventName: `Universal Search: '${trimmedQuery}' on ${selectedSite}`,
+      eventType: 'Search Performed',
+    })
+
+    // Redirect to the selected site with the search query
+    const targetUrl = `https://${selectedSite}.browse.show/?q=${encodeURIComponent(trimmedQuery)}`
+    window.open(targetUrl, '_blank')
+  }
 
   /**
-   * Perform search when explicitly triggered by user (Enter key or button click)
+   * Handle CTA clicks
    */
-  const handleSearch = async () => {
-    const trimmedQuery = localSearchQuery.trim();
+  const handleRequestPodcastClick = () => {
+    trackEvent({
+      eventName: 'Request Podcast CTA Clicked',
+      eventType: 'Result Clicked',
+    })
+    window.open('https://docs.google.com/document/d/11p38njNdKeJF49XHPtYN-Gb6fotPCkoQIW8V4UDC9hA/edit?usp=sharing', '_blank')
+  }
 
-    // Clear results if query is too short
-    if (trimmedQuery.length < 2) {
-      setSearchResults([]);
-      setError(null);
-      setTotalHits(0);
-      setProcessingTimeMs(0);
-      setMostRecentSuccessfulSearchQuery(null);
-      setShowColdStartLoader(false);
-      
-      // Update URL to clear search
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        newParams.delete('q');
-        return newParams;
-      });
-      return;
-    }
-
-    // Update URL with the search query
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      newParams.set('q', trimmedQuery);
-      // Reset to page 1 for new searches
-      newParams.delete('page');
-      return newParams;
-    });
-
-    // Check if we should show cold start loader
-    const timeSincePageLoad = Date.now() - pageLoadTime.current;
-    const shouldShowColdStart = !isLambdaWarm && timeSincePageLoad < ESTIMATED_TIME_FOR_LAMBDA_COLD_START;
-    
-    if (shouldShowColdStart) {
-      setShowColdStartLoader(true);
-      // Don't proceed with search until Lambda is warm
-      return;
-    }
-
-    // Perform the search
-    await performSearchRequest(trimmedQuery);
-  };
-
-  /**
-   * Perform the actual search API request
-   */
-  const performSearchRequest = async (query: string) => {
-    // Check if we're about to perform the same search as last time
-    const currentSearchParams = { query, sort: sortOption, page: currentPage };
-    const lastParams = lastSearchParams.current;
-    
-    if (lastParams && 
-        lastParams.query === currentSearchParams.query && 
-        lastParams.sort === currentSearchParams.sort &&
-        lastParams.page === currentSearchParams.page) {
-      return;
-    }
-    
-    // Update the last search params before starting the search
-    lastSearchParams.current = currentSearchParams;
-    
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const searchOffset = (currentPage - 1) * SEARCH_LIMIT;
-      const data: SearchResponse = await performSearch({
-        query,
-        sortOption,
-        searchApiBaseUrl: SEARCH_API_BASE_URL,
-        searchLimit: SEARCH_LIMIT,
-        searchOffset,
-      });
-      
-      if (data && data.hits) {
-        setSearchResults(data.hits);
-        setTotalHits(data.totalHits || 0);
-        setProcessingTimeMs(data.processingTimeMs || 0);
-        setMostRecentSuccessfulSearchQuery(query);
-      } else {
-        log.warn('[HomePage.tsx] performSearchRequest: API response did not contain .hits array or was empty:', data);
-        setSearchResults([]);
-        setTotalHits(0);
-        setProcessingTimeMs(0);
-        setMostRecentSuccessfulSearchQuery(null);
-      }
-
-      trackEvent({
-        eventName: `Searched: '${query}'`,
-        eventType: 'Search Performed',
-      });
-
-      // Hide cold start loader once we have real search results
-      setShowColdStartLoader(false);
-    } catch (e: any) {
-      log.error('[HomePage.tsx] performSearchRequest: Failed to fetch search results:', e);
-      setError(e.message || 'Failed to fetch search results. Please try again.');
-      setSearchResults([]);
-      setTotalHits(0);
-      setProcessingTimeMs(0);
-      // Hide cold start loader on error too
-      setShowColdStartLoader(false);
-      // Reset last search params on error so retry is possible
-      lastSearchParams.current = null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Trigger search when Lambda becomes warm and user has a pending search
-   */
-  useEffect(() => {
-    const trimmedQuery = localSearchQuery.trim();
-    
-    // If Lambda just became warm and user has a valid search query showing cold start loader, perform the search
-    if (isLambdaWarm && trimmedQuery.length >= 2 && showColdStartLoader) {
-      performSearchRequest(trimmedQuery);
-    }
-  }, [isLambdaWarm, showColdStartLoader, localSearchQuery, sortOption]);
-
-  /**
-   * Hide cold start loader when Lambda becomes warm (if no search is needed)
-   */
-  useEffect(() => {
-    const trimmedQuery = localSearchQuery.trim();
-    
-    if (isLambdaWarm && showColdStartLoader && trimmedQuery.length < 2) {
-      setShowColdStartLoader(false);
-    }
-  }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
-
-  /**
-   * Re-run search when sort option or page changes (but only if we have an active search)
-   */
-  useEffect(() => {
-    const trimmedQuery = searchQuery.trim();
-    
-    if (trimmedQuery.length >= 2) {
-      performSearchRequest(trimmedQuery);
-    }
-  }, [sortOption, currentPage]);
+  const handleSelfHostClick = () => {
+    trackEvent({
+      eventName: 'Self-Host CTA Clicked',
+      eventType: 'Result Clicked',
+    })
+    window.open('https://github.com/jackkoppa/browse-dot-show/blob/main/docs/GETTING_STARTED.md', '_blank')
+  }
 
   return (
-    <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-28 min-h-screen">
-      <AppHeader scrolled={scrolled} />
-
-      <SearchInput
-        value={localSearchQuery}
-        onChange={updateSearchQuery}
-        onSearch={handleSearch}
-        isLoading={isLoading}
-        mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
+    <div className="bg-background min-h-screen">
+      <AppHeader 
+        scrolled={scrolled}
+        config={{
+          title: {
+            main: 'browse.show'
+          },
+          tagline: {
+            text: 'transcribe & search any podcast'
+          }
+        }}
       />
-
-      {/* Conditionally render ColdStartLoader or SearchResults */}
-      {showColdStartLoader ? (
-        <div className="p-4 bg-gray-100 animate-pulse rounded text-center">
-          <p>Initializing search...</p>
-          <br/>
-          <p>Subsequent searches will be much faster</p>
+      
+      <div className="max-w-4xl mx-auto p-4 pt-28">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            📝🔍🎙️
+          </h1>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            transcribe & search any podcast
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Find exact moments in your favorite podcasts with AI-powered transcription and search.
+            Currently available for select shows, with more being added regularly.
+          </p>
         </div>
-      ) : (
-        <SearchResults
-          results={searchResults}
-          isLoading={isLoading}
-          error={error}
-          searchQuery={searchQuery}
-          mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
-          totalHits={totalHits}
-          processingTimeMs={processingTimeMs}
-          episodeManifest={episodeManifest}
-          isManifestLoading={isManifestLoading}
-          manifestError={manifestError}
-          sortOption={sortOption}
-          onSortChange={updateSortOption}
-          currentPage={currentPage}
-          itemsPerPage={SEARCH_LIMIT}
-          onPageChange={handlePageChange}
-        />
-      )}
 
-      {/* Outlet for child routes - episode sheet overlay */}
-      <Outlet />
+        {/* Universal Search Section */}
+        <div className="mb-16">
+          <h3 className="text-xl font-semibold mb-6 text-center">
+            Try it now with an existing podcast:
+          </h3>
+          
+          <div className="max-w-2xl mx-auto space-y-4">
+            {/* Site Selection */}
+            <div>
+              <label htmlFor="site-select" className="block text-sm font-medium mb-2">
+                Choose a podcast:
+              </label>
+              <select
+                id="site-select"
+                value={selectedSite}
+                onChange={(e) => setSelectedSite(e.target.value)}
+                className="w-full p-3 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Select a podcast...</option>
+                {deployedSites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.displayName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div>
+              {selectedSite ? (
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSearch={handleUniversalSearch}
+                  isLoading={false}
+                  mostRecentSuccessfulSearchQuery={null}
+                />
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Select a podcast first"
+                    disabled={true}
+                    className="w-full p-3 border border-input rounded-md bg-muted text-muted-foreground cursor-not-allowed"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="text-center space-y-8">
+          <div>
+            <h3 className="text-2xl font-bold mb-4">
+              Want your favorite podcast searchable?
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+              Vote for podcasts you'd like to see added, or set up your own instance 
+              to search any podcast you want.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button
+              onClick={handleRequestPodcastClick}
+              size="lg"
+              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold"
+            >
+              🗳️ Request a podcast
+            </Button>
+            
+            <Button
+              onClick={handleSelfHostClick}
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto px-8 py-3 text-lg"
+            >
+              🚀 Self-host your own
+            </Button>
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-20 mb-12">
+          <h3 className="text-xl font-semibold mb-8 text-center">
+            How it works:
+          </h3>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="text-3xl mb-4">📝</div>
+              <h4 className="font-semibold mb-2">Transcribe</h4>
+              <p className="text-sm text-muted-foreground">
+                AI-powered transcription converts podcast audio to searchable text
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl mb-4">🔍</div>
+              <h4 className="font-semibold mb-2">Search</h4>
+              <p className="text-sm text-muted-foreground">
+                Find exact moments, quotes, or topics across all episodes
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl mb-4">🎙️</div>
+              <h4 className="font-semibold mb-2">Listen</h4>
+              <p className="text-sm text-muted-foreground">
+                Jump directly to the relevant moment in the original audio
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Theme Toggle - positioned absolutely */}
+      <div className="fixed bottom-4 right-4">
+        <ThemeToggle />
+      </div>
     </div>
   )
 }

@@ -19,14 +19,11 @@
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-h5-audio-player": "^3.10.0",
-    "react-router": "7.6.1",
     "tailwind-merge": "^3.3.0",
     "tailwindcss": "^4.1.7"
   },
   "devDependencies": {
     "@browse-dot-show/sites": "workspace:*",
-    "@orama/highlight": "^0.1.9",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",

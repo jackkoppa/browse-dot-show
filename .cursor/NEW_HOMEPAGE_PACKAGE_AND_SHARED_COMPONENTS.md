@@ -157,34 +157,11 @@ And here are important technical considerations as we get started on the impleme
 
 **Goal:** Create the `deployed-sites.config.jsonc` file that the homepage will use for the universal search dropdown.
 
-**Status:** 🚧 Ready to Start
+**Status:** 🚧 Mostly Complete - Just Need to Verify
 
 **Tasks:**
 1. **Create `packages/homepage/src/deployed-sites.config.jsonc`:**
-   - List all currently deployed sites from `sites/origin-sites/`
-   - Include: `id`, `domain`, `title`, `description` for each site
-   - Based on the current sites: `claretandblue`, `hardfork`, `listenfairplay`, `naddpod`
 
-2. **Create utility to load this config:**
-   - Create `src/utils/deployed-sites.ts` to parse the config file
-   - Export types and functions to get site list
-
-**Example config structure:**
-```jsonc
-{
-  "sites": [
-    {
-      "id": "hardfork",
-      "domain": "hardfork.browse.show",
-      "title": "Hard Fork",
-      "description": "Search the Hard Fork podcast"
-    },
-    // ... other sites
-  ]
-}
-```
-
-**Estimated Time:** 1 hour
 
 ---
 
