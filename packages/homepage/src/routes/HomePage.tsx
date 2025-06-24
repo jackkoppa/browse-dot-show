@@ -102,23 +102,23 @@ function HomePage() {
       
       <div className="max-w-5xl mx-auto p-4 pt-28">
         {/* Hero Section */}
-        <div className="text-center mb-20">
-          <div className="homepage-emoji-large mb-8">
+        <div className="text-center mb-16">
+          <div className="homepage-emoji-large mb-6">
             📝🔍🎙️
           </div>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 homepage-gradient-text">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 homepage-gradient-text">
             transcribe & search any podcast
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Find exact moments in your favorite podcasts with AI-powered transcription and search.
             Currently available for select shows, with more being added regularly.
           </p>
         </div>
 
         {/* Universal Search Section */}
-        <Card className="homepage-search-section mb-20 p-8">
+        <Card className="homepage-search-section mb-16 p-6">
           <CardContent className="p-0">
-            <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
+            <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">
               Try it now with an existing podcast
             </h2>
             
@@ -171,22 +171,22 @@ function HomePage() {
         </Card>
 
         {/* CTA Section */}
-        <div className="text-center mb-24">
-          <div className="mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+        <div className="text-center mb-20">
+          <div className="mb-10">
+            <h2 className="text-xl md:text-2xl font-bold mb-4">
               Want your favorite podcast searchable?
             </h2>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
               Vote for podcasts you'd like to see added, or set up your own instance 
               to search any podcast you want.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               onClick={handleRequestPodcastClick}
               size="lg"
-              className="homepage-cta-primary w-full sm:w-auto px-10 py-4 text-xl font-bold rounded-xl"
+              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 text-lg font-bold"
             >
               🗳️ Request a podcast
             </Button>
@@ -195,7 +195,7 @@ function HomePage() {
               onClick={handleSelfHostClick}
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto px-10 py-4 text-xl font-semibold rounded-xl border-2 hover:bg-muted"
+              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold border-2 hover:bg-muted"
             >
               🚀 Self-host your own
             </Button>
@@ -203,37 +203,37 @@ function HomePage() {
         </div>
 
         {/* Features Section */}
-        <div className="mb-20">
-          <h2 className="text-2xl md:text-3xl font-bold mb-12 text-center">
+        <div className="mb-16">
+          <h2 className="text-xl md:text-2xl font-bold mb-8 text-center">
             How it works
           </h2>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="homepage-feature-card p-6 text-center">
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
-                <div className="text-5xl mb-6">📝</div>
-                <h3 className="text-xl font-bold mb-4">Transcribe</h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <div className="text-3xl mb-4">📝</div>
+                <h3 className="text-lg font-bold mb-3">Transcribe</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   AI-powered transcription converts podcast audio to searchable text with high accuracy
                 </p>
               </CardContent>
             </Card>
             
-            <Card className="homepage-feature-card p-6 text-center">
+            <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
-                <div className="text-5xl mb-6">🔍</div>
-                <h3 className="text-xl font-bold mb-4">Search</h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <div className="text-3xl mb-4">🔍</div>
+                <h3 className="text-lg font-bold mb-3">Search</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Find exact moments, quotes, or topics across all episodes instantly
                 </p>
               </CardContent>
             </Card>
             
-            <Card className="homepage-feature-card p-6 text-center">
+            <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
-                <div className="text-5xl mb-6">🎙️</div>
-                <h3 className="text-xl font-bold mb-4">Listen</h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <div className="text-3xl mb-4">🎙️</div>
+                <h3 className="text-lg font-bold mb-3">Listen</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   Jump directly to the relevant moment in the original audio
                 </p>
               </CardContent>
