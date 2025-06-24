@@ -18,6 +18,8 @@
     "client:build:all-sites": "pnpm --filter client build:all-sites",
     "client:build:specific-site": "pnpm --filter client build:specific-site",
     "homepage:dev": "pnpm --filter homepage dev",
+    "homepage:bootstrap-state": "pnpm tsx scripts/deploy/bootstrap-homepage-state.ts",
+    "homepage:deploy": "pnpm tsx scripts/deploy/deploy-homepage.ts",
     "rss-retrieval-lambda:run:local": "tsx scripts/run-with-site-selection.ts \"RSS retrieval (local)\" \"pnpm --filter @browse-dot-show/rss-retrieval-lambda run run:local\"",
     "rss-retrieval-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"RSS retrieval (prod)\" \"pnpm --filter @browse-dot-show/rss-retrieval-lambda run run:site\"",
     "process-audio-lambda:run:local": "tsx scripts/run-with-site-selection.ts \"audio processing (local)\" \"pnpm --filter @browse-dot-show/process-audio-lambda run run:local\"",

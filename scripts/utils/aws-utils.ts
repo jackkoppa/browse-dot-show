@@ -298,4 +298,38 @@ export async function validateAwsEnvironment(profile?: string): Promise<{
     errors.push(`Failed to get AWS identity: ${error.message}`);
     return { valid: false, errors };
   }
+}
+
+/**
+ * Validate AWS SSO environment and credentials specifically for homepage
+ */
+export async function validateHomepageAwsEnvironment(profile: string): Promise<{
+  valid: boolean;
+  identity?: any;
+  errors: string[];
+  requiresSsoLogin?: boolean;
+}> {
+  const errors: string[] = [];
+
+  // Check AWS CLI
+  if (!(await checkAwsCli())) {
+    errors.push('AWS CLI is not installed');
+    return { valid: false, errors };
+  }
+
+  // Check SSO credentials
+  if (!(await checkAwsSsoLogin(profile))) {
+    errors.push(`AWS SSO session not active for profile: ${profile}`);
+    errors.push(`Please run: aws sso login --profile ${profile}`);
+    return { valid: false, errors, requiresSsoLogin: true };
+  }
+
+  try {
+    const identity = await getAwsIdentity(profile);
+    logInfo(`Homepage AWS Identity: ${identity.Arn} (Account: ${identity.Account})`);
+    return { valid: true, identity, errors: [] };
+  } catch (error: any) {
+    errors.push(`Failed to get AWS identity: ${error.message}`);
+    return { valid: false, errors };
+  }
 } 

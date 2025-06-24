@@ -267,4 +267,21 @@ export async function loadSiteEnvVars(
     .reduce((acc, [key, value]) => ({ ...acc, [key]: value as string }), {});
   
   return { ...filteredProcessEnv, ...envVars };
+}
+
+/**
+ * Load homepage environment variables from packages/homepage/.env.aws-sso
+ */
+export async function loadHomepageEnvVars(): Promise<Record<string, string>> {
+  const homepageEnvPath = path.resolve(__dirname, '../../packages/homepage/.env.aws-sso');
+  
+  const envVars = await loadEnvFromMultipleSources([homepageEnvPath], true);
+  
+  // Merge with process.env, giving priority to homepage-specific vars
+  // Filter out undefined values from process.env
+  const filteredProcessEnv = Object.entries(process.env)
+    .filter(([, value]) => value !== undefined)
+    .reduce((acc, [key, value]) => ({ ...acc, [key]: value as string }), {});
+  
+  return { ...filteredProcessEnv, ...envVars };
 } 
