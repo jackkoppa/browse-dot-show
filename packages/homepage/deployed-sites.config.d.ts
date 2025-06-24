@@ -5,6 +5,7 @@ interface DeployedSite {
   podcastTagline: string;
   domain: string;
   imageUrl: string;
+  searchInputPlaceholder: string;
 }
 
 interface DeployedSitesConfig {

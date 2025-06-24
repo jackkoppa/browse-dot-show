@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@browse-dot-show/blocks'
 import { Button, Card, CardContent } from '@browse-dot-show/ui'
-import SearchInput from '../components/SearchInput'
+import SimpleSearchInput from '../components/SimpleSearchInput'
+import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { log } from '../utils/logging'
 import { trackEvent } from '../utils/goatcounter'
@@ -9,11 +10,15 @@ import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 
 import '../App.css'
 
-// Transform the deployed sites config into an array format
+// Transform the deployed sites config into an array format with all needed fields
 const deployedSites = Object.entries(deployedSitesConfig.sites).map(([id, site]) => ({
   id,
   displayName: site.displayedPodcastName,
-  url: `https://${site.domain}`
+  domain: site.domain,
+  podcastTagline: site.podcastTagline,
+  imageUrl: site.imageUrl,
+  url: `https://${site.domain}`,
+  searchInputPlaceholder: site.searchInputPlaceholder
 }))
 
 /**
@@ -63,9 +68,11 @@ function HomePage() {
     })
 
     // Redirect to the selected site with the search query
-    const targetUrl = `https://${selectedSite}.browse.show/?q=${encodeURIComponent(trimmedQuery)}`
-    window.open(targetUrl, '_blank')
+    const targetUrl = `https://${selectedSiteConfig.domain}/?q=${encodeURIComponent(trimmedQuery)}`
+    window.open(targetUrl, '_self')
   }
+
+  const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
 
   /**
    * Handle CTA clicks
@@ -100,18 +107,18 @@ function HomePage() {
         }}
       />
       
-      <div className="max-w-5xl mx-auto p-4 pt-28">
+      <div className="max-w-5xl mx-auto p-4 pt-24">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <div className="homepage-emoji-large mb-6">
+          <div className="homepage-emoji-large mb-4">
             📝🔍🎙️
           </div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 homepage-gradient-text">
             transcribe & search any podcast
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Find exact moments in your favorite podcasts with AI-powered transcription and search.
-            Currently available for select shows, with more being added regularly.
+            Find exact moments in your favorite podcasts.
+            Currently available for select shows, with more added by request.
           </p>
         </div>
 
@@ -124,47 +131,22 @@ function HomePage() {
             
             <div className="max-w-2xl mx-auto space-y-6">
               {/* Site Selection */}
-              <div>
-                <label htmlFor="site-select" className="block text-sm font-semibold mb-3 text-foreground">
-                  Choose a podcast:
-                </label>
-                <select
-                  id="site-select"
-                  value={selectedSite}
-                  onChange={(e) => setSelectedSite(e.target.value)}
-                  className="homepage-select w-full"
-                >
-                  <option value="">Select a podcast...</option>
-                  {deployedSites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {site.displayName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SiteSelector
+                sites={deployedSites}
+                selectedSite={selectedSite}
+                onSiteSelect={setSelectedSite}
+              />
 
               {/* Search Input */}
               <div>
-                {selectedSite ? (
-                  <SearchInput
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    onSearch={handleUniversalSearch}
-                    isLoading={false}
-                    mostRecentSuccessfulSearchQuery={null}
-                  />
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Select a podcast first"
-                      disabled={true}
-                      className="w-full p-4 border-2 border-muted rounded-xl bg-muted text-muted-foreground cursor-not-allowed text-lg"
-                    />
-                  </div>
-                )}
+                <SimpleSearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSearch={handleUniversalSearch}
+                  isLoading={false}
+                  placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
+                  disabled={!selectedSite}
+                />
               </div>
             </div>
           </CardContent>
@@ -214,7 +196,7 @@ function HomePage() {
                 <div className="text-3xl mb-4">📝</div>
                 <h3 className="text-lg font-bold mb-3">Transcribe</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  AI-powered transcription converts podcast audio to searchable text with high accuracy
+                  Transcription via the open-source Whisper model converts podcast audio to searchable text
                 </p>
               </CardContent>
             </Card>
