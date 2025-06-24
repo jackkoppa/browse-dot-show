@@ -80,7 +80,201 @@ And here are important technical considerations as we get started on the impleme
 - ✅ Homepage package builds successfully
 - ✅ All UI components are properly shared via `@browse-dot-show/ui` package
 
-**Next Steps:**
-- Move shared layout components to `@browse-dot-show/blocks`
-- Simplify homepage package (remove unnecessary features like audio player, react-router, etc.)
-- Create the actual homepage content and features as described in requirements
+---
+
+## 🚧 Phase 2: Create Shared Layout Components in `@browse-dot-show/blocks`
+
+**Goal:** Move shared layout components from client/homepage to a shared blocks package to ensure consistent styling across sites.
+
+**Status:** 🚧 Ready to Start
+
+**Tasks:**
+1. **Create shared AppHeader component**
+   - Move AppHeader logic to `packages/blocks/src/components/AppHeader.tsx`
+   - Make it configurable to support both client sites and homepage
+   - Ensure same header sizing/scroll behavior across all sites
+
+2. **Create shared layout utilities**
+   - Move responsive breakpoint utilities to blocks
+   - Create shared spacing/layout constants
+   - Move any shared CSS that affects layout
+
+3. **Update both client and homepage packages**
+   - Import AppHeader from `@browse-dot-show/blocks`
+   - Remove duplicate components
+   - Ensure builds still work
+
+**Estimated Time:** 2-3 hours
+
+---
+
+## 🚧 Phase 3: Clean Up Homepage Package (Remove Unnecessary Features)
+
+**Goal:** Remove all podcast search/audio functionality from homepage and simplify it to be a landing page only.
+
+**Status:** 🚧 Ready to Start
+
+**Tasks:**
+1. **Remove unnecessary dependencies from `package.json`:**
+   - `react-router` (homepage will be single page)
+   - `react-h5-audio-player`
+   - `@orama/highlight`
+   - Any other search/audio related deps
+
+2. **Delete unnecessary files/components:**
+   - `src/routes/EpisodeRoute.tsx`
+   - `src/components/AudioPlayer/`
+   - `src/components/AudioSourceSelect.tsx`
+   - `src/components/FullEpisodeTranscript.tsx`
+   - `src/components/PlayTimeLimitDialog.tsx`
+   - `src/components/SearchResult.tsx`
+   - `src/components/SearchResults.tsx`
+   - `src/components/SearchResultsPagination.tsx`
+   - `src/components/ResponsiveDrawerOrDialog.tsx`
+   - `src/hooks/useAudioSource.ts`
+   - `src/hooks/useEpisodeManifest.ts`
+   - `src/hooks/usePlayTimeLimit.ts`
+   - `src/utils/search.ts` (and related search utilities)
+
+3. **Simplify App.tsx:**
+   - Remove react-router completely
+   - Make it just render the homepage component directly
+
+4. **Update remaining components:**
+   - Keep only: `SearchInput`, `AppHeader`, `ThemeToggle`
+   - Modify SearchInput to work with site selection instead of search
+
+**Estimated Time:** 1-2 hours
+
+---
+
+## 🚧 Phase 4: Create Deployed Sites Configuration
+
+**Goal:** Create the `deployed-sites.config.jsonc` file that the homepage will use for the universal search dropdown.
+
+**Status:** 🚧 Ready to Start
+
+**Tasks:**
+1. **Create `packages/homepage/src/deployed-sites.config.jsonc`:**
+   - List all currently deployed sites from `sites/origin-sites/`
+   - Include: `id`, `domain`, `title`, `description` for each site
+   - Based on the current sites: `claretandblue`, `hardfork`, `listenfairplay`, `naddpod`
+
+2. **Create utility to load this config:**
+   - Create `src/utils/deployed-sites.ts` to parse the config file
+   - Export types and functions to get site list
+
+**Example config structure:**
+```jsonc
+{
+  "sites": [
+    {
+      "id": "hardfork",
+      "domain": "hardfork.browse.show",
+      "title": "Hard Fork",
+      "description": "Search the Hard Fork podcast"
+    },
+    // ... other sites
+  ]
+}
+```
+
+**Estimated Time:** 1 hour
+
+---
+
+## 🚧 Phase 5: Implement Homepage Content and Features
+
+**Goal:** Build the actual homepage with introduction, universal search, and CTAs.
+
+**Status:** 🚧 Ready to Start
+
+**Tasks:**
+1. **Create homepage hero section:**
+   - Snappy intro: "📝🔍🎙️ transcribe & search any podcast"
+   - Clean, centered layout
+   - Mobile-first responsive design
+
+2. **Implement universal search component:**
+   - Site selector dropdown (using deployed sites config)
+   - Search input that's enabled only after site selection
+   - Search redirects to `https://{siteId}.browse.show/?q={query}`
+
+3. **Add primary CTA section:**
+   - Main button: "Request a podcast to be made searchable"
+   - Links to: `https://docs.google.com/document/d/11p38njNdKeJF49XHPtYN-Gb6fotPCkoQIW8V4UDC9hA/edit?usp=sharing`
+
+4. **Add secondary CTA:**
+   - Button: "Self-host your own"
+   - Links to: `https://github.com/jackkoppa/browse-dot-show/blob/main/docs/GETTING_STARTED.md`
+
+5. **Style to match client sites:**
+   - Use same shadcn components
+   - Consistent button styling
+   - Same header component (from blocks)
+
+**Estimated Time:** 3-4 hours
+
+---
+
+## 🚧 Phase 6: Create Homepage-Specific Theme and Styling
+
+**Goal:** Create a unique theme for the homepage while maintaining consistency with the client sites.
+
+**Status:** 🚧 Ready to Start
+
+**Tasks:**
+1. **Create homepage theme CSS:**
+   - New `packages/homepage/src/theme.css` file
+   - Define homepage-specific color scheme
+   - Should complement but differentiate from client sites
+
+2. **Update homepage styling:**
+   - Ensure mobile-first responsive design
+   - Clean, modern look that emphasizes the CTAs
+   - Consistent with existing site aesthetic
+
+3. **Test across devices:**
+   - Ensure responsive design works well
+   - Test CTA button prominence and usability
+
+**Estimated Time:** 2-3 hours
+
+---
+
+## 🚧 Phase 7: Terraform Configuration for Homepage Deployment
+
+**Goal:** Create simplified Terraform setup for deploying homepage to `browse.show` domain.
+
+**Status:** 🚧 Final Phase
+
+**Tasks:**
+1. **Create homepage-specific Terraform module:**
+   - Simple S3 + CloudFront setup (no Lambdas needed)
+   - SSL certificate for `browse.show` domain
+   - Keep separate from existing site Terraform
+
+2. **Update deployment scripts:**
+   - Add homepage build/deploy commands
+   - Ensure homepage can be deployed independently
+
+3. **Domain configuration:**
+   - Configure `browse.show` to point to new CloudFront distribution
+   - Set up SSL certificate
+
+**Estimated Time:** 2-3 hours
+
+---
+
+## Summary
+
+**Total Estimated Time:** 11-16 hours across 6 phases
+
+**Key Technical Decisions:**
+- Move shared components to `@browse-dot-show/blocks` for consistency
+- Remove all podcast search functionality from homepage
+- Create separate deployed sites config for universal search
+- Keep homepage deployment separate from client site deployments
+- Maintain visual consistency while giving homepage its own identity
+
+**Ready to Start:** Phases 2-3 can begin immediately as they involve cleanup and refactoring existing code.
