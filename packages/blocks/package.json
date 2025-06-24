@@ -8,6 +8,11 @@
     "scripts": {
         "build": "echo 'No build step for blocks package - components are imported from source, & built by client and/or homepage'"
     },
+    "dependencies": {
+        "@browse-dot-show/ui": "workspace:*",
+        "@radix-ui/react-icons": "^1.3.2",
+        "react": "^19.1.0"
+    },
     "devDependencies": {
         "typescript": "catalog:"
     },

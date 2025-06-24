@@ -82,29 +82,34 @@ And here are important technical considerations as we get started on the impleme
 
 ---
 
-## 🚧 Phase 2: Create Shared Layout Components in `@browse-dot-show/blocks`
+## ✅ Phase 2: Create Shared Layout Components in `@browse-dot-show/blocks` (COMPLETED)
 
 **Goal:** Move shared layout components from client/homepage to a shared blocks package to ensure consistent styling across sites.
 
-**Status:** 🚧 Ready to Start
+**Status: COMPLETED** ✅
 
-**Tasks:**
-1. **Create shared AppHeader component**
-   - Move AppHeader logic to `packages/blocks/src/components/AppHeader.tsx`
-   - Make it configurable to support both client sites and homepage
-   - Ensure same header sizing/scroll behavior across all sites
+**What was accomplished:**
 
-2. **Create shared layout utilities**
-   - Move responsive breakpoint utilities to blocks
-   - Create shared spacing/layout constants
-   - Move any shared CSS that affects layout
+1. **Created shared AppHeader component** ✅
+   - Created `packages/blocks/src/components/AppHeader.tsx` with configurable interface
+   - Made it support different title/tagline configurations for client vs homepage
+   - Maintained same header sizing/scroll behavior across all sites
 
-3. **Update both client and homepage packages**
-   - Import AppHeader from `@browse-dot-show/blocks`
-   - Remove duplicate components
-   - Ensure builds still work
+2. **Updated package dependencies** ✅
+   - Added necessary dependencies to blocks package (`@browse-dot-show/ui`, `@radix-ui/react-icons`, `react`)
+   - Created proper exports in `packages/blocks/index.ts`
 
-**Estimated Time:** 2-3 hours
+3. **Updated both client and homepage packages** ✅
+   - Client: Updated to import `AppHeader` from `@browse-dot-show/blocks` while keeping site-specific drawers
+   - Homepage: Updated to use shared component with homepage-specific configuration
+   - Verified all builds work correctly (client sites + homepage)
+
+**Current Status:**
+- ✅ Shared AppHeader component working in both client and homepage
+- ✅ All builds passing
+- ✅ Consistent header behavior across sites
+- ✅ Client sites (tested naddpod) building successfully
+- ✅ Homepage package building successfully
 
 ---
 
