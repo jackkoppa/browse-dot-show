@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./homepage-theme.css";
 
 /* Include ui (shadcn) components when compiling used Tailwind classes */
 @source "../../ui";
