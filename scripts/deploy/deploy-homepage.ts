@@ -123,6 +123,62 @@ async function runPreDeploymentSteps(options: DeploymentOptions): Promise<void> 
   }
 }
 
+async function applyTerraformWithProgress(): Promise<void> {
+  const { spawn } = await import('child_process');
+  
+  return new Promise((resolve, reject) => {
+    const child = spawn('terraform', ['apply', '-auto-approve', 'tfplan'], {
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+
+    let lastOutput = '';
+    let progressInterval: NodeJS.Timeout;
+    let progressCounter = 0;
+
+    // Set up progress indicator
+    const showProgress = () => {
+      process.stdout.write(`\r🔄 Terraform applying... (${++progressCounter * 5}s) | Latest: ${lastOutput.substring(0, 40).trim()}...`);
+    };
+
+    progressInterval = setInterval(showProgress, 5000);
+
+    // Capture stdout
+    child.stdout?.on('data', (data: Buffer) => {
+      const output = data.toString().trim();
+      if (output) {
+        lastOutput = output.split('\n').pop() || output;
+        // Show real-time updates for important lines
+        if (output.includes('Creating...') || output.includes('Modifying...') || output.includes('Destroying...')) {
+          process.stdout.write(`\r🔄 ${lastOutput.substring(0, 80)}...                    \n`);
+        }
+      }
+    });
+
+    // Capture stderr
+    let errorOutput = '';
+    child.stderr?.on('data', (data: Buffer) => {
+      errorOutput += data.toString();
+    });
+
+    child.on('close', (code: number | null) => {
+      clearInterval(progressInterval);
+      process.stdout.write('\r                                                                                                \r');
+      
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Terraform apply failed with exit code ${code}${errorOutput ? `\nError: ${errorOutput}` : ''}`));
+      }
+    });
+
+    child.on('error', (error: Error) => {
+      clearInterval(progressInterval);
+      process.stdout.write('\r                                                                                                \r');
+      reject(error);
+    });
+  });
+}
+
 async function runTerraformDeployment(): Promise<{ bucketName: string; distributionId: string }> {
   const TF_DIR = 'terraform-homepage';
   
@@ -140,19 +196,93 @@ async function runTerraformDeployment(): Promise<{ bucketName: string; distribut
       '-backend-config=terraform.tfbackend'
     ]);
 
+    // Validate Terraform configuration
+    printInfo('Validating Terraform configuration...');
+    await execCommandOrThrow('terraform', ['validate']);
+
     // Plan the deployment
-    printInfo('Planning Terraform deployment...');
-    await execCommandOrThrow('terraform', [
+    printInfo('Planning deployment changes...');
+    const planResult = await execCommand('terraform', [
       'plan',
       '-var-file=homepage-prod.tfvars',
       '-out=tfplan'
     ]);
+    
+    if (planResult.exitCode !== 0) {
+      throw new Error(`Terraform plan failed: ${planResult.stderr}`);
+    }
 
-    // Apply the deployment
-    printInfo('Applying Terraform deployment...');
-    await execCommandOrThrow('terraform', ['apply', '-auto-approve', 'tfplan']);
+    // Save plan output to temp file for user review
+    const { writeFile, mkdtemp } = await import('fs/promises');
+    const { join } = await import('path');
+    const { tmpdir } = await import('os');
+    
+    const tempDir = await mkdtemp(join(tmpdir(), 'terraform-plan-'));
+    const planOutputFile = join(tempDir, `terraform-plan-homepage-${Date.now()}.txt`);
+    
+    const fullPlanOutput = `
+TERRAFORM PLAN OUTPUT FOR HOMEPAGE
+Generated: ${new Date().toISOString()}
 
-    // Get outputs
+COMMAND EXECUTED:
+terraform plan -var-file=homepage-prod.tfvars -out=tfplan
+
+PLAN OUTPUT:
+${planResult.stdout}
+
+${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
+`;
+    
+    await writeFile(planOutputFile, fullPlanOutput);
+    
+    console.log('');
+    printSuccess('📋 Terraform plan completed successfully!');
+    printInfo(`📄 Full plan details saved to: ${planOutputFile}`);
+    printInfo('💡 You can review the file in another terminal or text editor');
+    console.log('');
+    
+    // Show a summary of the plan output (first 20 lines)
+    const lines = planResult.stdout.split('\n');
+    const summaryLines = lines.slice(0, 20);
+    
+    printInfo('📋 Plan Summary (first 20 lines):');
+    console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+    summaryLines.forEach((line: string) => {
+      console.log(`│ ${line.padEnd(104).substring(0, 104)} │`);
+    });
+    if (lines.length > 20) {
+      console.log(`│ ... (${lines.length - 20} more lines in full file)                                                     │`);
+    }
+    console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+    console.log('');
+
+    // Ask for confirmation before applying
+    const applyConfirmed = await askConfirmation('Do you want to apply this Terraform plan?');
+    
+    if (!applyConfirmed) {
+      printInfo('Deployment cancelled.');
+      throw new Error('Terraform deployment cancelled by user');
+    }
+
+    // Apply terraform with progress monitoring
+    printInfo('Applying Terraform plan...');
+    await applyTerraformWithProgress();
+
+    printSuccess('✅ Terraform apply completed successfully!');
+
+    // Display outputs
+    printSuccess('======= Deployment Complete =======');
+    const outputResult = await execCommandOrThrow('terraform', ['output']);
+    if (outputResult.stdout.trim()) {
+      console.log('\n📊 Terraform Outputs:');
+      console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+      outputResult.stdout.trim().split('\n').forEach((line: string) => {
+        console.log(`│ ${line.padEnd(104).substring(0, 104)} │`);
+      });
+      console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+    }
+
+    // Get outputs for next steps
     printInfo('Getting Terraform outputs...');
     const bucketOutput = await execCommand('terraform', ['output', '-raw', 's3_bucket_name']);
     const distributionOutput = await execCommand('terraform', ['output', '-raw', 'cloudfront_distribution_id']);
@@ -160,9 +290,25 @@ async function runTerraformDeployment(): Promise<{ bucketName: string; distribut
     const bucketName = bucketOutput.stdout.trim();
     const distributionId = distributionOutput.stdout.trim();
 
-    printSuccess('✅ Terraform deployment completed!');
-    
     return { bucketName, distributionId };
+  } catch (error: any) {
+    printError('Terraform deployment failed:', error.message);
+    
+    // Try to get more detailed error information
+    try {
+      printInfo('Attempting to get Terraform state information for debugging...');
+      const stateResult = await execCommand('terraform', ['show'], { silent: true });
+      if (stateResult.stdout) {
+        console.log('\n📊 Current Terraform State (last 20 lines):');
+        const stateLines = stateResult.stdout.trim().split('\n');
+        const lastLines = stateLines.slice(-20);
+        lastLines.forEach(line => console.log(`  ${line}`));
+      }
+    } catch {
+      // Ignore errors when trying to get state info
+    }
+    
+    throw error;
   } finally {
     // Always return to original directory
     process.chdir(originalCwd);
@@ -233,12 +379,6 @@ async function main(): Promise<void> {
 
   // Ask for deployment options
   const options = await askDeploymentOptions();
-
-  // Confirm deployment
-  if (!(await askConfirmation('Are you sure you want to deploy the homepage to production?'))) {
-    printInfo('Deployment cancelled.');
-    return;
-  }
 
   try {
     // Run pre-deployment steps
