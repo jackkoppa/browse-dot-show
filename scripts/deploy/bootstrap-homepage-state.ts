@@ -100,13 +100,7 @@ async function createStateBucket(): Promise<void> {
     '--bucket',
     STATE_BUCKET_NAME,
     '--server-side-encryption-configuration',
-    JSON.stringify({
-      Rules: [{
-        ApplyServerSideEncryptionByDefault: {
-          SSEAlgorithm: 'AES256'
-        }
-      }]
-    })
+    '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
   ]);
 
   // Block public access
