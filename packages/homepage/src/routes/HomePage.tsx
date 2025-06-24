@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AppHeader } from '@browse-dot-show/blocks'
 import { Button, Card, CardContent } from '@browse-dot-show/ui'
 import SimpleSearchInput from '../components/SimpleSearchInput'
@@ -29,6 +29,7 @@ function HomePage() {
   const [scrolled, setScrolled] = useState(false)
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   /**
    * Handle scroll detection for header visual effects
@@ -44,6 +45,18 @@ function HomePage() {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [scrolled])
+
+  /**
+   * Auto-focus search input when a site is selected
+   */
+  useEffect(() => {
+    if (selectedSite && searchInputRef.current) {
+      // Small delay to ensure the component has rendered and is enabled
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 100)
+    }
+  }, [selectedSite])
 
   /**
    * Handle universal search - redirect to selected site with query
@@ -107,7 +120,7 @@ function HomePage() {
         }}
       />
       
-      <div className="max-w-5xl mx-auto p-4 pt-24">
+      <div className="max-w-3xl mx-auto p-4 pt-24 sm:pt-32 transition-all">
         {/* Hero Section */}
         <div className="text-center mb-16">
           <div className="homepage-emoji-large mb-4">
@@ -140,6 +153,7 @@ function HomePage() {
               {/* Search Input */}
               <div>
                 <SimpleSearchInput
+                  ref={searchInputRef}
                   value={searchQuery}
                   onChange={setSearchQuery}
                   onSearch={handleUniversalSearch}

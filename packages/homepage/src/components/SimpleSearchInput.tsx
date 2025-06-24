@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import { Search } from 'lucide-react'
 import { Button, Input } from "@browse-dot-show/ui"
 
@@ -10,14 +11,14 @@ interface SimpleSearchInputProps {
   disabled?: boolean
 }
 
-export default function SimpleSearchInput({ 
+const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>(({ 
   value, 
   onChange, 
   onSearch,
   isLoading,
   placeholder = "Search for topics, quotes, or moments...",
   disabled = false
-}: SimpleSearchInputProps) {
+}, ref) => {
   const handleChange = (newValue: string) => {
     onChange(newValue);
   };
@@ -39,6 +40,7 @@ export default function SimpleSearchInput({
   return (
     <div className="relative flex gap-2">
       <Input
+        ref={ref}
         type="text"
         placeholder={placeholder}
         value={value}
@@ -62,4 +64,8 @@ export default function SimpleSearchInput({
       </Button>
     </div>
   )
-} 
+})
+
+SimpleSearchInput.displayName = 'SimpleSearchInput'
+
+export default SimpleSearchInput 
