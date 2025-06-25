@@ -643,6 +643,16 @@ importers:
         version: 0.6.2
 
   scripts:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.0.0
+        version: 3.832.0
+      '@browse-dot-show/constants':
+        specifier: workspace:*
+        version: link:../packages/constants
+      '@browse-dot-show/s3':
+        specifier: workspace:*
+        version: link:../packages/s3
     devDependencies:
       '@types/prompts':
         specifier: ^2.4.9

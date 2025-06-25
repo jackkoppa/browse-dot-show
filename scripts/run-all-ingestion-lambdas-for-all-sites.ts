@@ -25,15 +25,18 @@ interface SiteProcessingResult {
 
 /**
  * Get the size of a file in S3 or local storage
+ * Uses the same environment detection logic as the S3 client
  */
 async function getFileSize(key: string): Promise<number> {
     try {
+        // Use the same environment detection as the S3 client
         const fileStorageEnv = process.env.FILE_STORAGE_ENV || 'prod-s3';
         
         if (fileStorageEnv === 'local') {
-            // For local files, use fs.stat
+            // For local files, use the same path resolution as the S3 client
             const siteId = process.env.CURRENT_SITE_ID;
-            const localS3Path = path.join(process.cwd(), 'aws-local-dev/s3');
+            // Use the same LOCAL_S3_PATH logic as in client.ts
+            const localS3Path = path.join(path.dirname(new URL(import.meta.url).pathname), '../aws-local-dev/s3');
             let localPath: string;
             
             if (siteId && !key.startsWith('sites/')) {
@@ -45,7 +48,7 @@ async function getFileSize(key: string): Promise<number> {
             const stats = await fs.stat(localPath);
             return stats.size;
         } else {
-            // For S3, we need to use headObject
+            // For S3, use headObject (but this should only happen in AWS environment)
             const AWS = await import('@aws-sdk/client-s3');
             const s3 = new AWS.S3({
                 region: process.env.AWS_REGION || 'us-east-1',
@@ -91,7 +94,8 @@ async function runCommandWithSiteContext(
                 ...process.env,
                 ...siteEnvVars,
                 SELECTED_SITE_ID: siteId,
-                CURRENT_SITE_ID: siteId
+                CURRENT_SITE_ID: siteId,
+                FILE_STORAGE_ENV: 'local'  // Ensure we're using local storage for all operations
             };
 
             let stdout = '';
@@ -194,6 +198,9 @@ async function runCommandWithSiteContext(
  * Main function that processes all sites
  */
 async function main(): Promise<void> {
+    // Ensure we're running in local mode for all file operations
+    process.env.FILE_STORAGE_ENV = 'local';
+    
     console.log('🌐 All Ingestion Lambdas for All Sites');
     console.log('='.repeat(60));
     
@@ -297,7 +304,10 @@ async function main(): Promise<void> {
                 const fileSize = await getFileSize(searchIndexKey);
                 results[i].searchIndexFileSizeBytes = fileSize;
             } catch (error) {
-                console.warn(`Could not get search index file size for ${site.id}:`, error);
+                // Don't warn about credential issues for local runs - that's expected
+                if (!(error instanceof Error) || !error.message?.includes('CredentialsProviderError')) {
+                    console.warn(`Could not get search index file size for ${site.id}:`, error);
+                }
             }
         }
     }

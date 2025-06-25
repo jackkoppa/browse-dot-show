@@ -2,9 +2,15 @@
     "name": "@browse-dot-show/scripts",
     "private": true,
     "version": "0.0.1",
+    "type": "module",
     "description": "Scripts used during development & deployment",
     "scripts": {
         "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'"
+    },
+    "dependencies": {
+        "@browse-dot-show/constants": "workspace:*",
+        "@browse-dot-show/s3": "workspace:*",
+        "@aws-sdk/client-s3": "^3.0.0"
     },
     "devDependencies": {
         "typescript": "catalog:",

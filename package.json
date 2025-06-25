@@ -27,7 +27,7 @@
     "srt-indexing-lambda:run:local": "tsx scripts/run-with-site-selection.ts \"SRT indexing (local)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:local\"",
     "srt-indexing-lambda:run:prod": "tsx scripts/run-with-site-selection.ts \"SRT indexing (prod)\" \"pnpm --filter @browse-dot-show/srt-indexing-lambda run run:site\"",
     "search-lambda:dev:local": "tsx scripts/run-with-site-selection.ts \"search lambda (local)\" \"pnpm --filter @browse-dot-show/search-lambda dev:local\"",
-    "all:combined-retrieve-and-process:local": "tsx scripts/run-combined-retrieve-and-process-all-sites.ts",
+    "ingestion:run-all-ingestion-lambdas-for-all-sites:local": "tsx scripts/run-all-ingestion-lambdas-for-all-sites.ts",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
     "trigger:ingestion-lambda": "tsx scripts/trigger-ingestion-lambda.ts",
     "create:site": "tsx scripts/create-new-site.ts",

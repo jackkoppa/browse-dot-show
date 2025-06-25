@@ -38,7 +38,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-semibold mb-3 text-foreground">
+        <label className="block text-sm font-semibold mb-3 text-foreground sr-only">
           Choose a podcast:
         </label>
         <Popover open={open} onOpenChange={setOpen}>

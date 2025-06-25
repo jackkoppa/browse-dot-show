@@ -359,16 +359,7 @@ async function uploadHomepageFiles(bucketName: string, distributionId: string): 
 async function displayDeploymentInfo(): Promise<void> {
   printSuccess('🎉 Homepage deployment completed!');
   printInfo('');
-  printInfo('Next steps:');
-  printInfo('1. Configure DNS for browse.show to point to the CloudFront distribution');
-  printInfo('2. Wait for SSL certificate validation (may take a few minutes)');
-  printInfo('3. Verify the homepage is accessible at https://browse.show');
-  printInfo('');
-  printInfo('To get the CloudFront domain name:');
-  printInfo('  cd terraform-homepage && terraform output cloudfront_distribution_domain_name');
-  printInfo('');
-  printInfo('To get SSL certificate validation records:');
-  printInfo('  cd terraform-homepage && terraform output ssl_certificate_validation_options');
+  printInfo('Homepage is accessible at https://browse.show');
 }
 
 async function main(): Promise<void> {
