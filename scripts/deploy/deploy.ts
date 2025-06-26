@@ -19,6 +19,118 @@ interface MultiSelectChoice {
   selected: boolean;
 }
 
+/**
+ * Check if the error is related to SSL certificate validation
+ */
+function isSSLCertificateValidationError(errorMessage: string): boolean {
+  return errorMessage.includes('InvalidViewerCertificate') && 
+         (errorMessage.includes("doesn't exist") || 
+          errorMessage.includes("isn't valid") || 
+          errorMessage.includes("doesn't include a valid certificate chain"));
+}
+
+/**
+ * Display helpful instructions for SSL certificate validation setup
+ */
+async function displaySSLCertificateSetupInstructions(siteId: string): Promise<void> {
+  console.log('');
+  printInfo('🔐 SSL Certificate Validation Required');
+  console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+  console.log('│ This is expected for first-time deployments with custom domains!                                           │');
+  console.log('│                                                                                                             │');
+  console.log('│ The SSL certificate was created but needs DNS validation to become active.                                 │');
+  console.log('│ You need to update your domain registrar settings with validation records.                                │');
+  console.log('│                                                                                                             │');
+  console.log('│ Next Steps:                                                                                                 │');
+  console.log('│ 1. Get the certificate validation records from AWS (next step below)                                      │');
+  console.log('│ 2. Add the DNS validation CNAME record to your domain registrar                                           │');
+  console.log('│ 3. Wait for validation to complete (usually 5-10 minutes)                                                 │');
+  console.log('│ 4. Run the deployment again - it should succeed                                                            │');
+  console.log('│                                                                                                             │');
+  console.log('│ 📖 For detailed instructions, see: terraform/CUSTOM_DOMAIN.md                                             │');
+  console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+  console.log('');
+
+  // Try to get certificate validation records
+  try {
+    printInfo('🔍 Getting SSL certificate validation records...');
+    
+    // Switch to terraform directory to run terraform commands
+    const originalCwd = process.cwd();
+    process.chdir('terraform');
+    
+    try {
+      // Get all certificates and parse in JavaScript to avoid shell parsing issues
+      const allCertsResult = await execCommand('aws', [
+        'acm', 'list-certificates',
+        '--region', 'us-east-1',
+        '--output', 'json'
+      ]);
+
+      if (allCertsResult.exitCode === 0 && allCertsResult.stdout.trim()) {
+        const certsData = JSON.parse(allCertsResult.stdout);
+        const relevantCerts = certsData.CertificateSummaryList?.filter((cert: any) => 
+          cert.DomainName?.includes(siteId)
+        ) || [];
+
+        if (relevantCerts.length > 0) {
+          console.log('\n📋 Certificate Status:');
+          console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+          relevantCerts.forEach((cert: any) => {
+            console.log(`│ Domain: ${cert.DomainName?.padEnd(40)} Status: ${cert.Status?.padEnd(20)} │`);
+          });
+          console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+
+          // Get validation records for the first relevant certificate
+          const firstCertArn = relevantCerts[0].CertificateArn;
+          
+          const detailsResult = await execCommand('aws', [
+            'acm', 'describe-certificate',
+            '--region', 'us-east-1',
+            '--certificate-arn', firstCertArn,
+            '--output', 'json'
+          ]);
+
+          if (detailsResult.exitCode === 0 && detailsResult.stdout.trim()) {
+            const certDetails = JSON.parse(detailsResult.stdout);
+            const validationOptions = certDetails.Certificate?.DomainValidationOptions;
+            
+            if (validationOptions && validationOptions.length > 0) {
+              const resourceRecord = validationOptions[0].ResourceRecord;
+              console.log('\n🔧 DNS Validation Record (add this to your domain registrar):');
+              console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+              console.log(`│ Type: ${resourceRecord.Type?.padEnd(10)}                                                                        │`);
+              console.log(`│ Name: ${resourceRecord.Name?.padEnd(80)}         │`);
+              console.log(`│ Value: ${resourceRecord.Value?.substring(0, 75).padEnd(75)}...    │`);
+              console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+              console.log(`\n💡 Add this CNAME record to your domain registrar's DNS settings`);
+            }
+          }
+        } else {
+          printInfo('💡 No certificates found for this site. This might be expected if the certificate creation failed.');
+        }
+      }
+    } catch (parseError) {
+      printInfo('💡 To get validation records manually, run:');
+      console.log(`   aws acm list-certificates --region us-east-1`);
+      console.log(`   aws acm describe-certificate --region us-east-1 --certificate-arn <CERTIFICATE_ARN>`);
+    } finally {
+      process.chdir(originalCwd);
+    }
+
+  } catch (error) {
+    printInfo('💡 Unable to automatically retrieve certificate details.');
+    printInfo('You can get the DNS validation records from the AWS Console:');
+    console.log('   1. Go to AWS Certificate Manager (ACM) in us-east-1 region');
+    console.log('   2. Find your certificate');
+    console.log('   3. Copy the DNS validation CNAME record');
+    console.log('   4. Add it to your domain registrar\'s DNS settings');
+  }
+
+  console.log('');
+  printSuccess('✅ Once DNS validation is complete, run the deployment again and it should succeed!');
+}
+
 async function askConfirmation(message: string): Promise<boolean> {
   const response = await prompts({
     type: 'confirm',
@@ -328,11 +440,12 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
 }
 
 async function main(): Promise<void> {
+  // Get selected site from environment (set by site selection wrapper)
+  const siteId = process.env.SELECTED_SITE_ID;
+  
   try {
     logHeader('Deploy Infrastructure and Applications');
 
-    // Get selected site from environment (set by site selection wrapper)
-    const siteId = process.env.SELECTED_SITE_ID;
     if (!siteId) {
       printError('Error: No site selected. This script should be run through the site selection wrapper.');
       printError('Use: pnpm all:deploy');
@@ -375,7 +488,15 @@ async function main(): Promise<void> {
     }
 
   } catch (error) {
-    printError(`Deployment failed: ${error instanceof Error ? error.message : String(error)}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Check if this is an SSL certificate validation error (common for first-time deployments)
+    if (isSSLCertificateValidationError(errorMessage)) {
+      printError('Deployment failed due to SSL certificate validation');
+      await displaySSLCertificateSetupInstructions(siteId || 'unknown');
+    } else {
+      printError(`Deployment failed: ${errorMessage}`);
+    }
     process.exit(1);
   }
 }
