@@ -1,8 +1,13 @@
 #!/usr/bin/env tsx
 
 import * as path from 'path';
-import { readTextFile, exists } from './file-operations';
-import { logError, logWarning, logInfo } from './logging';
+import { fileURLToPath } from 'url';
+import { readTextFile, exists } from './file-operations.js';
+import { logError, logWarning, logInfo } from './logging.js';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface EnvValidationRule {
   name: string;

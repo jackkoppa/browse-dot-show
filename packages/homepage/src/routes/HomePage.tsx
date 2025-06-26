@@ -112,7 +112,7 @@ function HomePage() {
         scrolled={scrolled}
         config={{
           title: {
-            main: 'browse.show'
+            main: '[browse.show]'
           },
           tagline: {
             text: 'transcribe & search any podcast'
@@ -122,14 +122,27 @@ function HomePage() {
       
       <div className="max-w-3xl mx-auto p-4 pt-24 sm:pt-32 transition-all">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <div className="homepage-emoji-large mb-4">
-            📝🔍🎙️
+        <div className="mb-16">
+          <div className="flex items-center sm:items-start justify-center sm:justify-start gap-4 sm:gap-8">
+            <div className="flex-shrink-0">
+              <img 
+                src="/assets/web-app-manifest-512x512.png" 
+                alt="Browse.show logo"
+                className="w-16 h-16 xs:w-25 xs:h-25 sm:w-40 sm:h-40 rounded-full"
+              />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-bold homepage-gradient-text mb-2 sm:mb-4">
+                transcribe & search<br className="sm:hidden" /> any podcast
+              </h1>
+              <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed hidden sm:block">
+                Find exact moments in your favorite podcasts.
+                Currently available for select shows, with more added by request.
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 homepage-gradient-text">
-            transcribe & search any podcast
-          </h1>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          {/* Mobile description */}
+          <p className="text-sm text-muted-foreground leading-relaxed text-center mt-6 sm:hidden">
             Find exact moments in your favorite podcasts.
             Currently available for select shows, with more added by request.
           </p>
