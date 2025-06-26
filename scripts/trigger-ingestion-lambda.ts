@@ -237,10 +237,10 @@ async function main(): Promise<void> {
         title: 'Whisper Audio Processing',
         value: `process-new-audio-files-via-whisper-${selectedSite.id}`
       },
-      {
-        title: 'SRT to Search Index Conversion',
-        value: `convert-srt-files-into-indexed-search-entries-${selectedSite.id}`
-      }
+              {
+          title: 'SRT to Search Index Conversion',
+          value: `convert-srts-indexed-search-${selectedSite.id}`
+        }
     ];
 
     // Validate AWS environment

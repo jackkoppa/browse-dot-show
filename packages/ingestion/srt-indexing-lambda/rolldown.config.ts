@@ -1,7 +1,7 @@
 import { defineConfig } from 'rolldown';
 
 export default defineConfig({
-  input: './convert-srt-files-into-indexed-search-entries.ts',
+  input: './convert-srts-indexed-search.ts',
   output: {
     dir: 'aws-dist',
   },

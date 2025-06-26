@@ -20,7 +20,7 @@ import {
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
-log.info(`▶️ Starting convert-srt-files-into-indexed-search-entries, with logging level: ${log.getLevel()}`);
+log.info(`▶️ Starting convert-srts-indexed-search, with logging level: ${log.getLevel()}`);
 
 // Constants
 const PROGRESS_LOG_THRESHOLD = 5; // Log progress every 5% of SRT files processed
@@ -108,7 +108,7 @@ async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string |
 
 // Main handler function
 export async function handler(): Promise<any> {
-  log.info(`🟢 Starting convert-srt-files-into-indexed-search-entries > handler, with logging level: ${log.getLevel()}`);
+  log.info(`🟢 Starting convert-srts-indexed-search > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString())
 

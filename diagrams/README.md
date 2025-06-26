@@ -14,7 +14,7 @@ This document provides a high-level overview of the AWS architecture for the Lis
 2.  **Processing Lambdas**:
     *   `#1 - retrieve-rss-feeds-and-download-audio-files`: Fetches RSS feeds, downloads new audio files to S3, triggers the transcription lambda.
     *   `#2 - process-new-audio-files-via-whisper`: Transcribes audio files from S3 using OpenAI Whisper, saves `.srt` files to S3.
-    *   `#3 - convert-srt-files-into-indexed-search-entries.ts`: Generates a FlexSearch index from `.srt` files and uploads it to S3.
+    *   `#3 - convert-srts-indexed-search.ts`: Generates a FlexSearch index from `.srt` files and uploads it to S3.
 3.  **Search Lambda**:
     * `#4 - search-indexed-transcripts`: Loads the FlexSearch index from S3, handling search queries received via API Gateway.
 4.  **API Gateway**: Provides an HTTP endpoint for the client application to invoke the Search Lambda.

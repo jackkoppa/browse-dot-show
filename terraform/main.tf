@@ -202,10 +202,10 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
 module "indexing_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "convert-srt-files-into-indexed-search-entries-${var.site_id}"
-  handler              = "convert-srt-files-into-indexed-search-entries.handler"
+  function_name        = "convert-srts-indexed-search-${var.site_id}"
+  handler              = "convert-srts-indexed-search.handler"
   runtime              = "nodejs20.x"
-  timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srt-files-into-indexed-search-entries.ts
+  timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srts-indexed-search.ts
   memory_size          = 3008 
   ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {

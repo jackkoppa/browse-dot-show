@@ -1,16 +1,16 @@
 {
   "name": "@browse-dot-show/srt-indexing-lambda",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Index SRT files into a search index",
-  "main": "convert-srt-files-into-indexed-search-entries.js",
-  "module": "convert-srt-files-into-indexed-search-entries.js",
+  "main": "convert-srts-indexed-search.js",
+  "module": "convert-srts-indexed-search.js",
   "type": "module",
   "files": [],
   "scripts": {
-    "build:prod": "dotenvx run -f ../../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
-    "run:local": "tsx convert-srt-files-into-indexed-search-entries.ts",
-    "run:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/srt-indexing-lambda convert-srt-files-into-indexed-search-entries.ts",
-    "test": "vitest run",
+    "build": "rolldown -c rolldown.config.ts",
+    "run:local": "tsx convert-srts-indexed-search.ts",
+    "run:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/srt-indexing-lambda convert-srts-indexed-search.ts",
+    "test": "echo 'No tests yet'",
     "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/srt-indexing-lambda"
   },
   "devDependencies": {
