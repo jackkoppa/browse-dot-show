@@ -1,5 +1,5 @@
 {
-  "extends": "../../../tsconfig.base.lambdas.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     // We put output files here temporarily, 
     // but move them into `./aws-dist` (& cleanup `./temp-dist`) 
