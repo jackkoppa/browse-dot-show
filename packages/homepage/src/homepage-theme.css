@@ -1,7 +1,5 @@
 /* 
-For now, copied theme from sites/origin-sites/listenfairplay/index.css 
-Because it's probably my favorite of the themes
-However, we can customize / change homepage if we so choose
+Colors primarily referencing https://www.figma.com/color-palette-generator/?colors=734EE4-86DFC9-B7E42F-8198DE-F0E6E7-355973
 */
 
 @import "./key-colors.css";
@@ -25,12 +23,12 @@ However, we can customize / change homepage if we so choose
     --destructive-foreground: rgb(255, 255, 255);
     --border: rgb(0, 0, 0);
     --input: rgb(0, 0, 0);
-    --ring: rgb(255, 51, 51);
+    --ring: #8198DE;
     --chart-1: rgb(255, 51, 51);
     --chart-2: var(--browse-dot-show-theme-light);
     --chart-3: var(--browse-dot-show-theme-dark);
-    --chart-4: rgb(0, 204, 0);
-    --chart-5: rgb(204, 0, 204);
+    --chart-4: #B7E42F;
+    --chart-5: #86DFC9;
     --sidebar: rgb(240, 240, 240);
     --sidebar-foreground: rgb(0, 0, 0);
     --sidebar-primary: rgb(255, 51, 51);
@@ -51,11 +49,10 @@ However, we can customize / change homepage if we so choose
     --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
     --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
     --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
-    --homepage-primary: #f59e0b; /* amber-500 */
-    --homepage-primary-dark: #d97706; /* amber-600 */
+    --homepage-primary: #B7E42F; /* amber-500 */
+    --homepage-primary-dark: #86DFC9; /* amber-600 */
     --homepage-secondary: #8b5cf6; /* violet-500 */
     --homepage-accent: #06b6d4; /* cyan-500 */
-    --homepage-hero-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #92400e 100%);
     --homepage-card-gradient: linear-gradient(145deg, rgba(245, 158, 11, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
 }
 
@@ -78,20 +75,20 @@ However, we can customize / change homepage if we so choose
     --destructive-foreground: rgb(0, 0, 0);
     --border: rgb(255, 255, 255);
     --input: rgb(255, 255, 255);
-    --ring: rgb(255, 102, 102);
-    --chart-1: rgb(255, 102, 102);
+    --ring: #F0E6E7;
+    --chart-1: #F0E6E7;
     --chart-2: var(--browse-dot-show-theme-light);
     --chart-3: rgb(51, 153, 255);
     --chart-4: rgb(51, 204, 51);
     --chart-5: rgb(204, 51, 204);
     --sidebar: rgb(0, 0, 0);
     --sidebar-foreground: rgb(255, 255, 255);
-    --sidebar-primary: rgb(255, 102, 102);
+    --sidebar-primary: #86DFC9;
     --sidebar-primary-foreground: rgb(0, 0, 0);
     --sidebar-accent: rgb(51, 153, 255);
     --sidebar-accent-foreground: rgb(0, 0, 0);
     --sidebar-border: rgb(255, 255, 255);
-    --sidebar-ring: rgb(255, 102, 102);
+    --sidebar-ring: #86DFC9;
     --font-sans: DM Sans, sans-serif;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: Space Mono, monospace;

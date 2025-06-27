@@ -54,12 +54,12 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
         variant={canSearch ? 'default' : 'outline'}
         disabled={!canSearch}
         size="sm"
-        className="h-12 px-4"
+        className="h-12 px-8"
       >
         {isLoading ? (
           <div className="animate-spin rounded-full border-2 border-current border-t-transparent h-4 w-4"></div>
         ) : (
-          <Search className="h-4 w-4" />
+          <Search className="size-6" />
         )}
       </Button>
     </div>

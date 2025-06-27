@@ -47,10 +47,12 @@ function HomePage() {
   }, [scrolled])
 
   /**
-   * Auto-focus search input when a site is selected
+   * Auto-focus search input when a site is selected and clear search query
    */
   useEffect(() => {
     if (selectedSite && searchInputRef.current) {
+      // Clear the search query when a new site is selected
+      setSearchQuery('')
       // Small delay to ensure the component has rendered and is enabled
       setTimeout(() => {
         searchInputRef.current?.focus()
