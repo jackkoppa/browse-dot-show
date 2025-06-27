@@ -15,6 +15,8 @@ import {
   CommandList,
 } from '@browse-dot-show/ui'
 import { cn } from '@browse-dot-show/ui'
+import { useMediaQuery } from '../hooks/useMediaQuery'
+
 
 interface Site {
   id: string
@@ -32,6 +34,7 @@ interface SiteSelectorProps {
 
 export default function SiteSelector({ sites, selectedSite, onSiteSelect }: SiteSelectorProps) {
   const [open, setOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 768px)')
   
   const selectedSiteData = sites.find(site => site.id === selectedSite)
 
@@ -67,9 +70,9 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
+          <PopoverContent className="w-full p-0" align="start" onOpenAutoFocus={(e: MouseEvent) => !isDesktop && e.preventDefault()} >
             <Command>
-              <CommandInput placeholder="Search podcasts..." autoFocus={false} />
+              <CommandInput placeholder="Search podcasts..." />
               <CommandList>
                 <CommandEmpty>No podcasts found.</CommandEmpty>
                 <CommandGroup>
