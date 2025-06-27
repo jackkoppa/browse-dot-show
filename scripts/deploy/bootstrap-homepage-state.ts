@@ -94,13 +94,20 @@ async function createStateBucket(): Promise<void> {
 
   // Enable encryption
   printInfo('Enabling encryption on state bucket...');
+  const encryptionConfig = {
+    Rules: [{
+      ApplyServerSideEncryptionByDefault: {
+        SSEAlgorithm: "AES256"
+      }
+    }]
+  };
   await execCommandOrThrow('aws', [
     's3api',
     'put-bucket-encryption',
     '--bucket',
     STATE_BUCKET_NAME,
     '--server-side-encryption-configuration',
-    '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+    JSON.stringify(encryptionConfig)
   ]);
 
   // Block public access

@@ -68,7 +68,7 @@ function HomePage() {
 
     const trimmedQuery = searchQuery.trim()
     const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
-    
+
     if (!selectedSiteConfig) {
       log.error('[HomePage.tsx] Selected site not found in config:', selectedSite)
       return
@@ -108,31 +108,28 @@ function HomePage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <AppHeader 
+      <AppHeader
         scrolled={scrolled}
         config={{
           title: {
             main: '[browse.show]'
-          },
-          tagline: {
-            text: 'transcribe & search any podcast'
           }
         }}
       />
-      
+
       <div className="max-w-3xl mx-auto p-4 pt-24 sm:pt-32 transition-all">
         {/* Hero Section */}
-        <div className="mb-16">
+        <div className="mb-8 sm:mb-16">
           <div className="flex items-center sm:items-start justify-center sm:justify-start gap-4 sm:gap-8">
             <div className="flex-shrink-0">
-              <img 
-                src="/assets/web-app-manifest-512x512.png" 
+              <img
+                src="/assets/favicon.svg"
                 alt="Browse.show logo"
-                className="w-16 h-16 xs:w-25 xs:h-25 sm:w-40 sm:h-40 rounded-full"
+                className="w-16 h-16 xs:w-25 xs:h-25 sm:w-40 sm:h-40"
               />
             </div>
             <div className="flex-1">
-              <h1 className="text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-bold homepage-gradient-text mb-2 sm:mb-4">
+              <h1 className="text-xl min-[430px]:text-2xl sm:text-3xl lg:text-4xl font-bold homepage-gradient-text mb-2 sm:mb-4">
                 transcribe & search<br className="sm:hidden" /> any podcast
               </h1>
               <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed hidden sm:block">
@@ -149,36 +146,33 @@ function HomePage() {
         </div>
 
         {/* Universal Search Section */}
-        <Card className="homepage-search-section mb-16 p-6">
-          <CardContent className="p-0">
-            <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">
-              Try it now with an existing podcast
-            </h2>
-            
-            <div className="max-w-2xl mx-auto space-y-6">
-              {/* Site Selection */}
-              <SiteSelector
-                sites={deployedSites}
-                selectedSite={selectedSite}
-                onSiteSelect={setSelectedSite}
+        <div className="mb-16 p-2">
+          <h2 className="max-w-2xl text-xl md:text-2xl mx-auto font-bold mb-4 text-left">
+            Try it out!
+          </h2>
+
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Site Selection */}
+            <SiteSelector
+              sites={deployedSites}
+              selectedSite={selectedSite}
+              onSiteSelect={setSelectedSite}
+            />
+
+            {/* Search Input */}
+            <div>
+              <SimpleSearchInput
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onSearch={handleUniversalSearch}
+                isLoading={false}
+                placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
+                disabled={!selectedSite}
               />
-
-              {/* Search Input */}
-              <div>
-                <SimpleSearchInput
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  onSearch={handleUniversalSearch}
-                  isLoading={false}
-                  placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
-                  disabled={!selectedSite}
-                />
-              </div>
             </div>
-          </CardContent>
-        </Card>
-
+          </div>
+        </div>
         {/* CTA Section */}
         <div className="text-center mb-20">
           <div className="mb-10">
@@ -186,7 +180,7 @@ function HomePage() {
               Want your favorite podcast searchable?
             </h2>
             <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
-              Vote for podcasts you'd like to see added, or set up your own instance 
+              Vote for podcasts you'd like to see added, or set up your own instance
               to search any podcast you want.
             </p>
           </div>
@@ -199,7 +193,7 @@ function HomePage() {
             >
               🗳️ Request a podcast
             </Button>
-            
+
             <Button
               onClick={handleSelfHostClick}
               variant="outline"
@@ -216,7 +210,7 @@ function HomePage() {
           <h2 className="text-xl md:text-2xl font-bold mb-8 text-center">
             How it works
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
@@ -227,7 +221,7 @@ function HomePage() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
                 <div className="text-3xl mb-4">🔍</div>
@@ -237,7 +231,7 @@ function HomePage() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card className="homepage-feature-card p-5 text-center">
               <CardContent className="p-0">
                 <div className="text-3xl mb-4">🎙️</div>

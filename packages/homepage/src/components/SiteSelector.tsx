@@ -69,7 +69,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
           </PopoverTrigger>
           <PopoverContent className="w-full p-0" align="start">
             <Command>
-              <CommandInput placeholder="Search podcasts..." />
+              <CommandInput placeholder="Search podcasts..." autoFocus={false} />
               <CommandList>
                 <CommandEmpty>No podcasts found.</CommandEmpty>
                 <CommandGroup>
