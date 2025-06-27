@@ -77,7 +77,8 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
           console.log('\n📋 Certificate Status:');
           console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
           relevantCerts.forEach((cert: any) => {
-            console.log(`│ Domain: ${cert.DomainName?.padEnd(40)} Status: ${cert.Status?.padEnd(20)} │`);
+            const content = `Domain: ${cert.DomainName} Status: ${cert.Status}`;
+            console.log(`│ ${content.padEnd(103)} │`);
           });
           console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
 
@@ -95,16 +96,16 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
             const certDetails = JSON.parse(detailsResult.stdout);
             const validationOptions = certDetails.Certificate?.DomainValidationOptions;
             
-            if (validationOptions && validationOptions.length > 0) {
-              const resourceRecord = validationOptions[0].ResourceRecord;
-              console.log('\n🔧 DNS Validation Record (add this to your domain registrar):');
-              console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
-              console.log(`│ Type: ${resourceRecord.Type?.padEnd(10)}                                                                        │`);
-              console.log(`│ Name: ${resourceRecord.Name?.padEnd(80)}         │`);
-              console.log(`│ Value: ${resourceRecord.Value?.substring(0, 75).padEnd(75)}...    │`);
-              console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
-              console.log(`\n💡 Add this CNAME record to your domain registrar's DNS settings`);
-            }
+                         if (validationOptions && validationOptions.length > 0) {
+               const resourceRecord = validationOptions[0].ResourceRecord;
+               console.log('\n🔧 DNS Validation Record (add this to your domain registrar):');
+               console.log('┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐');
+               console.log(`│ Type: ${resourceRecord.Type || 'CNAME'}`.padEnd(104) + '│');
+               console.log(`│ Name: ${resourceRecord.Name || ''}`.padEnd(104) + '│');
+               console.log(`│ Value: ${resourceRecord.Value || ''}`.padEnd(104) + '│');
+               console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
+               console.log(`\n💡 Add this CNAME record to your domain registrar's DNS settings`);
+             }
           }
         } else {
           printInfo('💡 No certificates found for this site. This might be expected if the certificate creation failed.');
