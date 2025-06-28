@@ -8,10 +8,7 @@
 /* Include blocks (shared components) when compiling used Tailwind classes */
 @source "../../blocks";
 
-/* TODO: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
-@import "./components/AudioPlayer/AudioPlayer.css";
-@import "./components/HighlightedText.css";
-@import "./components/ThemeToggle.css";
+/* Component-specific CSS is now handled via CSS modules imported directly in components */
 
 /* Tailwind - https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */
 @custom-variant dark (&:where(.dark, .dark *));

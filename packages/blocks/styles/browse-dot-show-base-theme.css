@@ -1,0 +1,154 @@
+/* 
+Styles copied directly from: https://tweakcn.com/themes/cmcg7hp3h000004js8gfb4hhw 
+*/
+
+/*
+Color palette: https://www.figma.com/color-palette-generator/?colors=734EE4-86DFC9-C2F230-98ADED-F0E6E7-2F6A9E
+*/
+
+:root {
+    --background: rgb(255, 255, 255);
+    --foreground: rgb(0, 0, 0);
+    --card: rgb(255, 255, 255);
+    --card-foreground: rgb(0, 0, 0);
+    --popover: rgb(255, 255, 255);
+    --popover-foreground: rgb(0, 0, 0);
+    --primary: rgb(115, 78, 228);
+    --primary-foreground: rgb(255, 255, 255);
+    --secondary: rgb(194, 242, 48);
+    --secondary-foreground: rgb(0, 0, 0);
+    --muted: rgb(240, 230, 231);
+    --muted-foreground: rgb(51, 51, 51);
+    --accent: rgb(152, 173, 237);
+    --accent-foreground: rgb(0, 0, 0);
+    --destructive: rgb(0, 0, 0);
+    --destructive-foreground: rgb(255, 255, 255);
+    --border: rgb(0, 0, 0);
+    --input: rgb(0, 0, 0);
+    --ring: rgb(134, 223, 201);
+    --chart-1: rgb(115, 78, 228);
+    --chart-2: rgb(134, 223, 201);
+    --chart-3: rgb(194, 242, 48);
+    --chart-4: rgb(152, 173, 237);
+    --chart-5: rgb(47, 106, 158);
+    --sidebar: rgb(240, 230, 231);
+    --sidebar-foreground: rgb(0, 0, 0);
+    --sidebar-primary: rgb(47, 106, 158);
+    --sidebar-primary-foreground: rgb(255, 255, 255);
+    --sidebar-accent: rgb(115, 78, 228);
+    --sidebar-accent-foreground: rgb(255, 255, 255);
+    --sidebar-border: rgb(0, 0, 0);
+    --sidebar-ring: rgb(194, 242, 48);
+    --font-sans: DM Sans, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: Space Mono, monospace;
+    --radius: 0px;
+    --shadow-2xs: 4px 4px 0px 0px hsl(0 0% 0% / 0.50);
+    --shadow-xs: 4px 4px 0px 0px hsl(0 0% 0% / 0.50);
+    --shadow-sm: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 1px 2px -1px hsl(0 0% 0% / 1.00);
+    --shadow: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 1px 2px -1px hsl(0 0% 0% / 1.00);
+    --shadow-md: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 2px 4px -1px hsl(0 0% 0% / 1.00);
+    --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
+    --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
+    --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
+  }
+  
+  .dark {
+    --background: rgb(0, 0, 0);
+    --foreground: rgb(255, 255, 255);
+    --card: rgb(51, 51, 51);
+    --card-foreground: rgb(255, 255, 255);
+    --popover: rgb(51, 51, 51);
+    --popover-foreground: rgb(255, 255, 255);
+    --primary: rgb(194, 242, 48);
+    --primary-foreground: rgb(0, 0, 0);
+    --secondary: rgb(152, 173, 237);
+    --secondary-foreground: rgb(0, 0, 0);
+    --muted: rgb(51, 51, 51);
+    --muted-foreground: rgb(240, 230, 231);
+    --accent: rgb(134, 223, 201);
+    --accent-foreground: rgb(0, 0, 0);
+    --destructive: rgb(255, 255, 255);
+    --destructive-foreground: rgb(0, 0, 0);
+    --border: rgb(255, 255, 255);
+    --input: rgb(255, 255, 255);
+    --ring: rgb(194, 242, 48);
+    --chart-1: rgb(115, 78, 228);
+    --chart-2: rgb(134, 223, 201);
+    --chart-3: rgb(194, 242, 48);
+    --chart-4: rgb(152, 173, 237);
+    --chart-5: rgb(47, 106, 158);
+    --sidebar: rgb(0, 0, 0);
+    --sidebar-foreground: rgb(255, 255, 255);
+    --sidebar-primary: rgb(194, 242, 48);
+    --sidebar-primary-foreground: rgb(0, 0, 0);
+    --sidebar-accent: rgb(134, 223, 201);
+    --sidebar-accent-foreground: rgb(0, 0, 0);
+    --sidebar-border: rgb(255, 255, 255);
+    --sidebar-ring: rgb(152, 173, 237);
+    --font-sans: DM Sans, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: Space Mono, monospace;
+    --radius: 0px;
+    --shadow-2xs: 4px 4px 0px 0px hsl(0 0% 0% / 0.50);
+    --shadow-xs: 4px 4px 0px 0px hsl(0 0% 0% / 0.50);
+    --shadow-sm: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 1px 2px -1px hsl(0 0% 0% / 1.00);
+    --shadow: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 1px 2px -1px hsl(0 0% 0% / 1.00);
+    --shadow-md: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 2px 4px -1px hsl(0 0% 0% / 1.00);
+    --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
+    --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
+    --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
+  }
+  
+  @theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+  
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --font-serif: var(--font-serif);
+  
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+  
+    --shadow-2xs: var(--shadow-2xs);
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow: var(--shadow);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --shadow-xl: var(--shadow-xl);
+    --shadow-2xl: var(--shadow-2xl);
+  }

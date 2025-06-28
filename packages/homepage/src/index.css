@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "./homepage-theme.css";
 
 /* Include ui (shadcn) components when compiling used Tailwind classes */
 @source "../../ui";
@@ -8,7 +7,9 @@
 /* Include blocks (shared components) when compiling used Tailwind classes */
 @source "../../blocks";
 
-/* TODO: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
+@import "../../blocks/styles/browse-dot-show-base-theme.css";
+
+/* NOTE: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
 @import "./components/ThemeToggle.css";
 
 /* Tailwind - https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */

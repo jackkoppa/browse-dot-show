@@ -1,4 +1,5 @@
 import { Highlight } from '@orama/highlight'
+import './HighlightedText.module.css';
 
 export interface HighlightedTextProps {
     text: string;

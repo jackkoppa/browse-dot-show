@@ -5,6 +5,7 @@ import { cn } from '@browse-dot-show/ui';
 
 import Skip15SecondsBack from '../../icons/skip-15-seconds-back.svg?react';
 import Skip15SecondsForward from '../../icons/skip-15-seconds-forward.svg?react';
+import './AudioPlayer.module.css';
 
 const baseIconButtonStyle = 'flex items-center justify-center w-10 h-10';
 

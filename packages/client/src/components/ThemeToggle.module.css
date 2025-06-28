@@ -1,5 +1,5 @@
 /* Appears to be required because of using `asChild` in ThemeToggle.tsx > TooltipTrigger */
-.data-\[state\=checked\]\:bg-accent {
+:global(.data-\[state\=checked\]\:bg-accent) {
     &[aria-checked='false'] {
         background-color: var(--input);
     }
@@ -7,4 +7,4 @@
     &[aria-checked='true'] {
         background-color: var(--accent);
     }
-}
+} 
