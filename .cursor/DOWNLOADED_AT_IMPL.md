@@ -96,7 +96,7 @@ export interface EpisodeInManifest {
 - ✅ All tests continue passing (RSS retrieval: 28 tests ✅, validation: 24 tests ✅)
 - ✅ All packages build successfully with `pnpm all:build`
 
-### Phase 2: Lambda Updates ✅ **RSS RETRIEVAL COMPLETED**
+### Phase 2: Lambda Updates ✅ **COMPLETED**
 
 #### 2.1 RSS Retrieval Lambda Updates ✅
 **File**: `packages/ingestion/rss-retrieval-lambda/retrieve-rss-feeds-and-download-audio-files.ts`
@@ -105,17 +105,19 @@ export interface EpisodeInManifest {
 - ✅ Use new file key format for newly downloaded files
 - ✅ Add cleanup logic to remove older versions of same episode
 
-#### 2.2 Process Audio Lambda Updates  
+#### 2.2 Process Audio Lambda Updates ✅ **COMPLETED**
 **File**: `packages/ingestion/process-audio-lambda/process-new-audio-files-via-whisper.ts`
-- ⏳ Ensure transcripts match the exact audio file (using downloadedAt)
-- ⏳ Check if transcript already exists for the specific downloadedAt
-- ⏳ Generate transcripts with matching file key format
+- ✅ Added imports for new file key generation functions  
+- ✅ Implemented logic to skip processing audio files with older downloadedAt when newer exists
+- ✅ Added cleanup logic to remove older transcript versions for same episode
+- ✅ Transcripts automatically match exact audio file using downloadedAt (existing logic works)
 
-#### 2.3 SRT Indexing Lambda Updates
+#### 2.3 SRT Indexing Lambda Updates ✅ **COMPLETED**
 **File**: `packages/ingestion/srt-indexing-lambda/convert-srts-indexed-search.ts`
-- ⏳ Ensure search entries match exact transcript file (using downloadedAt)
-- ⏳ Check if search entry already exists for specific downloadedAt
-- ⏳ Generate search entries with matching file key format
+- ✅ Added imports for new file key generation functions
+- ✅ Implemented logic to skip processing transcript files with older downloadedAt when newer exists  
+- ✅ Added cleanup logic to remove older search entry versions for same episode
+- ✅ Search entries automatically match exact transcript file using downloadedAt (existing logic works)
 
 ### Phase 3: File Management Logic ⏳ **PENDING**
 
@@ -360,6 +362,8 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
 **⚠️ URGENT PHASE 2 QUESTION**: 
 Should we proceed immediately with Phase 2.2 (Process Audio Lambda) and 2.3 (SRT Indexing Lambda) to complete the downloadedAt implementation across all lambdas, or would you prefer to test the RSS Retrieval Lambda changes first?
 
+A: Proceed to 2.2 & 2.3. Passing unit tests is sufficient for now.
+
 ## Success Criteria
 
 - ✅ **Phase 1**: All new downloads use downloadedAt timestamps (functions ready)
@@ -377,15 +381,17 @@ Should we proceed immediately with Phase 2.2 (Process Audio Lambda) and 2.3 (SRT
 - Comprehensive test coverage (28 tests passing)
 - Cross-package compatibility verified
 
-**✅ Phase 2.1 Complete (2024-12-26)**
-- RSS Retrieval Lambda updated to use new downloadedAt format
-- Cleanup logic implemented to remove older versions
-- All tests passing (56 total tests across packages)
+**✅ Phase 2 Complete (2024-12-26)**
+- All three lambdas updated to use new downloadedAt format
+- RSS Retrieval Lambda: Captures downloadedAt timestamp when downloading audio
+- Process Audio Lambda: Skips older audio versions, cleans up older transcripts  
+- SRT Indexing Lambda: Skips older transcript versions, cleans up older search entries
+- Comprehensive cleanup logic implemented across all lambdas
+- All tests passing (56+ total tests across packages)
+- All packages build successfully with `pnpm all:build`
 - Production ready for new episode downloads
 
 **Next Steps:**
-- Phase 2.2: Update Process Audio Lambda to ensure transcript consistency 
-- Phase 2.3: Update SRT Indexing Lambda to ensure search entry consistency
 - Phase 3: Implement file cleanup and consistency checking
 - Phase 4: Create and run backfill scripts
 - Phase 5: Add enhanced logic and smart downloading

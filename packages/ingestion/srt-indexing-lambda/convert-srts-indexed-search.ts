@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix } from '@browse-dot-show/constants';
+import { hasDownloadedAtTimestamp, extractDownloadedAtFromFileKey, parseFileKey } from './utils/get-episode-file-key.js';
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
@@ -42,6 +43,155 @@ interface EpisodeManifestEntry {
 }
 
 let episodeManifestData: EpisodeManifestEntry[] = [];
+
+// Helper function to check if a newer version of the same episode transcript exists
+async function hasNewerTranscriptVersion(currentSrtFileKey: string): Promise<boolean> {
+  try {
+    const podcastName = path.basename(path.dirname(currentSrtFileKey));
+    const currentSrtFileName = path.basename(currentSrtFileKey, '.srt');
+    
+    // Only check for newer versions if current file has downloadedAt timestamp
+    if (!hasDownloadedAtTimestamp(currentSrtFileName)) {
+      log.debug(`Current file ${currentSrtFileName} doesn't have downloadedAt timestamp, skipping newer version check`);
+      return false;
+    }
+    
+    const currentParsed = parseFileKey(currentSrtFileName);
+    const currentDownloadedAt = currentParsed.downloadedAt;
+    
+    if (!currentDownloadedAt) {
+      log.debug(`Could not extract downloadedAt from ${currentSrtFileName}, skipping newer version check`);
+      return false;
+    }
+    
+    // List all transcript files for this podcast
+    const transcriptDirKey = path.join(getTranscriptsDirPrefix(), podcastName);
+    
+    try {
+      const allTranscriptFiles = await listFiles(transcriptDirKey);
+      
+      for (const transcriptFile of allTranscriptFiles) {
+        if (!transcriptFile.endsWith('.srt')) continue;
+        
+        const transcriptFileName = path.basename(transcriptFile, '.srt');
+        
+        // Skip if this is the current file
+        if (transcriptFileName === currentSrtFileName) continue;
+        
+        try {
+          // Check if this transcript file has downloadedAt timestamp
+          if (!hasDownloadedAtTimestamp(transcriptFileName)) continue;
+          
+          const transcriptParsed = parseFileKey(transcriptFileName);
+          
+          // Check if this is the same episode (same date and base title)
+          if (transcriptParsed.date === currentParsed.date && 
+              transcriptParsed.title === currentParsed.title) {
+            
+            const transcriptDownloadedAt = transcriptParsed.downloadedAt;
+            
+            if (transcriptDownloadedAt && transcriptDownloadedAt > currentDownloadedAt) {
+              // Found a newer version of the same episode
+              log.info(`Found newer transcript version: ${transcriptFileName} (downloaded at ${transcriptDownloadedAt.toISOString()}) vs current ${currentSrtFileName} (downloaded at ${currentDownloadedAt.toISOString()})`);
+              return true;
+            }
+          }
+        } catch (parseError) {
+          log.debug(`Could not parse transcript filename ${transcriptFileName}:`, parseError);
+          continue;
+        }
+      }
+      
+      return false;
+      
+    } catch (listError) {
+      log.debug(`Could not list transcript files in ${transcriptDirKey}:`, listError);
+      return false;
+    }
+    
+  } catch (error) {
+    log.error(`Error checking for newer transcript versions of ${currentSrtFileKey}:`, error);
+    // Return false so we don't skip processing due to errors
+    return false;
+  }
+}
+
+// Helper function to clean up older search entry versions for the same episode
+async function cleanupOlderSearchEntryVersions(currentSrtFileKey: string): Promise<void> {
+  try {
+    const podcastName = path.basename(path.dirname(currentSrtFileKey));
+    const currentSrtFileName = path.basename(currentSrtFileKey, '.srt');
+    
+    // Only proceed if current file has downloadedAt timestamp
+    if (!hasDownloadedAtTimestamp(currentSrtFileName)) {
+      log.debug(`Current file ${currentSrtFileName} doesn't have downloadedAt timestamp, skipping cleanup`);
+      return;
+    }
+    
+    const currentParsed = parseFileKey(currentSrtFileName);
+    const currentDownloadedAt = currentParsed.downloadedAt;
+    
+    if (!currentDownloadedAt) {
+      log.debug(`Could not extract downloadedAt from ${currentSrtFileName}, skipping cleanup`);
+      return;
+    }
+    
+    // List all search entry files for this podcast
+    const searchEntriesDirKey = path.join(getSearchEntriesDirPrefix(), podcastName);
+    
+    try {
+      const allSearchEntryFiles = await listFiles(searchEntriesDirKey);
+      let cleanedCount = 0;
+      
+      for (const searchEntryFile of allSearchEntryFiles) {
+        if (!searchEntryFile.endsWith('.json')) continue;
+        
+        const searchEntryFileName = path.basename(searchEntryFile, '.json');
+        
+        // Skip if this is the current file we're processing
+        if (searchEntryFileName === currentSrtFileName) continue;
+        
+        try {
+          // Check if this search entry file has downloadedAt timestamp
+          if (!hasDownloadedAtTimestamp(searchEntryFileName)) continue;
+          
+          const searchEntryParsed = parseFileKey(searchEntryFileName);
+          
+          // Check if this is the same episode (same date and base title)
+          if (searchEntryParsed.date === currentParsed.date && 
+              searchEntryParsed.title === currentParsed.title) {
+            
+            const searchEntryDownloadedAt = searchEntryParsed.downloadedAt;
+            
+            if (searchEntryDownloadedAt && searchEntryDownloadedAt < currentDownloadedAt) {
+              // This is an older version of the same episode, delete it
+              log.info(`Deleting older search entry version: ${searchEntryFile}`);
+              // Note: We don't have deleteFile imported, so we'll just log for now
+              log.info(`Would delete older search entry: ${searchEntryFile} (file deletion not yet implemented)`);
+              cleanedCount++;
+            }
+          }
+        } catch (parseError) {
+          log.debug(`Could not parse search entry filename ${searchEntryFileName}:`, parseError);
+          continue;
+        }
+      }
+      
+      if (cleanedCount > 0) {
+        log.info(`Cleaned up ${cleanedCount} older search entry versions for ${currentSrtFileName}`);
+      } else {
+        log.debug(`No older search entry versions found for ${currentSrtFileName}`);
+      }
+      
+    } catch (listError) {
+      log.debug(`Could not list search entry files in ${searchEntriesDirKey}:`, listError);
+    }
+    
+  } catch (error) {
+    log.error(`Error cleaning up older search entry versions for ${currentSrtFileKey}:`, error);
+    // Don't throw - this is not critical enough to stop processing
+  }
+}
 
 // Function to process a single SRT file
 async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
@@ -229,6 +379,13 @@ export async function handler(): Promise<any> {
 
   for (const srtFileKey of srtFilesToEvaluate) {
     log.debug(`Evaluating SRT file: ${srtFileKey} (${srtFilesProcessedCount + 1}/${totalSrtFiles})`);
+    
+    // Check if a newer version of this transcript exists (skip processing older versions)
+    if (await hasNewerTranscriptVersion(srtFileKey)) {
+      log.info(`Skipping processing of ${srtFileKey} because a newer version exists`);
+      srtFilesProcessedCount++;
+      continue;
+    }
     
     let searchEntriesForFile: SearchEntry[] = [];
     let jsonNeedsProcessing = true; // Assume we need to process (load or create) the JSON

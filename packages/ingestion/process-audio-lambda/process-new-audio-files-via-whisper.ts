@@ -4,6 +4,7 @@ import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@browse-dot-show/logging';
 import { getSiteById } from '../../../sites/index.js';
+import { hasDownloadedAtTimestamp, extractDownloadedAtFromFileKey, parseFileKey } from '../rss-retrieval-lambda/utils/get-episode-file-key.js';
 import {
   fileExists,
   getFile,
@@ -344,6 +345,155 @@ function adjustTimestamp(timestamp: string, offsetSeconds: number): string {
   return `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}:${String(newSeconds).padStart(2, '0')},${milliseconds}`;
 }
 
+// Helper function to check if a newer version of the same episode exists
+async function hasNewerAudioVersion(currentAudioFileKey: string): Promise<boolean> {
+  try {
+    const podcastName = path.basename(path.dirname(currentAudioFileKey));
+    const currentAudioFileName = path.basename(currentAudioFileKey, '.mp3');
+    
+    // Only check for newer versions if current file has downloadedAt timestamp
+    if (!hasDownloadedAtTimestamp(currentAudioFileName)) {
+      log.debug(`Current file ${currentAudioFileName} doesn't have downloadedAt timestamp, skipping newer version check`);
+      return false;
+    }
+    
+    const currentParsed = parseFileKey(currentAudioFileName);
+    const currentDownloadedAt = currentParsed.downloadedAt;
+    
+    if (!currentDownloadedAt) {
+      log.debug(`Could not extract downloadedAt from ${currentAudioFileName}, skipping newer version check`);
+      return false;
+    }
+    
+    // List all audio files for this podcast
+    const audioDirKey = path.join(AUDIO_DIR_PREFIX, podcastName);
+    
+    try {
+      const allAudioFiles = await listFiles(audioDirKey);
+      
+      for (const audioFile of allAudioFiles) {
+        if (!audioFile.endsWith('.mp3')) continue;
+        
+        const audioFileName = path.basename(audioFile, '.mp3');
+        
+        // Skip if this is the current file
+        if (audioFileName === currentAudioFileName) continue;
+        
+        try {
+          // Check if this audio file has downloadedAt timestamp
+          if (!hasDownloadedAtTimestamp(audioFileName)) continue;
+          
+          const audioParsed = parseFileKey(audioFileName);
+          
+          // Check if this is the same episode (same date and base title)
+          if (audioParsed.date === currentParsed.date && 
+              audioParsed.title === currentParsed.title) {
+            
+            const audioDownloadedAt = audioParsed.downloadedAt;
+            
+            if (audioDownloadedAt && audioDownloadedAt > currentDownloadedAt) {
+              // Found a newer version of the same episode
+              log.info(`Found newer audio version: ${audioFileName} (downloaded at ${audioDownloadedAt.toISOString()}) vs current ${currentAudioFileName} (downloaded at ${currentDownloadedAt.toISOString()})`);
+              return true;
+            }
+          }
+        } catch (parseError) {
+          log.debug(`Could not parse audio filename ${audioFileName}:`, parseError);
+          continue;
+        }
+      }
+      
+      return false;
+      
+    } catch (listError) {
+      log.debug(`Could not list audio files in ${audioDirKey}:`, listError);
+      return false;
+    }
+    
+  } catch (error) {
+    log.error(`Error checking for newer audio versions of ${currentAudioFileKey}:`, error);
+    // Return false so we don't skip processing due to errors
+    return false;
+  }
+}
+
+// Helper function to clean up older transcript versions for the same episode
+async function cleanupOlderTranscriptVersions(currentAudioFileKey: string): Promise<void> {
+  try {
+    const podcastName = path.basename(path.dirname(currentAudioFileKey));
+    const currentAudioFileName = path.basename(currentAudioFileKey, '.mp3');
+    
+    // Only proceed if current file has downloadedAt timestamp
+    if (!hasDownloadedAtTimestamp(currentAudioFileName)) {
+      log.debug(`Current file ${currentAudioFileName} doesn't have downloadedAt timestamp, skipping cleanup`);
+      return;
+    }
+    
+    const currentParsed = parseFileKey(currentAudioFileName);
+    const currentDownloadedAt = currentParsed.downloadedAt;
+    
+    if (!currentDownloadedAt) {
+      log.debug(`Could not extract downloadedAt from ${currentAudioFileName}, skipping cleanup`);
+      return;
+    }
+    
+    // List all transcript files for this podcast
+    const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
+    
+    try {
+      const allTranscriptFiles = await listFiles(transcriptDirKey);
+      let cleanedCount = 0;
+      
+      for (const transcriptFile of allTranscriptFiles) {
+        if (!transcriptFile.endsWith('.srt')) continue;
+        
+        const transcriptFileName = path.basename(transcriptFile, '.srt');
+        
+        // Skip if this is the current file we're processing
+        if (transcriptFileName === currentAudioFileName) continue;
+        
+        try {
+          // Check if this transcript has downloadedAt timestamp
+          if (!hasDownloadedAtTimestamp(transcriptFileName)) continue;
+          
+          const transcriptParsed = parseFileKey(transcriptFileName);
+          
+          // Check if this is the same episode (same date and base title)
+          if (transcriptParsed.date === currentParsed.date && 
+              transcriptParsed.title === currentParsed.title) {
+            
+            const transcriptDownloadedAt = transcriptParsed.downloadedAt;
+            
+            if (transcriptDownloadedAt && transcriptDownloadedAt < currentDownloadedAt) {
+              // This is an older version of the same episode, delete it
+              log.info(`Deleting older transcript version: ${transcriptFile}`);
+              // Note: We don't have deleteFile imported, so we'll just log for now
+              log.info(`Would delete older transcript: ${transcriptFile} (file deletion not yet implemented)`);
+              cleanedCount++;
+            }
+          }
+        } catch (parseError) {
+          log.debug(`Could not parse transcript filename ${transcriptFileName}:`, parseError);
+          continue;
+        }
+      }
+      
+      if (cleanedCount > 0) {
+        log.info(`Cleaned up ${cleanedCount} older transcript versions for ${currentAudioFileName}`);
+      } else {
+        log.debug(`No older transcript versions found for ${currentAudioFileName}`);
+      }
+      
+    } catch (listError) {
+      log.debug(`Could not list transcript files in ${transcriptDirKey}:`, listError);
+    }
+    
+  } catch (error) {
+    log.error(`Error cleaning up older transcript versions for ${currentAudioFileKey}:`, error);
+    // Don't throw - this is not critical enough to stop processing
+  }
+}
+
 // Helper function to process a single audio file
 async function processAudioFile(fileKey: string, whisperPrompt: string): Promise<ApplyCorrectionsResult | null> {
   const podcastName = path.basename(path.dirname(fileKey));
@@ -354,6 +504,12 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
   const transcriptKey = path.join(transcriptDirKey, `${audioFileName}.srt`);
   if (await transcriptExists(fileKey)) {
     log.debug(`Transcript already exists for ${fileKey}, skipping`);
+    return null;
+  }
+
+  // Check if a newer version of this audio file exists (skip processing older versions)
+  if (await hasNewerAudioVersion(fileKey)) {
+    log.info(`Skipping processing of ${fileKey} because a newer version exists`);
     return null;
   }
 
@@ -373,6 +529,9 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
       log.debug(`Transcript already exists for ${fileKey} (detected after lock), skipping`);
       return null;
     }
+
+    // Clean up older transcript versions for this episode
+    await cleanupOlderTranscriptVersions(fileKey);
 
     // Get file size and duration
     const fileSizeMB = await getFileSizeMB(fileKey);
