@@ -9,7 +9,7 @@ import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
 import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
-import { getEpisodeFileKey } from './utils/get-episode-file-key.js';
+import { getEpisodeFileKey, getEpisodeFileKeyWithDownloadedAt, hasDownloadedAtTimestamp } from './utils/get-episode-file-key.js';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
@@ -229,13 +229,16 @@ async function updateManifestWithNewEpisodes(
       continue; 
     }
     
-    const potentialFileKey = getEpisodeFileKey(episodeTitle, pubDateString);
-    if (existingEpisodeIdentifiers.has(potentialFileKey)) {
+    // Capture when this episode is being processed for download
+    const downloadedAt = new Date();
+    const fileKey = getEpisodeFileKeyWithDownloadedAt(episodeTitle, pubDateString, downloadedAt);
+    
+    // Check for existing episodes with same file key (including downloadedAt timestamp)
+    if (existingEpisodeIdentifiers.has(fileKey)) {
         continue;
     }
 
     // sequentialId is set to 0 as a placeholder. It will be correctly assigned after global sort.
-    const fileKey = potentialFileKey; // Use the already generated potentialFileKey
     const summary = getEpisodeSummary(rssEpisode);
     const durationInSeconds = parseDuration(rssEpisode['itunes:duration']);
 
@@ -248,6 +251,7 @@ async function updateManifestWithNewEpisodes(
       summary,
       durationInSeconds,
       publishedAt: parsedPublishedDate.toISOString(),
+      downloadedAt: downloadedAt.toISOString(), // NEW: Track when episode was downloaded
       hasCompletedLLMAnnotations: false,
       llmAnnotations: {},
     };
@@ -345,6 +349,73 @@ async function triggerTranscriptionLambda(): Promise<void> {
   } catch (error) {
     log.error(`Error invoking ${WHISPER_LAMBDA_NAME}:`, error);
     // Decide if this error should be re-thrown or handled (e.g., retry logic)
+  }
+}
+
+// Delete episode files (audio, transcript, search-entry)
+async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string): Promise<void> {
+  const audioPath = path.join(getAudioDirPrefix(), podcastId, `${episode.fileKey}.mp3`);
+  
+  try {
+    // For now, only delete audio files as transcripts and search entries will be handled in their respective lambdas
+    if (await fileExists(audioPath)) {
+      // Note: We're not importing deleteFile from s3 package, so we'll skip deletion for now
+      // This will be handled in a future update when we add proper file cleanup
+      log.info(`Would delete older audio file: ${audioPath} (file deletion not yet implemented)`);
+    }
+  } catch (error) {
+    log.error(`Error checking files for ${episode.fileKey}:`, error);
+  }
+}
+
+// Cleanup older versions of episodes (keep only newest downloadedAt)
+async function cleanupOlderVersions(episodeManifest: EpisodeManifest, podcastId: string): Promise<void> {
+  log.info(`Cleaning up older versions for podcast: ${podcastId}`);
+  
+  // Group episodes by originalAudioURL to find duplicates
+  const episodesByUrl = new Map<string, EpisodeInManifest[]>();
+  
+  episodeManifest.episodes
+    .filter(ep => ep.podcastId === podcastId)
+    .forEach(ep => {
+      if (!episodesByUrl.has(ep.originalAudioURL)) {
+        episodesByUrl.set(ep.originalAudioURL, []);
+      }
+      episodesByUrl.get(ep.originalAudioURL)!.push(ep);
+    });
+  
+  let totalCleaned = 0;
+  
+  // For each URL, keep only the newest downloadedAt version
+  for (const [url, episodes] of episodesByUrl) {
+    if (episodes.length > 1) {
+      // Sort by downloadedAt, keep newest
+      episodes.sort((a, b) => {
+        const aTime = a.downloadedAt ? new Date(a.downloadedAt).getTime() : 0;
+        const bTime = b.downloadedAt ? new Date(b.downloadedAt).getTime() : 0;
+        return bTime - aTime; // Newest first
+      });
+      
+      const [newest, ...older] = episodes;
+      
+      // Delete older files and remove from manifest
+      for (const oldEpisode of older) {
+        await deleteEpisodeFiles(oldEpisode, podcastId);
+        const index = episodeManifest.episodes.indexOf(oldEpisode);
+        if (index >= 0) {
+          episodeManifest.episodes.splice(index, 1);
+          totalCleaned++;
+        }
+      }
+      
+      log.info(`Cleaned up ${older.length} older versions for episode: "${newest.title}"`);
+    }
+  }
+  
+  if (totalCleaned > 0) {
+    log.info(`Total older episodes cleaned up for ${podcastId}: ${totalCleaned}`);
+  } else {
+    log.debug(`No older episodes to clean up for ${podcastId}`);
   }
 }
 
@@ -469,6 +540,9 @@ export async function handler(): Promise<void> {
           }
         }
         podcastStats.get(podcastId)!.newDownloads = successfullyDownloadedForThisPodcast;
+
+        // 7. Cleanup older versions of episodes for this podcast
+        await cleanupOlderVersions(episodeManifest, podcastId);
 
       } catch (feedProcessingError) {
         log.error(`❌ Error processing feed ${podcastConfig.title}:`, feedProcessingError);

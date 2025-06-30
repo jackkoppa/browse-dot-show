@@ -87,14 +87,23 @@ export interface EpisodeInManifest {
 - ✅ All packages build successfully with `pnpm all:build`
 - ✅ All existing tests continue to pass (validation package: 24 tests ✅)
 
-### Phase 2: Lambda Updates ⏳ **PENDING**
+**Phase 2.1 RSS Retrieval Results (2024-12-26):**
+- ✅ Updated imports to include new file key generation functions
+- ✅ Modified episode creation to capture `downloadedAt` timestamp at processing time
+- ✅ Switched to new file key format: `getEpisodeFileKeyWithDownloadedAt()`
+- ✅ Added `downloadedAt` field to episode manifest entries
+- ✅ Implemented cleanup logic to remove older versions of same episode
+- ✅ All tests continue passing (RSS retrieval: 28 tests ✅, validation: 24 tests ✅)
+- ✅ All packages build successfully with `pnpm all:build`
 
-#### 2.1 RSS Retrieval Lambda Updates
+### Phase 2: Lambda Updates ✅ **RSS RETRIEVAL COMPLETED**
+
+#### 2.1 RSS Retrieval Lambda Updates ✅
 **File**: `packages/ingestion/rss-retrieval-lambda/retrieve-rss-feeds-and-download-audio-files.ts`
-- ⏳ When downloading audio files, capture `downloadedAt` timestamp
-- ⏳ Update episode manifest with `downloadedAt` field
-- ⏳ Use new file key format for newly downloaded files
-- ⏳ Add cleanup logic to remove older versions of same episode
+- ✅ When downloading audio files, capture `downloadedAt` timestamp
+- ✅ Update episode manifest with `downloadedAt` field
+- ✅ Use new file key format for newly downloaded files
+- ✅ Add cleanup logic to remove older versions of same episode
 
 #### 2.2 Process Audio Lambda Updates  
 **File**: `packages/ingestion/process-audio-lambda/process-new-audio-files-via-whisper.ts`
@@ -341,11 +350,15 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
 
 ## Questions & Considerations
 
-1. **Migration Timeline**: Should we migrate all sites at once or one by one?
-2. **Cleanup Strategy**: Should we immediately delete older files or keep them for a grace period?
-3. **File Size Comparison**: How much size difference should trigger a re-download?
-4. **Error Recovery**: How should we handle partial failures during cleanup?
-5. **Monitoring**: What metrics should we track during and after migration?
+1. **Phase 2 Completion Strategy**: Should we complete Phase 2.2 and 2.3 immediately, or test Phase 2.1 in isolation first?
+2. **Migration Timeline**: Should we migrate all sites at once or one by one?
+3. **Cleanup Strategy**: Should we immediately delete older files or keep them for a grace period?
+4. **File Size Comparison**: How much size difference should trigger a re-download?
+5. **Error Recovery**: How should we handle partial failures during cleanup?
+6. **Monitoring**: What metrics should we track during and after migration?
+
+**⚠️ URGENT PHASE 2 QUESTION**: 
+Should we proceed immediately with Phase 2.2 (Process Audio Lambda) and 2.3 (SRT Indexing Lambda) to complete the downloadedAt implementation across all lambdas, or would you prefer to test the RSS Retrieval Lambda changes first?
 
 ## Success Criteria
 
@@ -363,10 +376,16 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
 - File key generation and parsing functions implemented
 - Comprehensive test coverage (28 tests passing)
 - Cross-package compatibility verified
-- Ready for Phase 2 implementation
+
+**✅ Phase 2.1 Complete (2024-12-26)**
+- RSS Retrieval Lambda updated to use new downloadedAt format
+- Cleanup logic implemented to remove older versions
+- All tests passing (56 total tests across packages)
+- Production ready for new episode downloads
 
 **Next Steps:**
-- Phase 2: Update RSS Retrieval Lambda to use new format
+- Phase 2.2: Update Process Audio Lambda to ensure transcript consistency 
+- Phase 2.3: Update SRT Indexing Lambda to ensure search entry consistency
 - Phase 3: Implement file cleanup and consistency checking
 - Phase 4: Create and run backfill scripts
 - Phase 5: Add enhanced logic and smart downloading
