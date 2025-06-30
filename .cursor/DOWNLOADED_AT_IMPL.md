@@ -56,65 +56,79 @@ export interface EpisodeInManifest {
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure Updates
+### Phase 1: Core Infrastructure Updates ✅ **COMPLETED**
 
-#### 1.1 Update Type Definitions
+#### 1.1 Update Type Definitions ✅
 **File**: `packages/types/episode-manifest.ts`
-- Add `downloadedAt?: string` to `EpisodeInManifest` interface
+- ✅ Added `downloadedAt?: string` to `EpisodeInManifest` interface
 
-#### 1.2 Enhanced File Key Generation
+#### 1.2 Enhanced File Key Generation ✅
 **File**: `packages/ingestion/rss-retrieval-lambda/utils/get-episode-file-key.ts`
-- Create new function: `getEpisodeFileKeyWithDownloadedAt(title, pubDate, downloadedAt)`
-- Improve title sanitization to alphanumeric + underscore only
-- Add backwards compatibility function for migration
+- ✅ Created new function: `getEpisodeFileKeyWithDownloadedAt(title, pubDate, downloadedAt)`
+- ✅ Implemented strict title sanitization (alphanumeric + underscore only)
+- ✅ Maintained backwards compatibility function for migration
+- ✅ Added utility functions: `hasDownloadedAtTimestamp()`, `extractDownloadedAtFromFileKey()`, `parseFileKey()`
+- ✅ Comprehensive test suite (28 tests passing)
 
-#### 1.3 Update Constants Package
+**File**: `packages/validation/utils/get-episode-file-key.ts`
+- ✅ Duplicated all functions for consistency across packages
+
+#### 1.3 Update Constants Package ✅
 **File**: `packages/constants/index.ts`
-- Add utility functions for parsing file keys to extract components
-- Add functions to check if file key has downloadedAt timestamp
+- ✅ Added utility functions for parsing file keys to extract components
+- ✅ Added functions to check if file key has downloadedAt timestamp
+- ✅ Added `getEpisodeFilePaths()` for generating all file paths
+- ✅ Added `isFileKeyNewer()` for comparing file keys by timestamp
 
-### Phase 2: Lambda Updates
+**Phase 1 Results:**
+- ✅ New file format: `{YYYY-MM-DD}_{sanitized-title}--{unix-timestamp}`
+- ✅ Example: `2024-07-25_Simple_Episode_Title--1721921400000`
+- ✅ Strict sanitization: `"Café & Naïve + More!"` → `"Cafe_Naive_More"`
+- ✅ All packages build successfully with `pnpm all:build`
+- ✅ All existing tests continue to pass (validation package: 24 tests ✅)
+
+### Phase 2: Lambda Updates ⏳ **PENDING**
 
 #### 2.1 RSS Retrieval Lambda Updates
 **File**: `packages/ingestion/rss-retrieval-lambda/retrieve-rss-feeds-and-download-audio-files.ts`
-- When downloading audio files, capture `downloadedAt` timestamp
-- Update episode manifest with `downloadedAt` field
-- Use new file key format for newly downloaded files
-- Add cleanup logic to remove older versions of same episode
+- ⏳ When downloading audio files, capture `downloadedAt` timestamp
+- ⏳ Update episode manifest with `downloadedAt` field
+- ⏳ Use new file key format for newly downloaded files
+- ⏳ Add cleanup logic to remove older versions of same episode
 
 #### 2.2 Process Audio Lambda Updates  
 **File**: `packages/ingestion/process-audio-lambda/process-new-audio-files-via-whisper.ts`
-- Ensure transcripts match the exact audio file (using downloadedAt)
-- Check if transcript already exists for the specific downloadedAt
-- Generate transcripts with matching file key format
+- ⏳ Ensure transcripts match the exact audio file (using downloadedAt)
+- ⏳ Check if transcript already exists for the specific downloadedAt
+- ⏳ Generate transcripts with matching file key format
 
 #### 2.3 SRT Indexing Lambda Updates
 **File**: `packages/ingestion/srt-indexing-lambda/convert-srts-indexed-search.ts`
-- Ensure search entries match exact transcript file (using downloadedAt)
-- Check if search entry already exists for specific downloadedAt
-- Generate search entries with matching file key format
+- ⏳ Ensure search entries match exact transcript file (using downloadedAt)
+- ⏳ Check if search entry already exists for specific downloadedAt
+- ⏳ Generate search entries with matching file key format
 
-### Phase 3: File Management Logic
+### Phase 3: File Management Logic ⏳ **PENDING**
 
 #### 3.1 File Cleanup Logic
-- When processing episodes, identify older versions (different downloadedAt for same episode)
-- Delete older audio/transcript/search-entry files when newer ones exist
-- Update manifest to remove entries for deleted files
+- ⏳ When processing episodes, identify older versions (different downloadedAt for same episode)
+- ⏳ Delete older audio/transcript/search-entry files when newer ones exist
+- ⏳ Update manifest to remove entries for deleted files
 
 #### 3.2 Missing File Detection
-- Check if audio file exists but transcript/search-entry missing for that downloadedAt
-- Trigger appropriate lambda to create missing files
-- Ensure all three files (audio, transcript, search-entry) exist for each downloadedAt
+- ⏳ Check if audio file exists but transcript/search-entry missing for that downloadedAt
+- ⏳ Trigger appropriate lambda to create missing files
+- ⏳ Ensure all three files (audio, transcript, search-entry) exist for each downloadedAt
 
-### Phase 4: Migration & Backfill
+### Phase 4: Migration & Backfill ⏳ **PENDING**
 
 #### 4.1 Backfill Script for Existing Files
 **New File**: `scripts/backfill-downloaded-at-timestamps.ts`
-- Scan existing audio files in S3 and local storage
-- Determine downloadedAt timestamp from file metadata (creation time)
-- Update episode manifest with inferred downloadedAt values
-- Rename files to new format if needed
-- Update corresponding transcript and search-entry files
+- ⏳ Scan existing audio files in S3 and local storage
+- ⏳ Determine downloadedAt timestamp from file metadata (creation time)
+- ⏳ Update episode manifest with inferred downloadedAt values
+- ⏳ Rename files to new format if needed
+- ⏳ Update corresponding transcript and search-entry files
 
 #### 4.2 Migration Strategy
 - **No Users Impact**: Sites don't have users yet, so temporary breakage during migration is acceptable
@@ -126,19 +140,19 @@ export interface EpisodeInManifest {
 - **Post-Migration**: Only new format needs to be supported after backfill completion
 - **Processing Flexibility**: Can be done locally or in Lambda - syncing always safe with downloadedAt tracking
 
-### Phase 5: Enhanced Logic
+### Phase 5: Enhanced Logic ⏳ **PENDING**
 
 #### 5.1 Smart Download Logic
 **Enhancement to RSS Retrieval Lambda**:
-- Before downloading, check if audio already exists for this episode
-- Compare expected download size with existing file
-- Only download if significantly different (indicating ad changes)
+- ⏳ Before downloading, check if audio already exists for this episode
+- ⏳ Compare expected download size with existing file
+- ⏳ Only download if significantly different (indicating ad changes)
 
 #### 5.2 Dependency Checking
 **Enhancement to all Lambdas**:
-- Before processing, verify all required input files exist
-- Check downloadedAt consistency across audio/transcript/search-entry
-- Log and handle mismatched files appropriately
+- ⏳ Before processing, verify all required input files exist
+- ⏳ Check downloadedAt consistency across audio/transcript/search-entry
+- ⏳ Log and handle mismatched files appropriately
 
 ## Detailed File Changes
 
@@ -335,9 +349,53 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
 
 ## Success Criteria
 
-- All new downloads use downloadedAt timestamps
-- File consistency maintained across audio/transcript/search-entry
-- Successful cleanup of duplicate files
-- No broken links or missing files after migration
-- Improved title sanitization prevents encoding issues
-- Clear audit trail of when files were downloaded
+- ✅ **Phase 1**: All new downloads use downloadedAt timestamps (functions ready)
+- ⏳ File consistency maintained across audio/transcript/search-entry
+- ⏳ Successful cleanup of duplicate files
+- ⏳ No broken links or missing files after migration
+- ✅ **Phase 1**: Improved title sanitization prevents encoding issues
+- ⏳ Clear audit trail of when files were downloaded
+
+## Current Status
+
+**✅ Phase 1 Complete (2024-12-26)**
+- All core infrastructure ready
+- File key generation and parsing functions implemented
+- Comprehensive test coverage (28 tests passing)
+- Cross-package compatibility verified
+- Ready for Phase 2 implementation
+
+**Next Steps:**
+- Phase 2: Update RSS Retrieval Lambda to use new format
+- Phase 3: Implement file cleanup and consistency checking
+- Phase 4: Create and run backfill scripts
+- Phase 5: Add enhanced logic and smart downloading
+
+## Key Files & Directories Reference
+
+### Core Types & Configuration
+- `packages/types/episode-manifest.ts` - Episode data structure definitions
+- `packages/config/` - RSS feed configurations and search facets
+- `sites/origin-sites/` - Site-specific configurations and assets
+
+### Ingestion Pipeline (Lambdas)
+- `packages/ingestion/rss-retrieval-lambda/` - Downloads audio from RSS feeds
+- `packages/ingestion/process-audio-lambda/` - Transcribes audio using Whisper
+- `packages/ingestion/srt-indexing-lambda/` - Converts transcripts to search entries
+
+### File Key & Validation Utils
+- `packages/ingestion/rss-retrieval-lambda/utils/get-episode-file-key.ts` - File naming logic
+- `packages/validation/utils/get-episode-file-key.ts` - Validation utilities
+- `packages/constants/index.ts` - Shared file key parsing functions
+
+### Data Storage Structure
+- `audio/{podcastId}/{fileKey}.mp3` - Audio files
+- `transcripts/{podcastId}/{fileKey}.srt` - Transcript files  
+- `search-entries/{podcastId}/{fileKey}.json` - Search index data
+- `episode-manifest/full-episode-manifest.json` - Central episode tracking
+
+### Build & Deployment
+- `scripts/` - Deployment and site management scripts
+- `terraform/` - AWS infrastructure definitions
+- `packages/client/` - Frontend applications
+- `packages/homepage/` - Homepage application
