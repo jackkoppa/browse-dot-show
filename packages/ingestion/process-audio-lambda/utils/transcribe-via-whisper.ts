@@ -59,8 +59,8 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
     throw new Error(`File not found: ${filePath}`);
   }
 
-  const MAX_ATTEMPTS = 3;
-  const BASE_TIMEOUT_MS = 120 * 1000; // 120 seconds for first attempt
+  const MAX_ATTEMPTS = 2;
+  const BASE_TIMEOUT_MS = 150 * 1000; // 150 seconds for first attempt
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
