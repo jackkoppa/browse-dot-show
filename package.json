@@ -14,6 +14,7 @@
     "validate:prod": "tsx scripts/run-with-site-selection.ts \"prod validation\" \"pnpm --filter @browse-dot-show/validation validate:all:prod\"",
     "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
     "validate:consistency": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:consistency\"",
+    "backfill:timestamps": "tsx scripts/run-with-site-selection.ts \"backfill downloadedAt timestamps\" \"pnpm --filter @browse-dot-show/scripts backfill-timestamps\"",
     "setup:site-directories": "tsx scripts/setup-site-local-directories.ts",
     "client:dev": "tsx scripts/run-with-site-selection.ts \"client development\" \"concurrently\" \"\\\"pnpm --filter @browse-dot-show/client _vite-dev\\\"\" \"\\\"pnpm --filter @browse-dot-show/client _serve-s3-assets\\\"\" \"\\\"pnpm --filter @browse-dot-show/search-lambda dev:local\\\"\"",
     "client:build:all-sites": "pnpm --filter client build:all-sites",

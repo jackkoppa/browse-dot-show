@@ -33,8 +33,8 @@ async function main(): Promise<void> {
     if (siteArgIndex >= 0) {
         const siteArg = commandArgs[siteArgIndex];
         preselectedSiteId = siteArg.split('=')[1];
-        // Remove the --site= argument from commandArgs since it's for site selection, not the target command
-        commandArgs = commandArgs.filter((_, index) => index !== siteArgIndex);
+        // Keep the --site= argument in commandArgs so it gets passed to the target command
+        // This allows scripts to receive the site ID directly via CLI args instead of just env vars
         
         if (!preselectedSiteId) {
             console.error('Error: --site= parameter requires a site ID (e.g., --site=naddpod)');
