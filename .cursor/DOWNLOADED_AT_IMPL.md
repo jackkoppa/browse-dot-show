@@ -119,7 +119,7 @@ export interface EpisodeInManifest {
 - ✅ Added cleanup logic to remove older search entry versions for same episode
 - ✅ Search entries automatically match exact transcript file using downloadedAt (existing logic works)
 
-### Phase 3: File Management Logic 🔄 **IN PROGRESS** (3.1 ✅, 3.2 ✅, 3.3 ⏳)
+### Phase 3: File Management Logic ✅ **COMPLETED**
 
 #### 3.1 File Cleanup Logic ✅ **COMPLETED**
 - ✅ Enhanced lambdas to actually delete older versions (not just log)
@@ -163,6 +163,46 @@ export interface EpisodeInManifest {
   4. Use existing `pnpm s3:sync` script to sync fixed local files to S3
 - **Post-Migration**: Only new format needs to be supported after backfill completion
 - **Processing Flexibility**: Can be done locally or in Lambda - syncing always safe with downloadedAt tracking
+
+#### 4.3 Phase 4 Implementation Context
+
+**🔧 Tools Available for Phase 4:**
+- ✅ **File Consistency Checker**: Validate before and after migration
+- ✅ **Enhanced Site Selection**: Use `--site=` for non-interactive scripts
+- ✅ **File Key Utilities**: Parse, generate, and validate file keys
+- ✅ **S3 Client**: Works with both local and AWS storage
+- ✅ **Cleanup Logic**: Delete older versions automatically
+
+**📋 Phase 4 Prerequisites:**
+1. **Pre-Migration Validation**: Run `pnpm validate:consistency --site=<target>` to check current state
+2. **Backup Strategy**: Ensure local files are backed up before any modification
+3. **Site Selection**: Use `--site=` parameter for automated scripts
+4. **Test Site**: Consider testing on a smaller site first (e.g., `hardfork` with 143 episodes vs `claretandblue` with 928)
+
+**🎯 Phase 4 Success Criteria:**
+- All files follow new `{date}_{title}--{downloadedAt}` format
+- Episode manifest has `downloadedAt` field for all episodes
+- File consistency checker reports zero issues
+- All three file types (audio, transcript, search-entry) match exactly
+- No orphaned or missing files
+
+**⚠️ Phase 4 Risks & Mitigations:**
+- **Risk**: File corruption during rename operations
+  - **Mitigation**: Work on copies, validate before overwriting
+- **Risk**: Manifest inconsistencies  
+  - **Mitigation**: Use consistency checker before and after each step
+- **Risk**: S3 sync issues
+  - **Mitigation**: Test sync process on single site first
+
+**🔄 Recommended Phase 4 Workflow:**
+1. Choose test site with fewer episodes (e.g., `hardfork`)
+2. Run pre-migration consistency check
+3. Create local backup of all files
+4. Implement backfill script with dry-run mode
+5. Test on small subset of files
+6. Run full backfill on test site
+7. Validate results with consistency checker
+8. Repeat for remaining sites
 
 ### Phase 5: Enhanced Logic ⏳ **PENDING**
 
@@ -408,21 +448,49 @@ A: Proceed to 2.2 & 2.3. Passing unit tests is sufficient for now.
 - ✅ **3.1, 3.2 & 3.3 Complete**: File cleanup logic implemented, consistency framework created, and consistency checker implemented
 - File cleanup logic fully implemented in all lambdas (actual deletion, not just logging)
 - Comprehensive file consistency framework created (`scripts/file-consistency-framework.md`)
-- File consistency checker implemented in `packages/validation/check-file-consistency.ts`
-- Ready for validation and Phase 4 migration
+- File consistency checker implemented in `packages/validation/check-file-consistency.ts` (545 lines)
+- Enhanced site selection system with `--site=` parameter support (non-interactive mode)
+- Cleaned up legacy environment variables (`DEFAULT_SITE_ID`, `SKIP_SITE_SELECTION_PROMPT`)
+- All infrastructure ready for Phase 4 migration
+- Validated current state: All sites show 0 consistency issues
 
 **⚠️ SAFETY NOTE FOR PHASE 3+:**
 All file modification scripts should be reviewed and run manually by the user, not automatically executed. This ensures proper backups can be made before any file changes occur.
 
 **Next Steps:**
-- **Phase 4**: Create and run backfill scripts for existing files
+- **Phase 4**: Create and run backfill scripts for existing files (convert legacy format to new downloadedAt format)
 - Phase 5: Add enhanced logic and smart downloading
 
-**✅ READY TO USE**: File consistency checker is now fully integrated:
-- Run `pnpm validate:consistency --site=naddpod` from anywhere in the project
-- Or run `pnpm validate:consistency` for interactive site selection
-- Complete with enhanced site selection and comprehensive validation
-- **✅ CLEANUP**: Removed legacy `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT` environment variables
+**✅ INFRASTRUCTURE COMPLETE**: All core systems ready for Phase 4:
+- File consistency checker with comprehensive validation
+- Enhanced site selection with `--site=` parameter support  
+- Cleanup logic for managing file versions
+- Complete file key parsing and generation utilities
+- Working S3 client for local and AWS operations
+
+**📋 CURRENT STATE VALIDATION**: All sites show consistent file states:
+```bash
+# Tested sites - all showing 0 issues:
+pnpm validate:consistency --site=naddpod     # ✅ 397 episodes, 0 issues
+pnpm validate:consistency --site=hardfork    # ✅ 143 episodes, 0 issues  
+pnpm validate:consistency --site=claretandblue # ✅ 928 episodes, 0 issues
+```
+
+**🚀 PHASE 4 READINESS CHECKLIST:**
+- ✅ **File format functions**: Parse, generate, validate file keys
+- ✅ **Cleanup logic**: Automatically remove older versions  
+- ✅ **Validation tools**: Comprehensive consistency checking
+- ✅ **Site management**: Enhanced selection with `--site=` parameter
+- ✅ **Current state**: All files validated as consistent
+- ✅ **Environment clean**: Legacy variables removed
+- ⏳ **Backfill script**: Implementation needed for Phase 4
+
+**📝 NOTES FOR PHASE 4 IMPLEMENTATION:**
+- All existing files currently use legacy format (no downloadedAt timestamps)
+- Manifest entries missing `downloadedAt` field  
+- Need to infer timestamps from file metadata or use current time
+- Recommend starting with smaller site (`hardfork`: 143 episodes) for testing
+- Use dry-run mode for initial testing to avoid data loss
 
 ## Key Files & Directories Reference
 
@@ -439,7 +507,8 @@ All file modification scripts should be reviewed and run manually by the user, n
 ### File Key & Validation Utils
 - `packages/ingestion/rss-retrieval-lambda/utils/get-episode-file-key.ts` - File naming logic
 - `packages/validation/utils/get-episode-file-key.ts` - Validation utilities
-- `packages/validation/check-file-consistency.ts` - **NEW**: File consistency checker
+- `packages/validation/check-file-consistency.ts` - **NEW**: File consistency checker (545 lines)
+- `packages/validation/FILE_CONSISTENCY_CHECKER.md` - **NEW**: Documentation and usage guide
 - `packages/constants/index.ts` - Shared file key parsing functions
 
 ### Data Storage Structure
@@ -450,6 +519,8 @@ All file modification scripts should be reviewed and run manually by the user, n
 
 ### Build & Deployment
 - `scripts/` - Deployment and site management scripts
+- `scripts/run-with-site-selection.ts` - **ENHANCED**: Now supports `--site=` parameter
+- `scripts/SITE_SELECTION_ENHANCEMENT.md` - **NEW**: Documentation of site selection improvements
 - `terraform/` - AWS infrastructure definitions
 - `packages/client/` - Frontend applications
 - `packages/homepage/` - Homepage application
