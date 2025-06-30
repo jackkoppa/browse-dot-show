@@ -61,22 +61,25 @@ The file consistency checker should scan all files (audio, transcripts, search e
 
 ## Implementation Strategy
 
-### Option 1: Standalone Script (Recommended)
+### ✅ Chosen Approach: Standalone Script in packages/validation
+**Decision**: Implement as a local script in `packages/validation/` that can be run manually
+
 ```bash
-# Create in packages/validation/
+# Implementation location
 cd packages/validation
 touch check-file-consistency.ts
 # Implement using existing @browse-dot-show packages
 ```
 
-### Option 2: Lambda Integration
-- Add consistency check to existing lambdas
-- Run after each processing cycle
-- Report issues via logging
+**Benefits**:
+- Access to all existing `@browse-dot-show` package imports
+- No module resolution issues
+- Can be run locally for validation before migrations
+- No need for Lambda deployment complexity
 
-### Option 3: Separate Validation Package
-- Create dedicated consistency checker
-- Can be run independently or integrated
+### Alternative Options (Not Chosen)
+- **Option 2: Lambda Integration** - Add consistency check to existing lambdas
+- **Option 3: Separate Validation Package** - Create dedicated consistency checker
 
 ## Sample Report Format
 
@@ -162,4 +165,8 @@ pnpm run check-consistency --site=naddpod --fix
 2. **Choose implementation location** (packages/validation recommended)
 3. **Implement using existing @browse-dot-show packages**
 4. **Test on a single site first**
-5. **Run consistency check before Phase 4 migration** 
+5. **Run consistency check before Phase 4 migration**
+
+## Implementation Decision
+
+**✅ DECIDED**: Implement as a local script in `packages/validation/` that can be run manually before migrations. No need for Lambda deployment complexity.

@@ -119,7 +119,7 @@ export interface EpisodeInManifest {
 - ✅ Added cleanup logic to remove older search entry versions for same episode
 - ✅ Search entries automatically match exact transcript file using downloadedAt (existing logic works)
 
-### Phase 3: File Management Logic ✅ **COMPLETED**
+### Phase 3: File Management Logic 🔄 **IN PROGRESS** (3.1 ✅, 3.2 ✅, 3.3 ⏳)
 
 #### 3.1 File Cleanup Logic ✅ **COMPLETED**
 - ✅ Enhanced lambdas to actually delete older versions (not just log)
@@ -133,6 +133,15 @@ export interface EpisodeInManifest {
 - ✅ Specified manifest validation requirements
 - ✅ Ready for implementation in validation package with existing S3 utilities
 - ✅ Safety-first approach: framework provided for user implementation
+
+#### 3.3 File Consistency Implementation ⏳ **NEXT**
+**File**: `packages/validation/check-file-consistency.ts`
+- ⏳ Implement consistency checker using framework from 3.2
+- ⏳ Use existing `@browse-dot-show` package imports (S3, types, constants, logging)
+- ⏳ Create command-line interface for running checks
+- ⏳ Support site-specific checking (e.g., `--site=naddpod`)
+- ⏳ Generate detailed reports as outlined in framework
+- ⏳ Validate current state before Phase 4 migration
 
 ### Phase 4: Migration & Backfill ⏳ **PENDING**
 
@@ -394,19 +403,21 @@ A: Proceed to 2.2 & 2.3. Passing unit tests is sufficient for now.
 - All packages build successfully with `pnpm all:build`
 - Production ready for new episode downloads
 
-**✅ Phase 3 Complete (2024-12-26)**
+**🔄 Phase 3 In Progress (2024-12-26)**
+- ✅ **3.1 & 3.2 Complete**: File cleanup logic implemented, consistency framework created
+- ⏳ **3.3 Next**: Implement consistency checker in `packages/validation/`
 - File cleanup logic fully implemented in all lambdas (actual deletion, not just logging)
 - Comprehensive file consistency framework created (`scripts/file-consistency-framework.md`)
-- Ready for production testing and validation
-- Safety-first approach: framework provided for user implementation
+- Decision made: Implement validation script in `packages/validation/` for local execution
+- Ready for validation script implementation
 
 **⚠️ SAFETY NOTE FOR PHASE 3+:**
 All file modification scripts should be reviewed and run manually by the user, not automatically executed. This ensures proper backups can be made before any file changes occur.
 
 **Next Steps:**
-- Phase 4: Create and run backfill scripts
+- **Phase 3.3**: Implement file consistency checker in `packages/validation/`
+- Phase 4: Create and run backfill scripts  
 - Phase 5: Add enhanced logic and smart downloading
-- **Immediate**: Test current implementation with validation scripts
 
 ## Key Files & Directories Reference
 
