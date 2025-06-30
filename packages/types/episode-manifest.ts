@@ -15,11 +15,12 @@ export interface EpisodeInManifest {
     sequentialId: number;
     podcastId: PodcastId; // e.g., "football-cliches"
     title: string;
-    fileKey: string; // e.g., "2020-01-23_The-Transfer-Window" (used to construct audio file path)
+    fileKey: string; // e.g., "2020-01-23_The-Transfer-Window" or "2024-07-25_Simple-Episode-Title--1721909640000" (used to construct audio file path)
     originalAudioURL: string;
     summary: string;
     durationInSeconds?: number; // Optional, as it might not always be available or consistently formatted in RSS
     publishedAt: string; // ISO 8601 date string
+    downloadedAt?: string; // ISO 8601 timestamp when audio was downloaded (NEW)
     hasCompletedLLMAnnotations: boolean;
     llmAnnotations: LlmAnnotations;
 }

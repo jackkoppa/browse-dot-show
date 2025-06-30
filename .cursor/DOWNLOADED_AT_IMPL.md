@@ -50,6 +50,10 @@ export interface EpisodeInManifest {
 }
 ```
 
+## Implementation Notes
+
+⚠️ **IMPORTANT**: When updating things in `/packages`, always run `pnpm all:build` before using/testing those utils in other packages to update types, etc. Use `pnpm` throughout the project.
+
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure Updates

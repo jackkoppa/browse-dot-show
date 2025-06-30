@@ -127,4 +127,78 @@ export function getEpisodeManifestDirPrefix(): string {
   }
 }
 
+/**
+ * File Key Utility Functions
+ */
+
+// Utility to check if file key has downloadedAt timestamp
+export function hasDownloadedAtTimestamp(fileKey: string): boolean {
+  return fileKey.includes('--') && /--\d{13}$/.test(fileKey);
+}
+
+// Extract downloadedAt from file key
+export function extractDownloadedAtFromFileKey(fileKey: string): Date | null {
+  const match = fileKey.match(/--(\d{13})$/);
+  if (match) {
+    return new Date(parseInt(match[1]));
+  }
+  return null;
+}
+
+// Parse file key components
+export function parseFileKey(fileKey: string): {
+  date: string;
+  title: string;
+  downloadedAt?: Date;
+} {
+  if (hasDownloadedAtTimestamp(fileKey)) {
+    // New format: YYYY-MM-DD_title--timestamp
+    const match = fileKey.match(/^(\d{4}-\d{2}-\d{2})_(.+)--(\d{13})$/);
+    if (match) {
+      return {
+        date: match[1],
+        title: match[2],
+        downloadedAt: new Date(parseInt(match[3]))
+      };
+    }
+  }
+  
+  // Legacy format: YYYY-MM-DD_title
+  const match = fileKey.match(/^(\d{4}-\d{2}-\d{2})_(.+)$/);
+  if (match) {
+    return {
+      date: match[1],
+      title: match[2]
+    };
+  }
+  
+  throw new Error(`Invalid file key format: ${fileKey}`);
+}
+
+// Get all possible file paths for an episode (audio, transcript, search entry)
+export function getEpisodeFilePaths(podcastId: string, fileKey: string): {
+  audio: string;
+  transcript: string;
+  searchEntry: string;
+} {
+  return {
+    audio: `${getAudioDirPrefix()}${podcastId}/${fileKey}.mp3`,
+    transcript: `${getTranscriptsDirPrefix()}${podcastId}/${fileKey}.srt`,
+    searchEntry: `${getSearchEntriesDirPrefix()}${podcastId}/${fileKey}.json`
+  };
+}
+
+// Check if a file key is newer than another based on downloadedAt timestamp
+export function isFileKeyNewer(fileKey1: string, fileKey2: string): boolean {
+  const downloadedAt1 = extractDownloadedAtFromFileKey(fileKey1);
+  const downloadedAt2 = extractDownloadedAtFromFileKey(fileKey2);
+  
+  // If either doesn't have downloadedAt, fall back to string comparison
+  if (!downloadedAt1 || !downloadedAt2) {
+    return fileKey1 > fileKey2;
+  }
+  
+  return downloadedAt1.getTime() > downloadedAt2.getTime();
+}
+
 
