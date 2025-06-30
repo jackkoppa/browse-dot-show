@@ -134,14 +134,15 @@ export interface EpisodeInManifest {
 - ✅ Ready for implementation in validation package with existing S3 utilities
 - ✅ Safety-first approach: framework provided for user implementation
 
-#### 3.3 File Consistency Implementation ⏳ **NEXT**
+#### 3.3 File Consistency Implementation ✅ **COMPLETED**
 **File**: `packages/validation/check-file-consistency.ts`
-- ⏳ Implement consistency checker using framework from 3.2
-- ⏳ Use existing `@browse-dot-show` package imports (S3, types, constants, logging)
-- ⏳ Create command-line interface for running checks
-- ⏳ Support site-specific checking (e.g., `--site=naddpod`)
-- ⏳ Generate detailed reports as outlined in framework
-- ⏳ Validate current state before Phase 4 migration
+- ✅ Implemented comprehensive consistency checker using framework from 3.2
+- ✅ Uses existing `@browse-dot-show` package imports (S3, types, constants, logging)
+- ✅ Created command-line interface for running checks
+- ✅ Supports site-specific checking (e.g., `--site=naddpod`)
+- ✅ Generates detailed reports as outlined in framework
+- ✅ Ready to validate current state before Phase 4 migration
+- ✅ Added package dependencies and build scripts
 
 ### Phase 4: Migration & Backfill ⏳ **PENDING**
 
@@ -403,21 +404,25 @@ A: Proceed to 2.2 & 2.3. Passing unit tests is sufficient for now.
 - All packages build successfully with `pnpm all:build`
 - Production ready for new episode downloads
 
-**🔄 Phase 3 In Progress (2024-12-26)**
-- ✅ **3.1 & 3.2 Complete**: File cleanup logic implemented, consistency framework created
-- ⏳ **3.3 Next**: Implement consistency checker in `packages/validation/`
+**✅ Phase 3 Complete (2024-12-26)**
+- ✅ **3.1, 3.2 & 3.3 Complete**: File cleanup logic implemented, consistency framework created, and consistency checker implemented
 - File cleanup logic fully implemented in all lambdas (actual deletion, not just logging)
 - Comprehensive file consistency framework created (`scripts/file-consistency-framework.md`)
-- Decision made: Implement validation script in `packages/validation/` for local execution
-- Ready for validation script implementation
+- File consistency checker implemented in `packages/validation/check-file-consistency.ts`
+- Ready for validation and Phase 4 migration
 
 **⚠️ SAFETY NOTE FOR PHASE 3+:**
 All file modification scripts should be reviewed and run manually by the user, not automatically executed. This ensures proper backups can be made before any file changes occur.
 
 **Next Steps:**
-- **Phase 3.3**: Implement file consistency checker in `packages/validation/`
-- Phase 4: Create and run backfill scripts  
+- **Phase 4**: Create and run backfill scripts for existing files
 - Phase 5: Add enhanced logic and smart downloading
+
+**✅ READY TO USE**: File consistency checker is now fully integrated:
+- Run `pnpm validate:consistency --site=naddpod` from anywhere in the project
+- Or run `pnpm validate:consistency` for interactive site selection
+- Complete with enhanced site selection and comprehensive validation
+- **✅ CLEANUP**: Removed legacy `DEFAULT_SITE_ID` and `SKIP_SITE_SELECTION_PROMPT` environment variables
 
 ## Key Files & Directories Reference
 
@@ -434,6 +439,7 @@ All file modification scripts should be reviewed and run manually by the user, n
 ### File Key & Validation Utils
 - `packages/ingestion/rss-retrieval-lambda/utils/get-episode-file-key.ts` - File naming logic
 - `packages/validation/utils/get-episode-file-key.ts` - Validation utilities
+- `packages/validation/check-file-consistency.ts` - **NEW**: File consistency checker
 - `packages/constants/index.ts` - Shared file key parsing functions
 
 ### Data Storage Structure

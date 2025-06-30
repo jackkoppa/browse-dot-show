@@ -80,8 +80,7 @@ cp aws.config.template .env.aws-sso  # Set up AWS credentials
 ### Site Selection
 
 All commands prompt you to select which site to work with:
-- Pre-selects the site from `DEFAULT_SITE_ID` in root `.env.local`
-- Set `SKIP_SITE_SELECTION_PROMPT=true` to skip prompting
+- Use `--site=<siteId>` parameter to skip site selection prompt
 - Pass site explicitly: `SITE_ID=my-site pnpm client:dev`
 
 ## 🏗️ Architecture
@@ -150,8 +149,7 @@ WHISPER_API_PROVIDER=openai
 OPENAI_API_KEY=your_key_here
 
 # Site selection defaults
-DEFAULT_SITE_ID=my-main-site
-SKIP_SITE_SELECTION_PROMPT=false
+FILE_STORAGE_ENV=local
 ```
 
 **Site-Specific Environment** (`sites/my-sites/{siteId}/.env.aws-sso`):
@@ -247,7 +245,7 @@ Deploy separate sites for different audiences:
 
 **Site Selection Problems**:
 - Ensure sites exist in `sites/my-sites/` or `sites/origin-sites/`
-- Check `DEFAULT_SITE_ID` in `.env.local`
+- Use `--site=<siteId>` parameter in commands
 - Verify site configuration files are valid JSON
 
 **AWS Deployment Issues**:

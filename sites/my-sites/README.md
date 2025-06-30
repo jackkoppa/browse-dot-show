@@ -114,7 +114,7 @@ pnpm all:deploy                    # Deploy your site to AWS (will prompt for si
 pnpm trigger:ingestion-lambda      # Trigger production data processing
 ```
 
-All commands will prompt you to select which site to work with, unless you set `SKIP_SITE_SELECTION_PROMPT=true` in the root `.env.local` file.
+All commands will prompt you to select which site to work with, unless you use the `--site=<siteId>` parameter to skip the prompt.
 
 ## Common Issues
 

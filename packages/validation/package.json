@@ -11,7 +11,9 @@
         "validate:all:local": "pnpm validate:s3-files-metadata:local",
         "validate:all:prod": "pnpm validate:s3-files-metadata:prod",
         "validate:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./validate-s3-files-metadata.ts",
-        "validate:s3-files-metadata:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./validate-s3-files-metadata.ts"
+        "validate:s3-files-metadata:prod": "dotenvx run -f ../../.env.lambda-prod-build -- tsx ./validate-s3-files-metadata.ts",
+        "validate:consistency": "dotenvx run -f ../../.env.local -- tsx ./check-file-consistency.ts --site=$CURRENT_SITE_ID",
+        "check-consistency": "dotenvx run -f ../../.env.local -- tsx ./check-file-consistency.ts"
     },
     "devDependencies": {
         "typescript": "catalog:",
@@ -26,7 +28,8 @@
         "@browse-dot-show/s3": "workspace:*",
         "@browse-dot-show/config": "workspace:*",
         "@browse-dot-show/types": "workspace:*",
-        "@browse-dot-show/constants": "workspace:*"
+        "@browse-dot-show/constants": "workspace:*",
+        "@browse-dot-show/sites": "workspace:*"
     },
     "exports": {
         ".": "./dist/index.js"

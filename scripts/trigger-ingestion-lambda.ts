@@ -199,11 +199,8 @@ async function main(): Promise<void> {
       value: site
     }));
 
-    // Check for default site
-    const defaultSiteId = process.env.DEFAULT_SITE_ID;
-    const defaultIndex = defaultSiteId 
-      ? availableSites.findIndex(site => site.id === defaultSiteId)
-      : 0;
+    // No default site - always start at first option
+    const defaultIndex = 0;
 
     const siteResponse = await prompts({
       type: 'select',

@@ -162,8 +162,8 @@ export function getSiteDirectory(siteId: string): string | null {
  */
 export async function selectSite(options: SiteSelectionOptions = {}): Promise<string> {
     const {
-        defaultSiteId = process.env.DEFAULT_SITE_ID,
-        skipPrompt = process.env.SKIP_SITE_SELECTION_PROMPT === 'true',
+        defaultSiteId,
+        skipPrompt = false,
         operation = 'operation'
     } = options;
 

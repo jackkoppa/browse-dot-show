@@ -8,6 +8,9 @@ import { selectSite, loadSiteEnvVars } from './utils/site-selector.js';
 /**
  * Wrapper script that handles site selection and runs commands with site context
  * Usage: tsx scripts/run-with-site-selection.ts <operation> <command> [args...]
+ * 
+ * You can skip the site selection prompt by passing --site=<siteId>:
+ * Example: tsx run-with-site-selection.ts "validation" "pnpm validate" --site=naddpod
  */
 async function main(): Promise<void> {
     const args: string[] = process.argv.slice(2);
@@ -15,17 +18,43 @@ async function main(): Promise<void> {
     if (args.length < 2) {
         console.error('Usage: tsx run-with-site-selection.ts <operation> <command> [args...]');
         console.error('Example: tsx run-with-site-selection.ts "client development" "pnpm --filter @browse-dot-show/client _vite-dev"');
+        console.error('Skip site prompt: tsx run-with-site-selection.ts "validation" "pnpm validate" --site=naddpod');
         process.exit(1);
     }
 
     const operation: string = args[0];
     const command: string = args[1];
-    const commandArgs: string[] = args.slice(2);
+    let commandArgs: string[] = args.slice(2);
+    
+    // Check for --site= parameter to skip site selection prompt
+    let preselectedSiteId: string | undefined;
+    const siteArgIndex = commandArgs.findIndex(arg => arg.startsWith('--site='));
+    
+    if (siteArgIndex >= 0) {
+        const siteArg = commandArgs[siteArgIndex];
+        preselectedSiteId = siteArg.split('=')[1];
+        // Remove the --site= argument from commandArgs since it's for site selection, not the target command
+        commandArgs = commandArgs.filter((_, index) => index !== siteArgIndex);
+        
+        if (!preselectedSiteId) {
+            console.error('Error: --site= parameter requires a site ID (e.g., --site=naddpod)');
+            process.exit(1);
+        }
+    }
 
     try {
         // Select site
-        console.log(`🌐 Selecting site for ${operation}...`);
-        const siteId: string = await selectSite({ operation });
+        if (preselectedSiteId) {
+            console.log(`🌐 Using preselected site for ${operation}: ${preselectedSiteId}`);
+        } else {
+            console.log(`🌐 Selecting site for ${operation}...`);
+        }
+        
+        const siteId: string = await selectSite({ 
+            operation,
+            defaultSiteId: preselectedSiteId,
+            skipPrompt: !!preselectedSiteId
+        });
         
         console.log(`📍 Selected site: ${siteId}`);
 
