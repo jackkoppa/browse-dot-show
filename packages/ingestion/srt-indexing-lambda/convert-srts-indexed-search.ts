@@ -16,7 +16,8 @@ import {
   saveFile, 
   listFiles,
   listDirectories,
-  createDirectory
+  createDirectory,
+  deleteFile
 } from '@browse-dot-show/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
@@ -165,10 +166,14 @@ async function cleanupOlderSearchEntryVersions(currentSrtFileKey: string): Promi
             
             if (searchEntryDownloadedAt && searchEntryDownloadedAt < currentDownloadedAt) {
               // This is an older version of the same episode, delete it
-              log.info(`Deleting older search entry version: ${searchEntryFile}`);
-              // Note: We don't have deleteFile imported, so we'll just log for now
-              log.info(`Would delete older search entry: ${searchEntryFile} (file deletion not yet implemented)`);
-              cleanedCount++;
+              try {
+                await deleteFile(searchEntryFile);
+                log.info(`✅ Deleted older search entry version: ${searchEntryFile}`);
+                cleanedCount++;
+              } catch (deleteError) {
+                log.error(`Error deleting older search entry ${searchEntryFile}:`, deleteError);
+                // Continue with other files even if one fails
+              }
             }
           }
         } catch (parseError) {

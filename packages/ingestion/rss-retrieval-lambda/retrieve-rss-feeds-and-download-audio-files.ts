@@ -3,7 +3,7 @@ import * as path from 'path';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { log } from '@browse-dot-show/logging';
-import { fileExists, getFile, saveFile, listFiles, createDirectory } from '@browse-dot-show/s3';
+import { fileExists, getFile, saveFile, listFiles, createDirectory, deleteFile } from '@browse-dot-show/s3';
 import { getCurrentSiteRSSConfig, getCurrentSiteId } from '@browse-dot-show/config';
 import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
 import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
@@ -357,14 +357,16 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
   const audioPath = path.join(getAudioDirPrefix(), podcastId, `${episode.fileKey}.mp3`);
   
   try {
-    // For now, only delete audio files as transcripts and search entries will be handled in their respective lambdas
+    // Delete audio file (transcripts and search entries will be handled in their respective lambdas)
     if (await fileExists(audioPath)) {
-      // Note: We're not importing deleteFile from s3 package, so we'll skip deletion for now
-      // This will be handled in a future update when we add proper file cleanup
-      log.info(`Would delete older audio file: ${audioPath} (file deletion not yet implemented)`);
+      await deleteFile(audioPath);
+      log.info(`✅ Deleted older audio file: ${audioPath}`);
+    } else {
+      log.debug(`Audio file not found (already deleted?): ${audioPath}`);
     }
   } catch (error) {
-    log.error(`Error checking files for ${episode.fileKey}:`, error);
+    log.error(`Error deleting files for ${episode.fileKey}:`, error);
+    // Don't throw - this shouldn't stop the main processing
   }
 }
 

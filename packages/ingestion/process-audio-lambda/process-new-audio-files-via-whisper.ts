@@ -13,6 +13,7 @@ import {
   createDirectory,
   getDirectorySize,
   listDirectories,
+  deleteFile,
 } from '@browse-dot-show/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
@@ -466,10 +467,14 @@ async function cleanupOlderTranscriptVersions(currentAudioFileKey: string): Prom
             
             if (transcriptDownloadedAt && transcriptDownloadedAt < currentDownloadedAt) {
               // This is an older version of the same episode, delete it
-              log.info(`Deleting older transcript version: ${transcriptFile}`);
-              // Note: We don't have deleteFile imported, so we'll just log for now
-              log.info(`Would delete older transcript: ${transcriptFile} (file deletion not yet implemented)`);
-              cleanedCount++;
+              try {
+                await deleteFile(transcriptFile);
+                log.info(`✅ Deleted older transcript version: ${transcriptFile}`);
+                cleanedCount++;
+              } catch (deleteError) {
+                log.error(`Error deleting older transcript ${transcriptFile}:`, deleteError);
+                // Continue with other files even if one fails
+              }
             }
           }
         } catch (parseError) {
