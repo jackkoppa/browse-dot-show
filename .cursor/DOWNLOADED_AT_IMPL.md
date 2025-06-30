@@ -113,9 +113,14 @@ export interface EpisodeInManifest {
 - Update corresponding transcript and search-entry files
 
 #### 4.2 Migration Strategy
-- **Backwards Compatibility**: Support both old and new file key formats during transition
-- **Gradual Migration**: Process sites one at a time
-- **Validation**: Verify all files match after migration
+- **No Users Impact**: Sites don't have users yet, so temporary breakage during migration is acceptable
+- **Backfill Process**: 
+  1. Run against local files (assume current transcripts are accurate)
+  2. Update transcripts to match downloadedAt for existing audio files
+  3. Delete all S3 assets for the site to start fresh
+  4. Use existing `pnpm s3:sync` script to sync fixed local files to S3
+- **Post-Migration**: Only new format needs to be supported after backfill completion
+- **Processing Flexibility**: Can be done locally or in Lambda - syncing always safe with downloadedAt tracking
 
 ### Phase 5: Enhanced Logic
 
@@ -176,7 +181,7 @@ export function getEpisodeFileKeyWithDownloadedAt(
     const downloadedAtUnix = downloadedAt.getTime();
     const sanitizedTitle = sanitizeTitleStrict(episodeTitle);
     
-    return `${formattedDate}_${downloadedAtUnix}_${sanitizedTitle}`;
+    return `${formattedDate}_${sanitizedTitle}--${downloadedAtUnix}`;
 }
 
 // Backwards compatibility
@@ -194,15 +199,14 @@ export function getEpisodeFileKey(episodeTitle: string, pubDateStr: string): str
 
 // Utility to check if file key has downloadedAt timestamp
 export function hasDownloadedAtTimestamp(fileKey: string): boolean {
-    const parts = fileKey.split('_');
-    return parts.length >= 3 && /^\d{13}$/.test(parts[1]);
+    return fileKey.includes('--') && /--\d{13}$/.test(fileKey);
 }
 
 // Extract downloadedAt from file key
 export function extractDownloadedAtFromFileKey(fileKey: string): Date | null {
-    const parts = fileKey.split('_');
-    if (parts.length >= 3 && /^\d{13}$/.test(parts[1])) {
-        return new Date(parseInt(parts[1]));
+    const match = fileKey.match(/--(\d{13})$/);
+    if (match) {
+        return new Date(parseInt(match[1]));
     }
     return null;
 }
@@ -302,10 +306,10 @@ async function deleteEpisodeFiles(episode: EpisodeInManifest, podcastId: string)
 
 ## Risk Mitigation
 
-### 1. Backwards Compatibility
-- Support both old and new file key formats during transition
-- Gradual rollout per site
-- Ability to rollback if issues arise
+### 1. Simplified Migration
+- Support current format during backfill only
+- Clean slate approach: delete S3 assets and sync from corrected local files
+- No rollback needed due to no user impact
 
 ### 2. Data Integrity
 - Comprehensive validation before and after migration
