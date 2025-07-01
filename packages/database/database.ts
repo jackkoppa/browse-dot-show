@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { encode, decodeAsync } from '@msgpack/msgpack';
+import { encode, decode } from '@msgpack/msgpack';
 
 // Type for Orama database instance
 export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
@@ -220,10 +220,8 @@ export async function restoreFromFileStreaming(
     }
     
     // Decode MsgPack and load into database
-    // @ts-expect-error - TODO: CURSOR / jackkoppa - investigate why types don't match
-    const decoded = await decodeAsync(fileBuffer);
-    // @ts-expect-error - TODO: CURSOR / jackkoppa - investigate why types don't match  
-    await load(db, decoded);
+    const decoded = decode(fileBuffer);
+    await load(db, decoded as any);
     log.debug('Successfully loaded database from MsgPack data');
     
     log.info(`Successfully restored Orama database from ${filePath}`);
