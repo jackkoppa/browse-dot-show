@@ -498,6 +498,7 @@ AWS_REGION=us-east-1
 - `terraform/automation/variables.tf` - Configuration variables  
 - `terraform/automation/outputs.tf` - Credentials and role outputs
 - `terraform/automation/data.tf` - Remote state data sources
+- `scripts/deploy/bootstrap-automation-state.ts` - Bootstrap automation terraform state bucket
 - `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - New automated script
 - `.env.automation.template` - Template for automation credentials
 
@@ -506,7 +507,7 @@ AWS_REGION=us-east-1
 - `terraform-homepage/` → `terraform/homepage/`
 
 ### Existing Files to Update
-- `package.json` - Update script names, add new scheduled script
+- `package.json` - Update script names, add new scheduled script, add automation bootstrap script
 - `packages/ingestion/*/package.json` - Update script definitions
 - `scripts/run-with-site-selection.ts` - Add `--env=prod` support
 - All deployment scripts - Update terraform paths
@@ -573,8 +574,9 @@ AWS_REGION=us-east-1
 2. Update automation terraform with known account IDs
 
 #### 2.3: Deploy Central Automation Infrastructure
-1. Deploy `terraform/automation/` to create IAM user and policies
-2. Verify outputs and capture credentials
+1. Bootstrap automation terraform state bucket: `pnpm automation:bootstrap-state`
+2. Deploy `terraform/automation/` to create IAM user and policies
+3. Verify outputs and capture credentials
 
 #### 2.4: Add Automation Role to Hardfork Site
 1. Add `automation_account_id` variable to site terraform
