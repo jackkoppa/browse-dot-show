@@ -157,7 +157,10 @@ export async function persistToFileStreaming(
     log.debug('Successfully exported Orama database for streaming');
     
     // Encode to MsgPack format
-    const msgpack = encode(dbExport);
+    const msgpack = encode(dbExport, {
+      // Hitting an error for `claretandblue` & `naddpod` at max depth of 100 (default) - trying gradual increases
+      maxDepth: 1000
+    });
     const bufferExport = Buffer.from(msgpack.buffer, msgpack.byteOffset, msgpack.byteLength);
     log.debug(`MsgPack buffer size: ${(bufferExport.length / 1024 / 1024).toFixed(2)} MB`);
     

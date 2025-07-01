@@ -30,10 +30,37 @@ Based on prototype from: https://github.com/oramasearch/orama/issues/851#issueco
 - ✅ Update file handling logic for S3 upload
 - ✅ Build completed successfully
 
-#### Phase 5: Testing (READY FOR USER TO TEST)
-- 🔄 Test with full myfavoritemurder dataset
-- 🔄 Verify S3 upload works with file-based approach
-- 🔄 Confirm memory usage improvements
+#### Phase 5: Testing (IN PROGRESS)
+- ✅ **myfavoritemurder dataset (380K entries)**: SUCCESS! 
+  - Persisted 152.20 MB compressed file
+  - Memory peaked at ~5GB but stayed well under limits
+  - No string length errors
+  - S3 upload successful
+- ❌ **claretandblue dataset (206K entries)**: FAILED with MsgPack depth limit
+  - Error: "Too deep objects in depth 101"
+  - MsgPack encoder hits maximum object depth (100 levels)
+  - Memory usage was reasonable (~2.7GB)
+  - Same search entry structure as myfavoritemurder
+
+#### Phase 6: Handle Search Lambda Integration
+- 🔄 Test that persisted files work with `search-indexed-transcripts.ts`
+- 🔄 Update search lambda to use `restoreFromFileStreaming()`
+- 🔄 Verify compressed files decompress correctly
+
+## Edge Case Analysis: MsgPack Depth Limit
+
+**Problem**: MsgPack has a default maximum object depth of 100 levels. For some reason, claretandblue's Orama index structure exceeds this depth while myfavoritemurder (which is larger) does not.
+
+**Potential Causes**:
+- Different internal Orama tree structures based on data patterns
+- Text content/length variations affecting indexing depth  
+- B-tree or trie depth varies with data distribution
+
+**Potential Solutions**:
+1. **Increase MsgPack depth limit** using `maxDepth` option
+2. **Fallback to JSON serialization** for problematic cases
+3. **Alternative chunking approach** for deep structures
+4. **Investigate Orama index differences** between sites
 
 ## Key Benefits
 - No string length limits (streaming approach)
