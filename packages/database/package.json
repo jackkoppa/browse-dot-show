@@ -10,7 +10,8 @@
     },
     "dependencies": {
         "@orama/orama": "catalog:",
-        "@orama/plugin-data-persistence": "catalog:"
+        "@orama/plugin-data-persistence": "catalog:",
+        "@msgpack/msgpack": "^3.1.2"
     },
     "devDependencies": {
         "@browse-dot-show/types": "workspace:*",

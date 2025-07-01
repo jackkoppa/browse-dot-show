@@ -5,5 +5,8 @@ export {
   searchOramaIndex, 
   serializeOramaIndex, 
   deserializeOramaIndex,
-  type OramaSearchDatabase 
+  persistToFileStreaming,
+  restoreFromFileStreaming,
+  type OramaSearchDatabase,
+  type CompressionType
 } from './database.js';

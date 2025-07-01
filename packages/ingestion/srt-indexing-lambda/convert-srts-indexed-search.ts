@@ -5,8 +5,9 @@ import { hasDownloadedAtTimestamp, extractDownloadedAtFromFileKey, parseFileKey 
 import { 
   createOramaIndex, 
   insertMultipleSearchEntries, 
-  serializeOramaIndex,
-  type OramaSearchDatabase 
+  persistToFileStreaming,
+  type OramaSearchDatabase,
+  type CompressionType
 } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
 import { SearchEntry, EpisodeInManifest, SearchRequest } from '@browse-dot-show/types';
@@ -34,6 +35,18 @@ const LAMBDA_CLIENT = new LambdaClient({});
 // Helper function to detect if we're running in AWS Lambda environment
 function isRunningInLambda(): boolean {
   return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+}
+
+// Helper function to log memory usage
+function logMemoryUsage(context: string): void {
+  const memUsage = process.memoryUsage();
+  const formatBytes = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  
+  log.info(`🧠 Memory usage at ${context}:`);
+  log.info(`   RSS (Resident Set Size): ${formatBytes(memUsage.rss)}`);
+  log.info(`   Heap Used: ${formatBytes(memUsage.heapUsed)}`);
+  log.info(`   Heap Total: ${formatBytes(memUsage.heapTotal)}`);
+  log.info(`   External: ${formatBytes(memUsage.external)}`);
 }
 
 // Structure for episode data from the manifest
@@ -323,6 +336,7 @@ export async function handler(): Promise<any> {
   
   const oramaIndex: OramaSearchDatabase = await createOramaIndex();
   log.info('Created fresh Orama search index');
+  logMemoryUsage('after creating fresh Orama index');
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
   const podcastDirectoryPrefixes = await listDirectories(getTranscriptsDirPrefix());
@@ -469,20 +483,25 @@ export async function handler(): Promise<any> {
   // Insert all collected entries in a single batch
   if (allSearchEntriesToInsert.length > 0) {
     log.info(`Inserting all ${allSearchEntriesToInsert.length} entries into Orama index in single batch...`);
+    logMemoryUsage('before inserting all entries into Orama index');
     const insertStart = Date.now();
     await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
     log.info(`All entries inserted into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
+    logMemoryUsage('after inserting all entries into Orama index');
   }
 
-  log.info(`Serializing Orama index to binary format at ${getLocalDbPath()}...`);
+  log.info(`Persisting Orama index using streaming approach to ${getLocalDbPath()}...`);
+  logMemoryUsage('before attempting to persist Orama index with streaming');
   try {
-    const serializedIndexBuffer = await serializeOramaIndex(oramaIndex);
-    await fs.writeFile(getLocalDbPath(), serializedIndexBuffer);
-    log.info(`Orama index successfully serialized to ${getLocalDbPath()}`);
+    // Use streaming persistence with gzip compression
+    const compression: CompressionType = "gzip";
+    await persistToFileStreaming(oramaIndex, getLocalDbPath(), compression);
+    logMemoryUsage('after persisting Orama index to file with streaming');
     
     // Upload to S3 (this will overwrite any existing index)
     log.info(`Uploading Orama index from ${getLocalDbPath()} to S3 at ${getSearchIndexKey()}...`);
-    await saveFile(getSearchIndexKey(), serializedIndexBuffer);
+    const indexFileBuffer = await fs.readFile(getLocalDbPath());
+    await saveFile(getSearchIndexKey(), indexFileBuffer);
     log.info(`Orama index successfully saved and exported to S3: ${getSearchIndexKey()}`);
 
     // If new entries were added, invoke the search lambda to force a refresh (only when running in AWS Lambda)
@@ -513,6 +532,7 @@ export async function handler(): Promise<any> {
 
   } catch (error: any) {
     log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${getLocalDbPath()} but S3 is not updated.`, error);
+    logMemoryUsage('after failed to serialize or upload Orama index to S3');
     return {
       status: 'error',
       message: `Failed to serialize or upload index: ${error.message}`,

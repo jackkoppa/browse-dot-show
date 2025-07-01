@@ -1,0 +1,33 @@
+{
+    "id": "myfavoritemurder",
+    "domain": "myfavoritemurder.browse.show",
+    "appHeader": {
+        "primaryTitle": "My Favorite Murder",
+        "includeTitlePrefix": false,
+        "taglinePrimaryPodcastName": "My Favorite Murder",
+        "taglinePrimaryPodcastExternalURL": "https://myfavoritemurder.com",
+        "taglineSuffix": "archives"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "[browse.show] My Favorite Murder",
+        "canonicalUrl": "https://myfavoritemurder.browse.show",
+        "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+        "metaDescription": "Search all 'My Favorite Murder' episodes",
+        "metaTitle": "[browse.show] My Favorite Murder"
+    },
+    "includedPodcasts": [
+        {
+            "id": "my-favorite-murder",
+            "rssFeedFile": "my-favorite-murder.xml",
+            "title": "My Favorite Murder",
+            "status": "active",
+            "url": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/bdde8bb3-169d-43b1-91d3-b24c0047969c/f450d41f-16bc-4ecd-8f6c-b24c004796e2/podcast.rss"
+        }
+    ],
+    "whisperTranscriptionPrompt": "Welcome to My Favorite Murder. Hosted by Karen Kilgariff and Georgia Hardstark. Each week, we share compelling true crimes and hometown stories from friends and listeners. Stay sexy, don't get murdered, and let's get started!",
+    "themeColor": "#d65a47",
+    "themeColorDark": "#3b3936",
+    "searchPlaceholderOptions": [
+        "stay sexy"
+    ]
+}
