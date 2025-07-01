@@ -8,12 +8,13 @@
 - [x] 1.3: Create automation terraform structure ✅
 - [x] 1.4: Test existing functionality still works ✅
 
-### Phase 2: Cross-Account IAM Setup ⚠️ IN PROGRESS
+### Phase 2: Cross-Account IAM Setup ✅ COMPLETE
 - [x] 2.1: Create automation terraform infrastructure ✅
 - [x] 2.2: Deploy central IAM user and policies ✅ 
 - [x] 2.3: Deploy central automation infrastructure ✅
-- [x] 2.4: Add automation roles to hardfork site terraform ✅ READY FOR DEPLOYMENT
-- [ ] 2.5: Test cross-account access
+- [x] 2.4: Add automation roles to hardfork site terraform ✅ 
+- [x] 2.5: Test cross-account access ✅ COMPLETE
+- [ ] 2.6: Roll out to remaining sites (claretandblue, listenfairplay, naddpod)
 
 ### Phase 3: Script Updates
 - [ ] 3.1: Update individual lambda package.json files
@@ -50,19 +51,21 @@
 
 ### ⚠️ NEXT STEPS (Resume here):
 
-**Immediate:** Phase 2.4 - READY FOR DEPLOYMENT
-1. ✅ Update `terraform/sites/variables.tf` with `automation_account_id` variable - COMPLETE
-2. ✅ Update `terraform/sites/main.tf` with automation role resources - COMPLETE
-3. 🚀 Deploy hardfork site: Run `pnpm deploy:site` and select hardfork - WAITING FOR DEV
+**COMPLETED:** Phase 2.5 - Cross-Account Access Testing ✅
+1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in hardfork account
+2. ✅ **S3 Upload:** Successfully uploaded test files to `hardfork-browse-dot-show` bucket  
+3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
+4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-hardfork`
 
-**Then:** Phase 2.5 - Test cross-account access
-1. Test role assumption from automation account to hardfork
-2. Verify S3 and Lambda permissions work
+**READY:** Phase 2.6 - Roll out to remaining sites
+1. 🚀 Update automation terraform to include all sites: `claretandblue`, `listenfairplay`, `naddpod`
+2. 🚀 Deploy hardfork-style automation roles to all remaining site terraform configurations
+3. 🚀 Test cross-account access for all sites
 
-**Finally:** Phase 2.6 - Roll out to all sites
-1. Update automation terraform to include all sites
-2. Add automation roles to all remaining sites
-3. Test all cross-account access
+**Future:** Phase 3 - Script Updates  
+1. Update individual lambda package.json files
+2. Update root package.json  
+3. Update run-with-site-selection.ts for --env=prod support
 
 ### 🔑 Key Information for Resuming:
 - **Automation Account:** `297202224084` (browse.show-0_account--root)
@@ -345,3 +348,32 @@ terraform/
 
 #### Update Root Package.json
 ```
+```
+
+**Results:**
+- IAM user created: `browse-dot-show-automation` 
+- Access key: `AKIAUKMVCBPKN67ZN7UV`
+- User ARN: `arn:aws:iam::297202224084:user/automation/browse-dot-show-automation`
+- `.env.automation` file created with credentials ✅
+- Cross-account policies configured for hardfork account (`927984855345`)
+
+#### 2.4: Add Automation Role to Hardfork Site ✅ COMPLETE
+1. ✅ Add `automation_account_id` variable to site terraform variables.tf - COMPLETE
+2. ✅ Add automation role resource to hardfork site terraform main.tf - COMPLETE  
+3. ✅ Deploy hardfork terraform updates using existing `pnpm deploy:site` command - COMPLETE
+
+#### 2.5: Test Cross-Account Access ✅ COMPLETE
+**Test Results (hardfork site):**
+1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in hardfork account
+2. ✅ **S3 Upload:** Successfully uploaded test files to `hardfork-browse-dot-show` bucket  
+3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
+4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-hardfork`
+
+**Permissions Deployed:**
+- `s3:PutObject` - ✅ Working
+- `s3:PutObjectAcl` - ✅ Working  
+- `s3:DeleteObject` - ✅ Working (added for cleanup operations)
+- `lambda:InvokeFunction` - ✅ Working
+
+**Test Command:** `tsx scripts/test-cross-account-access.ts`
+**Ready for replication to remaining sites.**
