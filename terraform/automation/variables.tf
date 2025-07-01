@@ -10,6 +10,12 @@ variable "deployed_sites" {
   default     = ["claretandblue", "hardfork", "listenfairplay", "naddpod"]
 }
 
+variable "site_account_ids" {
+  description = "Map of site IDs to their AWS account IDs (hardcoded for now)"
+  type        = map(string)
+  default     = {}
+}
+
 variable "aws_region" {
   description = "The AWS region for automation resources"
   type        = string

@@ -534,3 +534,64 @@ AWS_REGION=us-east-1
 2. Verify it only triggers indexing for sites with new SRT files
 3. Test error handling and reporting
 4. Set up local scheduling (cron/equivalent)
+
+
+## Answers & Refined Implementation Plan
+
+### Automation Account & Credentials ✅
+- **Central automation account ID**: `297202224084` (`browse.show-0_account--root`)
+- **Same account as homepage S3 bucket** - logical choice for central automation
+- **TODO**: Eventually gitignore the account ID, but for now keep in non-gitignored files for simplicity
+
+### Site Account IDs & Terraform State Access ✅
+- **Current limitation**: Automation account cannot access site terraform states yet
+- **Immediate solution**: Hardcode known site account IDs in automation terraform for Phase 2
+- **Future enhancement**: Set up terraform state bucket read access for advanced automation (site deployments)
+- **Current focus**: S3 bucket access + indexing lambda invoke permissions only
+
+### Known Site Account IDs (for hardcoding)
+- `hardfork`: TBD (will discover during implementation)
+- `naddpod`: `152849157974` 
+- `claretandblue`: TBD
+- `listenfairplay`: TBD
+
+### Deployment Strategy ✅
+- **Start with single site**: `hardfork` as proof-of-concept
+- **Temporary breakage OK**: No production users, can destroy/recreate if needed
+- **Parallel modifications OK**: Comfortable with simultaneous site terraform changes
+- **Testing access**: Have creds for main account + naddpod account
+
+### Phase 2 Refined Implementation Order
+
+#### 2.1: Update Automation Terraform Configuration
+1. Set automation account ID to `297202224084`
+2. Replace terraform state data sources with hardcoded site account mappings
+3. Update to focus on `hardfork` site first
+
+#### 2.2: Discover Site Account IDs  
+1. Use existing site .env.aws-sso files or terraform outputs to get account IDs
+2. Update automation terraform with known account IDs
+
+#### 2.3: Deploy Central Automation Infrastructure
+1. Deploy `terraform/automation/` to create IAM user and policies
+2. Verify outputs and capture credentials
+
+#### 2.4: Add Automation Role to Hardfork Site
+1. Add `automation_account_id` variable to site terraform
+2. Add automation role resource to hardfork site terraform
+3. Deploy hardfork terraform updates
+
+#### 2.5: Test Cross-Account Access
+1. Configure `.env.automation` with automation credentials
+2. Test role assumption for hardfork site
+3. Test S3 upload and lambda invoke permissions
+
+#### 2.6: Roll Out to Remaining Sites
+1. Add automation roles to claretandblue, listenfairplay, naddpod
+2. Deploy all site terraform updates
+3. Test cross-account access for all sites
+
+### Future Enhancements (Not Phase 2)
+- **Terraform state bucket read access**: For automated site deployments
+- **Full site deployment automation**: Replace manual AWS SSO login process
+- **Account ID gitignoring**: Move sensitive values to gitignored files 

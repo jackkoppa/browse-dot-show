@@ -52,7 +52,7 @@ resource "aws_iam_user_policy" "assume_site_roles" {
         Action = "sts:AssumeRole"
         Resource = [
           for site_id in var.deployed_sites :
-          "arn:aws:iam::${try(data.terraform_remote_state.sites[site_id].outputs.account_id, "*")}:role/browse-dot-show-automation-role"
+          "arn:aws:iam::${var.site_account_ids[site_id]}:role/browse-dot-show-automation-role"
         ]
       }
     ]
