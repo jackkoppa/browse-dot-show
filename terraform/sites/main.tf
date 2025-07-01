@@ -153,7 +153,7 @@ module "rss_lambda" {
     CLOUDFRONT_DISTRIBUTION_ID = module.cloudfront.cloudfront_id
     SITE_ID                   = var.site_id
   }
-  source_dir           = "../packages/ingestion/rss-retrieval-lambda/aws-dist"
+  source_dir           = "../../packages/ingestion/rss-retrieval-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
@@ -175,7 +175,7 @@ module "whisper_lambda" {
     LOG_LEVEL          = var.log_level
     SITE_ID            = var.site_id
   }
-  source_dir           = "../packages/ingestion/process-audio-lambda/aws-dist"
+  source_dir           = "../../packages/ingestion/process-audio-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
@@ -216,7 +216,7 @@ module "indexing_lambda" {
     LOG_LEVEL          = var.log_level
     SITE_ID            = var.site_id
   }
-  source_dir           = "../packages/ingestion/srt-indexing-lambda/aws-dist"
+  source_dir           = "../../packages/ingestion/srt-indexing-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
@@ -247,7 +247,7 @@ module "search_lambda" {
     SITE_ID            = var.site_id
     FILE_STORAGE_ENV   = "prod-s3"
   }
-  source_dir           = "../packages/search/search-lambda/aws-dist"
+  source_dir           = "../../packages/search/search-lambda/aws-dist"
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
