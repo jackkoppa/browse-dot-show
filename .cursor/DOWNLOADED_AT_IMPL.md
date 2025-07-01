@@ -512,7 +512,18 @@ All file modification scripts should be reviewed and run manually by the user, n
 - Successfully handled complex scenarios: `"The Foreign Influx "` vs `"The Foreign Influx"`
 - Validation scripts proven robust across diverse site configurations
 
-**✅ READY FOR PHASE 5:**
+**⚠️ REMAINING ISSUE DISCOVERED:**
+- **RSS Lambda Recognition**: RSS retrieval lambda still attempts to download all 270 episodes for `listenfairplay` despite successful backfill
+- **Root Cause**: Lambda may not properly recognize existing episodes with new downloadedAt format
+- **Impact**: Could cause unnecessary re-downloads and duplicate file creation
+- **Status**: Requires investigation and fix before Phase 5 deployment
+
+**🔧 REQUIRED BEFORE PHASE 5:**
+- **Fix RSS Lambda**: Ensure RSS retrieval lambda properly detects existing migrated episodes
+- **Test Command**: `pnpm rss-retrieval-lambda:run:local --site=listenfairplay` should skip existing episodes
+- **Validation**: Confirm zero download attempts for already-migrated episodes
+
+**✅ THEN READY FOR PHASE 5:**
 - **Production Deploy**: Sync all migrated files to S3 production buckets  
 - **Enhanced Logic**: Smart downloading and monitoring features
 

@@ -113,6 +113,11 @@ function parseArgs(): CliArgs {
     }
   }
 
+  // Fall back to environment variables if no site specified via CLI
+  if (!parsed.site) {
+    parsed.site = process.env.SELECTED_SITE_ID || process.env.CURRENT_SITE_ID;
+  }
+
   return parsed;
 }
 
@@ -127,7 +132,7 @@ This script migrates existing files from legacy format (YYYY-MM-DD_title)
 to the new format with downloadedAt timestamps (YYYY-MM-DD_title--timestamp).
 
 Usage:
-  pnpm run backfill-timestamps [options]
+  pnpm backfill:timestamps [options]
 
 Options:
   --site <siteId>     Backfill specific site (e.g., naddpod, hardfork)
@@ -137,9 +142,16 @@ Options:
   --help, -h          Show this help message
 
 Examples:
-  pnpm run backfill-timestamps --site=hardfork                # Dry run for hardfork
-  pnpm run backfill-timestamps --site=hardfork --execute      # Execute migration for hardfork
-  pnpm run backfill-timestamps --site=naddpod --verbose       # Verbose dry run for naddpod
+  pnpm backfill:timestamps --site=hardfork                # Dry run for hardfork
+  pnpm backfill:timestamps --site=hardfork --execute      # Execute migration for hardfork
+  pnpm backfill:timestamps --site=naddpod --verbose       # Verbose dry run for naddpod
+
+Alternative usage via site selection wrapper:
+  pnpm backfill:timestamps                                    # Select site interactively
+  pnpm backfill:timestamps --site=hardfork                    # Skip site selection
+
+Note: When using the pnpm script or run-with-site-selection.ts wrapper, 
+      the site can be selected interactively or via environment variables.
 
 ⚠️  IMPORTANT: Always run without --execute first to see what changes will be made!
 `);
@@ -470,7 +482,7 @@ function displayResults(siteId: string, stats: BackfillStats, dryRun: boolean): 
 
   if (dryRun && stats.totalEpisodes > stats.alreadyMigrated) {
     console.log(`\n💡 To execute the migration, run with --execute flag:`);
-    console.log(`   pnpm run backfill-timestamps --site=${siteId} --execute`);
+    console.log(`   pnpm backfill:timestamps --site=${siteId} --execute`);
   }
 
   if (!dryRun && stats.successfullyMigrated > 0) {
@@ -486,7 +498,9 @@ async function main(): Promise<void> {
   const args = parseArgs();
 
   if (!args.site) {
-    console.error('❌ Site ID is required. Use --site=<siteId> or --help for usage info.');
+    console.error('❌ Site ID is required.');
+    console.error('   Provide via: --site=<siteId> or use pnpm backfill:timestamps for interactive selection');
+    console.error('   Use --help for full usage info.');
     process.exit(1);
   }
 

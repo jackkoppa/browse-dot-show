@@ -29,6 +29,10 @@ export function getEpisodeFileKeyWithDownloadedAt(
     return `${formattedDate}_${sanitizedTitle}--${downloadedAtUnix}`;
 }
 
+export function stripDownloadedAtFromFileKey(fileKey: string): string {
+    return fileKey.split('--')[0];
+}
+
 // Get episode fileKey based on pubDate and title (LEGACY FORMAT - for backwards compatibility during migration)
 export function getEpisodeFileKey(episodeTitle: string, pubDateStr: string): string {
     const date = parsePubDate(pubDateStr);

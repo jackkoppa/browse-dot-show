@@ -9,7 +9,7 @@ import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
 import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
-import { getEpisodeFileKey, getEpisodeFileKeyWithDownloadedAt, hasDownloadedAtTimestamp } from './utils/get-episode-file-key.js';
+import { stripDownloadedAtFromFileKey, getEpisodeFileKeyWithDownloadedAt } from './utils/get-episode-file-key.js';
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
@@ -192,10 +192,15 @@ async function updateManifestWithNewEpisodes(
   let newEpisodesInManifest: EpisodeInManifest[] = [];
   let existingEpisodesInManifest: EpisodeInManifest[] = episodeManifest.episodes.filter((ep: EpisodeInManifest) => ep.podcastId === podcastId);
 
-  const existingEpisodeIdentifiers = new Set(
+  const existingEpisodeOriginalAudioURLs = new Set(
     episodeManifest.episodes.map((ep: EpisodeInManifest) => ep.originalAudioURL)
   );
-  episodeManifest.episodes.forEach((ep: EpisodeInManifest) => ep.fileKey && existingEpisodeIdentifiers.add(ep.fileKey));
+  const existingEpisodeFileKeys = new Set(
+    episodeManifest.episodes.map((ep: EpisodeInManifest) => ep.fileKey)
+  );
+  const existingEpisodeFileKeysWithoutDownloadedAt = new Set(
+    episodeManifest.episodes.map((ep: EpisodeInManifest) => stripDownloadedAtFromFileKey(ep.fileKey))
+  );
 
   // sequentialId will be assigned globally later. No longer calculate maxSequentialId here.
 
@@ -225,20 +230,24 @@ async function updateManifestWithNewEpisodes(
         continue;
     }
 
-    if (existingEpisodeIdentifiers.has(originalAudioURL)) {
+    if (existingEpisodeOriginalAudioURLs.has(originalAudioURL)) {
       continue; 
     }
     
     // Capture when this episode is being processed for download
     const downloadedAt = new Date();
-    const fileKey = getEpisodeFileKeyWithDownloadedAt(episodeTitle, pubDateString, downloadedAt);
+    const fileKey = getEpisodeFileKeyWithDownloadedAt(episodeTitle, pubDateString, downloadedAt); // NEW: Include downloadedAt timestamp
     
+    // Check for existing episodes with same file key (ignoring downloadedAt timestamp)
+    if (existingEpisodeFileKeysWithoutDownloadedAt.has(stripDownloadedAtFromFileKey(fileKey))) {
+      continue;
+    }
+
     // Check for existing episodes with same file key (including downloadedAt timestamp)
-    if (existingEpisodeIdentifiers.has(fileKey)) {
+    if (existingEpisodeFileKeys.has(fileKey)) {
         continue;
     }
 
-    // sequentialId is set to 0 as a placeholder. It will be correctly assigned after global sort.
     const summary = getEpisodeSummary(rssEpisode);
     const durationInSeconds = parseDuration(rssEpisode['itunes:duration']);
 
@@ -258,8 +267,10 @@ async function updateManifestWithNewEpisodes(
 
     episodeManifest.episodes.push(newEpisodeToAdd);
     newEpisodesInManifest.push(newEpisodeToAdd);
-    existingEpisodeIdentifiers.add(originalAudioURL);
-    existingEpisodeIdentifiers.add(fileKey);
+
+    existingEpisodeOriginalAudioURLs.add(originalAudioURL);
+    existingEpisodeFileKeys.add(fileKey);
+    existingEpisodeFileKeysWithoutDownloadedAt.add(stripDownloadedAtFromFileKey(fileKey));
 
     log.info(`🆕 Identified for manifest: ${podcastId} - ${episodeTitle}`);
   }
@@ -389,7 +400,7 @@ async function cleanupOlderVersions(episodeManifest: EpisodeManifest, podcastId:
   let totalCleaned = 0;
   
   // For each URL, keep only the newest downloadedAt version
-  for (const [url, episodes] of episodesByUrl) {
+  for (const [_, episodes] of episodesByUrl) {
     if (episodes.length > 1) {
       // Sort by downloadedAt, keep newest
       episodes.sort((a, b) => {
