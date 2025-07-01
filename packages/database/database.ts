@@ -158,7 +158,8 @@ export async function persistToFileStreaming(
     
     // Encode to MsgPack format
     const msgpack = encode(dbExport, {
-      // Hitting an error for `claretandblue` & `naddpod` at max depth of 100 (default) - trying gradual increases
+      // Default max depth is 100, but we see errors for some sites (e.g. `claretandblue` & `naddpod`) at that depth, and at 200. 
+      // 1000 has worked thus far.
       maxDepth: 1000
     });
     const bufferExport = Buffer.from(msgpack.buffer, msgpack.byteOffset, msgpack.byteLength);
