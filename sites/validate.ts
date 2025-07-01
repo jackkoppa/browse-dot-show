@@ -1,9 +1,3 @@
-// CURSOR-TODO: Add validation for sites, to confirm things like:
-// - all site.config.json files contain all required fields from the SiteConfig interface, in ./types.ts
-// - all sites have valide .env.aws-sso files
-//    - for all AWS_PROFILE .env.aws-sso values, confirm that SSO is configured for that profile via AWS CLI
-// - all sites have a valid index.css file
-
 import fs from 'fs';
 import path from 'path';
 import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory } from './index.js';

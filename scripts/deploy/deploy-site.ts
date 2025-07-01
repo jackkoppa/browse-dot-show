@@ -314,7 +314,7 @@ async function runTerraformDeployment(siteId: string): Promise<boolean> {
   try {
     // Bootstrap terraform state bucket if needed
     printInfo('Bootstrapping Terraform state bucket...');
-    await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-terraform-state.ts', siteId, process.env.AWS_PROFILE || '']);
+    await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-site-state.ts', siteId, process.env.AWS_PROFILE || '']);
 
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);

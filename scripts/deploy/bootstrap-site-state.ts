@@ -5,23 +5,23 @@ import {
   s3BucketExists, 
   createS3Bucket, 
   awsCommand 
-} from '../utils/aws-utils';
-import { logError, printInfo, printError, logProgress, logSuccess } from '../utils/logging';
+} from '../utils/aws-utils.js';
+import { logError, printInfo, printError, logProgress, logSuccess } from '../utils/logging.js';
 
 /**
  * Bootstrap script to create Terraform state S3 bucket for a site
  * This must be run before the main terraform deployment
  * 
- * Usage: tsx bootstrap-terraform-state.ts <site_id> [aws_profile]
- * Example: tsx bootstrap-terraform-state.ts hardfork Administrator-browse.show-base-089994311986
+ * Usage: tsx bootstrap-site-state.ts <site_id> [aws_profile]
+ * Example: tsx bootstrap-site-state.ts hardfork Administrator-browse.show-base-089994311986
  */
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    printError('Usage: tsx bootstrap-terraform-state.ts <site_id> [aws_profile]');
-    console.error('Example: tsx bootstrap-terraform-state.ts hardfork Administrator-browse.show-base-089994311986');
+    printError('Usage: tsx bootstrap-site-state.ts <site_id> [aws_profile]');
+    console.error('Example: tsx bootstrap-site-state.ts hardfork Administrator-browse.show-base-089994311986');
     process.exit(1);
   }
 
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
+main().catch((error: any) => {
   logError('Unexpected error:', error);
   process.exit(1);
 }); 

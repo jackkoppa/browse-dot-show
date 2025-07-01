@@ -499,18 +499,22 @@ AWS_REGION=us-east-1
 - `terraform/automation/outputs.tf` - Credentials and role outputs
 - `terraform/automation/data.tf` - Remote state data sources
 - `scripts/deploy/bootstrap-automation-state.ts` - Bootstrap automation terraform state bucket
+- `scripts/deploy/deploy-automation.ts` - Deploy automation infrastructure  
 - `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - New automated script
-- `.env.automation.template` - Template for automation credentials
+- `.env.automation` - Automation credentials (gitignored)
 
-### Files to Move
-- `terraform/` → `terraform/sites/`
-- `terraform-homepage/` → `terraform/homepage/`
+### Files to Move & Rename ✅ COMPLETE
+- `terraform/` → `terraform/sites/` ✅
+- `terraform-homepage/` → `terraform/homepage/` ✅
+- `scripts/deploy/bootstrap-terraform-state.ts` → `scripts/deploy/bootstrap-site-state.ts` ✅
+- `scripts/deploy/deploy.ts` → `scripts/deploy/deploy-site.ts` ✅
 
 ### Existing Files to Update
-- `package.json` - Update script names, add new scheduled script, add automation bootstrap script
+- `package.json` - Update script names, add new scheduled script, add automation scripts ✅
+- `.gitignore` - Add .env.automation ✅
 - `packages/ingestion/*/package.json` - Update script definitions
 - `scripts/run-with-site-selection.ts` - Add `--env=prod` support
-- All deployment scripts - Update terraform paths
+- All deployment scripts - Update terraform paths ✅
 - Documentation files - Update paths and instructions
 
 ## Testing Plan
@@ -573,10 +577,10 @@ AWS_REGION=us-east-1
 1. Use existing site .env.aws-sso files or terraform outputs to get account IDs
 2. Update automation terraform with known account IDs
 
-#### 2.3: Deploy Central Automation Infrastructure
-1. Bootstrap automation terraform state bucket: `pnpm automation:bootstrap-state`
-2. Deploy `terraform/automation/` to create IAM user and policies
-3. Verify outputs and capture credentials
+#### 2.3: Deploy Central Automation Infrastructure ✅ READY
+1. Bootstrap automation terraform state bucket: `pnpm automation:bootstrap-state` ✅
+2. Deploy automation infrastructure: `pnpm automation:deploy`
+3. Verify outputs and capture credentials (automated by deploy script)
 
 #### 2.4: Add Automation Role to Hardfork Site
 1. Add `automation_account_id` variable to site terraform
