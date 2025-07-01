@@ -25,6 +25,12 @@ variable "s3_bucket_name" {
   default     = "browse-dot-show"
 }
 
+variable "automation_account_id" {
+  description = "AWS account ID for the central automation account"
+  type        = string
+  default     = "297202224084"
+}
+
 variable "openai_api_key" {
   description = "OpenAI API key for Whisper transcription"
   type        = string

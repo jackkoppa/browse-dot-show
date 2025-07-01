@@ -301,5 +301,53 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
   source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
 }
 
+# IAM role for automation account to assume
+resource "aws_iam_role" "automation_role" {
+  name = "browse-dot-show-automation-role"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${var.automation_account_id}:user/automation/browse-dot-show-automation"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+  
+  tags = {
+    Name = "${var.site_id}-automation-role"
+    Site = var.site_id
+  }
+}
+
+# Automation permissions for S3 and Lambda
+resource "aws_iam_role_policy" "automation_permissions" {
+  name = "browse-dot-show-automation-permissions"
+  role = aws_iam_role.automation_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl"
+        ]
+        Resource = "${module.s3_bucket.bucket_arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = module.indexing_lambda.lambda_function_arn
+      }
+    ]
+  })
+}
+
 # Note: Terraform state bucket is created by the bootstrap script
 # See: scripts/deploy/bootstrap-terraform-state.sh 
