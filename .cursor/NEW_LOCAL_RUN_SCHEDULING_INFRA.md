@@ -8,11 +8,12 @@
 - [x] 1.3: Create automation terraform structure ✅
 - [x] 1.4: Test existing functionality still works ✅
 
-### Phase 2: Cross-Account IAM Setup ⚠️ READY TO START
-- [ ] 2.1: Create automation terraform infrastructure
-- [ ] 2.2: Deploy central IAM user and policies
-- [ ] 2.3: Add automation roles to each site's terraform
-- [ ] 2.4: Test cross-account access
+### Phase 2: Cross-Account IAM Setup ⚠️ IN PROGRESS
+- [x] 2.1: Create automation terraform infrastructure ✅
+- [x] 2.2: Deploy central IAM user and policies ✅ 
+- [x] 2.3: Deploy central automation infrastructure ✅
+- [ ] 2.4: Add automation roles to hardfork site terraform
+- [ ] 2.5: Test cross-account access
 
 ### Phase 3: Script Updates
 - [ ] 3.1: Update individual lambda package.json files
@@ -34,6 +35,38 @@
 - [ ] 5.3: Deploy automation infrastructure
 - [ ] 5.4: Configure local credentials
 - [ ] 5.5: Set up local scheduling
+
+## 🎯 Current Status & Next Steps
+
+### ✅ COMPLETED (Phase 1 & Phase 2.1-2.3):
+1. **Terraform restructure** - All terraform moved to consistent structure
+2. **File naming consistency** - All deploy scripts follow same patterns  
+3. **Automation infrastructure** - Central IAM user deployed and ready
+4. **Credentials configured** - `.env.automation` file created with working credentials
+5. **Cross-account policies** - Automation user can assume roles in site accounts
+
+### ⚠️ NEXT STEPS (Resume here):
+
+**Immediate:** Phase 2.4 - Add automation role to hardfork site
+1. Update `terraform/sites/variables.tf` with `automation_account_id` variable
+2. Update `terraform/sites/main.tf` with automation role resources (see details above)
+3. Deploy hardfork site: Select hardfork when running `pnpm deploy:site`
+
+**Then:** Phase 2.5 - Test cross-account access
+1. Test role assumption from automation account to hardfork
+2. Verify S3 and Lambda permissions work
+
+**Finally:** Phase 2.6 - Roll out to all sites
+1. Update automation terraform to include all sites
+2. Add automation roles to all remaining sites
+3. Test all cross-account access
+
+### 🔑 Key Information for Resuming:
+- **Automation Account:** `297202224084` (browse.show-0_account--root)
+- **Automation User:** `browse-dot-show-automation` 
+- **Access Key:** REQUEST_THIS_FROM_DEV - SAVED_OUTSIDE_OF_GIT
+- **Test Target:** `hardfork` site in account `927984855345`
+- **Credentials:** Ready in `.env.automation` file
 
 ## 📚 Key Reference Files (for Future Agents)
 
@@ -577,25 +610,88 @@ AWS_REGION=us-east-1
 1. Use existing site .env.aws-sso files or terraform outputs to get account IDs
 2. Update automation terraform with known account IDs
 
-#### 2.3: Deploy Central Automation Infrastructure ✅ READY
+#### 2.3: Deploy Central Automation Infrastructure ✅ COMPLETE
 1. Bootstrap automation terraform state bucket: `pnpm automation:bootstrap-state` ✅
-2. Deploy automation infrastructure: `pnpm automation:deploy`
-3. Verify outputs and capture credentials (automated by deploy script)
+2. Deploy automation infrastructure: `pnpm automation:deploy` ✅
+3. Verify outputs and capture credentials ✅
 
-#### 2.4: Add Automation Role to Hardfork Site
-1. Add `automation_account_id` variable to site terraform
-2. Add automation role resource to hardfork site terraform
-3. Deploy hardfork terraform updates
+**Results:**
+- IAM user created: `browse-dot-show-automation` 
+- Access key: `AKIAUKMVCBPKN67ZN7UV`
+- User ARN: `arn:aws:iam::297202224084:user/automation/browse-dot-show-automation`
+- `.env.automation` file created with credentials ✅
+- Cross-account policies configured for hardfork account (`927984855345`)
 
-#### 2.5: Test Cross-Account Access
-1. Configure `.env.automation` with automation credentials
-2. Test role assumption for hardfork site
-3. Test S3 upload and lambda invoke permissions
+#### 2.4: Add Automation Role to Hardfork Site ⚠️ NEXT STEP
+1. Add `automation_account_id` variable to site terraform variables.tf
+2. Add automation role resource to hardfork site terraform main.tf  
+3. Deploy hardfork terraform updates using existing `pnpm deploy:site` command
 
-#### 2.6: Roll Out to Remaining Sites
-1. Add automation roles to claretandblue, listenfairplay, naddpod
-2. Deploy all site terraform updates
-3. Test cross-account access for all sites
+**Required Changes to `terraform/sites/main.tf`:**
+```hcl
+# IAM role for automation account to assume
+resource "aws_iam_role" "automation_role" {
+  name = "browse-dot-show-automation-role"
+  
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${var.automation_account_id}:user/automation/browse-dot-show-automation"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+# Automation permissions for S3 and Lambda
+resource "aws_iam_role_policy" "automation_permissions" {
+  name = "browse-dot-show-automation-permissions"
+  role = aws_iam_role.automation_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl"
+        ]
+        Resource = "${module.s3_bucket.bucket_arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = module.indexing_lambda.lambda_function_arn
+      }
+    ]
+  })
+}
+```
+
+**Required Changes to `terraform/sites/variables.tf`:**
+```hcl
+variable "automation_account_id" {
+  description = "AWS account ID for the central automation account"
+  type        = string
+  default     = "297202224084"  # TODO: Eventually gitignore this
+}
+```
+
+#### 2.5: Test Cross-Account Access ⚠️ AFTER 2.4
+1. Test role assumption for hardfork site using `.env.automation` credentials
+2. Test S3 upload permissions to hardfork bucket
+3. Test lambda invoke permissions for hardfork indexing lambda
+
+#### 2.6: Roll Out to Remaining Sites ⚠️ AFTER 2.5 SUCCESS
+1. Update automation terraform to include all deployed sites: `claretandblue`, `listenfairplay`, `naddpod`
+2. Add automation roles to all remaining site terraform configurations
+3. Deploy all site terraform updates
+4. Test cross-account access for all sites
 
 ### Future Enhancements (Not Phase 2)
 - **Terraform state bucket read access**: For automated site deployments
