@@ -342,11 +342,11 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
 function validateTerraformConfig(site: SiteConfig, result: ValidationResult): void {
     // Find terraform directory - go up one level from sites directory to workspace root
     const workspaceRoot = path.resolve(process.cwd(), '..');
-    const terraformDir = path.join(workspaceRoot, 'terraform', 'environments');
+    const terraformDir = path.join(workspaceRoot, 'terraform', 'sites', 'environments');
     const tfvarsPath = path.join(terraformDir, `${site.id}-prod.tfvars`);
     
     if (!fs.existsSync(tfvarsPath)) {
-        result.errors.push(`Missing terraform configuration: ${site.id}-prod.tfvars not found in terraform/environments/ (looked in: ${tfvarsPath})`);
+        result.errors.push(`Missing terraform configuration: ${site.id}-prod.tfvars not found in terraform/sites/environments/ (looked in: ${tfvarsPath})`);
         return;
     }
     

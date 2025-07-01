@@ -67,7 +67,7 @@ async function confirmDestruction(env: string): Promise<void> {
 async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   printInfo(`Destroying ${env} environment...`);
   
-  const TF_DIR = 'terraform';
+  const TF_DIR = 'terraform/sites';
   const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
   
   // Change to terraform directory

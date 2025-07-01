@@ -52,9 +52,9 @@ async function getTerraformOutputs(): Promise<{
 }> {
   printInfo('Getting deployment details from Terraform...');
   
-  // Change to terraform directory
-  const originalCwd = process.cwd();
-  process.chdir(join(originalCwd, 'terraform'));
+      // Change to terraform directory
+    const originalCwd = process.cwd();
+    process.chdir(join(originalCwd, 'terraform/sites'));
 
   try {
     const bucketName = await terraformOutput('s3_bucket_name');

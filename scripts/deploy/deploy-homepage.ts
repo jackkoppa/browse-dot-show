@@ -180,7 +180,7 @@ async function applyTerraformWithProgress(): Promise<void> {
 }
 
 async function runTerraformDeployment(): Promise<{ bucketName: string; distributionId: string }> {
-  const TF_DIR = 'terraform-homepage';
+  const TF_DIR = 'terraform/homepage';
   
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
   
@@ -390,7 +390,7 @@ async function main(): Promise<void> {
       if (!bucketName || !distributionId) {
         // Try to get from existing Terraform state
         const originalCwd = process.cwd();
-        process.chdir('terraform-homepage');
+        process.chdir('terraform/homepage');
         try {
           const bucketOutput = await execCommand('terraform', ['output', '-raw', 's3_bucket_name']);
           const distributionOutput = await execCommand('terraform', ['output', '-raw', 'cloudfront_distribution_id']);

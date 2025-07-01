@@ -47,7 +47,7 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
   console.log('│ 3. Wait for validation to complete (usually 5-10 minutes)                                                 │');
   console.log('│ 4. Run the deployment again - it should succeed                                                            │');
   console.log('│                                                                                                             │');
-  console.log('│ 📖 For detailed instructions, see: terraform/CUSTOM_DOMAIN.md                                             │');
+  console.log('│ 📖 For detailed instructions, see: terraform/sites/CUSTOM_DOMAIN.md                                             │');
   console.log('└─────────────────────────────────────────────────────────────────────────────────────────────────────────┘');
   console.log('');
 
@@ -57,7 +57,7 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
     
     // Switch to terraform directory to run terraform commands
     const originalCwd = process.cwd();
-    process.chdir('terraform');
+    process.chdir('terraform/sites');
     
     try {
       // Get all certificates and parse in JavaScript to avoid shell parsing issues
@@ -302,7 +302,7 @@ async function applyTerraformWithProgress(): Promise<void> {
 }
 
 async function runTerraformDeployment(siteId: string): Promise<boolean> {
-  const TF_DIR = 'terraform';
+  const TF_DIR = 'terraform/sites';
   const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
 
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
