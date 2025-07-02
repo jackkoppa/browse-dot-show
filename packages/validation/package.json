@@ -8,6 +8,7 @@
     "scripts": {
         "build": "tsc",
         "test": "vitest run",
+        "automation-roles": "tsx validate-automation-role-config.ts",
         "validate:all:local": "pnpm validate:s3-files-metadata:local",
         "validate:all:prod": "pnpm validate:s3-files-metadata:prod",
         "validate:s3-files-metadata:local": "dotenvx run -f ../../.env.local -- tsx ./validate-s3-files-metadata.ts",

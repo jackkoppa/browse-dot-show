@@ -1,6 +1,10 @@
 aws_region     = "us-east-1"
+aws_profile    = "browse.show-1_admin-permissions-152849157974"
 site_id        = "naddpod"
 s3_bucket_name = "browse-dot-show"
+
+# Automation role configuration  
+create_automation_role = false  # Role already exists from claretandblue in same account
 
 # Custom domain configuration
 custom_domain_name = "naddpod.browse.show"

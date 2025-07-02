@@ -31,6 +31,12 @@ variable "automation_account_id" {
   default     = "297202224084"
 }
 
+variable "create_automation_role" {
+  description = "Whether this site should create the automation role (only one site per AWS account should create it)"
+  type        = bool
+  default     = false
+}
+
 variable "openai_api_key" {
   description = "OpenAI API key for Whisper transcription"
   type        = string

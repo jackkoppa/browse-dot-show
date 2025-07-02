@@ -301,9 +301,10 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
   source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
 }
 
-# IAM role for automation account to assume
+# IAM role for automation account to assume (only create if this is the first site in the account)
 resource "aws_iam_role" "automation_role" {
-  name = "browse-dot-show-automation-role"
+  count = var.create_automation_role ? 1 : 0
+  name  = "browse-dot-show-automation-role"
   
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -324,10 +325,22 @@ resource "aws_iam_role" "automation_role" {
   }
 }
 
-# Automation permissions for S3 and Lambda
+# Data source to reference existing automation role if not creating it
+data "aws_iam_role" "existing_automation_role" {
+  count = var.create_automation_role ? 0 : 1
+  name  = "browse-dot-show-automation-role"
+}
+
+# Local value to reference the correct role ARN regardless of whether we created it or not
+locals {
+  automation_role_arn = var.create_automation_role ? aws_iam_role.automation_role[0].arn : data.aws_iam_role.existing_automation_role[0].arn
+  automation_role_id  = var.create_automation_role ? aws_iam_role.automation_role[0].id : data.aws_iam_role.existing_automation_role[0].id
+}
+
+# Automation permissions for S3 and Lambda (always create, but reference the correct role)
 resource "aws_iam_role_policy" "automation_permissions" {
-  name = "browse-dot-show-automation-permissions"
-  role = aws_iam_role.automation_role.id
+  name = "browse-dot-show-automation-permissions-${var.site_id}"
+  role = local.automation_role_id
 
   policy = jsonencode({
     Version = "2012-10-17"
