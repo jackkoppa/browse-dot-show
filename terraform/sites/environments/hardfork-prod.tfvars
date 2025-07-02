@@ -1,5 +1,4 @@
 aws_region     = "us-east-1"
-aws_profile    = "Administrator-browse.show-base-089994311986"
 site_id        = "hardfork"
 s3_bucket_name = "browse-dot-show"
 

@@ -8,13 +8,16 @@
 - [x] 1.3: Create automation terraform structure ✅
 - [x] 1.4: Test existing functionality still works ✅
 
-### Phase 2: Cross-Account IAM Setup ✅ COMPLETE
+### Phase 2: Cross-Account IAM Setup 🔄 IN PROGRESS
 - [x] 2.1: Create automation terraform infrastructure ✅
 - [x] 2.2: Deploy central IAM user and policies ✅ 
 - [x] 2.3: Deploy central automation infrastructure ✅
 - [x] 2.4: Add automation roles to hardfork site terraform ✅ 
 - [x] 2.5: Test cross-account access ✅ COMPLETE
-- [ ] 2.6: Roll out to remaining sites (claretandblue, listenfairplay, naddpod)
+- [x] 2.6: Roll out to remaining sites 🔄 IN PROGRESS
+  - [x] claretandblue ✅ COMPLETE (deployed & tested)
+  - [ ] listenfairplay 
+  - [ ] naddpod
 
 ### Phase 3: Script Updates
 - [ ] 3.1: Update individual lambda package.json files
@@ -51,16 +54,20 @@
 
 ### ⚠️ NEXT STEPS (Resume here):
 
-**COMPLETED:** Phase 2.5 - Cross-Account Access Testing ✅
-1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in hardfork account
-2. ✅ **S3 Upload:** Successfully uploaded test files to `hardfork-browse-dot-show` bucket  
-3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
-4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-hardfork`
+**COMPLETED:** Phase 2.6 - claretandblue ✅
+1. ✅ **Site Deployment:** claretandblue terraform deployed with automation role
+2. ✅ **Automation Update:** Updated automation terraform to include claretandblue  
+3. ✅ **Cross-Account Test:** All tests passed for claretandblue (role assumption, S3 upload/delete, lambda invoke)
 
-**READY:** Phase 2.6 - Roll out to remaining sites
-1. 🚀 Update automation terraform to include all sites: `claretandblue`, `listenfairplay`, `naddpod`
-2. 🚀 Deploy hardfork-style automation roles to all remaining site terraform configurations
-3. 🚀 Test cross-account access for all sites
+**IN PROGRESS:** Phase 2.6 - Remaining sites
+1. 🚀 **listenfairplay**: Deploy site terraform → update automation terraform → test access
+2. 🚀 **naddpod**: Deploy site terraform → update automation terraform → test access
+
+**Pattern Established:** ✅
+- Deploy site with `pnpm deploy:site` (automation role included automatically)
+- Add site to `terraform/automation/terraform.tfvars` deployed_sites list  
+- Deploy automation with `pnpm tsx scripts/deploy/deploy-automation.ts`
+- Test with `pnpm tsx scripts/test-cross-account-access.ts --site=<site_id>`
 
 **Future:** Phase 3 - Script Updates  
 1. Update individual lambda package.json files
@@ -369,11 +376,17 @@ terraform/
 3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
 4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-hardfork`
 
+**Test Results (claretandblue site):** ✅ COMPLETE
+1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in claretandblue account
+2. ✅ **S3 Upload:** Successfully uploaded test files to `claretandblue-browse-dot-show` bucket  
+3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
+4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-claretandblue`
+
 **Permissions Deployed:**
 - `s3:PutObject` - ✅ Working
 - `s3:PutObjectAcl` - ✅ Working  
 - `s3:DeleteObject` - ✅ Working (added for cleanup operations)
 - `lambda:InvokeFunction` - ✅ Working
 
-**Test Command:** `tsx scripts/test-cross-account-access.ts`
-**Ready for replication to remaining sites.**
+**Test Command:** `tsx scripts/test-cross-account-access.ts --site=<site_id>`
+**Pattern established and working for multiple sites.**

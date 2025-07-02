@@ -1,16 +1,68 @@
 #!/usr/bin/env tsx
 
 /**
- * Test script for Phase 2.5 - Cross-Account Access Testing
+ * Test script for Phase 2.5+ - Cross-Account Access Testing
  * 
  * This script tests that the automation account can:
- * 1. Assume the role in the hardfork site account
- * 2. Upload files to the hardfork S3 bucket  
- * 3. Invoke the hardfork indexing lambda
+ * 1. Assume the role in the specified site account
+ * 2. Upload files to the site's S3 bucket  
+ * 3. Invoke the site's indexing lambda
+ * 
+ * Usage: tsx scripts/test-cross-account-access.ts --site=<site_id>
+ * Example: tsx scripts/test-cross-account-access.ts --site=claretandblue
  */
 
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
+
+// Site configuration mapping
+const SITE_CONFIGS = {
+  'hardfork': {
+    accountId: '927984855345',
+    bucketName: 'hardfork-browse-dot-show',
+    lambdaName: 'convert-srts-indexed-search-hardfork'
+  },
+  'claretandblue': {
+    accountId: '152849157974',
+    bucketName: 'claretandblue-browse-dot-show',
+    lambdaName: 'convert-srts-indexed-search-claretandblue'
+  },
+  'listenfairplay': {
+    accountId: '927984855345',
+    bucketName: 'listenfairplay-browse-dot-show',
+    lambdaName: 'convert-srts-indexed-search-listenfairplay'
+  },
+  'naddpod': {
+    accountId: '152849157974',
+    bucketName: 'naddpod-browse-dot-show',
+    lambdaName: 'convert-srts-indexed-search-naddpod'
+  }
+} as const;
+
+type SiteId = keyof typeof SITE_CONFIGS;
+
+// Parse command line arguments
+function parseSiteFromArgs(): SiteId {
+  const args = process.argv.slice(2);
+  const siteArg = args.find(arg => arg.startsWith('--site='));
+  
+  if (!siteArg) {
+    console.error('❌ Missing required --site parameter');
+    console.error('Usage: tsx scripts/test-cross-account-access.ts --site=<site_id>');
+    console.error('Available sites:', Object.keys(SITE_CONFIGS).join(', '));
+    process.exit(1);
+  }
+  
+  const siteId = siteArg.split('=')[1] as SiteId;
+  
+  if (!SITE_CONFIGS[siteId]) {
+    console.error(`❌ Unknown site: ${siteId}`);
+    console.error('Available sites:', Object.keys(SITE_CONFIGS).join(', '));
+    process.exit(1);
+  }
+  
+  return siteId;
+}
 
 // Load automation credentials from .env.automation file
 function loadAutomationEnv(): void {
@@ -35,11 +87,6 @@ function loadAutomationEnv(): void {
 }
 
 loadAutomationEnv();
-
-const HARDFORK_ACCOUNT_ID = '927984855345';
-const HARDFORK_ROLE_ARN = `arn:aws:iam::${HARDFORK_ACCOUNT_ID}:role/browse-dot-show-automation-role`;
-const HARDFORK_BUCKET = 'hardfork-browse-dot-show';
-const HARDFORK_INDEXING_LAMBDA = 'convert-srts-indexed-search-hardfork';
 
 interface TestResult {
   test: string;
@@ -69,10 +116,10 @@ function runAwsCommand(command: string): { success: boolean; output: string; err
   }
 }
 
-function testRoleAssumption(): TestResult {
+function testRoleAssumption(siteId: SiteId, roleArn: string): TestResult {
   console.log('🔐 Testing role assumption...');
   
-  const command = `aws sts assume-role --role-arn "${HARDFORK_ROLE_ARN}" --role-session-name "test-automation-access"`;
+  const command = `aws sts assume-role --role-arn "${roleArn}" --role-session-name "test-automation-access"`;
   const result = runAwsCommand(command);
   
   if (result.success) {
@@ -83,7 +130,7 @@ function testRoleAssumption(): TestResult {
       return {
         test: 'Role Assumption',
         success: true,
-        message: '✅ Successfully assumed hardfork automation role',
+        message: `✅ Successfully assumed ${siteId} automation role`,
         details: `Session: ${assumeRoleOutput.AssumedRoleUser?.Arn}`
       };
     } catch (parseError) {
@@ -98,17 +145,17 @@ function testRoleAssumption(): TestResult {
     return {
       test: 'Role Assumption',
       success: false,
-      message: '❌ Failed to assume hardfork automation role',
+      message: `❌ Failed to assume ${siteId} automation role`,
       details: result.error
     };
   }
 }
 
-function testS3Access(): TestResult {
+function testS3Access(siteId: SiteId, roleArn: string, bucketName: string): TestResult {
   console.log('🪣 Testing S3 access...');
   
   // First assume the role to get temporary credentials
-  const assumeRoleCommand = `aws sts assume-role --role-arn "${HARDFORK_ROLE_ARN}" --role-session-name "test-s3-access"`;
+  const assumeRoleCommand = `aws sts assume-role --role-arn "${roleArn}" --role-session-name "test-s3-access"`;
   const assumeResult = runAwsCommand(assumeRoleCommand);
   
   if (!assumeResult.success) {
@@ -129,7 +176,7 @@ function testS3Access(): TestResult {
     writeFileSync(testFileName, testContent);
     
     // Upload test file using assumed role credentials
-    const uploadCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws s3 cp ${testFileName} s3://${HARDFORK_BUCKET}/automation-tests/${testFileName}`;
+    const uploadCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws s3 cp ${testFileName} s3://${bucketName}/automation-tests/${testFileName}`;
     
     const uploadResult = runAwsCommand(uploadCommand);
     
@@ -138,14 +185,14 @@ function testS3Access(): TestResult {
     
     if (uploadResult.success) {
       // Try to delete the test file to clean up
-      const deleteCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws s3 rm s3://${HARDFORK_BUCKET}/automation-tests/${testFileName}`;
+      const deleteCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws s3 rm s3://${bucketName}/automation-tests/${testFileName}`;
       runAwsCommand(deleteCommand);
       
       return {
         test: 'S3 Access',
         success: true,
         message: '✅ Successfully uploaded and deleted test file from S3',
-        details: `Bucket: ${HARDFORK_BUCKET}`
+        details: `Bucket: ${bucketName}`
       };
     } else {
       return {
@@ -165,11 +212,11 @@ function testS3Access(): TestResult {
   }
 }
 
-function testLambdaAccess(): TestResult {
+function testLambdaAccess(siteId: SiteId, roleArn: string, lambdaName: string): TestResult {
   console.log('⚡ Testing Lambda access...');
   
   // First assume the role to get temporary credentials
-  const assumeRoleCommand = `aws sts assume-role --role-arn "${HARDFORK_ROLE_ARN}" --role-session-name "test-lambda-access"`;
+  const assumeRoleCommand = `aws sts assume-role --role-arn "${roleArn}" --role-session-name "test-lambda-access"`;
   const assumeResult = runAwsCommand(assumeRoleCommand);
   
   if (!assumeResult.success) {
@@ -185,7 +232,7 @@ function testLambdaAccess(): TestResult {
     const credentials = JSON.parse(assumeResult.output).Credentials;
     
     // Test lambda invocation with dry-run (doesn't actually execute)
-    const invokeCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws lambda invoke --function-name ${HARDFORK_INDEXING_LAMBDA} --invocation-type DryRun --payload '{}' /tmp/lambda-test-output.json`;
+    const invokeCommand = `AWS_ACCESS_KEY_ID="${credentials.AccessKeyId}" AWS_SECRET_ACCESS_KEY="${credentials.SecretAccessKey}" AWS_SESSION_TOKEN="${credentials.SessionToken}" aws lambda invoke --function-name ${lambdaName} --invocation-type DryRun --payload '{}' /tmp/lambda-test-output.json`;
     
     const invokeResult = runAwsCommand(invokeCommand);
     
@@ -194,7 +241,7 @@ function testLambdaAccess(): TestResult {
         test: 'Lambda Access',
         success: true,
         message: '✅ Successfully tested lambda invoke permissions (dry-run)',
-        details: `Function: ${HARDFORK_INDEXING_LAMBDA}`
+        details: `Function: ${lambdaName}`
       };
     } else {
       // Check if it's a validation error vs permission error
@@ -225,10 +272,17 @@ function testLambdaAccess(): TestResult {
 }
 
 function main(): void {
-  console.log('🧪 Cross-Account Access Testing - Phase 2.5');
-  console.log('=============================================');
-  console.log(`Target Account: ${HARDFORK_ACCOUNT_ID} (hardfork)`);
-  console.log(`Role ARN: ${HARDFORK_ROLE_ARN}`);
+  const siteId = parseSiteFromArgs();
+  const siteConfig = SITE_CONFIGS[siteId];
+  const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+  
+  console.log('🧪 Cross-Account Access Testing - Phase 2.5+');
+  console.log('==============================================');
+  console.log(`Target Site: ${siteId}`);
+  console.log(`Target Account: ${siteConfig.accountId}`);
+  console.log(`Role ARN: ${roleArn}`);
+  console.log(`S3 Bucket: ${siteConfig.bucketName}`);
+  console.log(`Lambda Function: ${siteConfig.lambdaName}`);
   console.log('');
   
   // Validate environment
@@ -240,9 +294,9 @@ function main(): void {
   const results: TestResult[] = [];
   
   // Run tests
-  results.push(testRoleAssumption());
-  results.push(testS3Access());
-  results.push(testLambdaAccess());
+  results.push(testRoleAssumption(siteId, roleArn));
+  results.push(testS3Access(siteId, roleArn, siteConfig.bucketName));
+  results.push(testLambdaAccess(siteId, roleArn, siteConfig.lambdaName));
   
   // Report results
   console.log('\n📊 Test Results:');
@@ -261,12 +315,11 @@ function main(): void {
   
   console.log('\n' + '='.repeat(50));
   if (allPassed) {
-    console.log('🎉 ALL TESTS PASSED! Cross-account access is working correctly.');
-    console.log('✅ Phase 2.5 - Cross-Account Access: COMPLETE');
-    console.log('\n🚀 Ready to proceed to Phase 2.6 - Roll out to remaining sites');
+    console.log(`🎉 ALL TESTS PASSED! Cross-account access is working correctly for ${siteId}.`);
+    console.log(`✅ Phase 2.5+ - Cross-Account Access for ${siteId}: COMPLETE`);
   } else {
-    console.log('⚠️  Some tests failed. Please review the errors above.');
-    console.log('❌ Phase 2.5 - Cross-Account Access: NEEDS ATTENTION');
+    console.log(`⚠️  Some tests failed for ${siteId}. Please review the errors above.`);
+    console.log(`❌ Phase 2.5+ - Cross-Account Access for ${siteId}: NEEDS ATTENTION`);
   }
   
   process.exit(allPassed ? 0 : 1);
