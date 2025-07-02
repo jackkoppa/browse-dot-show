@@ -11,7 +11,7 @@
     "socialAndMetadata": {
         "pageTitle": "Listen, Fair Play | Search Football Clichés",
         "canonicalUrl": "https://listenfairplay.com",
-        "openGraphImagePath": "TO_BE_ADDED",
+        "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
         "metaDescription": "Search the Football Clichés record books",
         "metaTitle": "Listen, Fair Play | Search Football Clichés"
     },

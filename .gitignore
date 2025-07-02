@@ -29,6 +29,7 @@ aws-dist
 # Environment variables
 .env*
 !.env
+.env.automation
 
 # Terraform
 **/.terraform/*

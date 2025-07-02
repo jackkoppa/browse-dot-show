@@ -67,7 +67,7 @@ async function confirmDestruction(env: string): Promise<void> {
 async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   printInfo(`Destroying ${env} environment...`);
   
-  const TF_DIR = 'terraform';
+  const TF_DIR = 'terraform/sites';
   const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
   
   // Change to terraform directory
@@ -79,7 +79,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     // Bootstrap terraform state bucket if needed (ensures backend exists)
     printInfo('Ensuring Terraform state bucket exists...');
     printInfo(`Expected bucket name: ${siteId}-terraform-state`);
-    await execCommandOrThrow('tsx', ['../scripts/deploy/bootstrap-terraform-state.ts', siteId, process.env.AWS_PROFILE || '']);
+    await execCommandOrThrow('tsx', ['../../scripts/deploy/bootstrap-site-state.ts', siteId, process.env.AWS_PROFILE || '']);
     printSuccess('✅ Terraform state bucket bootstrap completed');
 
     // Initialize Terraform with site-specific backend config

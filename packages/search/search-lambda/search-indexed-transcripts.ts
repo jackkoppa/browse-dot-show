@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
-import { deserializeOramaIndex, searchOramaIndex, OramaSearchDatabase } from '@browse-dot-show/database';
+import { restoreFromFileStreaming, searchOramaIndex, OramaSearchDatabase } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
 import {
   getFile,
@@ -118,21 +118,14 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
   indexFileBuffer = null;
   forceGarbageCollection();
 
-  // Deserialize the Orama index from the downloaded file
+  // Restore the Orama index from the downloaded file using streaming approach
   try {
-    logMemoryUsage('Before File Read');
-    const indexData = await fs.readFile(localDbPath);
-    logMemoryUsage('After File Read', { indexDataSize: `${Math.round(indexData.length / 1024 / 1024 * 100) / 100}MB` });
-    
-    logMemoryUsage('Before Orama Deserialization');
-    const index = await deserializeOramaIndex(indexData);
-    logMemoryUsage('After Orama Deserialization');
+    logMemoryUsage('Before Orama Streaming Restoration');
+    const index = await restoreFromFileStreaming(localDbPath, 'gzip');
+    logMemoryUsage('After Orama Streaming Restoration');
     
     log.info(`Orama search index loaded in ${Date.now() - startTime}ms`);
     
-    // Clear the indexData reference to help with memory management
-    // @ts-ignore - we want to explicitly clear this reference
-    // indexData = null; // Can't reassign const, but it should go out of scope
     forceGarbageCollection();
     
     // Cache the index for future invocations
@@ -140,8 +133,8 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
     logMemoryUsage('Final - Index Cached');
     return index;
   } catch (error) {
-    logMemoryUsage('Error During Deserialization');
-    throw new Error(`Failed to deserialize Orama index: ${error}. Exiting.`);
+    logMemoryUsage('Error During Streaming Restoration');
+    throw new Error(`Failed to restore Orama index from streaming file: ${error}. Exiting.`);
   }
 }
 

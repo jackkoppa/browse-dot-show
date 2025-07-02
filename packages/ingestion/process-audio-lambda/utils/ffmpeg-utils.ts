@@ -63,7 +63,7 @@ For local development:
 
 For Lambda deployment:
   - Ensure ffmpeg Lambda Layer is properly configured in Terraform
-  - Check terraform/lambda-layers/README.md for setup instructions
+  - Check terraform/sites/lambda-layers/README.md for setup instructions
 
 Original error: ${error.message}
       `.trim();

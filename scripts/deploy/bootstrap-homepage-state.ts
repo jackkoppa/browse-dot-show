@@ -137,7 +137,7 @@ async function main(): Promise<void> {
   await createStateBucket();
   
   printSuccess('🎉 Homepage Terraform state bootstrap completed!');
-  printInfo('You can now run Terraform commands in the terraform-homepage directory.');
+  printInfo('You can now run Terraform commands in the terraform/homepage directory.');
 }
 
 // Run the script

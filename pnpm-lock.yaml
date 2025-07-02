@@ -210,6 +210,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@msgpack/msgpack':
+        specifier: ^3.1.2
+        version: 3.1.2
       '@orama/orama':
         specifier: 'catalog:'
         version: 3.1.7
@@ -619,6 +622,9 @@ importers:
       '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../s3
+      '@browse-dot-show/sites':
+        specifier: workspace:*
+        version: link:../../sites
       '@browse-dot-show/types':
         specifier: workspace:*
         version: link:../types
@@ -1490,6 +1496,10 @@ packages:
   '@msgpack/msgpack@2.8.0':
     resolution: {integrity: sha512-h9u4u/jiIRKbq25PM+zymTyW6bhTzELvOoUd+AvYriWOAKpLGnIamaET3pnHYoI5iYphAHBI4ayx0MehR+VVPQ==}
     engines: {node: '>= 10'}
+
+  '@msgpack/msgpack@3.1.2':
+    resolution: {integrity: sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ==}
+    engines: {node: '>= 18'}
 
   '@napi-rs/wasm-runtime@0.2.9':
     resolution: {integrity: sha512-OKRBiajrrxB9ATokgEQoG87Z25c67pCpYcCwmXYX8PBftC9pBfN18gnm/fh1wurSLEKIAt+QRFLFCQISrb66Jg==}
@@ -5161,6 +5171,8 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
 
   '@msgpack/msgpack@2.8.0': {}
+
+  '@msgpack/msgpack@3.1.2': {}
 
   '@napi-rs/wasm-runtime@0.2.9':
     dependencies:

@@ -1,9 +1,3 @@
-// CURSOR-TODO: Add validation for sites, to confirm things like:
-// - all site.config.json files contain all required fields from the SiteConfig interface, in ./types.ts
-// - all sites have valide .env.aws-sso files
-//    - for all AWS_PROFILE .env.aws-sso values, confirm that SSO is configured for that profile via AWS CLI
-// - all sites have a valid index.css file
-
 import fs from 'fs';
 import path from 'path';
 import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory } from './index.js';
@@ -307,17 +301,40 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
     if (!fs.existsSync(socialCardsDir)) {
         result.warnings.push('Missing social-cards directory in /assets');
     } else {
-        // Check for required open graph image
-        const openGraphPath = path.join(socialCardsDir, 'open-graph-card-1200x630.jpg');
-        if (!fs.existsSync(openGraphPath)) {
-            result.warnings.push('Missing open-graph-card-1200x630.jpg in /assets/social-cards');
+        // Check for required open graph image (allow either .jpg or .png)
+        const openGraphJpgPath = path.join(socialCardsDir, 'open-graph-card-1200x630.jpg');
+        const openGraphPngPath = path.join(socialCardsDir, 'open-graph-card-1200x630.png');
+        
+        const hasJpg = fs.existsSync(openGraphJpgPath);
+        const hasPng = fs.existsSync(openGraphPngPath);
+        
+        if (!hasJpg && !hasPng) {
+            result.warnings.push('Missing open-graph-card-1200x630.jpg or open-graph-card-1200x630.png in /assets/social-cards');
         }
         
-        // Validate that site config openGraphImagePath matches the expected file
+        // Validate that site config openGraphImagePath matches an existing file
         if (site.socialAndMetadata?.openGraphImagePath) {
-            const expectedPath = './assets/social-cards/open-graph-card-1200x630.jpg';
-            if (site.socialAndMetadata.openGraphImagePath !== expectedPath) {
-                result.warnings.push(`Site config openGraphImagePath should be "${expectedPath}", but is "${site.socialAndMetadata.openGraphImagePath}"`);
+            if (site.socialAndMetadata.openGraphImagePath === 'TO_BE_ADDED') {
+                result.warnings.push('Site config openGraphImagePath needs to be updated from "TO_BE_ADDED"');
+            } else {
+                // Extract the filename from the config path
+                const configPath = site.socialAndMetadata.openGraphImagePath;
+                const configFilename = path.basename(configPath);
+                
+                // Check if the specified file exists
+                const specifiedFilePath = path.join(socialCardsDir, configFilename);
+                if (!fs.existsSync(specifiedFilePath)) {
+                    result.warnings.push(`Site config openGraphImagePath points to "${configPath}", but file does not exist at ${specifiedFilePath}`);
+                }
+                
+                // Validate the path format is correct
+                const expectedJpgPath = './assets/social-cards/open-graph-card-1200x630.jpg';
+                const expectedPngPath = './assets/social-cards/open-graph-card-1200x630.png';
+                
+                if (configPath !== expectedJpgPath && configPath !== expectedPngPath) {
+                    const suggestion = hasJpg ? expectedJpgPath : (hasPng ? expectedPngPath : expectedJpgPath);
+                    result.warnings.push(`Site config openGraphImagePath should be "${suggestion}", but is "${configPath}"`);
+                }
             }
         }
     }
@@ -342,11 +359,11 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
 function validateTerraformConfig(site: SiteConfig, result: ValidationResult): void {
     // Find terraform directory - go up one level from sites directory to workspace root
     const workspaceRoot = path.resolve(process.cwd(), '..');
-    const terraformDir = path.join(workspaceRoot, 'terraform', 'environments');
+    const terraformDir = path.join(workspaceRoot, 'terraform', 'sites', 'environments');
     const tfvarsPath = path.join(terraformDir, `${site.id}-prod.tfvars`);
     
     if (!fs.existsSync(tfvarsPath)) {
-        result.errors.push(`Missing terraform configuration: ${site.id}-prod.tfvars not found in terraform/environments/ (looked in: ${tfvarsPath})`);
+        result.errors.push(`Missing terraform configuration: ${site.id}-prod.tfvars not found in terraform/sites/environments/ (looked in: ${tfvarsPath})`);
         return;
     }
     

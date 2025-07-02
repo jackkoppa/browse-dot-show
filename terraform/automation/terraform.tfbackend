@@ -1,0 +1,3 @@
+bucket = "browse-dot-show-automation-terraform-state"
+key    = "automation/terraform.tfstate"
+region = "us-east-1" 
