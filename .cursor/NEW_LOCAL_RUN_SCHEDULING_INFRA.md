@@ -1,5 +1,15 @@
 # New Local Run Scheduling Infrastructure
 
+## 🎉 **PHASE 2 COMPLETE!** Cross-Account Automation Infrastructure ✅
+
+**All 4 sites now have automation infrastructure deployed and tested:**
+- ✅ hardfork, claretandblue, listenfairplay, naddpod
+- ✅ Cross-account IAM roles and permissions working
+- ✅ S3 upload, lambda invoke permissions tested for all sites
+- ✅ Validation script ensures proper configuration
+
+**Ready for Phase 3: Script Updates** 🚀
+
 ## 🚀 Implementation Progress
 
 ### Phase 1: Terraform Restructure ✅ COMPLETE
@@ -8,82 +18,102 @@
 - [x] 1.3: Create automation terraform structure ✅
 - [x] 1.4: Test existing functionality still works ✅
 
-### Phase 2: Cross-Account IAM Setup 🔄 IN PROGRESS
+### Phase 2: Cross-Account IAM Setup ✅ COMPLETE
 - [x] 2.1: Create automation terraform infrastructure ✅
 - [x] 2.2: Deploy central IAM user and policies ✅ 
 - [x] 2.3: Deploy central automation infrastructure ✅
 - [x] 2.4: Add automation roles to hardfork site terraform ✅ 
 - [x] 2.5: Test cross-account access ✅ COMPLETE
-- [x] 2.6: Roll out to remaining sites 🔄 IN PROGRESS
+- [x] 2.6: Roll out to remaining sites ✅ COMPLETE
   - [x] claretandblue ✅ COMPLETE (deployed & tested)
-  - [ ] listenfairplay 
-  - [ ] naddpod
+  - [x] listenfairplay ✅ COMPLETE (deployed & tested)
+  - [x] naddpod ✅ COMPLETE (deployed & tested)
+  - [x] hardfork ✅ COMPLETE (deployed & tested)
 
-### Phase 3: Script Updates
+### Phase 3: Script Updates 🚀 READY TO START
 - [ ] 3.1: Update individual lambda package.json files
 - [ ] 3.2: Update root package.json
 - [ ] 3.3: Update run-with-site-selection.ts for --env=prod support
 - [ ] 3.4: Test updated script commands
 
-### Phase 4: New Scheduled Script
+### Phase 4: New Scheduled Script 🔮 FUTURE
 - [ ] 4.1: Create scheduled script skeleton
-- [ ] 4.2: Implement automation credential loading
-- [ ] 4.3: Implement local ingestion execution
+- [ ] 4.2: Implement automation credential loading (use `.env.automation`)
+- [ ] 4.3: Implement local ingestion execution (for all 4 sites)
 - [ ] 4.4: Implement SRT file change detection
-- [ ] 4.5: Implement AWS lambda triggering
+- [ ] 4.5: Implement AWS lambda triggering (using automation role ARNs)
 - [ ] 4.6: Test end-to-end functionality
 
-### Phase 5: Environment Setup
-- [ ] 5.1: Create .env.automation.template
-- [ ] 5.2: Update .gitignore
-- [ ] 5.3: Deploy automation infrastructure
-- [ ] 5.4: Configure local credentials
-- [ ] 5.5: Set up local scheduling
+### Phase 5: Environment Setup ✅ COMPLETE
+- [x] 5.1: Create .env.automation.template ✅ (automated by deploy script)
+- [x] 5.2: Update .gitignore ✅ (already configured)
+- [x] 5.3: Deploy automation infrastructure ✅ (deployed and tested)
+- [x] 5.4: Configure local credentials ✅ (in `.env.automation`)
+- [ ] 5.5: Set up local scheduling (future - after Phase 4 script creation)
 
 ## 🎯 Current Status & Next Steps
 
-### ✅ COMPLETED (Phase 1 & Phase 2.1-2.3):
-1. **Terraform restructure** - All terraform moved to consistent structure
-2. **File naming consistency** - All deploy scripts follow same patterns  
-3. **Automation infrastructure** - Central IAM user deployed and ready
-4. **Credentials configured** - `.env.automation` file created with working credentials
-5. **Cross-account policies** - Automation user can assume roles in site accounts
+### ✅ COMPLETED (Phase 1 & Phase 2 - INFRASTRUCTURE COMPLETE):
+1. **Terraform restructure** - All terraform moved to consistent structure ✅
+2. **File naming consistency** - All deploy scripts follow same patterns ✅
+3. **Automation infrastructure** - Central IAM user deployed and tested ✅
+4. **All 4 sites deployed** - hardfork, claretandblue, listenfairplay, naddpod ✅
+5. **Cross-account access** - Tested and working for all sites ✅
+6. **Validation tooling** - Script to verify automation role configuration ✅
 
 ### ⚠️ IMPORTANT INSTRUCTION FOR FUTURE AGENTS:
 **All scripts that will possibly modify AWS resources should be run by the human dev. If you ever need to test a script that will modify AWS resources (e.g. run Terraform changes), finish your work, then prompt the dev with what should be run, so they can run & report the logs back to you.**
 
 ### ⚠️ NEXT STEPS (Resume here):
 
-**COMPLETED:** Phase 2.6 - claretandblue ✅
-1. ✅ **Site Deployment:** claretandblue terraform deployed with automation role
-2. ✅ **Automation Update:** Updated automation terraform to include claretandblue  
-3. ✅ **Cross-Account Test:** All tests passed for claretandblue (role assumption, S3 upload/delete, lambda invoke)
+**COMPLETED:** Phase 2 - Cross-Account IAM Setup ✅ 
+1. ✅ **All 4 Sites Deployed:** hardfork, claretandblue, listenfairplay, naddpod
+2. ✅ **Automation Roles:** Properly configured (1 creator per AWS account, others reference existing)
+3. ✅ **Cross-Account Access:** All sites tested and working (role assumption, S3 access, lambda invoke)
+4. ✅ **Central Automation:** IAM user with permissions to all site accounts
 
-**IN PROGRESS:** Phase 2.6 - Remaining sites
-1. 🚀 **listenfairplay**: Deploy site terraform → update automation terraform → test access
-2. 🚀 **naddpod**: Deploy site terraform → update automation terraform → test access
+**INFRASTRUCTURE COMPLETE:** ✅
+- **Account `152849157974`**: claretandblue (role creator), naddpod (role referencer)
+- **Account `927984855345`**: hardfork (role creator), listenfairplay (role referencer)
+- **Automation Account `297202224084`**: Central user with assume role permissions for all sites
+- **Validation Script:** `packages/validation/validate-automation-role-config.ts` ensures proper configuration
 
-**Pattern Established:** ✅
-- Deploy site with `pnpm deploy:site` (automation role included automatically)
-- Add site to `terraform/automation/terraform.tfvars` deployed_sites list  
-- Deploy automation with `pnpm tsx scripts/deploy/deploy-automation.ts`
-- Test with `pnpm tsx scripts/test-cross-account-access.ts --site=<site_id>`
+**READY FOR:** Phase 3 - Script Updates 🚀
+- All infrastructure is deployed and tested
+- Cross-account access working for all 4 sites
+- Foundation ready for automated ingestion scripts
 
-**Future:** Phase 3 - Script Updates  
-1. Update individual lambda package.json files
-2. Update root package.json  
-3. Update run-with-site-selection.ts for --env=prod support
+**NEXT:** Phase 3 - Script Updates 🚀
+**Goal:** Simplify script commands and prepare for automation
+
+**Key Changes Needed:**
+1. **Lambda package.json files** - Remove `:local` and `:prod` suffixes, default to local execution
+2. **Root package.json** - Add new `scheduled:run-ingestion-and-trigger-indexing` script
+3. **run-with-site-selection.ts** - Add support for `--env=prod` flag to trigger cloud lambdas
+4. **New automation script** - Create script that runs local ingestion for all sites, then triggers cloud indexing for sites with new SRT files
+
+**Infrastructure Foundation:** All automation infrastructure is ready - Phase 3 focuses on script simplification and automation workflow creation.
 
 ### 🔑 Key Information for Resuming:
+
+**Automation Infrastructure (Phase 2 COMPLETE):**
 - **Automation Account:** `297202224084` (browse.show-0_account--root)
 - **Automation User:** `browse-dot-show-automation` 
-- **Access Key:** REQUEST_THIS_FROM_DEV - SAVED_OUTSIDE_OF_GIT
-- **Test Target:** `hardfork` site in account `927984855345`
-- **Credentials:** Ready in `.env.automation` file
+- **Credentials:** Ready in `.env.automation` file (gitignored)
+- **All Sites Working:** hardfork, claretandblue, listenfairplay, naddpod
+
+**Site Account Structure:**
+- **Account `152849157974`**: claretandblue (creates automation role), naddpod (references role)
+- **Account `927984855345`**: hardfork (creates automation role), listenfairplay (references role)
+
+**Key Commands:**
+- **Test Cross-Account Access:** `pnpm tsx scripts/test-cross-account-access.ts --site=<site_id>`
+- **Validate Automation Config:** `cd packages/validation && pnpm automation-roles`
+- **Deploy Automation Updates:** `pnpm tsx scripts/deploy/deploy-automation.ts`
 
 ## 📚 Key Reference Files (for Future Agents)
 
-### Current Architecture Understanding
+### Phase 3 Architecture Understanding (Starting Point)
 - `package.json` - Root package.json with current script definitions
 - `scripts/run-with-site-selection.ts` - Site selection and environment loading logic
 - `scripts/run-all-ingestion-lambdas-for-all-sites.ts` - Current all-sites processing script
@@ -96,12 +126,12 @@
 - `sites/origin-sites/*/site.config.json` - Site metadata
 - `sites/origin-sites/*/.env.aws-sso` - Site-specific AWS profiles (gitignored)
 
-### Terraform Infrastructure
-- `terraform/main.tf` - Current site infrastructure (TO BE MOVED)
-- `terraform/outputs.tf` - Current terraform outputs (TO BE MOVED)
-- `terraform/variables.tf` - Site configuration variables (TO BE MOVED)
-- `terraform/environments/*.tfvars` - Site-specific terraform variables (TO BE MOVED)
-- `terraform/backend-configs/*.tfbackend` - Site-specific terraform backends (TO BE MOVED)
+### Terraform Infrastructure ✅ COMPLETE
+- `terraform/sites/` - Site infrastructure (moved and working)
+- `terraform/automation/` - Central automation infrastructure (deployed)
+- `terraform/homepage/` - Homepage infrastructure (existing)
+- `terraform/sites/environments/*.tfvars` - Site-specific terraform variables with automation config
+- `terraform/sites/backend-configs/*.tfbackend` - Site-specific terraform backends
 
 ### Lambda Package Structure
 - `packages/ingestion/rss-retrieval-lambda/package.json` - RSS retrieval scripts
@@ -127,8 +157,8 @@ Each site runs in a separate AWS account with the pattern:
 - Sites in either `sites/my-sites/` or `sites/origin-sites/`
 - Each site has `.env.aws-sso` with AWS_PROFILE pointing to separate AWS accounts
 - Example: `AWS_PROFILE=browse.show-1_admin-permissions-152849157974`
-- Current deployed sites: claretandblue, hardfork, listenfairplay, naddpod
-- Upcoming sites: myfavoritemurder, searchengine
+- **Current deployed sites:** claretandblue, hardfork, listenfairplay, naddpod ✅
+- **Future sites:** myfavoritemurder, searchengine (can be added later using established patterns)
 
 ### Lambda Functions Per Site
 - `retrieve-rss-feeds-and-download-audio-files-{site_id}`
@@ -155,20 +185,21 @@ Each site runs in a separate AWS account with the pattern:
 5. Use terraform outputs to get lambda function names
 6. Must work without user interaction (automated)
 
-### 3. New Terraform Structure
+### 3. New Terraform Structure ✅ COMPLETE
 ```
 terraform/
-├── sites/     (current terraform/ renamed)
-├── homepage/  (current terraform-homepage/ moved)
-└── automation/ (NEW - manages cross-account role & permissions)
+├── sites/     ✅ Site infrastructure (deployed for all 4 sites)
+├── homepage/  ✅ Homepage infrastructure (existing)
+└── automation/ ✅ Cross-account automation (deployed and tested)
 ```
 
-### 4. Cross-Account IAM Setup
-- Create role/user with long-lived credentials
-- Permissions needed:
+### 4. Cross-Account IAM Setup ✅ COMPLETE
+- ✅ Central automation user with long-lived credentials created
+- ✅ Permissions deployed for all sites:
   - S3 upload to all site buckets: `{site_id}-browse-dot-show`
   - Lambda invoke for indexing functions: `convert-srts-indexed-search-{site_id}`
-- Store credentials in gitignored `.env.automation` file
+- ✅ Credentials stored in gitignored `.env.automation` file
+- ✅ Validation script ensures proper role configuration
 
 ## Final Recommendations
 
@@ -376,11 +407,11 @@ terraform/
 3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
 4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-hardfork`
 
-**Test Results (claretandblue site):** ✅ COMPLETE
-1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in claretandblue account
-2. ✅ **S3 Upload:** Successfully uploaded test files to `claretandblue-browse-dot-show` bucket  
-3. ✅ **S3 Delete:** Successfully deleted test files (cleanup operations working)
-4. ✅ **Lambda Invoke:** Successfully tested invoke permissions for `convert-srts-indexed-search-claretandblue`
+**Test Results (All Sites):** ✅ COMPLETE
+All 4 sites successfully tested for cross-account automation access:
+1. ✅ **Role Assumption:** Successfully assumed `browse-dot-show-automation-role` in all site accounts
+2. ✅ **S3 Access:** Successfully uploaded/deleted test files in all site buckets
+3. ✅ **Lambda Invoke:** Successfully tested invoke permissions for all site indexing lambdas
 
 **Permissions Deployed:**
 - `s3:PutObject` - ✅ Working
@@ -389,4 +420,4 @@ terraform/
 - `lambda:InvokeFunction` - ✅ Working
 
 **Test Command:** `tsx scripts/test-cross-account-access.ts --site=<site_id>`
-**Pattern established and working for multiple sites.**
+**Status:** All sites tested and automation infrastructure complete.
