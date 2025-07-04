@@ -100,6 +100,20 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     // Check required fields
     if (!site.id) {
         result.errors.push('Missing required field: id');
+    } else {
+        // Validate site ID length (32 character limit)
+        if (site.id.length > 32) {
+            result.errors.push(`Site ID "${site.id}" exceeds 32 character limit (current length: ${site.id.length})`);
+        }
+        
+        // Validate site ID matches directory name
+        const siteDir = getSiteDirectory(site.id);
+        if (siteDir) {
+            const dirName = path.basename(siteDir);
+            if (site.id !== dirName) {
+                result.errors.push(`Site ID "${site.id}" doesn't match directory name "${dirName}"`);
+            }
+        }
     }
     
     if (!site.domain) {

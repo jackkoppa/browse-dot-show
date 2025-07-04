@@ -77,10 +77,7 @@ export function loadSitesFromDirectory(directory: string): SiteConfig[] {
                     const configContent = fs.readFileSync(configPath, 'utf8');
                     const siteConfig: SiteConfig = JSON.parse(configContent);
                     
-                    // Validate that site ID matches directory name
-                    if (siteConfig.id !== entry.name) {
-                        console.warn(`Warning: Site ID "${siteConfig.id}" doesn't match directory name "${entry.name}"`);
-                    }
+                    // Note: Site ID validation is now handled in the validation function
 
                     sites.push(siteConfig);
                 } catch (error) {
