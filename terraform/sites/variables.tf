@@ -85,3 +85,9 @@ variable "search_lambda_memory_size" {
   type        = number
   default     = 3008
 }
+
+variable "srt_indexing_lambda_memory_size" {
+  description = "Memory size in MB for the SRT indexing lambda function"
+  type        = number
+  default     = 3008
+}

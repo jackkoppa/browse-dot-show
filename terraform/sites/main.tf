@@ -142,7 +142,7 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
 module "rss_lambda" {
   source = "./modules/lambda"
   
-  function_name        = "retrieve-rss-feeds-and-download-audio-files-${var.site_id}"
+  function_name        = "rss-retrieval-${var.site_id}"
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
   runtime              = "nodejs20.x"
   timeout              = 300
@@ -164,7 +164,7 @@ module "rss_lambda" {
 module "whisper_lambda" {
   source = "./modules/lambda"
   
-  function_name        = "process-new-audio-files-via-whisper-${var.site_id}"
+  function_name        = "whisper-transcription-${var.site_id}"
   handler              = "process-new-audio-files-via-whisper.handler"
   runtime              = "nodejs20.x"
   timeout              = 900
@@ -205,11 +205,11 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
 module "indexing_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "convert-srts-indexed-search-${var.site_id}"
+  function_name        = "srt-indexing-${var.site_id}"
   handler              = "convert-srts-indexed-search.handler"
   runtime              = "nodejs20.x"
   timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srts-indexed-search.ts
-  memory_size          = 3008 
+  memory_size          = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
   ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {
     S3_BUCKET_NAME     = module.s3_bucket.bucket_name
@@ -235,7 +235,7 @@ resource "aws_lambda_permission" "allow_lambda2_to_invoke_lambda3" {
 module "search_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "search-indexed-transcripts-${var.site_id}"
+  function_name        = "search-api-${var.site_id}"
   handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
   timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file

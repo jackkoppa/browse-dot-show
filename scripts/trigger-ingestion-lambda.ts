@@ -6,25 +6,49 @@ import { logError, printInfo, printError, logProgress, logSuccess, logWarning } 
 import { validateAwsEnvironment, invokeLambda } from './utils/aws-utils';
 import { loadEnvFile } from './utils/env-validation';
 import { execCommand } from './utils/shell-exec';
-
-// We'll need to import prompts - since this won't be built, we can use require
-const prompts = require('prompts');
+import prompts from 'prompts';
 
 /**
- * Trigger ingestion lambda functions for a specific site
+ * Trigger ingestion lambda functions for specific sites
  * 
- * This script provides an interactive interface to select a site and trigger
- * various lambda functions for podcast ingestion workflows.
+ * This script provides an interactive interface to first select an ingestion
+ * lambda function, then select which site to trigger it for.
  */
+
+interface LambdaFunction {
+  title: string;
+  value: string;
+  description: string;
+}
 
 interface SiteInfo {
   id: string;
   path: string;
 }
 
-interface LambdaFunction {
-  title: string;
-  value: string;
+/**
+ * Discover available ingestion lambda functions
+ */
+async function discoverIngestionFunctions(): Promise<LambdaFunction[]> {
+  const functions: LambdaFunction[] = [
+    {
+      title: 'RSS Feed Retrieval and Audio Download',
+      value: 'rss-retrieval-lambda',
+      description: 'Retrieve RSS feeds and download audio files'
+    },
+    {
+      title: 'Whisper Audio Processing',
+      value: 'process-audio-lambda',
+      description: 'Process new audio files via Whisper transcription'
+    },
+    {
+      title: 'SRT to Search Index Conversion',
+      value: 'srt-indexing-lambda',
+      description: 'Convert SRT files to searchable index entries'
+    }
+  ];
+
+  return functions;
 }
 
 /**
@@ -42,7 +66,7 @@ async function discoverSites(): Promise<SiteInfo[]> {
       const result = await execCommand('ls', ['-1', mySitesDir], { silent: true });
       if (result.exitCode === 0) {
         const mySites = result.stdout.split('\n')
-          .filter(name => name.trim() && !name.startsWith('.'))
+          .filter(name => name.trim() && !name.startsWith('.') && !name.endsWith('.md'))
           .map(name => ({
             id: name.trim(),
             path: path.join(mySitesDir, name.trim())
@@ -65,7 +89,7 @@ async function discoverSites(): Promise<SiteInfo[]> {
       const result = await execCommand('ls', ['-1', originSitesDir], { silent: true });
       if (result.exitCode === 0) {
         const originSites = result.stdout.split('\n')
-          .filter(name => name.trim() && !name.startsWith('.'))
+          .filter(name => name.trim() && !name.startsWith('.') && !name.endsWith('.md'))
           .map(name => ({
             id: name.trim(),
             path: path.join(originSitesDir, name.trim())
@@ -186,7 +210,30 @@ async function main(): Promise<void> {
   try {
     logProgress('🚀 Starting Lambda Trigger Tool...');
 
-    // Site selection first
+    // Step 1: Select ingestion lambda function
+    const lambdaFunctions = await discoverIngestionFunctions();
+
+    const lambdaResponse = await prompts({
+      type: 'select',
+      name: 'lambdaFunction',
+      message: 'Select ingestion Lambda function to trigger:',
+      choices: lambdaFunctions.map(func => ({
+        title: func.title,
+        description: func.description,
+        value: func.value
+      })),
+      initial: 0
+    });
+
+    if (!lambdaResponse.lambdaFunction) {
+      printInfo('Exiting...');
+      process.exit(0);
+    }
+
+    const selectedFunction = lambdaResponse.lambdaFunction;
+    printInfo(`Selected function: ${selectedFunction}`);
+
+    // Step 2: Select site
     const availableSites = await discoverSites();
     
     if (availableSites.length === 0) {
@@ -199,15 +246,12 @@ async function main(): Promise<void> {
       value: site
     }));
 
-    // No default site - always start at first option
-    const defaultIndex = 0;
-
     const siteResponse = await prompts({
       type: 'select',
       name: 'siteInfo',
-      message: 'Select site to trigger Lambda functions for:',
+      message: 'Select site to trigger Lambda function for:',
       choices: siteChoices,
-      initial: Math.max(0, defaultIndex)
+      initial: 0
     });
 
     if (!siteResponse.siteInfo) {
@@ -218,33 +262,14 @@ async function main(): Promise<void> {
     const selectedSite: SiteInfo = siteResponse.siteInfo;
     printInfo(`Selected site: ${selectedSite.id}`);
 
-    // Load site-specific configuration
+    // Step 3: Load site-specific configuration
     await loadSiteEnvFile(selectedSite);
 
-    // Configuration
-    const awsRegion = await getAWSRegion();
-    
-    // Define available Lambda functions with site-specific names
-    const lambdaFunctions: LambdaFunction[] = [
-      {
-        title: 'RSS Feed Retrieval and Audio Download',
-        value: `retrieve-rss-feeds-and-download-audio-files-${selectedSite.id}`
-      },
-      {
-        title: 'Whisper Audio Processing',
-        value: `process-new-audio-files-via-whisper-${selectedSite.id}`
-      },
-              {
-          title: 'SRT to Search Index Conversion',
-          value: `convert-srts-indexed-search-${selectedSite.id}`
-        }
-    ];
-
-    // Validate AWS environment
+    // Step 4: Validate AWS environment
     if (!process.env.AWS_PROFILE) {
       logError('❌ AWS_PROFILE is not set in the site-specific .env.aws-sso file.');
       printError('  Please ensure the site .env.aws-sso file contains: AWS_PROFILE=your_profile_name');
-              printError('  If you haven\'t configured an SSO profile, run \'aws configure sso\' to set it up.');
+      printError('  If you haven\'t configured an SSO profile, run \'aws configure sso\' to set it up.');
       process.exit(1);
     }
 
@@ -259,25 +284,23 @@ async function main(): Promise<void> {
 
     logSuccess(`✅ AWS SSO authentication verified with profile: ${process.env.AWS_PROFILE}`);
 
-    // Use prompts to get user selection
-    const response = await prompts({
-      type: 'select',
-      name: 'lambdaFunction',
-      message: `Select Lambda function to trigger for site '${selectedSite.id}':`,
-      choices: lambdaFunctions,
-      initial: 0
-    });
+    // Step 5: Build the site-specific lambda function name
+    const functionNameMapping = {
+      'rss-retrieval-lambda': `rss-retrieval-${selectedSite.id}`,
+      'process-audio-lambda': `whisper-transcription-${selectedSite.id}`,
+      'srt-indexing-lambda': `srt-indexing-${selectedSite.id}`
+    };
 
-    // Handle if user cancels the prompt
-    if (!response.lambdaFunction) {
-      printInfo('Exiting...');
-      process.exit(0);
+    const siteSpecificFunctionName = functionNameMapping[selectedFunction as keyof typeof functionNameMapping];
+    
+    if (!siteSpecificFunctionName) {
+      logError(`❌ Unknown lambda function: ${selectedFunction}`);
+      process.exit(1);
     }
 
-    const selectedFunction = response.lambdaFunction;
-
-    // Invoke the Lambda function
-    await invokeLambdaWithOutput(selectedFunction, process.env.AWS_PROFILE!, awsRegion);
+    // Step 6: Get AWS region and invoke the Lambda function
+    const awsRegion = await getAWSRegion();
+    await invokeLambdaWithOutput(siteSpecificFunctionName, process.env.AWS_PROFILE!, awsRegion);
 
   } catch (error: any) {
     logError('Error:', error.message);

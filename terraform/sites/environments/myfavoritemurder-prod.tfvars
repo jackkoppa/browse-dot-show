@@ -15,5 +15,8 @@ enable_custom_domain_on_cloudfront = true
 enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
 
+# Search lambda configuration
+search_lambda_memory_size = 7168 # Currently, myfavoritemurder has the largest index size, and thus we need the most memory for its search Lambda
+
 # Logging
 log_level = "info" 

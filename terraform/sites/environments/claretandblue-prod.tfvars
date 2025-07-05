@@ -11,6 +11,9 @@ custom_domain_name = "claretandblue.browse.show"
 root_domain_name = "claretandblue.browse.show"
 enable_custom_domain_on_cloudfront = true
 
+# SRT indexing Lambda configuration
+srt_indexing_lambda_memory_size = 5120 # Required for larger index size
+
 # Lambda warming
 enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
@@ -19,4 +22,4 @@ search_lambda_warming_schedule = "rate(5 minutes)"
 search_lambda_memory_size = 5120 # Required for larger index size
 
 # Logging
-log_level = "info" 
+log_level = "debug" 
