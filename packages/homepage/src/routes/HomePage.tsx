@@ -135,21 +135,21 @@ function HomePage() {
                 transcribe & search<br className="sm:hidden" /> any podcast
               </h1>
               <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed hidden sm:block">
-                Find exact moments in your favorite podcasts.
+                Find exact moments in your favorite podcasts. Jump to that point & start listening.<br /><br />
                 Currently available for select shows, with more added by request.
               </p>
             </div>
           </div>
           {/* Mobile description */}
           <p className="text-sm text-muted-foreground leading-relaxed text-center mt-6 sm:hidden">
-            Find exact moments in your favorite podcasts.
+            Find exact moments in your favorite podcasts. Jump to that point & start listening.<br /><br />
             Currently available for select shows, with more added by request.
           </p>
         </div>
 
         {/* Universal Search Section */}
         <div className="mb-16 p-2">
-          <h2 className="max-w-2xl text-xl md:text-2xl mx-auto font-bold mb-4 text-left">
+          <h2 className="max-w-2xl text-xl md:text-2xl mx-auto font-bold mb-4 text-left text-foreground">
             Try it out!
           </h2>
 
@@ -173,6 +173,14 @@ function HomePage() {
                 disabled={!selectedSite}
               />
             </div>
+            {/* Show tagline when a site is selected */}
+            {selectedSiteConfig && (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground italic">
+                  {selectedSiteConfig.podcastTagline}
+                </p>
+              </div>
+            )}
           </div>
         </div>
         {/* CTA Section */}
@@ -200,7 +208,7 @@ function HomePage() {
               onClick={handleSelfHostClick}
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold border-2 hover:bg-muted"
+              className="w-full sm:w-auto px-8 py-3 text-lg font-semibold border-2 hover:bg-muted hover:text-foreground"
             >
               🚀 Self-host your own
             </Button>

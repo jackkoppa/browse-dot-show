@@ -343,14 +343,15 @@ async function uploadHomepageFiles(bucketName: string, distributionId: string): 
     'max-age=3600'  // 1 hour for index.html
   ]);
 
-  printInfo('Creating CloudFront invalidation...');
+  printInfo('Invalidating entire CloudFront cache...');
   await execCommandOrThrow('aws', [
     'cloudfront',
     'create-invalidation',
     '--distribution-id',
     distributionId,
     '--paths',
-    '/*'
+    '/*',
+    '--no-cli-pager'
   ]);
 
   printSuccess('✅ Homepage files uploaded successfully!');

@@ -17,7 +17,6 @@ import {
 import { cn } from '@browse-dot-show/ui'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 
-
 interface Site {
   id: string
   displayName: string
@@ -50,17 +49,17 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between h-auto min-h-[48px] p-3"
+              className="w-full justify-between h-auto min-h-[48px] sm:min-h-[64px] p-3"
             >
               {selectedSiteData ? (
                 <div className="flex items-center gap-3">
                   <img
                     src={selectedSiteData.imageUrl}
                     alt={selectedSiteData.displayName}
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-8 h-8 sm:w-14 sm:h-14 rounded-full object-cover"
                   />
                   <div className="flex flex-col items-start">
-                    <span className="font-medium">{selectedSiteData.displayName}</span>
+                    <span className="font-bold text-sm sm:text-lg">{selectedSiteData.displayName}</span>
                     <span className="text-xs text-muted-foreground">{selectedSiteData.domain}</span>
                   </div>
                 </div>
@@ -70,7 +69,11 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start" onOpenAutoFocus={(e: MouseEvent) => !isDesktop && e.preventDefault()} >
+          <PopoverContent 
+            className="w-(--radix-popover-trigger-width) p-0" 
+            align="start" 
+            onOpenAutoFocus={(e: MouseEvent) => !isDesktop && e.preventDefault()}
+          >
             <Command>
               <CommandInput placeholder="Search podcasts..." />
               <CommandList>
@@ -84,16 +87,17 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                         onSiteSelect(currentValue === selectedSite ? "" : currentValue)
                         setOpen(false)
                       }}
+                      className="[&[data-selected=true]_.domain-text]:text-background"
                     >
                       <div className="flex items-center gap-3 w-full">
                         <img
                           src={site.imageUrl}
                           alt={site.displayName}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          className="w-8 h-8 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
                         />
                         <div className="flex flex-col items-start flex-grow min-w-0">
-                          <span className="font-medium truncate w-full">{site.displayName}</span>
-                          <span className="text-xs text-muted-foreground truncate w-full">{site.domain}</span>
+                          <span className="font-bold text-sm sm:text-lg truncate w-full">{site.displayName}</span>
+                          <span className="text-xs text-muted-foreground domain-text truncate w-full">{site.domain}</span>
                         </div>
                         <Check
                           className={cn(
@@ -110,15 +114,6 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
           </PopoverContent>
         </Popover>
       </div>
-      
-      {/* Show tagline when a site is selected */}
-      {selectedSiteData && (
-        <div className="mt-2">
-          <p className="text-xs text-muted-foreground italic">
-            {selectedSiteData.podcastTagline}
-          </p>
-        </div>
-      )}
     </div>
   )
 } 
