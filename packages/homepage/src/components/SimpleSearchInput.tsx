@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { Search } from 'lucide-react'
+import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button, Input } from "@browse-dot-show/ui"
 
 interface SimpleSearchInputProps {
@@ -47,19 +47,19 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className="text-sm h-12 pr-4 bg-background border-input"
+        className="text-sm h-14 sm:h-16 pr-4 bg-background border-input"
       />
       <Button
         onClick={handleSearchClick}
         variant={canSearch ? 'default' : 'outline'}
         disabled={!canSearch}
         size="sm"
-        className="h-12 px-8"
+        className="h-14 w-14 sm:w-16 sm:h-16 px-0"
       >
         {isLoading ? (
           <div className="animate-spin rounded-full border-2 border-current border-t-transparent h-4 w-4"></div>
         ) : (
-          <Search className="size-6" />
+          <MagnifyingGlassIcon className={`size-7 sm:size-8 ${canSearch ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
         )}
       </Button>
     </div>
