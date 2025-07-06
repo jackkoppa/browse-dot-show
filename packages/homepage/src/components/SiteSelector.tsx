@@ -64,7 +64,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                   </div>
                 </div>
               ) : (
-                "Select a podcast..."
+                <span className="flex h-[33px] sm:h-14 items-center">Select a podcast...</span>
               )}
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>

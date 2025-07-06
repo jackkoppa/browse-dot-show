@@ -350,7 +350,7 @@ async function uploadHomepageFiles(bucketName: string, distributionId: string): 
     '--distribution-id',
     distributionId,
     '--paths',
-    '/*',
+    '/\\*',
     '--no-cli-pager'
   ]);
 
