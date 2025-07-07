@@ -407,8 +407,8 @@ After implementing Phase 4, the scheduled script will be:
 - **All Sites Working:** All sites from origin-sites/
 
 **Site Account Structure:**
-- **Account `152849157974`**: claretandblue (creates automation role), naddpod (references role)
-- **Account `927984855345`**: hardfork (creates automation role), listenfairplay (references role)
+- **Account `152849157974`**: claretandblue (creates automation role), naddpod (references role), myfavoritemurder (references role)
+- **Account `927984855345`**: hardfork (creates automation role), listenfairplay (references role), searchengine (references role)
 
 **Key Commands:**
 - **Test Cross-Account Access:** `pnpm tsx scripts/test-cross-account-access.ts --site=<site_id>`
