@@ -199,9 +199,9 @@ export async function handler(): Promise<any> {
   log.info('⏱️ Starting at', new Date().toISOString())
 
   // Get the current site ID and configuration
-  const siteId = process.env.CURRENT_SITE_ID;
+  const siteId = process.env.SITE_ID;
   if (!siteId) {
-    throw new Error('CURRENT_SITE_ID environment variable is required');
+    throw new Error('SITE_ID environment variable is required');
   }
 
   const searchLambdaName = `${SEARCH_LAMBDA_PREFIX}-${siteId}`;

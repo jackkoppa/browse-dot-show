@@ -8,7 +8,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execCommand } from './shell-exec.js';
-import { logInfo, logDebug, logError, logWarning } from './logging.js';
+import { logInfo, logDebug, logError } from './logging.js';
 
 interface FileInventory {
   audioFiles: string[];
