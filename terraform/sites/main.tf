@@ -356,6 +356,13 @@ resource "aws_iam_role_policy" "automation_permissions" {
       },
       {
         Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = module.s3_bucket.bucket_arn
+      },
+      {
+        Effect = "Allow"
         Action = "lambda:InvokeFunction"
         Resource = module.indexing_lambda.lambda_function_arn
       }

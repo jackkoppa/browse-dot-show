@@ -29,4 +29,4 @@ Shorten function names to fit within limits:
 1. Update Terraform config first
 2. Run migration script per site to rename resources
 3. Test with `myfavoritemurder` site first
-4. Apply to all 5 deployed sites
+4. Apply to all 6 deployed sites (all sites in origin-sites/)

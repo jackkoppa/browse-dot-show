@@ -35,6 +35,7 @@
     "ingestion:run-all-ingestion-lambdas-for-all-sites:local": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/run-all-ingestion-lambdas-for-all-sites.ts",
     "s3:sync": "tsx scripts/run-with-site-selection.ts \"S3 sync\" \"tsx scripts/s3-sync.ts\"",
     "trigger:ingestion-lambda": "tsx scripts/trigger-ingestion-lambda.ts",
+    "scheduled:run-ingestion-and-trigger-indexing": "NODE_OPTIONS=--max-old-space-size=6144 tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts",
     "create:site": "tsx scripts/create-new-site.ts",
     "prepare": "husky"
   },
