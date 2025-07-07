@@ -13,36 +13,28 @@ import { logInfo, logDebug, logError, logWarning } from './logging.js';
 interface FileInventory {
   audioFiles: string[];
   transcriptFiles: string[];
-  searchEntryFiles: string[];
   manifestFiles: string[];
   rssFiles: string[];
-  searchIndexFiles: string[];
 }
 
 interface SyncGapReport {
   localOnly: {
     audio: string[];
     transcripts: string[];
-    searchEntries: string[];
     manifest: string[];
     rss: string[];
-    searchIndex: string[];
   };
   s3Only: {
     audio: string[];
     transcripts: string[];
-    searchEntries: string[];
     manifest: string[];
     rss: string[];
-    searchIndex: string[];
   };
   consistent: {
     audio: string[];
     transcripts: string[];
-    searchEntries: string[];
     manifest: string[];
     rss: string[];
-    searchIndex: string[];
   };
   summary: {
     totalLocalOnlyFiles: number;
@@ -57,24 +49,20 @@ interface SyncGapReport {
  * Scan local directory for files
  */
 async function scanLocalFiles(siteId: string): Promise<FileInventory> {
-  const localBasePath = path.resolve(process.cwd(), 'aws-local-dev', 's3', 'sites', siteId);
-  
+  const localBasePath = path.join('aws-local-dev', 's3', 'sites', siteId);
   const inventory: FileInventory = {
     audioFiles: [],
     transcriptFiles: [],
-    searchEntryFiles: [],
     manifestFiles: [],
-    rssFiles: [],
-    searchIndexFiles: []
+    rssFiles: []
   };
   
+  // Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
   const folders = [
     { name: 'audio', key: 'audioFiles', extensions: ['.mp3'] },
     { name: 'transcripts', key: 'transcriptFiles', extensions: ['.srt'] },
-    { name: 'search-entries', key: 'searchEntryFiles', extensions: ['.json'] },
     { name: 'episode-manifest', key: 'manifestFiles', extensions: ['.json'] },
-    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] },
-    { name: 'search-index', key: 'searchIndexFiles', extensions: ['.json'] }
+    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] }
   ];
   
   // Helper function to recursively read directory
@@ -140,19 +128,16 @@ async function scanS3Files(
   const inventory: FileInventory = {
     audioFiles: [],
     transcriptFiles: [],
-    searchEntryFiles: [],
     manifestFiles: [],
-    rssFiles: [],
-    searchIndexFiles: []
+    rssFiles: []
   };
   
+  // Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
   const folders = [
     { name: 'audio', key: 'audioFiles', extensions: ['.mp3'] },
     { name: 'transcripts', key: 'transcriptFiles', extensions: ['.srt'] },
-    { name: 'search-entries', key: 'searchEntryFiles', extensions: ['.json'] },
     { name: 'episode-manifest', key: 'manifestFiles', extensions: ['.json'] },
-    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] },
-    { name: 'search-index', key: 'searchIndexFiles', extensions: ['.json'] }
+    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] }
   ];
   
   for (const folder of folders) {
@@ -211,26 +196,20 @@ function compareInventories(localInventory: FileInventory, s3Inventory: FileInve
     localOnly: {
       audio: [],
       transcripts: [],
-      searchEntries: [],
       manifest: [],
-      rss: [],
-      searchIndex: []
+      rss: []
     },
     s3Only: {
       audio: [],
       transcripts: [],
-      searchEntries: [],
       manifest: [],
-      rss: [],
-      searchIndex: []
+      rss: []
     },
     consistent: {
       audio: [],
       transcripts: [],
-      searchEntries: [],
       manifest: [],
-      rss: [],
-      searchIndex: []
+      rss: []
     },
     summary: {
       totalLocalOnlyFiles: 0,
@@ -244,10 +223,8 @@ function compareInventories(localInventory: FileInventory, s3Inventory: FileInve
   const comparisons = [
     { localKey: 'audioFiles', s3Key: 'audioFiles', reportKey: 'audio' },
     { localKey: 'transcriptFiles', s3Key: 'transcriptFiles', reportKey: 'transcripts' },
-    { localKey: 'searchEntryFiles', s3Key: 'searchEntryFiles', reportKey: 'searchEntries' },
     { localKey: 'manifestFiles', s3Key: 'manifestFiles', reportKey: 'manifest' },
-    { localKey: 'rssFiles', s3Key: 'rssFiles', reportKey: 'rss' },
-    { localKey: 'searchIndexFiles', s3Key: 'searchIndexFiles', reportKey: 'searchIndex' }
+    { localKey: 'rssFiles', s3Key: 'rssFiles', reportKey: 'rss' }
   ];
   
   for (const comparison of comparisons) {

@@ -18,8 +18,6 @@ interface SyncStats {
   transcripts: { synced: number; skipped: number; overwritten: number };
   'episode-manifest': { synced: number; skipped: number; overwritten: number };
   rss: { synced: number; skipped: number; overwritten: number };
-  'search-entries': { synced: number; skipped: number; overwritten: number };
-  'search-index': { synced: number; skipped: number; overwritten: number };
 }
 
 interface SyncOptions {
@@ -161,9 +159,7 @@ async function performSync(options: SyncOptions, foldersToSync: string[]): Promi
     audio: { synced: 0, skipped: 0, overwritten: 0 },
     transcripts: { synced: 0, skipped: 0, overwritten: 0 },
     'episode-manifest': { synced: 0, skipped: 0, overwritten: 0 },
-    rss: { synced: 0, skipped: 0, overwritten: 0 },
-    'search-entries': { synced: 0, skipped: 0, overwritten: 0 },
-    'search-index': { synced: 0, skipped: 0, overwritten: 0 }
+    rss: { synced: 0, skipped: 0, overwritten: 0 }
   };
   
   console.log('🔄 Starting sync operation...');

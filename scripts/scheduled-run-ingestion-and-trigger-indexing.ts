@@ -108,13 +108,12 @@ interface SyncResult {
 }
 
 // All folders that need to be synced
+// Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
 const ALL_SYNC_FOLDERS = [
   'audio',
   'transcripts', 
   'episode-manifest',
-  'rss',
-  'search-entries',
-  'search-index'
+  'rss'
 ];
 
 // Site account mappings - these match the terraform configurations
@@ -323,7 +322,25 @@ async function executeS3Sync(
     if (options.conflictResolution === 'overwrite-always') {
       args.push('--delete');
     } else if (options.conflictResolution === 'skip-existing') {
-      args.push('--size-only');
+      // For skip-existing (only download if file doesn't exist locally),
+      // we'll use a custom approach with exclude patterns
+      // First, we need to check what files already exist locally
+      if (options.direction === 's3-to-local') {
+        const localPath = destination.replace(/\/$/, ''); // Remove trailing slash
+        try {
+          if (fs.existsSync(localPath)) {
+            // Get list of existing local files to exclude them from sync
+            const existingFiles = getExistingLocalFiles(localPath);
+            existingFiles.forEach(file => {
+              args.push('--exclude', file);
+            });
+            logDebug(`Excluding ${existingFiles.length} existing local files from S3 sync`);
+          }
+        } catch (error: any) {
+          logWarning(`Could not check existing local files for exclude patterns: ${error.message}`);
+          // Continue without exclude patterns - will use default AWS CLI behavior
+        }
+      }
     }
     // For 'overwrite-if-newer', AWS CLI default behavior handles this
     
@@ -353,8 +370,8 @@ async function executeS3Sync(
     syncCmd.stdout.on('data', (data) => {
       const text = data.toString();
       output += text;
-      // Show progress for uploads
-      if (text.includes('upload:')) {
+      // Show progress for uploads/downloads
+      if (text.includes('upload:') || text.includes('download:')) {
         logInfo(`   ${text.trim()}`);
       }
     });
@@ -373,6 +390,68 @@ async function executeS3Sync(
       }
     });
   });
+}
+
+/**
+ * Get list of existing local files for exclude patterns
+ */
+function getExistingLocalFiles(localPath: string): string[] {
+  const existingFiles: string[] = [];
+  
+  try {
+    const items = fs.readdirSync(localPath);
+    
+    for (const item of items) {
+      const fullPath = path.join(localPath, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isFile() && !item.startsWith('.') && !item.includes('.DS_Store')) {
+        existingFiles.push(item);
+      } else if (stat.isDirectory()) {
+        // Recursively get files from subdirectories
+        const subPath = fullPath;
+        const relativePath = item;
+        try {
+          const subFiles = getExistingLocalFilesRecursive(subPath, relativePath);
+          existingFiles.push(...subFiles);
+        } catch (error) {
+          // Skip subdirectories that can't be read
+        }
+      }
+    }
+  } catch (error) {
+    // If we can't read the directory, return empty array
+  }
+  
+  return existingFiles;
+}
+
+/**
+ * Recursively get existing local files with relative paths
+ */
+function getExistingLocalFilesRecursive(dirPath: string, relativePath: string): string[] {
+  const files: string[] = [];
+  
+  try {
+    const items = fs.readdirSync(dirPath);
+    
+    for (const item of items) {
+      const fullPath = path.join(dirPath, item);
+      const itemRelativePath = `${relativePath}/${item}`;
+      
+      const stat = fs.statSync(fullPath);
+      if (stat.isFile() && !item.startsWith('.') && !item.includes('.DS_Store')) {
+        files.push(itemRelativePath);
+      } else if (stat.isDirectory()) {
+        const subFiles = getExistingLocalFilesRecursive(fullPath, itemRelativePath);
+        files.push(...subFiles);
+      }
+    }
+  } catch (error) {
+    // Skip directories that can't be read
+  }
+  
+  return files;
 }
 
 /**
@@ -475,7 +554,7 @@ async function performS3ToLocalPreSync(
     const syncOptions: SyncOptions = {
       siteId,
       direction: 's3-to-local',
-      conflictResolution: 'overwrite-if-newer', // S3 wins for pre-sync conflicts
+      conflictResolution: 'skip-existing', // Only download files that don't exist locally
       localBasePath,
       s3BucketName: siteConfig.bucketName,
       tempCredentials
@@ -1077,14 +1156,13 @@ async function main(): Promise<void> {
   console.log('='.repeat(60));
   
   const sitesWithSuccessfulSync = results.filter(result => 
-    result.s3SyncSuccess === true && 
-    (result.s3SyncTotalFilesUploaded || 0) > 0
+    (result.s3SyncTotalFilesUploaded || 0) > 0  // Trigger indexing if ANY files were uploaded
   );
   
   if (sitesWithSuccessfulSync.length === 0) {
     console.log('ℹ️  No sites uploaded files to S3. Skipping cloud indexing phase.');
   } else {
-    console.log(`📝 Found ${sitesWithSuccessfulSync.length} site(s) with successful S3 uploads:${sitesWithSuccessfulSync.map(r => ` ${r.siteId} (${r.s3SyncTotalFilesUploaded} files)`).join(',')}`);
+    console.log(`📝 Found ${sitesWithSuccessfulSync.length} site(s) with S3 uploads:${sitesWithSuccessfulSync.map(r => ` ${r.siteId} (${r.s3SyncTotalFilesUploaded} files)`).join(',')}`);
     
     for (const result of sitesWithSuccessfulSync) {
       const resultIndex = results.findIndex(r => r.siteId === result.siteId);
@@ -1201,4 +1279,4 @@ process.on('SIGINT', () => {
 main().catch((error) => {
   console.error('\n❌ Unexpected error:', error.message);
   process.exit(1);
-}); 
+});

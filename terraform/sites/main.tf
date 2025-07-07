@@ -348,6 +348,7 @@ resource "aws_iam_role_policy" "automation_permissions" {
       {
         Effect = "Allow"
         Action = [
+          "s3:GetObject",
           "s3:PutObject",
           "s3:PutObjectAcl",
           "s3:DeleteObject"
