@@ -303,6 +303,8 @@ AWS_REGION=us-east-1
 # listenfairplay_ACCOUNT_ID=927984855345
 # naddpod_ACCOUNT_ID=152849157974
 # claretandblue_ACCOUNT_ID=152849157974
+# searchengine_ACCOUNT_ID=927984855345
+# myfavoritemurder_ACCOUNT_ID=152849157974
 `;
 
   const { writeFile } = await import('fs/promises');

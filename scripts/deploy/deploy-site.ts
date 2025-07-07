@@ -2,7 +2,7 @@
 
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { execCommandOrThrow, execCommand } from '../utils/shell-exec.js';
+import { execCommandOrThrow, execCommand, execCommandLiveOrThrow } from '../utils/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
 
@@ -431,7 +431,21 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
     console.log('');
     printInfo('=== Uploading client files to S3 ===');
     printInfo(`Uploading client files for site ${siteId}...`);
-    await execCommandOrThrow('tsx', ['scripts/deploy/upload-client.ts', env, siteId]);
+    
+    // Ensure all necessary environment variables are explicitly set for the child process
+    const uploadEnv = {
+      ...process.env,
+      SELECTED_SITE_ID: siteId,
+      SITE_ID: siteId,
+      ENV: env
+    };
+    
+    printInfo(`Environment variables for upload: AWS_PROFILE=${process.env.AWS_PROFILE || 'not set'}, SITE_ID=${siteId}`);
+    
+    // Use execCommandLiveOrThrow for better output visibility and environment handling
+    await execCommandLiveOrThrow('tsx', ['scripts/deploy/upload-client.ts', env, siteId], {
+      env: uploadEnv
+    });
     printSuccess('✅ Client files uploaded successfully to S3!');
   } else {
     console.log('');

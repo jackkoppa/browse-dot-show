@@ -9,9 +9,9 @@ This directory is **ignored** if _any_ sites exist in [../my-sites](../my-sites/
 
 ## Current Sites
 
-// NOTE: Only the first is actually deployed & working so far
-
 * listenfairplay.com
 * hardfork.browse.show
 * naddpod.browse.show
 * claretandblue.browse.show
+* searchengine.browse.show
+* myfavoritemurder.browse.show

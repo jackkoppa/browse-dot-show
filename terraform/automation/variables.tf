@@ -7,7 +7,7 @@ variable "automation_user_name" {
 variable "deployed_sites" {
   description = "List of site IDs that are deployed and need automation access"
   type        = list(string)
-  default     = ["claretandblue", "hardfork", "listenfairplay", "naddpod"]
+  default     = ["claretandblue", "hardfork", "listenfairplay", "naddpod", "searchengine", "myfavoritemurder"]
 }
 
 variable "site_account_ids" {

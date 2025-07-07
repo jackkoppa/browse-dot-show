@@ -82,8 +82,18 @@ async function buildClient(config: UploadConfig): Promise<void> {
   process.env.VITE_SEARCH_API_URL = config.searchApiUrl;
   process.env.VITE_S3_HOSTED_FILES_BASE_URL = '/';
   process.env.SITE_ID = config.siteId;
+  
+  // Set Node.js memory limit for large index files
+  process.env.NODE_OPTIONS = '--max-old-space-size=6144';
+  printInfo('Set NODE_OPTIONS=--max-old-space-size=6144 for client build');
 
+  const buildStartTime = Date.now();
+  printInfo(`Starting client build for site: ${config.siteId}`);
+  
   await execCommandOrThrow('pnpm', ['client:build:specific-site', config.siteId]);
+  
+  const buildDuration = (Date.now() - buildStartTime) / 1000;
+  printInfo(`Client build completed in ${buildDuration.toFixed(2)} seconds`);
 }
 
 async function validateBuildOutput(siteId: string): Promise<void> {
