@@ -187,41 +187,19 @@ function loadAutomationCredentials(): AutomationCredentials {
 }
 
 /**
- * Get lambda function name from site terraform outputs
+ * Get lambda function name using the consistent naming pattern
+ * This avoids terraform credential issues by using the known naming convention: srt-indexing-${siteId}
  */
 async function getSiteIndexingLambdaName(siteId: string): Promise<string | null> {
   try {
     console.log(`🔍 Getting indexing lambda name for site: ${siteId}`);
     
-    // Change to site terraform directory
-    const originalCwd = process.cwd();
-    process.chdir('terraform/sites');
+    // Use the consistent naming pattern from terraform: srt-indexing-${siteId}
+    const lambdaName = `srt-indexing-${siteId}`;
     
-    try {
-      // Get terraform output for indexing lambda
-      const result = await execCommand('terraform', [
-        'output', 
-        '-raw', 
-        'indexing_lambda_function_name'
-      ], { 
-        silent: true,
-        env: {
-          ...process.env,
-          TF_VAR_site_id: siteId
-        }
-      });
-      
-      if (result.exitCode === 0 && result.stdout.trim()) {
-        const lambdaName = result.stdout.trim();
-        console.log(`✅ Found indexing lambda for ${siteId}: ${lambdaName}`);
-        return lambdaName;
-      } else {
-        console.warn(`⚠️  Could not get indexing lambda name for ${siteId}: ${result.stderr}`);
-        return null;
-      }
-    } finally {
-      process.chdir(originalCwd);
-    }
+    console.log(`✅ Using indexing lambda name for ${siteId}: ${lambdaName}`);
+    return lambdaName;
+    
   } catch (error: any) {
     console.error(`❌ Error getting indexing lambda name for ${siteId}:`, error.message);
     return null;
