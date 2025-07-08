@@ -361,7 +361,7 @@ async function main(): Promise<void> {
     console.log();
     printInfo('Next steps:');
     console.log('  1. Review your configuration in: ' + siteDir + '/');
-    console.log('  2. Set up local directories: pnpm setup:site-directories');
+    console.log('  2. Set up local directories: pnpm site:setup-directories');
     console.log('  3. Test locally: pnpm client:dev');
     console.log('  4. Deploy to AWS: pnpm all:deploy');
     console.log();

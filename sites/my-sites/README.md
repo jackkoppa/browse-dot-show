@@ -6,7 +6,7 @@ This directory is where you create and configure your own podcast archive sites.
 
 1. **Create a new site**: Use the helper script to get started quickly:
    ```bash
-   pnpm create:site
+   pnpm site:create
    ```
 
 2. **Or copy the example**: Copy the `example-site` directory and customize it:
@@ -103,7 +103,7 @@ Once your site is configured, you can use these commands:
 ```bash
 # Local Development
 pnpm client:dev                    # Start development server (will prompt for site)
-pnpm setup:site-directories        # Create local data directories
+pnpm site:setup-directories        # Create local data directories
 
 # Data Processing
 pnpm rss-retrieval-lambda:run:local    # Download podcast episodes
@@ -134,7 +134,7 @@ All commands will prompt you to select which site to work with, unless you use t
 - Private feeds may require authentication (not currently supported)
 
 ### Local Development
-- Run `pnpm setup:site-directories` before local development
+- Run `pnpm site:setup-directories` before local development
 - Audio processing can be resource-intensive
 - Use `WHISPER_API_PROVIDER=openai` for faster transcription (requires API key)
 
@@ -143,7 +143,7 @@ All commands will prompt you to select which site to work with, unless you use t
 1. Check the main [README.md](../../README.md) for general setup instructions
 2. Review existing sites in `../origin-sites/` for configuration examples
 3. Use the `example-site` template as a starting point
-4. Run `pnpm create:site` for guided site creation
+4. Run `pnpm site:create` for guided site creation
 
 ## Advanced Configuration
 

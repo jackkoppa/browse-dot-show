@@ -19,14 +19,14 @@ cd browse-dot-show
 pnpm install
 
 # Create a new site with guided setup
-pnpm create:site
+pnpm site:create
 ```
 
 ### 2. Local Development
 
 ```bash
 # Set up local data directories
-pnpm setup:site-directories
+pnpm site:setup-directories
 
 # Start development server (will prompt for site selection)
 pnpm client:dev
@@ -63,7 +63,7 @@ Each site contains:
 
 **Option 1: Guided Setup**
 ```bash
-pnpm create:site  # Interactive site creation wizard
+pnpm site:create  # Interactive site creation wizard
 ```
 
 **Option 2: Manual Setup**
@@ -109,8 +109,8 @@ Each site gets its own:
 
 ### Site Management
 ```bash
-pnpm create:site              # Create new site with guided setup
-pnpm setup:site-directories   # Create local data directories
+pnpm site:create              # Create new site with guided setup
+pnpm site:setup-directories   # Create local data directories
 pnpm validate:sites           # Validate site configurations
 ```
 
@@ -254,7 +254,7 @@ Deploy separate sites for different audiences:
 - Check AWS region is supported for all services
 
 **Local Development Issues**:
-- Run `pnpm setup:site-directories` before first development
+- Run `pnpm site:setup-directories` before first development
 - Ensure you have write permissions in the project directory
 - Check that required ports (3000, 8080) are available
 

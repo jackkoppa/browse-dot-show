@@ -5,8 +5,7 @@
     "type": "module",
     "description": "Scripts used during development & deployment",
     "scripts": {
-        "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'",
-        "backfill:timestamps": "tsx backfill-downloaded-at-timestamps.ts"
+        "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'"
     },
     "dependencies": {
         "@browse-dot-show/constants": "workspace:*",

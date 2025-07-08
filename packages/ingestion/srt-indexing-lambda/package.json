@@ -8,8 +8,6 @@
   "files": [],
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
-    "run:local": "tsx convert-srts-indexed-search.ts",
-    "run:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/srt-indexing-lambda convert-srts-indexed-search.ts",
     "test": "echo 'No tests yet'",
     "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/srt-indexing-lambda"
   },

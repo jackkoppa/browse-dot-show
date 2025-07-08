@@ -154,7 +154,7 @@ export interface EpisodeInManifest {
 - ✅ Renames files to new format `{YYYY-MM-DD}_{sanitized-title}--{unix-timestamp}`
 - ✅ Updates corresponding transcript and search-entry files
 - ✅ Comprehensive CLI with dry-run mode, verbose logging, and safety checks
-- ✅ Added to main package.json as `pnpm backfill:timestamps --site=<siteId>`
+- ✅ Added to main package.json as `pnpm backfill:timestamps --site=<siteId>` (Script removed after completion - one-time use)
 - ✅ **Multi-Podcast Site Support**: Fixed to process all included podcasts per site (not just first one)
 
 #### 4.2 Migration Strategy ✅ **MOSTLY COMPLETED**
@@ -185,7 +185,7 @@ export interface EpisodeInManifest {
 **🔧 Key Improvements Made:**
 - ✅ **Multi-Podcast Site Support**: Fixed script to process all included podcasts (not just first one)
 - ✅ **No Environment Variables**: Removed dependency on `CURRENT_SITE_ID` env var
-- ✅ **Clean CLI**: Simple `pnpm backfill:timestamps --site=<siteId> --execute` command
+- ✅ **Clean CLI**: Simple `pnpm backfill:timestamps --site=<siteId> --execute` command (Script removed after completion)
 - ✅ **Atomic Operations**: All-or-nothing per episode (audio + transcript + search-entry)
 - ✅ **Actual Timestamps**: Uses real file creation times from local storage
 - ✅ **Strict Sanitization**: Converts all non-alphanumeric characters to underscores
@@ -495,7 +495,7 @@ All file modification scripts should be reviewed and run manually by the user, n
 - **Title Sanitization**: Applied strict sanitization (alphanumeric + underscore only)
 - **Manifest Updates**: All migrated episodes have `downloadedAt` field with actual file timestamps
 - **Zero Issues**: Post-migration validation shows 0 consistency issues across all sites
-- **Clean CLI**: Removed environment variable dependencies, simplified to `pnpm backfill:timestamps --site=<siteId>`
+- **Clean CLI**: Removed environment variable dependencies, simplified to `pnpm backfill:timestamps --site=<siteId>` (Script removed after completion)
 
 **🎯 MIGRATION PROVEN AT SCALE**: 
 - 1,913+ episodes successfully migrated across all sites

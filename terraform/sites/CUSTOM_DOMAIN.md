@@ -18,7 +18,7 @@ When deploying a site with a custom domain for the first time, you'll encounter 
 ### Step 1: Initial Deployment (Will Fail)
 Run your normal deployment command:
 ```bash
-pnpm deploy:site
+pnpm site:deploy
 ```
 
 You'll see an error like:
@@ -41,7 +41,7 @@ The deployment script will attempt to show you the DNS validation records automa
 ### Step 3: Final Deployment (Will Succeed)
 Once DNS validation is complete, run the deployment again:
 ```bash
-pnpm deploy:site
+pnpm site:deploy
 ```
 
 This time it should succeed completely!
