@@ -344,13 +344,39 @@ async function executeS3Sync(
     
     let output = '';
     let errorOutput = '';
+    let filesTransferred = 0;
+    let lastTransferredFile = '';
+    let progressInterval: NodeJS.Timeout;
+    const startTime = Date.now();
+    
+    // Set up progress indicator that updates every 10 seconds
+    const showProgress = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const currentFile = lastTransferredFile ? ` | Current: ${path.basename(lastTransferredFile)}` : '';
+      process.stdout.write(`\r🔄 Syncing ${folder}... (${elapsed}s) | Files: ${filesTransferred}${currentFile}`.padEnd(100));
+    };
+    
+    progressInterval = setInterval(showProgress, 10000);
     
     syncCmd.stdout.on('data', (data) => {
       const text = data.toString();
       output += text;
-      // Show progress for uploads/downloads
-      if (text.includes('upload:') || text.includes('download:')) {
-        logInfo(`   ${text.trim()}`);
+      
+      // Count and track file transfers
+      const lines = text.split('\n');
+      for (const line of lines) {
+        if (line.includes('upload:') || line.includes('download:')) {
+          filesTransferred++;
+          // Extract filename from the line (format: "upload: local/path to s3://bucket/path")
+          const match = line.match(/(?:upload|download):\s+(.+?)\s+(?:to\s+)?s3:\/\//);
+          if (match && match[1]) {
+            lastTransferredFile = match[1].trim();
+          }
+          
+          // Show immediate update for file transfers
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          process.stdout.write(`\r🔄 Syncing ${folder}... (${elapsed}s) | Files: ${filesTransferred} | Current: ${path.basename(lastTransferredFile || '')}`.padEnd(100));
+        }
       }
     });
     
@@ -359,13 +385,26 @@ async function executeS3Sync(
     });
     
     syncCmd.on('close', (code) => {
+      // Clear progress indicator
+      clearInterval(progressInterval);
+      process.stdout.write('\r'.padEnd(100) + '\r');
+      
       if (code === 0) {
-        logSuccess(`${folder} sync completed`);
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        logSuccess(`${folder} sync completed (${elapsed}s) - ${filesTransferred} files transferred`);
         resolve({ success: true, output });
       } else {
         logError(`${folder} sync failed: ${errorOutput}`);
         resolve({ success: false, output: errorOutput });
       }
+    });
+    
+    syncCmd.on('error', (error) => {
+      // Clear progress indicator on error
+      clearInterval(progressInterval);
+      process.stdout.write('\r'.padEnd(100) + '\r');
+      logError(`${folder} sync error: ${error.message}`);
+      resolve({ success: false, output: error.message });
     });
   });
 }
