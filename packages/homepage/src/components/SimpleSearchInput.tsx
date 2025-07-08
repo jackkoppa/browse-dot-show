@@ -38,7 +38,7 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
   const canSearch = value.trim().length >= 1 && !isLoading && !disabled;
 
   return (
-    <div className="relative flex gap-2">
+    <div className="relative flex gap-2 text-foreground">
       <Input
         ref={ref}
         type="text"

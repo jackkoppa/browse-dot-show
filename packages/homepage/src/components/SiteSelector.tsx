@@ -49,7 +49,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between h-auto min-h-[48px] sm:min-h-[64px] p-3"
+              className="w-full justify-between h-auto min-h-[48px] sm:min-h-[64px] p-3 group text-foreground"
             >
               {selectedSiteData ? (
                 <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                   />
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-sm sm:text-lg">{selectedSiteData.displayName}</span>
-                    <span className="text-xs text-muted-foreground">{selectedSiteData.domain}</span>
+                    <span className="text-xs text-muted-foreground group-hover:text-background">{selectedSiteData.domain}</span>
                   </div>
                 </div>
               ) : (
