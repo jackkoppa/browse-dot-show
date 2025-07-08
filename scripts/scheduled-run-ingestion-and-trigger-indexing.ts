@@ -18,6 +18,7 @@ import { readFileSync } from 'fs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import prompts from 'prompts';
 import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, logWarning, logProgress, logHeader, logDebug } from './utils/logging.js';
@@ -27,22 +28,296 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
+ * Configuration options for the automation workflow
+ */
+interface WorkflowConfig {
+  selectedSites?: string[];
+  interactive: boolean;
+  help: boolean;
+  dryRun: boolean;
+  skipCloudIndexing: boolean;
+  phases: {
+    preSync: boolean;
+    consistencyCheck: boolean;
+    rssRetrieval: boolean;
+    audioProcessing: boolean;
+    s3Sync: boolean;
+    cloudIndexing: boolean;
+  };
+  syncOptions: {
+    foldersToSync: string[];
+  };
+}
+
+/**
+ * Get default configuration (function to avoid forward reference issues)
+ */
+function getDefaultConfig(): WorkflowConfig {
+  return {
+    interactive: false,
+    help: false,
+    dryRun: false,
+    skipCloudIndexing: false,
+    phases: {
+      preSync: true,
+      consistencyCheck: true,
+      rssRetrieval: true,
+      audioProcessing: true,
+      s3Sync: true,
+      cloudIndexing: true
+    },
+    syncOptions: {
+      foldersToSync: ALL_SYNC_FOLDERS
+    }
+  };
+}
+
+/**
+ * Display help information
+ */
+function displayHelp(): void {
+  console.log(`
+🤖 Scheduled Ingestion and Indexing Automation
+
+USAGE:
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts [OPTIONS]
+
+OPTIONS:
+  --help                    Show this help message
+  --interactive             Run in interactive mode to configure options
+  --sites=site1,site2       Process only specific sites (comma-separated)
+  --dry-run                 Show what would be done without executing
+  --skip-cloud-indexing     Skip triggering cloud indexing lambdas
+  --skip-pre-sync           Skip S3-to-local pre-sync phase
+  --skip-consistency-check  Skip sync consistency check phase
+  --skip-rss-retrieval     Skip RSS retrieval phase
+  --skip-audio-processing  Skip audio processing phase
+  --skip-s3-sync           Skip local-to-S3 sync phase
+  --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss)
+
+EXAMPLES:
+  # Run full workflow for all sites (default)
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts
+  
+  # Interactive mode for manual configuration
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --interactive
+  
+  # Process only specific sites
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --sites=hardfork,naddpod
+  
+  # Dry run to see what would happen
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --dry-run --sites=hardfork
+  
+  # Skip cloud indexing (local processing only)
+  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --skip-cloud-indexing
+
+PHASES:
+  Phase 0: S3-to-local pre-sync (downloads existing S3 files)
+  Phase 0.5: Sync consistency check (compares local vs S3)
+  Phase 1: RSS retrieval (downloads new episodes)
+  Phase 2: Audio processing (transcribes audio files)
+  Phase 3: S3 sync (uploads missing files to S3)
+  Phase 4: Cloud indexing (triggers search index updates)
+
+For automation/cron jobs, use without --interactive flag.
+For manual runs, --interactive provides a guided configuration experience.
+`);
+}
+
+/**
  * Parse command line arguments
  */
-function parseArguments(): { selectedSites?: string[] } {
+function parseArguments(): WorkflowConfig {
   const args = process.argv.slice(2);
-  const result: { selectedSites?: string[] } = {};
+  const config: WorkflowConfig = JSON.parse(JSON.stringify(getDefaultConfig()));
   
   for (const arg of args) {
-    if (arg.startsWith('--sites=')) {
+    if (arg === '--help' || arg === '-h') {
+      config.help = true;
+    } else if (arg === '--interactive' || arg === '-i') {
+      config.interactive = true;
+    } else if (arg === '--dry-run') {
+      config.dryRun = true;
+    } else if (arg === '--skip-cloud-indexing') {
+      config.skipCloudIndexing = true;
+      config.phases.cloudIndexing = false;
+    } else if (arg === '--skip-pre-sync') {
+      config.phases.preSync = false;
+    } else if (arg === '--skip-consistency-check') {
+      config.phases.consistencyCheck = false;
+    } else if (arg === '--skip-rss-retrieval') {
+      config.phases.rssRetrieval = false;
+    } else if (arg === '--skip-audio-processing') {
+      config.phases.audioProcessing = false;
+    } else if (arg === '--skip-s3-sync') {
+      config.phases.s3Sync = false;
+    } else if (arg.startsWith('--sites=')) {
       const sitesArg = arg.split('=')[1];
       if (sitesArg) {
-        result.selectedSites = sitesArg.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        config.selectedSites = sitesArg.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      }
+    } else if (arg.startsWith('--sync-folders=')) {
+      const foldersArg = arg.split('=')[1];
+      if (foldersArg) {
+        const folders = foldersArg.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const validFolders = folders.filter(f => ALL_SYNC_FOLDERS.includes(f));
+        if (validFolders.length !== folders.length) {
+          const invalidFolders = folders.filter(f => !ALL_SYNC_FOLDERS.includes(f));
+          console.error(`❌ Invalid sync folders: ${invalidFolders.join(', ')}`);
+          console.error(`Valid options: ${ALL_SYNC_FOLDERS.join(', ')}`);
+          process.exit(1);
+        }
+        config.syncOptions.foldersToSync = validFolders;
       }
     }
   }
   
-  return result;
+  return config;
+}
+
+/**
+ * Configure workflow options interactively
+ */
+async function configureInteractively(config: WorkflowConfig, allSites: Site[]): Promise<WorkflowConfig> {
+  console.log('\n🤖 Interactive Configuration');
+  console.log('='.repeat(40));
+  console.log('Configure your automation workflow options:\n');
+
+  // Site selection
+  if (!config.selectedSites || config.selectedSites.length === 0) {
+    const siteResponse = await prompts({
+      type: 'select',
+      name: 'siteSelection',
+      message: 'Which sites would you like to process?',
+      choices: [
+        { title: 'All sites', value: 'all' },
+        { title: 'Select specific sites', value: 'select' }
+      ],
+      initial: 0
+    });
+
+    if (siteResponse.siteSelection === 'select') {
+      const specificSitesResponse = await prompts({
+        type: 'multiselect',
+        name: 'sites',
+        message: 'Select sites to process:',
+        choices: allSites.map(site => ({
+          title: `${site.title} (${site.id})`,
+          value: site.id,
+          selected: false
+        })),
+        min: 1
+      });
+
+      if (specificSitesResponse.sites && specificSitesResponse.sites.length > 0) {
+        config.selectedSites = specificSitesResponse.sites;
+      }
+    }
+  }
+
+  // Execution mode
+  const executionResponse = await prompts({
+    type: 'select',
+    name: 'executionMode',
+    message: 'Select execution mode:',
+    choices: [
+      { title: 'Full execution (default)', value: 'full' },
+      { title: 'Dry run (show what would happen)', value: 'dry-run' }
+    ],
+    initial: 0
+  });
+
+  config.dryRun = executionResponse.executionMode === 'dry-run';
+
+  // Phase selection
+  const phaseResponse = await prompts({
+    type: 'select',
+    name: 'phaseSelection',
+    message: 'Which phases would you like to run?',
+    choices: [
+      { title: 'All phases (recommended)', value: 'all' },
+      { title: 'Select specific phases', value: 'select' }
+    ],
+    initial: 0
+  });
+
+  if (phaseResponse.phaseSelection === 'select') {
+    const phaseChoices = [
+      { title: 'Phase 0: S3-to-local pre-sync', value: 'preSync', selected: config.phases.preSync },
+      { title: 'Phase 0.5: Sync consistency check', value: 'consistencyCheck', selected: config.phases.consistencyCheck },
+      { title: 'Phase 1: RSS retrieval', value: 'rssRetrieval', selected: config.phases.rssRetrieval },
+      { title: 'Phase 2: Audio processing', value: 'audioProcessing', selected: config.phases.audioProcessing },
+      { title: 'Phase 3: S3 sync', value: 's3Sync', selected: config.phases.s3Sync },
+      { title: 'Phase 4: Cloud indexing', value: 'cloudIndexing', selected: config.phases.cloudIndexing }
+    ];
+
+    const selectedPhasesResponse = await prompts({
+      type: 'multiselect',
+      name: 'phases',
+      message: 'Select phases to run:',
+      choices: phaseChoices,
+      min: 1
+    });
+
+    if (selectedPhasesResponse.phases) {
+      // Reset all phases to false
+      Object.keys(config.phases).forEach(phase => {
+        (config.phases as any)[phase] = false;
+      });
+      // Enable selected phases
+      selectedPhasesResponse.phases.forEach((phase: string) => {
+        (config.phases as any)[phase] = true;
+      });
+    }
+  }
+
+  // Sync options (only if S3 sync phases are enabled)
+  if (config.phases.preSync || config.phases.s3Sync) {
+    const syncOptionsResponse = await prompts({
+      type: 'select',
+      name: 'configureSync',
+      message: 'Configure S3 sync options?',
+      choices: [
+        { title: 'Use defaults (recommended)', value: 'defaults' },
+        { title: 'Configure sync options', value: 'configure' }
+      ],
+      initial: 0
+    });
+
+    if (syncOptionsResponse.configureSync === 'configure') {
+      // Folder selection
+      const folderResponse = await prompts({
+        type: 'multiselect',
+        name: 'folders',
+        message: 'Which folders should be synced?',
+        choices: ALL_SYNC_FOLDERS.map(folder => ({
+          title: folder,
+          value: folder,
+          selected: config.syncOptions.foldersToSync.includes(folder)
+        })),
+        min: 1
+      });
+
+      if (folderResponse.folders && folderResponse.folders.length > 0) {
+        config.syncOptions.foldersToSync = folderResponse.folders;
+      }
+    }
+  }
+
+  // Cloud indexing options
+  if (config.phases.cloudIndexing) {
+    const indexingResponse = await prompts({
+      type: 'confirm',
+      name: 'enableCloudIndexing',
+      message: 'Trigger cloud indexing lambdas? (recommended if files will be uploaded)',
+      initial: true
+    });
+
+    config.skipCloudIndexing = !indexingResponse.enableCloudIndexing;
+    config.phases.cloudIndexing = indexingResponse.enableCloudIndexing;
+  }
+
+  return config;
 }
 
 interface SiteProcessingResult {
@@ -943,7 +1218,13 @@ async function main(): Promise<void> {
   console.log(`Started at: ${new Date().toISOString()}`);
   
   // Parse command line arguments
-  const { selectedSites } = parseArguments();
+  let config = parseArguments();
+  
+  // Handle help flag
+  if (config.help) {
+    displayHelp();
+    process.exit(0);
+  }
   
   // Load automation credentials
   const credentials = loadAutomationCredentials();
@@ -959,18 +1240,27 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   
-  // Filter sites based on command line argument if provided
+  // Handle interactive configuration
+  if (config.interactive) {
+    config = await configureInteractively(config, allSites);
+  } else if (!config.interactive && process.stdout.isTTY) {
+    // Show interactive option hint for manual runs (when connected to TTY)
+    console.log('💡 Tip: Add --interactive flag for guided configuration options');
+    console.log('   Or use --help to see all available CLI flags\n');
+  }
+  
+  // Filter sites based on configuration
   let sites = allSites;
-  if (selectedSites && selectedSites.length > 0) {
-    sites = allSites.filter(site => selectedSites.includes(site.id));
+  if (config.selectedSites && config.selectedSites.length > 0) {
+    sites = allSites.filter(site => config.selectedSites!.includes(site.id));
     
     if (sites.length === 0) {
-      console.error(`❌ No matching sites found for: ${selectedSites.join(', ')}`);
+      console.error(`❌ No matching sites found for: ${config.selectedSites.join(', ')}`);
       console.error(`Available sites: ${allSites.map(s => s.id).join(', ')}`);
       process.exit(1);
     }
     
-    console.log(`\n🎯 Running for selected sites only: ${selectedSites.join(', ')}`);
+    console.log(`\n🎯 Running for selected sites only: ${config.selectedSites.join(', ')}`);
   }
   
   console.log(`\n📍 Found ${sites.length} site(s) to process:`);
@@ -978,23 +1268,35 @@ async function main(): Promise<void> {
     console.log(`   - ${site.id} (${site.title})`);
   });
   
+  // Display configuration summary
+  console.log('\n⚙️  Configuration Summary:');
+  console.log(`   Execution mode: ${config.dryRun ? 'DRY RUN (preview only)' : 'Full execution'}`);
+  console.log(`   Enabled phases:`);
+  if (config.phases.preSync) console.log(`     ✅ Phase 0: S3-to-local pre-sync`);
+  if (config.phases.consistencyCheck) console.log(`     ✅ Phase 0.5: Sync consistency check`);
+  if (config.phases.rssRetrieval) console.log(`     ✅ Phase 1: RSS retrieval`);
+  if (config.phases.audioProcessing) console.log(`     ✅ Phase 2: Audio processing`);
+  if (config.phases.s3Sync) console.log(`     ✅ Phase 3: S3 sync`);
+  if (config.phases.cloudIndexing) console.log(`     ✅ Phase 4: Cloud indexing`);
+  console.log(`   Sync folders: ${config.syncOptions.foldersToSync.join(', ')}`);
+  
+  if (config.dryRun) {
+    console.log('\n🔍 DRY RUN MODE: This is a preview of what would happen');
+    console.log('   No actual changes will be made to files or S3');
+    console.log('   No cloud lambdas will be triggered\n');
+  }
+  
   const results: SiteProcessingResult[] = [];
   const overallStartTime = Date.now();
   
-  // Phase 0: Pre-sync all S3 content to local storage
-  console.log('\n' + '='.repeat(60));
-  console.log('📡 Phase 0: Pre-sync all S3 content to local storage');
-  console.log('='.repeat(60));
-  
+  // Initialize results for all sites
   for (const site of sites) {
-    const preSyncResult = await performS3ToLocalPreSync(site.id, credentials);
-    
     results.push({
       siteId: site.id,
       siteTitle: site.title,
-      s3PreSyncSuccess: preSyncResult.success,
-      s3PreSyncDuration: preSyncResult.duration,
-      s3PreSyncFilesDownloaded: preSyncResult.totalFilesTransferred,
+      s3PreSyncSuccess: undefined,
+      s3PreSyncDuration: undefined,
+      s3PreSyncFilesDownloaded: undefined,
       syncConsistencyCheckSuccess: undefined,
       syncConsistencyCheckDuration: undefined,
       filesToUpload: undefined,
@@ -1007,201 +1309,272 @@ async function main(): Promise<void> {
       newAudioFilesDownloaded: 0,
       newEpisodesTranscribed: 0,
       hasNewSrtFiles: false,
-      errors: preSyncResult.error ? [preSyncResult.error] : []
+      errors: []
     });
+  }
+
+  // Phase 0: Pre-sync all S3 content to local storage
+  if (config.phases.preSync) {
+    console.log('\n' + '='.repeat(60));
+    console.log('📡 Phase 0: Pre-sync all S3 content to local storage');
+    console.log('='.repeat(60));
+    
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would download existing S3 files to local storage (skip existing)');
+    } else {
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        const preSyncResult = await performS3ToLocalPreSync(site.id, credentials);
+        
+        results[i].s3PreSyncSuccess = preSyncResult.success;
+        results[i].s3PreSyncDuration = preSyncResult.duration;
+        results[i].s3PreSyncFilesDownloaded = preSyncResult.totalFilesTransferred;
+        
+        if (preSyncResult.error) {
+          results[i].errors.push(preSyncResult.error);
+        }
+      }
+    }
+  } else {
+    console.log('\n⏭️  Skipping Phase 0: Pre-sync (disabled)');
   }
   
   // Phase 0.5: Check sync consistency to identify files that need uploading
-  console.log('\n' + '='.repeat(60));
-  console.log('🔍 Phase 0.5: Check sync consistency (local vs S3)');
-  console.log('='.repeat(60));
-  
-  for (let i = 0; i < sites.length; i++) {
-    const site = sites[i];
-    const startTime = Date.now();
+  if (config.phases.consistencyCheck) {
+    console.log('\n' + '='.repeat(60));
+    console.log('🔍 Phase 0.5: Check sync consistency (local vs S3)');
+    console.log('='.repeat(60));
     
-    try {
-      const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
-      if (!siteConfig) {
-        throw new Error(`No account mapping found for site: ${site.id}`);
-      }
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would compare local vs S3 file inventories');
+    } else {
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        const startTime = Date.now();
+        
+        try {
+          const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
+          if (!siteConfig) {
+            throw new Error(`No account mapping found for site: ${site.id}`);
+          }
 
-      const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-      
-      // Assume the role to get temporary credentials
-      const assumeRoleResult = await execCommand('aws', [
-        'sts', 'assume-role',
-        '--role-arn', roleArn,
-        '--role-session-name', `automation-consistency-check-${site.id}-${Date.now()}`
-      ], {
-        silent: true,
-        env: {
-          ...process.env,
-          AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-          AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-          AWS_REGION: credentials.AWS_REGION
+          const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+          
+          // Assume the role to get temporary credentials
+          const assumeRoleResult = await execCommand('aws', [
+            'sts', 'assume-role',
+            '--role-arn', roleArn,
+            '--role-session-name', `automation-consistency-check-${site.id}-${Date.now()}`
+          ], {
+            silent: true,
+            env: {
+              ...process.env,
+              AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+              AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+              AWS_REGION: credentials.AWS_REGION
+            }
+          });
+          
+          if (assumeRoleResult.exitCode !== 0) {
+            throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
+          }
+          
+          const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
+          const tempCredentials = assumeRoleOutput.Credentials;
+          
+          // Generate sync consistency report
+          const consistencyReport = await generateSyncConsistencyReport(
+            site.id,
+            siteConfig.bucketName,
+            tempCredentials
+          );
+          
+          // Display the report (will use logInfo/logDebug appropriately)
+          displaySyncConsistencyReport(site.id, consistencyReport);
+          
+          const duration = Date.now() - startTime;
+          
+          // Update results
+          results[i].syncConsistencyCheckSuccess = true;
+          results[i].syncConsistencyCheckDuration = duration;
+          results[i].filesToUpload = consistencyReport.summary.totalLocalOnlyFiles;
+          results[i].filesMissingLocally = consistencyReport.summary.totalS3OnlyFiles;
+          results[i].filesInSync = consistencyReport.summary.totalConsistentFiles;
+          
+        } catch (error: any) {
+          const duration = Date.now() - startTime;
+          logError(`Failed to check sync consistency for ${site.id}: ${error.message}`);
+          
+          results[i].syncConsistencyCheckSuccess = false;
+          results[i].syncConsistencyCheckDuration = duration;
+          results[i].filesToUpload = 0;
+          results[i].filesMissingLocally = 0;
+          results[i].filesInSync = 0;
+          results[i].errors.push(`Sync consistency check error: ${error.message}`);
         }
-      });
-      
-      if (assumeRoleResult.exitCode !== 0) {
-        throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
       }
-      
-      const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-      const tempCredentials = assumeRoleOutput.Credentials;
-      
-      // Generate sync consistency report
-      const consistencyReport = await generateSyncConsistencyReport(
-        site.id,
-        siteConfig.bucketName,
-        tempCredentials
-      );
-      
-      // Display the report (will use logInfo/logDebug appropriately)
-      displaySyncConsistencyReport(site.id, consistencyReport);
-      
-      const duration = Date.now() - startTime;
-      
-      // Update results
-      results[i].syncConsistencyCheckSuccess = true;
-      results[i].syncConsistencyCheckDuration = duration;
-      results[i].filesToUpload = consistencyReport.summary.totalLocalOnlyFiles;
-      results[i].filesMissingLocally = consistencyReport.summary.totalS3OnlyFiles;
-      results[i].filesInSync = consistencyReport.summary.totalConsistentFiles;
-      
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      logError(`Failed to check sync consistency for ${site.id}: ${error.message}`);
-      
-      results[i].syncConsistencyCheckSuccess = false;
-      results[i].syncConsistencyCheckDuration = duration;
-      results[i].filesToUpload = 0;
-      results[i].filesMissingLocally = 0;
-      results[i].filesInSync = 0;
-      results[i].errors.push(`Sync consistency check error: ${error.message}`);
     }
+  } else {
+    console.log('\n⏭️  Skipping Phase 0.5: Consistency check (disabled)');
   }
   
   // Phase 1: RSS Retrieval for all sites
-  console.log('\n' + '='.repeat(60));
-  console.log('📡 Phase 1: RSS Retrieval for all sites');
-  console.log('='.repeat(60));
-  
-  for (const site of sites) {
-    const rssResult = await runCommandWithSiteContext(
-      site.id,
-      'pnpm',
-      ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'],
-      'RSS retrieval'
-    );
+  if (config.phases.rssRetrieval) {
+    console.log('\n' + '='.repeat(60));
+    console.log('📡 Phase 1: RSS Retrieval for all sites');
+    console.log('='.repeat(60));
     
-    results[sites.indexOf(site)].rssRetrievalSuccess = rssResult.success;
-    results[sites.indexOf(site)].rssRetrievalDuration = rssResult.duration;
-    results[sites.indexOf(site)].newAudioFilesDownloaded = rssResult.newAudioFiles || 0;
-    results[sites.indexOf(site)].newEpisodesTranscribed = 0;
-    results[sites.indexOf(site)].hasNewSrtFiles = false;
-    
-    if (rssResult.error) {
-      results[sites.indexOf(site)].errors.push(rssResult.error);
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would download new episodes from RSS feeds');
+    } else {
+      for (const site of sites) {
+        const rssResult = await runCommandWithSiteContext(
+          site.id,
+          'pnpm',
+          ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'],
+          'RSS retrieval'
+        );
+        
+        const siteIndex = sites.indexOf(site);
+        results[siteIndex].rssRetrievalSuccess = rssResult.success;
+        results[siteIndex].rssRetrievalDuration = rssResult.duration;
+        results[siteIndex].newAudioFilesDownloaded = rssResult.newAudioFiles || 0;
+        
+        if (rssResult.error) {
+          results[siteIndex].errors.push(rssResult.error);
+        }
+      }
     }
+  } else {
+    console.log('\n⏭️  Skipping Phase 1: RSS Retrieval (disabled)');
   }
   
   // Phase 2: Audio Processing for all sites
-  console.log('\n' + '='.repeat(60));
-  console.log('🎵 Phase 2: Audio Processing for all sites');
-  console.log('='.repeat(60));
-  
-  for (let i = 0; i < sites.length; i++) {
-    const site = sites[i];
-    const audioResult = await runCommandWithSiteContext(
-      site.id,
-      'pnpm',
-      ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'],
-      'Audio processing'
-    );
+  if (config.phases.audioProcessing) {
+    console.log('\n' + '='.repeat(60));
+    console.log('🎵 Phase 2: Audio Processing for all sites');
+    console.log('='.repeat(60));
     
-    // Update the existing result
-    results[i].audioProcessingSuccess = audioResult.success;
-    results[i].audioProcessingDuration = audioResult.duration;
-    results[i].newEpisodesTranscribed = audioResult.newTranscripts || 0;
-    results[i].hasNewSrtFiles = (audioResult.newTranscripts || 0) > 0;
-    
-    if (audioResult.error) {
-      results[i].errors.push(audioResult.error);
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would transcribe new audio files using Whisper');
+    } else {
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        const audioResult = await runCommandWithSiteContext(
+          site.id,
+          'pnpm',
+          ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'],
+          'Audio processing'
+        );
+        
+        // Update the existing result
+        results[i].audioProcessingSuccess = audioResult.success;
+        results[i].audioProcessingDuration = audioResult.duration;
+        results[i].newEpisodesTranscribed = audioResult.newTranscripts || 0;
+        results[i].hasNewSrtFiles = (audioResult.newTranscripts || 0) > 0;
+        
+        if (audioResult.error) {
+          results[i].errors.push(audioResult.error);
+        }
+      }
     }
+  } else {
+    console.log('\n⏭️  Skipping Phase 2: Audio Processing (disabled)');
   }
   
   // Phase 3: Comprehensive S3 sync for ALL missing files (ENHANCED - Phase 4.3)
-  console.log('\n' + '='.repeat(60));
-  console.log('☁️  Phase 3 (Enhanced): Comprehensive S3 sync for ALL missing files');
-  console.log('='.repeat(60));
-  
-  const sitesNeedingSync = results.filter(result => 
-    result.syncConsistencyCheckSuccess && 
-    (result.filesToUpload || 0) > 0
-  );
-  
-  if (sitesNeedingSync.length === 0) {
-    console.log('ℹ️  No sites have files to upload. All sites are in sync with S3.');
-  } else {
-    console.log(`📝 Found ${sitesNeedingSync.length} site(s) with files to upload:${sitesNeedingSync.map(r => ` ${r.siteId} (${r.filesToUpload} files)`).join(',')}`);
+  if (config.phases.s3Sync) {
+    console.log('\n' + '='.repeat(60));
+    console.log('☁️  Phase 3 (Enhanced): Comprehensive S3 sync for ALL missing files');
+    console.log('='.repeat(60));
     
-    for (const result of sitesNeedingSync) {
-      const resultIndex = results.findIndex(r => r.siteId === result.siteId);
-      
-      // Perform comprehensive S3 sync
-      const syncResult = await performComprehensiveS3Sync(
-        result.siteId, 
-        credentials, 
-        result.filesToUpload || 0
-      );
-      
-      results[resultIndex].s3SyncSuccess = syncResult.success;
-      results[resultIndex].s3SyncDuration = syncResult.duration;
-      results[resultIndex].s3SyncTotalFilesUploaded = syncResult.totalFilesTransferred;
-      
-      if (syncResult.error) {
-        results[resultIndex].errors.push(`Comprehensive S3 sync error: ${syncResult.error}`);
+    const sitesNeedingSync = results.filter(result => 
+      result.syncConsistencyCheckSuccess && 
+      (result.filesToUpload || 0) > 0
+    );
+    
+    if (config.dryRun) {
+      console.log(`🔍 DRY RUN: Would upload ${sitesNeedingSync.length} site(s) with missing files to S3`);
+      sitesNeedingSync.forEach(result => {
+        console.log(`   - ${result.siteId}: ${result.filesToUpload} files`);
+      });
+    } else {
+      if (sitesNeedingSync.length === 0) {
+        console.log('ℹ️  No sites have files to upload. All sites are in sync with S3.');
+      } else {
+        console.log(`📝 Found ${sitesNeedingSync.length} site(s) with files to upload:${sitesNeedingSync.map(r => ` ${r.siteId} (${r.filesToUpload} files)`).join(',')}`);
+        
+        for (const result of sitesNeedingSync) {
+          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
+          
+          // Perform comprehensive S3 sync
+          const syncResult = await performComprehensiveS3Sync(
+            result.siteId, 
+            credentials, 
+            result.filesToUpload || 0
+          );
+          
+          results[resultIndex].s3SyncSuccess = syncResult.success;
+          results[resultIndex].s3SyncDuration = syncResult.duration;
+          results[resultIndex].s3SyncTotalFilesUploaded = syncResult.totalFilesTransferred;
+          
+          if (syncResult.error) {
+            results[resultIndex].errors.push(`Comprehensive S3 sync error: ${syncResult.error}`);
+          }
+        }
       }
     }
+  } else {
+    console.log('\n⏭️  Skipping Phase 3: S3 sync (disabled)');
   }
   
   // Phase 4: Trigger Cloud Indexing for sites with S3 uploads (ENHANCED - Phase 4.4)
-  console.log('\n' + '='.repeat(60));
-  console.log('⚡ Phase 4 (Enhanced): Trigger Cloud Indexing for sites with S3 uploads');
-  console.log('='.repeat(60));
-  
-  const sitesWithSuccessfulSync = results.filter(result => 
-    (result.s3SyncTotalFilesUploaded || 0) > 0  // Trigger indexing if ANY files were uploaded
-  );
-  
-  if (sitesWithSuccessfulSync.length === 0) {
-    console.log('ℹ️  No sites uploaded files to S3. Skipping cloud indexing phase.');
-  } else {
-    console.log(`📝 Found ${sitesWithSuccessfulSync.length} site(s) with S3 uploads:${sitesWithSuccessfulSync.map(r => ` ${r.siteId} (${r.s3SyncTotalFilesUploaded} files)`).join(',')}`);
+  if (config.phases.cloudIndexing && !config.skipCloudIndexing) {
+    console.log('\n' + '='.repeat(60));
+    console.log('⚡ Phase 4 (Enhanced): Trigger Cloud Indexing for sites with S3 uploads');
+    console.log('='.repeat(60));
     
-    for (const result of sitesWithSuccessfulSync) {
-      const resultIndex = results.findIndex(r => r.siteId === result.siteId);
-      
-      // Get lambda function name from terraform outputs
-      const lambdaName = await getSiteIndexingLambdaName(result.siteId);
-      
-      if (!lambdaName) {
-        console.error(`❌ Could not get indexing lambda name for ${result.siteId}, skipping cloud indexing`);
-        results[resultIndex].errors.push('Could not get indexing lambda name');
-        continue;
-      }
-      
-      // Trigger the indexing lambda
-      const indexingResult = await triggerIndexingLambda(result.siteId, lambdaName, credentials);
-      
-      results[resultIndex].indexingTriggerSuccess = indexingResult.success;
-      results[resultIndex].indexingTriggerDuration = indexingResult.duration;
-      
-      if (indexingResult.error) {
-        results[resultIndex].errors.push(indexingResult.error);
+    const sitesWithSuccessfulSync = results.filter(result => 
+      (result.s3SyncTotalFilesUploaded || 0) > 0  // Trigger indexing if ANY files were uploaded
+    );
+    
+    if (config.dryRun) {
+      console.log(`🔍 DRY RUN: Would trigger cloud indexing for ${sitesWithSuccessfulSync.length} site(s) with S3 uploads`);
+      sitesWithSuccessfulSync.forEach(result => {
+        console.log(`   - ${result.siteId}: ${result.s3SyncTotalFilesUploaded} files uploaded`);
+      });
+    } else {
+      if (sitesWithSuccessfulSync.length === 0) {
+        console.log('ℹ️  No sites uploaded files to S3. Skipping cloud indexing phase.');
+      } else {
+        console.log(`📝 Found ${sitesWithSuccessfulSync.length} site(s) with S3 uploads:${sitesWithSuccessfulSync.map(r => ` ${r.siteId} (${r.s3SyncTotalFilesUploaded} files)`).join(',')}`);
+        
+        for (const result of sitesWithSuccessfulSync) {
+          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
+          
+          // Get lambda function name from terraform outputs
+          const lambdaName = await getSiteIndexingLambdaName(result.siteId);
+          
+          if (!lambdaName) {
+            console.error(`❌ Could not get indexing lambda name for ${result.siteId}, skipping cloud indexing`);
+            results[resultIndex].errors.push('Could not get indexing lambda name');
+            continue;
+          }
+          
+          // Trigger the indexing lambda
+          const indexingResult = await triggerIndexingLambda(result.siteId, lambdaName, credentials);
+          
+          results[resultIndex].indexingTriggerSuccess = indexingResult.success;
+          results[resultIndex].indexingTriggerDuration = indexingResult.duration;
+          
+          if (indexingResult.error) {
+            results[resultIndex].errors.push(indexingResult.error);
+          }
+        }
       }
     }
+  } else {
+    console.log('\n⏭️  Skipping Phase 4: Cloud indexing (disabled)');
   }
   
   // Generate final summary

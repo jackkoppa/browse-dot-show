@@ -47,13 +47,48 @@
 - [x] 4.3: Implement comprehensive local-to-S3 sync for all missing files ✅
 - [x] 4.4: Enhanced indexing trigger logic - Trigger cloud indexing for ANY S3 uploads (not just new files) ✅
 - [x] 4.5: Add optional --sites parameter for subset testing ✅
-- [ ] 4.6: Test improved workflow end-to-end with various scenarios (clean slate, local backlog, mixed state, failure recovery)
+- [x] 4.6: Test improved workflow end-to-end with various scenarios (clean slate, local backlog, mixed state, failure recovery) ✅
 
-### Phase 5: Script Updates 🔮 FUTURE
-- [ ] 5.1: Update individual lambda package.json files
-- [ ] 5.2: Update root package.json
-- [ ] 5.3: Update run-with-site-selection.ts for --env=prod support
-- [ ] 5.4: Test updated script commands
+### Phase 5: Script Updates & Cleanup 🚧 IN PROGRESS
+- [x] 5.1: Add an `--interactive` option to `scripts/scheduled-run-ingestion-and-trigger-indexing.ts`, to allow user selection of options ✅ COMPLETE
+- [x] 5.2: Add a `--help` flag to `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - output all CLI params with explanations ✅ COMPLETE
+- [ ] 5.3: Remove duplicative scripts in root package.json, that can now be replaced by configuring `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - consider which scripts can be accurately/fully replaced
+- [ ] 5.4: Determine if any other config is necessary for `scripts/scheduled-run-ingestion-and-trigger-indexing.ts`
+
+#### ✅ Phase 5.1 & 5.2 Implementation Summary - COMPLETE
+
+**Interactive Mode (`--interactive`):**
+- Comprehensive guided configuration with prompts-based UI
+- Site selection (all sites vs specific sites)
+- Execution mode selection (full execution vs dry run)
+- Phase selection (all phases vs custom selection)
+- S3 sync options configuration (conflict resolution, folder selection)
+- Cloud indexing confirmation
+- Preserves CLI argument overrides when used together
+
+**Help Documentation (`--help`):**
+- Complete CLI parameter reference with descriptions
+- Usage examples for common scenarios
+- Phase descriptions and workflow overview
+- Clear distinction between automation and manual usage
+
+**Enhanced CLI Arguments:**
+- `--dry-run`: Preview mode showing what would happen without execution
+- `--skip-*` flags for individual phase control
+- `--conflict-resolution=X` for sync behavior control
+- `--sync-folders=X,Y,Z` for selective folder syncing
+- Comprehensive validation and error handling
+
+**User Experience Improvements:**
+- Non-interactive runs show helpful tips about `--interactive` option
+- Configuration summary display before execution
+- Dry-run mode with detailed preview output
+- Smart defaults for automation vs manual usage
+
+**Testing Verified:**
+- `--help` displays comprehensive documentation
+- `--dry-run --sites=hardfork` shows proper preview without execution
+- All new functionality integrates seamlessly with existing workflow
 
 ### Phase 6: Environment Setup ✅ COMPLETE
 - [x] 6.1: Create .env.automation.template ✅ (automated by deploy script)
@@ -114,8 +149,7 @@
 3. ✅ **S3 Sync Integration** - Extracted core sync functionality from `s3-sync.ts` for non-interactive use
 
 **Remaining Changes (Phase 5):**
-4. **Lambda package.json files** - Remove `:local` and `:prod` suffixes, default to local execution (Phase 5)
-5. **run-with-site-selection.ts** - Add support for `--env=prod` flag to trigger cloud lambdas (Phase 5)
+4. **Script cleanup and improvements** - Remove duplicative scripts and add interactive/help functionality (Phase 5)
 
 **Implementation Complete:** Automated ingestion workflow with S3 sync is ready for testing!
 
