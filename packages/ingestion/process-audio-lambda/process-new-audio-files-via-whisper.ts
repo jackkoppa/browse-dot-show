@@ -650,9 +650,9 @@ export async function handler(): Promise<void> {
   log.info(`🔒 Process ID: ${PROCESS_ID}`);
 
   // Get the current site ID and configuration
-  const siteId = process.env.CURRENT_SITE_ID;
+  const siteId = process.env.SITE_ID;
   if (!siteId) {
-    throw new Error('CURRENT_SITE_ID environment variable is required');
+    throw new Error('SITE_ID environment variable is required');
   }
   
   const siteConfig = getSiteById(siteId);

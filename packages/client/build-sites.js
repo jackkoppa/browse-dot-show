@@ -23,7 +23,6 @@ function buildSite(siteConfig) {
     // Set environment variables for the build
     const buildEnv = {
       ...process.env,
-      SELECTED_SITE_ID: siteConfig.id,
       SITE_ID: siteConfig.id,
       BUILD_OUT_DIR: `dist-${siteConfig.id}`
     };

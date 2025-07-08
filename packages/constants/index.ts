@@ -2,12 +2,12 @@
 
 /**
  * Get the current site ID from environment variables
- * Handles both SITE_ID (used in Lambda) and CURRENT_SITE_ID (used in local dev)
+ * Uses SITE_ID environment variable (set in both local dev and AWS Lambda)
  */
 function getSiteId(): string {
-  const siteId = process.env.SITE_ID || process.env.CURRENT_SITE_ID;
+  const siteId = process.env.SITE_ID;
   if (!siteId) {
-    throw new Error('SITE_ID or CURRENT_SITE_ID environment variable is required');
+    throw new Error('SITE_ID environment variable is required');
   }
   return siteId;
 }

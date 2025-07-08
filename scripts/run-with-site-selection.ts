@@ -67,8 +67,7 @@ async function main(): Promise<void> {
         const envVars: NodeJS.ProcessEnv = {
             ...process.env,
             ...siteEnvVars,
-            SELECTED_SITE_ID: siteId,
-            CURRENT_SITE_ID: siteId  // Set for site-aware functions in @browse-dot-show/constants
+            SITE_ID: siteId
         };
 
         console.log(`🚀 Running: ${command} ${commandArgs.join(' ')}`);

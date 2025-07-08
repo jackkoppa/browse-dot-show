@@ -107,7 +107,7 @@ async function main(): Promise<void> {
     await validateRunConfig(config);
 
     // Set environment variables
-    process.env.CURRENT_SITE_ID = siteId;
+    process.env.SITE_ID = siteId;
 
     // Change to lambda directory
     const originalCwd = process.cwd();

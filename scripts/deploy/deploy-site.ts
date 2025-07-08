@@ -435,7 +435,6 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
     // Ensure all necessary environment variables are explicitly set for the child process
     const uploadEnv = {
       ...process.env,
-      SELECTED_SITE_ID: siteId,
       SITE_ID: siteId,
       ENV: env
     };
@@ -456,7 +455,7 @@ async function uploadClientFiles(siteId: string, env: string, clientSelected: bo
 
 async function main(): Promise<void> {
   // Get selected site from environment (set by site selection wrapper)
-  const siteId = process.env.SELECTED_SITE_ID;
+  const siteId = process.env.SITE_ID;
   
   try {
     logHeader('Deploy Infrastructure and Applications');

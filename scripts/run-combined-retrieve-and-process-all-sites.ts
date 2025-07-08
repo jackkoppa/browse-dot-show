@@ -32,7 +32,7 @@ async function getFileSize(key: string): Promise<number> {
         
         if (fileStorageEnv === 'local') {
             // For local files, use fs.stat
-            const siteId = process.env.CURRENT_SITE_ID;
+            const siteId = process.env.SITE_ID;
             const localS3Path = path.join(process.cwd(), 'aws-local-dev/s3');
             let localPath: string;
             
@@ -51,7 +51,7 @@ async function getFileSize(key: string): Promise<number> {
                 region: process.env.AWS_REGION || 'us-east-1',
             });
             
-            const siteId = process.env.SITE_ID || process.env.CURRENT_SITE_ID;
+            const siteId = process.env.SITE_ID;
             const bucketName = siteId ? `${siteId}-browse-dot-show` : 'listen-fair-play-s3-prod';
             
             const response = await s3.headObject({
@@ -90,8 +90,7 @@ async function runCommandWithSiteContext(
             const envVars = {
                 ...process.env,
                 ...siteEnvVars,
-                SELECTED_SITE_ID: siteId,
-                CURRENT_SITE_ID: siteId
+                SITE_ID: siteId
             };
 
             let stdout = '';
@@ -292,7 +291,7 @@ async function main(): Promise<void> {
         if (srtResult.success) {
             try {
                 // Set site context for getSearchIndexKey
-                process.env.CURRENT_SITE_ID = site.id;
+                process.env.SITE_ID = site.id;
                 const searchIndexKey = getSearchIndexKey();
                 const fileSize = await getFileSize(searchIndexKey);
                 results[i].searchIndexFileSizeBytes = fileSize;

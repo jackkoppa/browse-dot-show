@@ -123,7 +123,7 @@ The checker validates consistency across:
 
 The checker respects the same environment variables as other validation tools:
 
-- `CURRENT_SITE_ID`: Site to check (can be overridden with --site)
+- `SITE_ID`: Site to check (can be overridden with --site)
 - `FILE_STORAGE_ENV`: Storage environment (local/aws)
 - `LOG_LEVEL`: Logging level (set via --verbose flag)
 

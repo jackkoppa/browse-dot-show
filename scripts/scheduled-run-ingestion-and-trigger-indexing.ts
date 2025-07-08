@@ -805,8 +805,7 @@ async function runCommandWithSiteContext(
       const envVars = {
         ...process.env,
         ...siteEnvVars,
-        SELECTED_SITE_ID: siteId,
-        CURRENT_SITE_ID: siteId,
+        SITE_ID: siteId,
         FILE_STORAGE_ENV: 'local'  // Ensure we're using local storage for all operations
       };
 

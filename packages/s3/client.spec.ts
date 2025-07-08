@@ -21,7 +21,6 @@ describe('S3 Client', () => {
   beforeEach(() => {
     // Create a clean environment for each test, removing site-specific variables
     const cleanEnv = { ...originalEnv };
-    delete cleanEnv.CURRENT_SITE_ID;
     delete cleanEnv.SITE_ID;
     delete cleanEnv.FILE_STORAGE_ENV;
     process.env = cleanEnv;
@@ -51,7 +50,7 @@ describe('S3 Client', () => {
     describe('when FILE_STORAGE_ENV=local (PASSING TESTS)', () => {
       beforeEach(() => {
         process.env.FILE_STORAGE_ENV = 'local';
-        process.env.CURRENT_SITE_ID = 'hardfork';
+        process.env.SITE_ID = 'hardfork';
       });
 
       test('should add sites prefix for site-specific paths', () => {
@@ -67,7 +66,7 @@ describe('S3 Client', () => {
       });
 
       test('should handle paths without site ID', () => {
-        delete process.env.CURRENT_SITE_ID;
+        delete process.env.SITE_ID;
         const key = 'search-index/orama_index.msp';
         const expectedPath = path.join(LOCAL_S3_PATH, key);
         expect(getLocalFilePath(key)).toBe(expectedPath);
@@ -79,7 +78,7 @@ describe('S3 Client', () => {
       
       beforeEach(() => {
         process.env.FILE_STORAGE_ENV = 'prod-s3';
-        process.env.CURRENT_SITE_ID = testSiteId;
+        process.env.SITE_ID = testSiteId;
       });
 
       test('should still add sites prefix for local paths (for caching AWS files locally)', () => {
@@ -108,7 +107,7 @@ describe('S3 Client', () => {
       const testSiteId = 'hardfork';
       
       beforeEach(() => {
-        process.env.CURRENT_SITE_ID = testSiteId;
+        process.env.SITE_ID = testSiteId;
       });
 
       test('should use correct Terraform bucket pattern for prod-s3', () => {
@@ -131,7 +130,6 @@ describe('S3 Client', () => {
 
       test('should handle SITE_ID environment variable (used in Lambda)', () => {
         process.env.FILE_STORAGE_ENV = 'prod-s3';
-        delete process.env.CURRENT_SITE_ID;
         process.env.SITE_ID = testSiteId;
         
         const result = getBucketName();
@@ -141,7 +139,6 @@ describe('S3 Client', () => {
 
     describe('AWS environments without site ID', () => {
       beforeEach(() => {
-        delete process.env.CURRENT_SITE_ID;
         delete process.env.SITE_ID;
       });
 
@@ -160,7 +157,7 @@ describe('S3 Client', () => {
 
     beforeAll(async () => {
       process.env.FILE_STORAGE_ENV = 'local';
-      process.env.CURRENT_SITE_ID = testSiteId;
+      process.env.SITE_ID = testSiteId;
       
       // Setup test directory
       testFilePath = getLocalFilePath(testKey);
@@ -169,7 +166,7 @@ describe('S3 Client', () => {
 
     beforeEach(async () => {
       process.env.FILE_STORAGE_ENV = 'local';
-      process.env.CURRENT_SITE_ID = testSiteId;
+      process.env.SITE_ID = testSiteId;
       
       // Clean up before each test
       if (await fs.pathExists(testFilePath)) {
@@ -216,7 +213,7 @@ describe('S3 Client', () => {
   describe('Integration with Constants Package (NOW WORKING CORRECTLY)', () => {
     test('constants package now generates environment-aware keys', () => {
       const mockSiteId = 'hardfork';
-      process.env.CURRENT_SITE_ID = mockSiteId;
+      process.env.SITE_ID = mockSiteId;
       
       // Test local environment (should include sites/ prefix)
       process.env.FILE_STORAGE_ENV = 'local';
@@ -241,7 +238,7 @@ describe('S3 Client', () => {
     
     beforeEach(() => {
       process.env.FILE_STORAGE_ENV = 'prod-s3';
-      process.env.CURRENT_SITE_ID = testSiteId;
+      process.env.SITE_ID = testSiteId;
       process.env.S3_BUCKET_NAME = `${testSiteId}-browse-dot-show`;
     });
 
@@ -268,26 +265,18 @@ describe('S3 Client', () => {
       // ✅ MATCH!
     });
 
-    test('should handle both SITE_ID and CURRENT_SITE_ID variables', () => {
-      // Test SITE_ID (used in Lambda environment)
-      delete process.env.CURRENT_SITE_ID;
+    test('should handle SITE_ID variable', () => {
+      // Test SITE_ID (used in both Lambda and local environments)
       process.env.SITE_ID = testSiteId;
       
       const bucketNameWithSiteId = getBucketName();
       expect(bucketNameWithSiteId).toBe(`${testSiteId}-browse-dot-show`);
-      
-      // Test CURRENT_SITE_ID (used in local development)
-      delete process.env.SITE_ID;
-      process.env.CURRENT_SITE_ID = testSiteId;
-      
-      const bucketNameWithCurrentSiteId = getBucketName();
-      expect(bucketNameWithCurrentSiteId).toBe(`${testSiteId}-browse-dot-show`);
     });
   });
 
   describe('Edge Cases', () => {
     test('should handle missing environment variables gracefully', () => {
-      delete process.env.CURRENT_SITE_ID;
+      delete process.env.SITE_ID;
       delete process.env.FILE_STORAGE_ENV;
       
       // Should not throw errors

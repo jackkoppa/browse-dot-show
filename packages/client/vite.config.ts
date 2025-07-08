@@ -12,10 +12,10 @@ import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
-  const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+  const siteId = process.env.SITE_ID;
 
   if (!siteId) {
-    throw new Error('SELECTED_SITE_ID or SITE_ID environment variable is required for building');
+    throw new Error('SITE_ID environment variable is required for building');
   }
 
   const siteConfig = getSiteById(siteId);
@@ -48,7 +48,7 @@ function loadSiteConfig() {
 
 // Function to get site config without env vars wrapper
 function getSiteConfig() {
-  const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+  const siteId = process.env.SITE_ID;
   if (!siteId) return null;
   return getSiteById(siteId);
 }
@@ -78,7 +78,7 @@ function loadSiteCss(siteId: string): string {
 
 // Function to create site-specific CSS file
 function createSiteCssFile() {
-  const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+  const siteId = process.env.SITE_ID;
   const tempCssPath = path.resolve(__dirname, 'src', 'temp-site.css');
 
   if (siteId) {
@@ -144,7 +144,7 @@ function siteAssetsPlugin() {
   return {
     name: 'site-assets-plugin',
     writeBundle() {
-      const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+      const siteId = process.env.SITE_ID;
       if (!siteId) return;
 
       const siteDir = getSiteDirectory(siteId);
@@ -214,10 +214,10 @@ function transcriptServerPlugin() {
       // Handler for listing transcript files
       server.middlewares.use('/api/transcript-files', (_req: IncomingMessage, res: ServerResponse) => {
         try {
-          const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+          const siteId = process.env.SITE_ID;
           if (!siteId) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'SELECTED_SITE_ID or SITE_ID not configured' }));
+            res.end(JSON.stringify({ error: 'SITE_ID not configured' }));
             return;
           }
 
@@ -238,10 +238,10 @@ function transcriptServerPlugin() {
       // Handler for serving transcript content
       server.middlewares.use('/api/transcripts', (req: IncomingMessage, res: ServerResponse) => {
         try {
-          const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+          const siteId = process.env.SITE_ID;
           if (!siteId) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ error: 'SELECTED_SITE_ID or SITE_ID not configured' }));
+            res.end(JSON.stringify({ error: 'SITE_ID not configured' }));
             return;
           }
 

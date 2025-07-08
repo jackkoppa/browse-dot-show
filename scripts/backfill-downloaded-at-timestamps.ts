@@ -115,7 +115,7 @@ function parseArgs(): CliArgs {
 
   // Fall back to environment variables if no site specified via CLI
   if (!parsed.site) {
-    parsed.site = process.env.SELECTED_SITE_ID || process.env.CURRENT_SITE_ID;
+    parsed.site = process.env.SITE_ID;
   }
 
   return parsed;

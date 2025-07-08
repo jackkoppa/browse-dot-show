@@ -226,7 +226,7 @@ async function main() {
     console.log('==================\n');
     
     // Get the site ID from environment (set by run-with-site-selection.js)
-    const siteId = process.env.CURRENT_SITE_ID || process.env.SELECTED_SITE_ID;
+    const siteId = process.env.SITE_ID;
     
     if (!siteId) {
       console.error('❌ No site ID found. This script should be run via package.json script.');

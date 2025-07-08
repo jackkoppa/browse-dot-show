@@ -178,7 +178,7 @@ async function main(): Promise<void> {
     const env = 'prod';
 
     // Get selected site from environment (set by site selection wrapper)
-    const siteId = process.env.SELECTED_SITE_ID;
+    const siteId = process.env.SITE_ID;
     if (!siteId) {
       printError('Error: No site selected. This script should be run through the site selection wrapper.');
       printError('Use: tsx scripts/run-with-site-selection.ts "infrastructure destruction" "tsx scripts/deploy/destroy.ts"');

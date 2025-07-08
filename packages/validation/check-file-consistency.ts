@@ -410,7 +410,7 @@ async function checkSiteConsistency(siteId: string): Promise<ConsistencyReport> 
   log.info(`Checking file consistency for site: ${siteId}`);
 
   // Set environment for site-aware operations
-  process.env.CURRENT_SITE_ID = siteId;
+      process.env.SITE_ID = siteId;
 
   const site = getSiteById(siteId);
   if (!site) {

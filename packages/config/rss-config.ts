@@ -49,16 +49,16 @@ export function getRSSConfigForSite(siteId: string) {
  * This should be set by site-aware scripts
  */
 export function getCurrentSiteId(): string {
-    const siteId = process.env.CURRENT_SITE_ID;
+    const siteId = process.env.SITE_ID;
     if (!siteId) {
-        throw new Error('CURRENT_SITE_ID environment variable not set. Site-aware operations require this to be set.');
+        throw new Error('SITE_ID environment variable not set. Site-aware operations require this to be set.');
     }
     return siteId;
 }
 
 /**
  * Get RSS configuration for the current site
- * Uses CURRENT_SITE_ID environment variable
+ * Uses SITE_ID environment variable
  */
 export function getCurrentSiteRSSConfig() {
     return getRSSConfigForSite(getCurrentSiteId());

@@ -39,8 +39,8 @@ function getS3Client(): S3 {
  */
 function getBucketName(): string {
   const fileStorageEnv = getFileStorageEnv();
-  // Handle both SITE_ID (used in Lambda) and CURRENT_SITE_ID (used in local dev)
-  const siteId = process.env.SITE_ID || process.env.CURRENT_SITE_ID;
+  // Use SITE_ID environment variable (set in both local dev and AWS Lambda)
+  const siteId = process.env.SITE_ID;
   
   // For local environment, return empty string (no bucket needed)
   if (fileStorageEnv === 'local') {
@@ -67,7 +67,7 @@ function getBucketName(): string {
  * For site-aware operations, includes site-specific subdirectories
  */
 function getLocalFilePath(key: string): string {
-  const siteId = process.env.CURRENT_SITE_ID;
+  const siteId = process.env.SITE_ID;
   
   if (siteId && !key.startsWith('sites/')) {
     // Site-specific local path: aws-local-dev/s3/sites/{siteId}/{key}

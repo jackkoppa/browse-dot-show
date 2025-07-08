@@ -7,10 +7,10 @@ import { fileURLToPath } from 'url';
 
 function main(): void {
   // Get the current site ID from environment
-  const siteId = process.env.SELECTED_SITE_ID || process.env.SITE_ID;
+  const siteId = process.env.SITE_ID;
   
   if (!siteId) {
-    console.error('❌ SELECTED_SITE_ID or SITE_ID environment variable is required');
+    console.error('❌ SITE_ID environment variable is required');
     console.error('   This script should be run through the site selection system');
     process.exit(1);
   }
