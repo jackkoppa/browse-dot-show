@@ -33,7 +33,7 @@
   - [x] myfavoritemurder ✅ COMPLETE (deployed & tested)
 
 ### Phase 3: New Scheduled Script ✅ COMPLETE
-- [x] 3.1: Create scheduled script skeleton - `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` ✅
+- [x] 3.1: Create scheduled script skeleton - `scripts/run-ingestion-pipeline.ts` (renamed from scheduled script) ✅
 - [x] 3.2: Implement automation credential loading (use `.env.automation`) ✅
 - [x] 3.3: Implement local ingestion execution (for all 6 sites) ✅
 - [x] 3.4: Implement SRT file change detection ✅
@@ -49,25 +49,26 @@
 - [x] 4.5: Add optional --sites parameter for subset testing ✅
 - [x] 4.6: Test improved workflow end-to-end with various scenarios (clean slate, local backlog, mixed state, failure recovery) ✅
 
-### Phase 5: Script Updates & Cleanup 🚧 IN PROGRESS
-- [x] 5.1: Add an `--interactive` option to `scripts/scheduled-run-ingestion-and-trigger-indexing.ts`, to allow user selection of options ✅ COMPLETE
-- [x] 5.2: Add a `--help` flag to `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - output all CLI params with explanations ✅ COMPLETE
-- [ ] 5.3: Remove duplicative scripts in root package.json that can be replaced by the new scheduled script
-- [ ] 5.4: Cleanup lambda package.json scripts and related files (renamed from "additional config")
+### Phase 5: Script Updates & Cleanup ✅ COMPLETE
+- [x] 5.1: Add an `--interactive` option to `scripts/run-ingestion-pipeline.ts`, to allow user selection of options ✅ COMPLETE
+- [x] 5.2: Add a `--help` flag to `scripts/run-ingestion-pipeline.ts` - output all CLI params with explanations ✅ COMPLETE
+- [x] 5.3: Remove duplicative scripts in root package.json that can be replaced by the new ingestion pipeline ✅ COMPLETE
+- [x] 5.4: Cleanup lambda package.json scripts and related files ✅ COMPLETE
+- [x] 5.5: Rename script to `run-ingestion-pipeline.ts` to reflect broader scope beyond just scheduling ✅ COMPLETE
 
 #### 📋 Phase 5.3 & 5.4 Implementation Plan
 
 #### ✅ Phase 5.3 & 5.4 Implementation Summary - COMPLETE
 
 **Phase 5.3: Scripts Removed from Root package.json** ✅
-- ✅ Removed `rss-retrieval-lambda:run:local` → Use: `pnpm scheduled:run-ingestion-and-trigger-indexing --skip-audio-processing --skip-s3-sync --skip-cloud-indexing`
+- ✅ Removed `rss-retrieval-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-audio-processing --skip-s3-sync --skip-cloud-indexing`
 - ✅ Removed `rss-retrieval-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
-- ✅ Removed `process-audio-lambda:run:local` → Use: `pnpm scheduled:run-ingestion-and-trigger-indexing --skip-rss-retrieval --skip-s3-sync --skip-cloud-indexing`
+- ✅ Removed `process-audio-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-s3-sync --skip-cloud-indexing`
 - ✅ Removed `process-audio-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
-- ✅ Removed `srt-indexing-lambda:run:local` → Use: `pnpm scheduled:run-ingestion-and-trigger-indexing --skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
+- ✅ Removed `srt-indexing-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
 - ✅ Removed `srt-indexing-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
-- ✅ Removed `ingestion:run-all-ingestion-lambdas-for-all-sites:local` → Use: `pnpm scheduled:run-ingestion-and-trigger-indexing` (default)
-- ✅ Removed `s3:sync` → Use: `pnpm scheduled:run-ingestion-and-trigger-indexing --skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
+- ✅ Removed `ingestion:run-all-ingestion-lambdas-for-all-sites:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule` (default)
+- ✅ Removed `s3:sync` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
 
 **Scripts Kept (different functionality domains):**
 - ✅ Kept `validate:local`, `validate:prod`, `validate:consistency`
@@ -162,12 +163,14 @@
 **Goal:** Test improved workflow with various scenarios (clean slate, backlog, mixed state, failures)
 
 **Completed Changes:**
-1. ✅ **New automation script** - Created `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` with complete 4-phase workflow:
+1. ✅ **New ingestion pipeline** - Created `scripts/run-ingestion-pipeline.ts` with complete 4-phase workflow:
    - **Phase 1:** RSS retrieval for all 6 sites (local)
    - **Phase 2:** Audio processing/transcription for all 6 sites (local, free Whisper)
    - **Phase 3:** S3 sync of new transcripts to cloud (for sites with new SRT files)
    - **Phase 4:** Cloud indexing trigger (for sites with successfully synced SRT files)
-2. ✅ **Root package.json** - Added new `scheduled:run-ingestion-and-trigger-indexing` script
+2. ✅ **Root package.json** - Added new ingestion pipeline scripts:
+   - `ingestion:run-pipeline:triggered-by-schedule` (for automated/scheduled runs)
+   - `ingestion:run-pipeline:interactive` (for manual interactive runs)
 3. ✅ **S3 Sync Integration** - Extracted core sync functionality from `s3-sync.ts` for non-interactive use
 
 **Remaining Changes (Phase 5):**
@@ -560,7 +563,7 @@ After implementing Phase 4, the scheduled script will be:
 ## 📚 Key Reference Files (for Future Agents)
 
 ### Current Infrastructure (Phase 4 Starting Point)
-- **Main Script:** `scripts/scheduled-run-ingestion-and-trigger-indexing.ts` - Current automated ingestion workflow
+- **Main Script:** `scripts/run-ingestion-pipeline.ts` - Complete ingestion pipeline with scheduled and interactive modes
 - **S3 Sync:** `scripts/s3-sync.ts` - S3 synchronization functionality  
 - **File Validation:** `packages/validation/check-file-consistency.ts` - File scanning and grouping logic
 - **AWS Utils:** `scripts/utils/aws-utils.ts` - AWS CLI operations and validation
@@ -603,13 +606,13 @@ After implementing Phase 4, the scheduled script will be:
 **Testing Command:**
 ```bash
 # Test single site (recommended for initial testing)
-pnpm scheduled:run-ingestion-and-trigger-indexing --sites=hardfork
+pnpm ingestion:run-pipeline:triggered-by-schedule --sites=hardfork
 
 # Test multiple sites  
-pnpm scheduled:run-ingestion-and-trigger-indexing --sites=hardfork,listenfairplay
+pnpm ingestion:run-pipeline:triggered-by-schedule --sites=hardfork,listenfairplay
 
 # Test all sites (production workflow)
-pnpm scheduled:run-ingestion-and-trigger-indexing
+pnpm ingestion:run-pipeline:triggered-by-schedule
 ```
 
 **Expected Outcome:** Validate that the workflow handles all edge cases and maintains perfect local/S3 synchronization.
@@ -632,10 +635,11 @@ pnpm scheduled:run-ingestion-and-trigger-indexing
 
 **All Previous Functionality Preserved:**
 Users can now access all previous individual lambda functionality through the unified script with appropriate skip flags:
-- RSS Retrieval Only: `--skip-audio-processing --skip-s3-sync --skip-cloud-indexing`
-- Audio Processing Only: `--skip-rss-retrieval --skip-s3-sync --skip-cloud-indexing`  
-- SRT Indexing Only: `--skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
-- S3 Sync Only: `--skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
+- RSS Retrieval Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-audio-processing --skip-s3-sync --skip-cloud-indexing`
+- Audio Processing Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-s3-sync --skip-cloud-indexing`  
+- SRT Indexing Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
+- S3 Sync Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
+- Interactive Mode: `pnpm ingestion:run-pipeline:interactive`
 - Cloud Lambda Triggering: Use `tsx scripts/trigger-ingestion-lambda.ts`
 
 **Testing Verification:**

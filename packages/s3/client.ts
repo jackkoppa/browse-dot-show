@@ -228,14 +228,35 @@ export async function listFiles(prefix: string): Promise<string[]> {
     const bucketName = getBucketName();
     const s3 = getS3Client();
     try {
-      const response = await s3.listObjectsV2({
-        Bucket: bucketName,
-        Prefix: prefix,
-      });
+      const allFiles: string[] = [];
+      let continuationToken: string | undefined;
+      let pageCount = 0;
+
+      do {
+        const response = await s3.listObjectsV2({
+          Bucket: bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        });
+        
+        const filesInPage = (response.Contents || [])
+          .map(item => item.Key || '')
+          .filter(key => key !== '' && !key.endsWith('.DS_Store'));
+        
+        allFiles.push(...filesInPage);
+        pageCount++;
+        
+        // Log pagination info for debugging large datasets
+        if (response.IsTruncated) {
+          log.info(`S3 pagination (listFiles): Retrieved ${filesInPage.length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
+        } else if (pageCount > 1) {
+          log.info(`S3 pagination (listFiles): Completed ${pageCount} pages, total ${allFiles.length} files for prefix '${prefix}'`);
+        }
+        
+        continuationToken = response.NextContinuationToken;
+      } while (continuationToken);
       
-      return (response.Contents || [])
-        .map(item => item.Key || '')
-        .filter(key => key !== '' && !key.endsWith('.DS_Store'));
+      return allFiles;
     } catch (error) {
       log.error('Error listing S3 files:', error);
       return [];
@@ -276,14 +297,35 @@ export async function getDirectorySize(prefix: string): Promise<number> {
     const bucketName = getBucketName();
     const s3 = getS3Client();
     try {
-      const response = await s3.listObjectsV2({
-        Bucket: bucketName,
-        Prefix: prefix,
-      });
+      let totalSize = 0;
+      let continuationToken: string | undefined;
+      let pageCount = 0;
+
+      do {
+        const response = await s3.listObjectsV2({
+          Bucket: bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        });
+        
+        const sizeInPage = (response.Contents || [])
+          .filter(item => !item.Key?.endsWith('.DS_Store'))
+          .reduce((total, item) => total + (item.Size || 0), 0);
+        
+        totalSize += sizeInPage;
+        pageCount++;
+        
+        // Log pagination info for debugging large datasets
+        if (response.IsTruncated) {
+          log.info(`S3 pagination (getDirectorySize): Retrieved ${(response.Contents || []).length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
+        } else if (pageCount > 1) {
+          log.info(`S3 pagination (getDirectorySize): Completed ${pageCount} pages, total size ${totalSize} bytes for prefix '${prefix}'`);
+        }
+        
+        continuationToken = response.NextContinuationToken;
+      } while (continuationToken);
       
-      return (response.Contents || [])
-        .filter(item => !item.Key?.endsWith('.DS_Store'))
-        .reduce((total, item) => total + (item.Size || 0), 0);
+      return totalSize;
     } catch (error) {
       log.error('Error getting directory size:', error);
       return 0;
@@ -399,18 +441,37 @@ export async function listDirectories(prefix: string): Promise<string[]> {
     const bucketName = getBucketName();
     const s3 = getS3Client();
     try {
-      const response = await s3.listObjectsV2({
-        Bucket: bucketName,
-        Prefix: prefix,
-        Delimiter: '/', // This helps S3 group by "directories"
-      });
+      const allDirectories: string[] = [];
+      let continuationToken: string | undefined;
+      let pageCount = 0;
+
+      do {
+        const response = await s3.listObjectsV2({
+          Bucket: bucketName,
+          Prefix: prefix,
+          Delimiter: '/', // This helps S3 group by "directories"
+          ContinuationToken: continuationToken,
+        });
+        
+        // Get directory prefixes from CommonPrefixes
+        const directoriesInPage = (response.CommonPrefixes || [])
+          .map(item => item.Prefix || '')
+          .filter(prefix => prefix !== '');
+        
+        allDirectories.push(...directoriesInPage);
+        pageCount++;
+        
+        // Log pagination info for debugging large datasets
+        if (response.IsTruncated) {
+          log.info(`S3 pagination (listDirectories): Retrieved ${directoriesInPage.length} directories in page ${pageCount} for prefix '${prefix}', continuing...`);
+        } else if (pageCount > 1) {
+          log.info(`S3 pagination (listDirectories): Completed ${pageCount} pages, total ${allDirectories.length} directories for prefix '${prefix}'`);
+        }
+        
+        continuationToken = response.NextContinuationToken;
+      } while (continuationToken);
       
-      // Get directory prefixes from CommonPrefixes
-      const directories = (response.CommonPrefixes || [])
-        .map(item => item.Prefix || '')
-        .filter(prefix => prefix !== '');
-      
-      return directories;
+      return allDirectories;
     } catch (error) {
       log.error('Error listing S3 directories:', error);
       return [];

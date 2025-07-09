@@ -1,16 +1,21 @@
 #!/usr/bin/env tsx
 
 /**
- * Scheduled Automation Script - Phase 3.1-3.6 + Phase 4 Improvements
+ * Ingestion Pipeline Script - Complete Podcast Processing Workflow
  * 
- * This script is designed to run automatically and:
- * 0. Pre-sync all S3 content to local storage (NEW - Phase 4.1)
+ * This script provides a comprehensive ingestion pipeline that can be run in multiple modes:
+ * - Automated/scheduled execution (for production automation)
+ * - Interactive mode (for manual runs with guided configuration)
+ * - Targeted execution (for specific sites or phases)
+ * 
+ * Pipeline Phases:
+ * 0. Pre-sync all S3 content to local storage
  * 1. Load automation credentials from .env.automation
- * 2. Run local ingestion for all 6 sites (RSS retrieval + audio processing)
- * 3. Detect which sites have new SRT files and sync comprehensive changes to S3 (ENHANCED - Phase 4.3)
- * 4. Trigger cloud indexing lambdas for sites with S3 uploads using automation role (ENHANCED - Phase 4.4)
+ * 2. Run local ingestion for all sites (RSS retrieval + audio processing)
+ * 3. Detect which sites have new content and sync comprehensive changes to S3
+ * 4. Trigger cloud indexing lambdas for sites with S3 uploads using automation role
  * 
- * Usage: tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts [--sites=site1,site2]
+ * Usage: tsx scripts/run-ingestion-pipeline.ts [OPTIONS]
  */
 
 import { spawn } from 'child_process';
@@ -43,6 +48,7 @@ interface WorkflowConfig {
     audioProcessing: boolean;
     s3Sync: boolean;
     cloudIndexing: boolean;
+    localIndexing: boolean;
   };
   syncOptions: {
     foldersToSync: string[];
@@ -64,7 +70,8 @@ function getDefaultConfig(): WorkflowConfig {
       rssRetrieval: true,
       audioProcessing: true,
       s3Sync: true,
-      cloudIndexing: true
+      cloudIndexing: true,
+      localIndexing: true
     },
     syncOptions: {
       foldersToSync: ALL_SYNC_FOLDERS
@@ -77,10 +84,10 @@ function getDefaultConfig(): WorkflowConfig {
  */
 function displayHelp(): void {
   console.log(`
-🤖 Scheduled Ingestion and Indexing Automation
+🤖 Ingestion Pipeline - Comprehensive Podcast Processing
 
 USAGE:
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts [OPTIONS]
+  tsx scripts/run-ingestion-pipeline.ts [OPTIONS]
 
 OPTIONS:
   --help                    Show this help message
@@ -93,23 +100,24 @@ OPTIONS:
   --skip-rss-retrieval     Skip RSS retrieval phase
   --skip-audio-processing  Skip audio processing phase
   --skip-s3-sync           Skip local-to-S3 sync phase
+  --skip-local-indexing    Skip local search index update phase
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss)
 
 EXAMPLES:
   # Run full workflow for all sites (default)
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts
+  tsx scripts/run-ingestion-pipeline.ts
   
   # Interactive mode for manual configuration
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --interactive
+  tsx scripts/run-ingestion-pipeline.ts --interactive
   
   # Process only specific sites
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --sites=hardfork,naddpod
+  tsx scripts/run-ingestion-pipeline.ts --sites=hardfork,naddpod
   
   # Dry run to see what would happen
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --dry-run --sites=hardfork
+  tsx scripts/run-ingestion-pipeline.ts --dry-run --sites=hardfork
   
   # Skip cloud indexing (local processing only)
-  tsx scripts/scheduled-run-ingestion-and-trigger-indexing.ts --skip-cloud-indexing
+  tsx scripts/run-ingestion-pipeline.ts --skip-cloud-indexing
 
 PHASES:
   Phase 0: S3-to-local pre-sync (downloads existing S3 files)
@@ -118,6 +126,7 @@ PHASES:
   Phase 2: Audio processing (transcribes audio files)
   Phase 3: S3 sync (uploads missing files to S3)
   Phase 4: Cloud indexing (triggers search index updates)
+  Phase 5: Local indexing (updates local search index for development)
 
 For automation/cron jobs, use without --interactive flag.
 For manual runs, --interactive provides a guided configuration experience.
@@ -151,6 +160,8 @@ function parseArguments(): WorkflowConfig {
       config.phases.audioProcessing = false;
     } else if (arg === '--skip-s3-sync') {
       config.phases.s3Sync = false;
+    } else if (arg === '--skip-local-indexing') {
+      config.phases.localIndexing = false;
     } else if (arg.startsWith('--sites=')) {
       const sitesArg = arg.split('=')[1];
       if (sitesArg) {
@@ -181,7 +192,7 @@ function parseArguments(): WorkflowConfig {
 async function configureInteractively(config: WorkflowConfig, allSites: Site[]): Promise<WorkflowConfig> {
   console.log('\n🤖 Interactive Configuration');
   console.log('='.repeat(40));
-  console.log('Configure your automation workflow options:\n');
+  console.log('Configure your ingestion pipeline options:\n');
 
   // Site selection
   if (!config.selectedSites || config.selectedSites.length === 0) {
@@ -248,7 +259,8 @@ async function configureInteractively(config: WorkflowConfig, allSites: Site[]):
       { title: 'Phase 1: RSS retrieval', value: 'rssRetrieval', selected: config.phases.rssRetrieval },
       { title: 'Phase 2: Audio processing', value: 'audioProcessing', selected: config.phases.audioProcessing },
       { title: 'Phase 3: S3 sync', value: 's3Sync', selected: config.phases.s3Sync },
-      { title: 'Phase 4: Cloud indexing', value: 'cloudIndexing', selected: config.phases.cloudIndexing }
+      { title: 'Phase 4: Cloud indexing', value: 'cloudIndexing', selected: config.phases.cloudIndexing },
+      { title: 'Phase 5: Local indexing', value: 'localIndexing', selected: config.phases.localIndexing }
     ];
 
     const selectedPhasesResponse = await prompts({
@@ -343,6 +355,9 @@ interface SiteProcessingResult {
   s3SyncTotalFilesUploaded?: number;
   indexingTriggerSuccess?: boolean;
   indexingTriggerDuration?: number;
+  localIndexingSuccess?: boolean;
+  localIndexingDuration?: number;
+  localIndexingEntriesProcessed?: number;
   errors: string[];
 }
 
@@ -1210,10 +1225,136 @@ async function runCommandWithSiteContext(
 }
 
 /**
+ * Run local indexing for a site (SRT indexing to update local search index)
+ */
+async function runLocalIndexingForSite(
+  siteId: string
+): Promise<{ success: boolean; duration: number; error?: string; entriesProcessed?: number }> {
+  const startTime = Date.now();
+  
+  logProgress(`Running local indexing for ${siteId}`);
+  
+  return new Promise((resolve) => {
+    try {
+      // Load site-specific environment variables
+      const siteEnvVars = loadSiteEnvVars(siteId, 'local');
+      
+      // Merge with current environment, giving priority to site-specific vars
+      const envVars = {
+        ...process.env,
+        ...siteEnvVars,
+        SITE_ID: siteId,
+        FILE_STORAGE_ENV: 'local'  // Ensure we're using local storage for all operations
+      };
+
+             let stdout = '';
+       let stderr = '';
+       let lastProgressLine = '';
+       let progressInterval: NodeJS.Timeout;
+       
+       // Set up progress indicator that updates every 5 seconds
+       const showProgress = () => {
+         const elapsed = Math.floor((Date.now() - startTime) / 1000);
+         const baseMessage = `🔍 Processing local indexing for ${siteId}... (${elapsed}s)`;
+         const progressMessage = lastProgressLine 
+           ? `${baseMessage} | ${lastProgressLine}`
+           : baseMessage;
+         process.stdout.write(`\r${progressMessage}`.padEnd(120));
+       };
+       
+       progressInterval = setInterval(showProgress, 5000);
+
+       // Run the SRT indexing lambda locally using spawn 
+       const child = spawn('tsx', [
+         'packages/ingestion/srt-indexing-lambda/convert-srts-indexed-search.ts'
+       ], {
+         stdio: ['inherit', 'pipe', 'pipe'],
+         env: envVars,
+         cwd: process.cwd()
+       });
+
+       // Capture stdout silently and extract the most recent progress line
+       child.stdout?.on('data', (data: Buffer) => {
+         const output = data.toString();
+         stdout += output;
+         
+         // Extract the most recent progress line for display
+         const lines = output.split('\n').filter(line => line.trim());
+         const progressLines = lines.filter(line => 
+           line.includes('Progress:') && line.includes('SRT files processed')
+         );
+         
+         if (progressLines.length > 0) {
+           // Get the most recent progress line and clean it up
+           const rawProgress = progressLines[progressLines.length - 1];
+           // Extract just the essential info: "25% (261/1022), 105435 entries"
+           const progressMatch = rawProgress.match(/(\d+)% of SRT files processed \((\d+)\/(\d+)\)/);
+           const entriesMatch = rawProgress.match(/Collected (\d+) entries/);
+           
+           if (progressMatch) {
+             const [, percent, current, total] = progressMatch;
+             const entries = entriesMatch ? entriesMatch[1] : '';
+             lastProgressLine = entries 
+               ? `${percent}% (${current}/${total}), ${entries} entries`
+               : `${percent}% (${current}/${total})`;
+           }
+         }
+       });
+
+       // Capture stderr silently 
+       child.stderr?.on('data', (data: Buffer) => {
+         const output = data.toString();
+         stderr += output;
+       });
+
+      child.on('close', (code: number | null) => {
+        // Clear progress indicator
+        clearInterval(progressInterval);
+        process.stdout.write('\r'.padEnd(100) + '\r');
+        
+        const duration = Date.now() - startTime;
+        const success = code === 0;
+        
+        if (success) {
+          // Try to extract entries processed count from output
+          let entriesProcessed = 0;
+          const entriesMatch = stdout.match(/📝 New Search Entries Added: (\d+)/);
+          if (entriesMatch) {
+            entriesProcessed = parseInt(entriesMatch[1], 10);
+          }
+          
+          logSuccess(`Local indexing completed for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
+          resolve({ success: true, duration, entriesProcessed });
+        } else {
+          const error = `Local indexing failed with exit code ${code}: ${stderr}`;
+          logError(`Local indexing failed for ${siteId}: ${error}`);
+          resolve({ success: false, duration, error });
+        }
+      });
+
+      child.on('error', (error: Error) => {
+        // Clear progress indicator on error
+        clearInterval(progressInterval);
+        process.stdout.write('\r'.padEnd(100) + '\r');
+        
+        const duration = Date.now() - startTime;
+        logError(`Error running local indexing for ${siteId}: ${error.message}`);
+        resolve({ success: false, duration, error: error.message });
+      });
+
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logError(`Error setting up local indexing for ${siteId}: ${error.message}`);
+      resolve({ success: false, duration, error: error.message });
+    }
+  });
+}
+
+/**
  * Main function
  */
 async function main(): Promise<void> {
-  console.log('🤖 Scheduled Ingestion and Indexing Automation');
+  console.log('🤖 Ingestion Pipeline - Comprehensive Podcast Processing');
   console.log('='.repeat(60));
   console.log(`Started at: ${new Date().toISOString()}`);
   
@@ -1278,6 +1419,7 @@ async function main(): Promise<void> {
   if (config.phases.audioProcessing) console.log(`     ✅ Phase 2: Audio processing`);
   if (config.phases.s3Sync) console.log(`     ✅ Phase 3: S3 sync`);
   if (config.phases.cloudIndexing) console.log(`     ✅ Phase 4: Cloud indexing`);
+  if (config.phases.localIndexing) console.log(`     ✅ Phase 5: Local indexing`);
   console.log(`   Sync folders: ${config.syncOptions.foldersToSync.join(', ')}`);
   
   if (config.dryRun) {
@@ -1577,6 +1719,35 @@ async function main(): Promise<void> {
     console.log('\n⏭️  Skipping Phase 4: Cloud indexing (disabled)');
   }
   
+  // Phase 5: Local Indexing for local development
+  if (config.phases.localIndexing) {
+    console.log('\n' + '='.repeat(60));
+    console.log('🔍 Phase 5: Local Indexing (update local search index)');
+    console.log('='.repeat(60));
+    
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would update local search indexes for all sites');
+    } else {
+      console.log('ℹ️  Updating local search indexes for all sites (for local development)...');
+      
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        
+        const localIndexingResult = await runLocalIndexingForSite(site.id);
+        
+        results[i].localIndexingSuccess = localIndexingResult.success;
+        results[i].localIndexingDuration = localIndexingResult.duration;
+        results[i].localIndexingEntriesProcessed = localIndexingResult.entriesProcessed || 0;
+        
+        if (localIndexingResult.error) {
+          results[i].errors.push(`Local indexing error: ${localIndexingResult.error}`);
+        }
+      }
+    }
+  } else {
+    console.log('\n⏭️  Skipping Phase 5: Local indexing (disabled)');
+  }
+  
   // Generate final summary
   const overallDuration = Date.now() - overallStartTime;
   
@@ -1599,9 +1770,13 @@ async function main(): Promise<void> {
     const indexingStatus = (result.s3SyncTotalFilesUploaded || 0) > 0
       ? (result.indexingTriggerSuccess ? '✅' : '❌')
       : '⚪'; // No indexing needed
+    const localIndexingStatus = result.localIndexingSuccess === true ? '✅' : 
+                                result.localIndexingSuccess === false ? '❌' : 
+                                '⚪'; // Not run
     const totalDuration = (result.s3PreSyncDuration || 0) + (result.syncConsistencyCheckDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
-                         (result.s3SyncDuration || 0) + (result.indexingTriggerDuration || 0);
+                         (result.s3SyncDuration || 0) + (result.indexingTriggerDuration || 0) + 
+                         (result.localIndexingDuration || 0);
     
     console.log(`\n   ${result.siteId} (${result.siteTitle}):`);
     console.log(`      S3 Pre-Sync: ${preSyncStatus} (${((result.s3PreSyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files`);
@@ -1610,6 +1785,7 @@ async function main(): Promise<void> {
     console.log(`      Audio Processing: ${audioStatus} (${(result.audioProcessingDuration / 1000).toFixed(1)}s)`);
     console.log(`      S3 Upload: ${s3SyncStatus} ${(result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files` : '(not needed)'}`);
     console.log(`      Cloud Indexing: ${indexingStatus} ${(result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.indexingTriggerDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)'}`);
+    console.log(`      Local Indexing: ${localIndexingStatus} (${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries`);
     console.log(`      📥 New Audio Files Downloaded: ${result.newAudioFilesDownloaded}`);
     console.log(`      🎤 Episodes Transcribed: ${result.newEpisodesTranscribed}`);
     console.log(`      Total: ${(totalDuration / 1000).toFixed(1)}s`);
@@ -1628,10 +1804,13 @@ async function main(): Promise<void> {
   const successfulS3SyncCount = results.filter(r => (r.filesToUpload || 0) > 0 && r.s3SyncSuccess).length;
   const successfulIndexingCount = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.indexingTriggerSuccess).length;
   const sitesTriggeredIndexing = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0).length;
+  const successfulLocalIndexingCount = results.filter(r => r.localIndexingSuccess === true).length;
+  const totalLocalIndexingAttempts = results.filter(r => r.localIndexingSuccess !== undefined).length;
   const totalPreSyncFilesDownloaded = results.reduce((sum, r) => sum + (r.s3PreSyncFilesDownloaded || 0), 0);
   const totalFilesUploaded = results.reduce((sum, r) => sum + (r.s3SyncTotalFilesUploaded || 0), 0);
   const totalAudioFilesDownloaded = results.reduce((sum, r) => sum + r.newAudioFilesDownloaded, 0);
   const totalEpisodesTranscribed = results.reduce((sum, r) => sum + r.newEpisodesTranscribed, 0);
+  const totalLocalIndexingEntriesProcessed = results.reduce((sum, r) => sum + (r.localIndexingEntriesProcessed || 0), 0);
   
   console.log('\n📊 Overall Statistics:');
   console.log(`   Sites processed: ${results.length}`);
@@ -1642,10 +1821,12 @@ async function main(): Promise<void> {
   console.log(`   Sites with files to upload: ${sitesWithFilesToUpload}`);
   console.log(`   S3 Upload success rate: ${successfulS3SyncCount}/${sitesWithFilesToUpload} (${sitesWithFilesToUpload > 0 ? ((successfulS3SyncCount / sitesWithFilesToUpload) * 100).toFixed(1) : 0}%)`);
   console.log(`   Cloud Indexing success rate: ${successfulIndexingCount}/${sitesTriggeredIndexing} (${sitesTriggeredIndexing > 0 ? ((successfulIndexingCount / sitesTriggeredIndexing) * 100).toFixed(1) : 0}%)`);
+  console.log(`   Local Indexing success rate: ${successfulLocalIndexingCount}/${results.length} (${((successfulLocalIndexingCount / totalLocalIndexingAttempts) * 100).toFixed(1)}%)`);
   console.log(`   📥 Total Files Downloaded from S3: ${totalPreSyncFilesDownloaded}`);
   console.log(`   📤 Total Files Uploaded to S3: ${totalFilesUploaded}`);
   console.log(`   📥 Total Audio Files Downloaded: ${totalAudioFilesDownloaded}`);
   console.log(`   🎤 Total Episodes Transcribed: ${totalEpisodesTranscribed}`);
+  console.log(`   🔍 Total Local Index Entries Processed: ${totalLocalIndexingEntriesProcessed}`);
   
   // Exit with appropriate code
   const hasErrors = results.some(r => r.errors.length > 0);
