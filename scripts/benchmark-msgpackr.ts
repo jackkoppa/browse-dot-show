@@ -93,6 +93,7 @@ async function benchmarkPersistenceMsgPackR(
 }
 
 async function main() {
+  console.log('🚀 Starting MsgPack vs MsgPackR Performance Benchmark');
   log.info('🚀 Starting MsgPack vs MsgPackR Performance Benchmark');
   
   // Create test data
@@ -165,6 +166,5 @@ async function main() {
   log.info('\n✅ Benchmark completed!');
 }
 
-if (require.main === module) {
-  main().catch(console.error);
-}
+// Run the benchmark
+main().catch(console.error);
