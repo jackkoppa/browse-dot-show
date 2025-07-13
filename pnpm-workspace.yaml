@@ -17,7 +17,6 @@ packages:
   - packages/search/search-lambda
   - scripts
   - sites
-
 catalog:
   '@orama/orama': ^3.1.7
   '@orama/plugin-data-persistence': ^3.1.7
@@ -37,8 +36,7 @@ catalog:
   xml2js: ^0.6.2
   '@types/xml2js': ^0.4.14
   vitest: ^1.6.1
-
 ignoredBuiltDependencies:
   - '@tailwindcss/oxide'
-
+  - msgpackr-extract
 injectWorkspacePackages: true
