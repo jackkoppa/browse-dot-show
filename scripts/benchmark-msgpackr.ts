@@ -36,7 +36,7 @@ function generateSampleSearchEntries(count: number): SearchEntry[] {
 async function benchmarkPersistence(
   db: OramaSearchDatabase, 
   filePath: string, 
-  compression: "none" | "gzip" | "brotli" = "gzip"
+  compression: "none" | "gzip" | "brotli" | "zstd" = "gzip"
 ) {
   const results = {
     persistTime: 0,
@@ -66,7 +66,7 @@ async function benchmarkPersistence(
 async function benchmarkPersistenceMsgPackR(
   db: OramaSearchDatabase, 
   filePath: string, 
-  compression: "none" | "gzip" | "brotli" = "gzip"
+  compression: "none" | "gzip" | "brotli" | "zstd" = "gzip"
 ) {
   const results = {
     persistTime: 0,
@@ -122,7 +122,7 @@ async function main() {
   };
 
   // Test different compression types
-  const compressionTypes: ("none" | "gzip" | "brotli")[] = ["none", "gzip", "brotli"];
+  const compressionTypes: ("none" | "gzip" | "brotli" | "zstd")[] = ["none", "gzip", "brotli", "zstd"];
   
   for (const compression of compressionTypes) {
     log.info(`\n📊 Testing with ${compression} compression...`);

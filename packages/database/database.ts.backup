@@ -259,7 +259,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
  * This avoids the string length limitations of the built-in persistence plugin
  * @param db - The Orama database instance
  * @param filePath - Path where to save the database file
- * @param compression - Compression type to use (none, gzip, brotli, zstd)
+ * @param compression - Compression type to use (none, gzip, brotli)
  * @returns Promise resolving to the file path
  */
 export async function persistToFileStreaming(
@@ -279,6 +279,7 @@ export async function persistToFileStreaming(
     const bufferExport = Buffer.from(msgpack.buffer, msgpack.byteOffset, msgpack.byteLength);
     log.info(`MsgPack buffer size: ${(bufferExport.length / 1024 / 1024).toFixed(2)} MB`);
 
+    
     // Stream to file with optional compression
     const streamStartTime = Date.now();
     log.info(`Starting file streaming with compression: ${compression}`);
@@ -312,10 +313,12 @@ export async function persistToFileStreaming(
   }
 }
 
+
+
 /**
  * Restores Orama database from file using streaming decompression and optimized MsgPack decoding
  * @param filePath - Path to the database file
- * @param compression - Compression type that was used (none, gzip, brotli, zstd)
+ * @param compression - Compression type that was used (none, gzip, brotli)
  * @returns Promise resolving to the restored Orama database instance
  */
 export async function restoreFromFileStreamingOptimized(
@@ -344,31 +347,8 @@ export async function restoreFromFileStreamingOptimized(
       chunks = [fileBuffer];
       totalSize = fileBuffer.length;
       log.info(`File read (uncompressed) in ${Date.now() - streamStart}ms, size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
-    } else if (compression === "zstd") {
-      // For zstd, we need to read the entire file and decompress it
-      const fileBuffer = await fs.promises.readFile(filePath);
-      const decompressedBuffer = await decompress(fileBuffer);
-      chunks = [decompressedBuffer];
-      totalSize = decompressedBuffer.length;
-      log.info(`Zstd decompression completed in ${Date.now() - streamStart}ms, decompressed size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
-      // Skip the rest of the streaming logic for zstd
-      const combineStart = Date.now();
-      const finalBuffer = Buffer.concat(chunks);
-      log.info(`Buffer concatenation completed in ${Date.now() - combineStart}ms`);
-      chunks = [];
-      const msgpackDecodeStart = Date.now();
-      const decoded = await optimizedMsgPackDecode(finalBuffer);
-      const oramaLoadStart = Date.now();
-      await load(db, decoded as any);
-      log.info(`Orama database load completed in ${Date.now() - oramaLoadStart}ms`);
-      const totalTime = Date.now() - startTime;
-      const msgpackDecodeTime = Date.now() - msgpackDecodeStart;
-      const oramaLoadTime = Date.now() - oramaLoadStart;
-      log.info(`Successfully restored Orama database from ${filePath} in ${totalTime}ms total (optimized streaming)`);
-      log.info(`⏱️ Optimized restore timing breakdown: Zstd decompress: ${msgpackDecodeStart - streamStart}ms, MsgPack decode: ${msgpackDecodeTime}ms, Orama load: ${oramaLoadTime}ms`);
-      return db as OramaSearchDatabase;
     } else {
-      // Create decompression stream for gzip/brotli
+      // Create decompression stream
       let decompressionStream;
       if (compression === "gzip") {
         decompressionStream = zlib.createGunzip();
@@ -438,7 +418,7 @@ export async function restoreFromFileStreamingOptimized(
  * This is the enhanced version using msgpackr for better performance
  * @param db - The Orama database instance
  * @param filePath - Path where to save the database file
- * @param compression - Compression type to use (none, gzip, brotli, zstd)
+ * @param compression - Compression type to use (none, gzip, brotli)
  * @returns Promise resolving to the file path
  */
 export async function persistToFileStreamingMsgPackR(
@@ -494,7 +474,7 @@ export async function persistToFileStreamingMsgPackR(
  * Restores Orama database from file using streaming decompression and optimized MsgPackR decoding
  * This is the enhanced version using msgpackr for better performance
  * @param filePath - Path to the database file
- * @param compression - Compression type that was used (none, gzip, brotli, zstd)
+ * @param compression - Compression type that was used (none, gzip, brotli)
  * @returns Promise resolving to the restored Orama database instance
  */
 export async function restoreFromFileStreamingMsgPackR(
@@ -523,31 +503,8 @@ export async function restoreFromFileStreamingMsgPackR(
       chunks = [fileBuffer];
       totalSize = fileBuffer.length;
       log.info(`File read (uncompressed) in ${Date.now() - streamStart}ms, size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
-    } else if (compression === "zstd") {
-      // For zstd, we need to read the entire file and decompress it
-      const fileBuffer = await fs.promises.readFile(filePath);
-      const decompressedBuffer = await decompress(fileBuffer);
-      chunks = [decompressedBuffer];
-      totalSize = decompressedBuffer.length;
-      log.info(`Zstd decompression completed in ${Date.now() - streamStart}ms, decompressed size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
-      // Skip the rest of the streaming logic for zstd
-      const combineStart = Date.now();
-      const finalBuffer = Buffer.concat(chunks);
-      log.info(`Buffer concatenation completed in ${Date.now() - combineStart}ms`);
-      chunks = [];
-      const msgpackrDecodeStart = Date.now();
-      const decoded = await optimizedMsgPackRDecode(finalBuffer);
-      const oramaLoadStart = Date.now();
-      await load(db, decoded as any);
-      log.info(`Orama database load completed in ${Date.now() - oramaLoadStart}ms`);
-      const totalTime = Date.now() - startTime;
-      const msgpackrDecodeTime = Date.now() - msgpackrDecodeStart;
-      const oramaLoadTime = Date.now() - oramaLoadStart;
-      log.info(`Successfully restored Orama database with MsgPackR from ${filePath} in ${totalTime}ms total (enhanced streaming)`);
-      log.info(`⏱️ MsgPackR restore timing breakdown: Zstd decompress: ${msgpackrDecodeStart - streamStart}ms, MsgPackR decode: ${msgpackrDecodeTime}ms, Orama load: ${oramaLoadTime}ms`);
-      return db as OramaSearchDatabase;
     } else {
-      // Create decompression stream for gzip/brotli
+      // Create decompression stream
       let decompressionStream;
       if (compression === "gzip") {
         decompressionStream = zlib.createGunzip();
@@ -611,3 +568,5 @@ export async function restoreFromFileStreamingMsgPackR(
     throw error;
   }
 }
+
+
