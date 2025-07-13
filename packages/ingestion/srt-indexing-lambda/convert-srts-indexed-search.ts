@@ -58,7 +58,8 @@ interface EpisodeManifestEntry {
 let episodeManifestData: EpisodeManifestEntry[] = [];
 
 // Helper function to check if a newer version of the same episode transcript exists
-async function hasNewerTranscriptVersion(currentSrtFileKey: string): Promise<boolean> {
+// **OPTIMIZATION: Now uses cached SRT file list instead of calling listFiles() for each file**
+function hasNewerTranscriptVersion(currentSrtFileKey: string, allSrtFiles: string[]): boolean {
   try {
     const podcastName = path.basename(path.dirname(currentSrtFileKey));
     const currentSrtFileName = path.basename(currentSrtFileKey, '.srt');
@@ -77,50 +78,44 @@ async function hasNewerTranscriptVersion(currentSrtFileKey: string): Promise<boo
       return false;
     }
 
-    // List all transcript files for this podcast
+    // **OPTIMIZATION: Use cached SRT file list instead of calling listFiles()**
+    // Filter cached SRT files to only those in the same podcast directory
     const transcriptDirKey = path.join(getTranscriptsDirPrefix(), podcastName);
+    const allTranscriptFiles = allSrtFiles.filter(file => file.startsWith(transcriptDirKey));
 
-    try {
-      const allTranscriptFiles = await listFiles(transcriptDirKey);
+    for (const transcriptFile of allTranscriptFiles) {
+      if (!transcriptFile.endsWith('.srt')) continue;
 
-      for (const transcriptFile of allTranscriptFiles) {
-        if (!transcriptFile.endsWith('.srt')) continue;
+      const transcriptFileName = path.basename(transcriptFile, '.srt');
 
-        const transcriptFileName = path.basename(transcriptFile, '.srt');
+      // Skip if this is the current file
+      if (transcriptFileName === currentSrtFileName) continue;
 
-        // Skip if this is the current file
-        if (transcriptFileName === currentSrtFileName) continue;
+      try {
+        // Check if this transcript file has downloadedAt timestamp
+        if (!hasDownloadedAtTimestamp(transcriptFileName)) continue;
 
-        try {
-          // Check if this transcript file has downloadedAt timestamp
-          if (!hasDownloadedAtTimestamp(transcriptFileName)) continue;
+        const transcriptParsed = parseFileKey(transcriptFileName);
 
-          const transcriptParsed = parseFileKey(transcriptFileName);
+        // Check if this is the same episode (same date and base title)
+        if (transcriptParsed.date === currentParsed.date &&
+          transcriptParsed.title === currentParsed.title) {
 
-          // Check if this is the same episode (same date and base title)
-          if (transcriptParsed.date === currentParsed.date &&
-            transcriptParsed.title === currentParsed.title) {
+          const transcriptDownloadedAt = transcriptParsed.downloadedAt;
 
-            const transcriptDownloadedAt = transcriptParsed.downloadedAt;
-
-            if (transcriptDownloadedAt && transcriptDownloadedAt > currentDownloadedAt) {
-              // Found a newer version of the same episode
-              log.info(`Found newer transcript version: ${transcriptFileName} (downloaded at ${transcriptDownloadedAt.toISOString()}) vs current ${currentSrtFileName} (downloaded at ${currentDownloadedAt.toISOString()})`);
-              return true;
-            }
+          if (transcriptDownloadedAt && transcriptDownloadedAt > currentDownloadedAt) {
+            // Found a newer version of the same episode
+            log.info(`Found newer transcript version: ${transcriptFileName} (downloaded at ${transcriptDownloadedAt.toISOString()}) vs current ${currentSrtFileName} (downloaded at ${currentDownloadedAt.toISOString()})`);
+            return true;
           }
-        } catch (parseError) {
-          log.debug(`Could not parse transcript filename ${transcriptFileName}:`, parseError);
-          continue;
         }
+      } catch (parseError) {
+        log.debug(`Could not parse transcript filename ${transcriptFileName}:`, parseError);
+        continue;
       }
-
-      return false;
-
-    } catch (listError) {
-      log.debug(`Could not list transcript files in ${transcriptDirKey}:`, listError);
-      return false;
     }
+
+    return false;
 
   } catch (error) {
     log.error(`Error checking for newer transcript versions of ${currentSrtFileKey}:`, error);
@@ -180,13 +175,14 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
 }
 
 // Function to check if search entries already exist for a transcript
-// This function remains useful for determining if a JSON file needs creation, though the main loop will handle it.
-async function searchEntriesJsonFileExists(srtFileKey: string): Promise<string | false> {
+// **OPTIMIZATION: Now uses cached JSON file list instead of calling fileExists() for each file**
+function searchEntriesJsonFileExists(srtFileKey: string, allExistingJsonFiles: string[]): string | false {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
   const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
 
-  if (await fileExists(searchEntriesKey)) {
+  // **OPTIMIZATION: Use cached JSON file list instead of calling fileExists()**
+  if (allExistingJsonFiles.includes(searchEntriesKey)) {
     return searchEntriesKey;
   }
   return false;
@@ -316,8 +312,15 @@ export async function handler(): Promise<any> {
   }
   log.info(`Found ${totalSrtFiles} total SRT files to evaluate for indexing.`);
 
+  // **OPTIMIZATION: Get all existing search entry JSON files once at the beginning**
+  log.info('Getting all existing search entry JSON files to cache for performance...');
+  const searchEntriesPrefix = getSearchEntriesDirPrefix();
+  const allExistingJsonFiles = await listFiles(searchEntriesPrefix);
+  log.info(`Found ${allExistingJsonFiles.length} existing search entry JSON files to cache.`);
+
   let srtFilesProcessedCount = 0;
   let newEntriesAddedInThisRun = 0;
+  let lastLoggedPercentage = 0; // Track the last percentage we logged to avoid duplicate logs
 
   // Collect all search entries to insert in batches for better performance
   const allSearchEntriesToInsert: SearchEntry[] = [];
@@ -326,7 +329,7 @@ export async function handler(): Promise<any> {
     log.debug(`Evaluating SRT file: ${srtFileKey} (${srtFilesProcessedCount + 1}/${totalSrtFiles})`);
 
     // Check if a newer version of this transcript exists (skip processing older versions)
-    if (await hasNewerTranscriptVersion(srtFileKey)) {
+    if (hasNewerTranscriptVersion(srtFileKey, allSrtFiles)) {
       log.info(`Skipping processing of ${srtFileKey} because a newer version exists`);
       srtFilesProcessedCount++;
       continue;
@@ -335,7 +338,7 @@ export async function handler(): Promise<any> {
     let searchEntriesForFile: SearchEntry[] = [];
     let jsonNeedsProcessing = true; // Assume we need to process (load or create) the JSON
 
-    const existingJsonPath = await searchEntriesJsonFileExists(srtFileKey);
+    const existingJsonPath = searchEntriesJsonFileExists(srtFileKey, allExistingJsonFiles);
     if (existingJsonPath) {
       log.debug(`Search entries JSON already exists for ${srtFileKey} at ${existingJsonPath}. Loading it.`);
       try {
@@ -379,13 +382,17 @@ export async function handler(): Promise<any> {
     srtFilesProcessedCount++;
 
     const currentSrtPercentage = Math.floor((srtFilesProcessedCount / totalSrtFiles) * 100);
-    if (currentSrtPercentage % PROGRESS_LOG_THRESHOLD === 0 && currentSrtPercentage > 0 && totalSrtFiles > 0) {
+    if (currentSrtPercentage % PROGRESS_LOG_THRESHOLD === 0 && 
+        currentSrtPercentage > 0 && 
+        currentSrtPercentage > lastLoggedPercentage && 
+        totalSrtFiles > 0) {
       const elapsedTimeSinceStart = ((Date.now() - lambdaStartTime) / 1000).toFixed(2);
       log.info(
         `\n🔄 Progress: ${currentSrtPercentage}% of SRT files processed (${srtFilesProcessedCount}/${totalSrtFiles}).` +
         `\nElapsed time: ${elapsedTimeSinceStart}s.` +
         `\nCollected ${allSearchEntriesToInsert.length} entries so far...\n`
       );
+      lastLoggedPercentage = currentSrtPercentage;
     }
   }
 
@@ -420,7 +427,7 @@ export async function handler(): Promise<any> {
   logMemoryUsage('before attempting to persist Orama index with streaming');
   try {
     // Use streaming persistence with gzip compression
-    const compression: CompressionType = "gzip";
+    const compression: CompressionType = 'gzip';
     await persistToFileStreaming(oramaIndex, getLocalDbPath(), compression);
     logMemoryUsage('after persisting Orama index to file with streaming');
 

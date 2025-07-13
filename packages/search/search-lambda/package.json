@@ -8,6 +8,7 @@
   "scripts": {
     "build:prod": "dotenvx run -f ../../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "dev:local": "tsx dev-server.ts",
+    "dev:health-check": "tsx health-check.ts",
     "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/search-lambda"
   },
   "dependencies": {

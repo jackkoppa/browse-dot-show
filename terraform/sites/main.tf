@@ -208,7 +208,7 @@ module "indexing_lambda" {
   function_name        = "srt-indexing-${var.site_id}"
   handler              = "convert-srts-indexed-search.handler"
   runtime              = "nodejs20.x"
-  timeout              = 600 # See PROCESSING_TIME_LIMIT_MINUTES in convert-srts-indexed-search.ts
+  timeout              = 900 # TODO: Switch back to more reasonable size after confirming if max timeout is long enough for Brotli compression
   memory_size          = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
   ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {
@@ -238,7 +238,7 @@ module "search_lambda" {
   function_name        = "search-api-${var.site_id}"
   handler              = "search-indexed-transcripts.handler"
   runtime              = "nodejs20.x"
-  timeout              = 45 # While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file
+  timeout              = var.search_lambda_timeout # Configurable per-site. While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file - default of 45 seconds usually enough
   memory_size          = var.search_lambda_memory_size # Configurable per-site, default 3008
   ephemeral_storage    = 2048 # Space for the Orama index file
   environment_variables = {

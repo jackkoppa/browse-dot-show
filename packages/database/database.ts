@@ -1,18 +1,78 @@
 import { create, insert, insertMultiple, search, SearchParams, AnyOrama, save, load } from '@orama/orama';
-import { persist, restore } from '@orama/plugin-data-persistence';
+// import { persist, restore } from '@orama/plugin-data-persistence';
 import { SearchEntry, ORAMA_SEARCH_SCHEMA, SearchRequest, SearchResponse, ApiSearchResultHit } from '@browse-dot-show/types';
 import { log } from '@browse-dot-show/logging';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { encode, decode } from '@msgpack/msgpack';
+import { encode, decode, Decoder, Encoder } from '@msgpack/msgpack';
 
 // Type for Orama database instance
 export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
 
 // Compression types for streaming persistence
-export type CompressionType = "none" | "gzip";
+export type CompressionType = "none" | "gzip" | "brotli";
+
+// Reusable encoder instance for better performance
+const msgpackEncoder = new Encoder({
+  maxDepth: 1500, // Required for complex nested structures in large datasets
+  initialBufferSize: 8192, // 8KB initial buffer (default is 2KB)
+  sortKeys: true, // Helps with compression efficiency
+  ignoreUndefined: false
+});
+
+// Reusable decoder instance for better performance (fastest approach tested)
+const msgpackDecoder = new Decoder({
+  maxStrLength: 100_000_000, // 100MB max for strings
+  maxBinLength: 100_000_000, // 100MB max for binary data
+  maxArrayLength: 10_000_000, // 10M max array length
+  maxMapLength: 10_000_000,   // 10M max map length
+  maxExtLength: 100_000_000,  // 100MB max for extensions
+  useBigInt64: false
+});
+
+
+
+/**
+ * Optimized MsgPack decode function using reusable decoder (fastest tested approach)
+ * @param buffer - The buffer to decode
+ * @returns Promise resolving to the decoded data
+ */
+async function optimizedMsgPackDecode(buffer: Buffer): Promise<any> {
+  const startTime = Date.now();
+  
+  try {
+    log.info(`Starting MsgPack decode for buffer (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    const result = msgpackDecoder.decode(buffer);
+    
+    const timeMs = Date.now() - startTime;
+    log.info(`MsgPack decode completed in ${timeMs}ms`);
+    return result;
+  } catch (error: any) {
+    log.error(`MsgPack decode failed after ${Date.now() - startTime}ms: ${error.message}`, error);
+    throw error;
+  }
+}
+
+/**
+ * Optimized MsgPack encode function using reusable encoder
+ * @param data - The data to encode
+ * @returns Uint8Array of encoded data
+ */
+function optimizedMsgPackEncode(data: any): Uint8Array {
+  const startTime = Date.now();
+  
+  try {
+    log.info(`Starting MsgPack encode`);
+    const result = msgpackEncoder.encode(data);
+    log.info(`MsgPack encode completed in ${Date.now() - startTime}ms`);
+    return result;
+  } catch (error: any) {
+    log.error(`MsgPack encode failed after ${Date.now() - startTime}ms: ${error.message}`, error);
+    throw error;
+  }
+}
 
 /**
  * Creates an Orama search index with the predefined schema
@@ -141,7 +201,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
  * This avoids the string length limitations of the built-in persistence plugin
  * @param db - The Orama database instance
  * @param filePath - Path where to save the database file
- * @param compression - Compression type to use (none, gzip, zstd)
+ * @param compression - Compression type to use (none, gzip, brotli)
  * @returns Promise resolving to the file path
  */
 export async function persistToFileStreaming(
@@ -154,25 +214,31 @@ export async function persistToFileStreaming(
     
     // Export database using Orama's save function
     const dbExport = await save(db);
-    log.debug('Successfully exported Orama database for streaming');
+    log.info('Successfully exported Orama database for streaming');
     
-    // Encode to MsgPack format
-    const msgpack = encode(dbExport, {
-      // Default max depth is 100, but we see errors for some sites (e.g. `claretandblue` & `naddpod`) at that depth, and at 200. 
-      // 1500 has worked thus far, including `myfavoritemurder` (largest show)
-      maxDepth: 1500
-    });
+    // Encode to MsgPack format using optimized encoder
+    const msgpack = optimizedMsgPackEncode(dbExport);
     const bufferExport = Buffer.from(msgpack.buffer, msgpack.byteOffset, msgpack.byteLength);
-    log.debug(`MsgPack buffer size: ${(bufferExport.length / 1024 / 1024).toFixed(2)} MB`);
+    log.info(`MsgPack buffer size: ${(bufferExport.length / 1024 / 1024).toFixed(2)} MB`);
+
     
     // Stream to file with optional compression
+    const streamStartTime = Date.now();
+    log.info(`Starting file streaming with compression: ${compression}`);
+    
     if (compression === "none") {
       await pipeline(Readable.from(bufferExport), fs.createWriteStream(filePath));
     } else if (compression === "gzip") {
       await pipeline(Readable.from(bufferExport), zlib.createGzip(), fs.createWriteStream(filePath));
+    } else if (compression === "brotli") {
+      await pipeline(Readable.from(bufferExport), zlib.createBrotliCompress(), fs.createWriteStream(filePath));
     } else {
       throw new Error(`Unknown compression type: ${compression}`);
     }
+    
+    const streamEndTime = Date.now();
+    const streamDuration = streamEndTime - streamStartTime;
+    log.info(`File streaming completed in ${streamDuration}ms (${(streamDuration / 1000).toFixed(2)}s) with compression: ${compression}`);
     
     // Get file size for logging
     const stats = await fs.promises.stat(filePath);
@@ -185,82 +251,104 @@ export async function persistToFileStreaming(
   }
 }
 
+
+
 /**
- * Restores Orama database from file using streaming approach with MsgPack
+ * Restores Orama database from file using streaming decompression and optimized MsgPack decoding
  * @param filePath - Path to the database file
- * @param compression - Compression type that was used (none, gzip, zstd)
+ * @param compression - Compression type that was used (none, gzip, brotli)
  * @returns Promise resolving to the restored Orama database instance
  */
-export async function restoreFromFileStreaming(
+export async function restoreFromFileStreamingOptimized(
   filePath: string, 
   compression: CompressionType = "gzip"
 ): Promise<OramaSearchDatabase> {
+  const startTime = Date.now();
   try {
-    log.info(`Starting streaming restore from ${filePath} with ${compression} compression`);
+    log.info(`Starting optimized streaming restore from ${filePath} with ${compression} compression`);
     
     // Create a placeholder database
+    const dbCreateStart = Date.now();
     const db = await create({
       schema: ORAMA_SEARCH_SCHEMA
     });
+    log.info(`Database schema created in ${Date.now() - dbCreateStart}ms`);
     
-    // Read and decode the file
-    let fileBuffer: Buffer;
+    // Use streaming decompression to minimize memory usage
+    const streamStart = Date.now();
+    let chunks: Buffer[] = [];
+    let totalSize = 0;
+    
     if (compression === "none") {
-      fileBuffer = await fs.promises.readFile(filePath);
-    } else if (compression === "gzip") {
-      const compressed = await fs.promises.readFile(filePath);
-      fileBuffer = await new Promise<Buffer>((resolve, reject) => {
-        zlib.gunzip(compressed, (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
+      // For uncompressed files, still use the existing approach
+      const fileBuffer = await fs.promises.readFile(filePath);
+      chunks = [fileBuffer];
+      totalSize = fileBuffer.length;
+      log.info(`File read (uncompressed) in ${Date.now() - streamStart}ms, size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    } else {
+      // Create decompression stream
+      let decompressionStream;
+      if (compression === "gzip") {
+        decompressionStream = zlib.createGunzip();
+      } else if (compression === "brotli") {
+        decompressionStream = zlib.createBrotliDecompress();
+      } else {
+        throw new Error(`Unknown compression type: ${compression}`);
+      }
+      
+      // Stream the file through decompression
+      const fileStream = fs.createReadStream(filePath);
+      const decompressedStream = fileStream.pipe(decompressionStream);
+      
+      await new Promise<void>((resolve, reject) => {
+        decompressedStream.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+          totalSize += chunk.length;
+        });
+        
+        decompressedStream.on('end', () => {
+          log.info(`Streaming decompression (${compression}) completed in ${Date.now() - streamStart}ms, decompressed size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+          resolve();
+        });
+        
+        decompressedStream.on('error', (error) => {
+          log.error(`Streaming decompression failed after ${Date.now() - streamStart}ms: ${error.message}`);
+          reject(error);
         });
       });
-    } else {
-      throw new Error(`Unknown compression type: ${compression}`);
     }
     
-    // Decode MsgPack and load into database
-    const decoded = decode(fileBuffer);
-    await load(db, decoded as any);
-    log.debug('Successfully loaded database from MsgPack data');
+    // Combine chunks into single buffer
+    const combineStart = Date.now();
+    const fileBuffer = Buffer.concat(chunks);
+    log.info(`Buffer concatenation completed in ${Date.now() - combineStart}ms`);
     
-    log.info(`Successfully restored Orama database from ${filePath}`);
+    // Clear chunks array to free memory
+    chunks = [];
+    
+    // Decode MsgPack
+    const msgpackDecodeStart = Date.now();
+    const decoded = await optimizedMsgPackDecode(fileBuffer);
+    
+    // Load into Orama database
+    const oramaLoadStart = Date.now();
+    await load(db, decoded as any);
+    log.info(`Orama database load completed in ${Date.now() - oramaLoadStart}ms`);
+    
+    const totalTime = Date.now() - startTime;
+    const msgpackDecodeTime = Date.now() - msgpackDecodeStart;
+    const oramaLoadTime = Date.now() - oramaLoadStart;
+    const streamDecompressTime = msgpackDecodeStart - streamStart;
+    
+    log.info(`Successfully restored Orama database from ${filePath} in ${totalTime}ms total (optimized streaming)`);
+    log.info(`⏱️ Optimized restore timing breakdown: Streaming decompress: ${streamDecompressTime}ms, MsgPack decode: ${msgpackDecodeTime}ms, Orama load: ${oramaLoadTime}ms`);
+    
     return db as OramaSearchDatabase;
   } catch (error: any) {
-    log.error(`Error restoring Orama database from file: ${error.message}`, error);
+    const totalTime = Date.now() - startTime;
+    log.error(`Error in optimized streaming restore after ${totalTime}ms: ${error.message}`, error);
     throw error;
   }
 }
 
-/**
- * @deprecated Use persistToFileStreaming instead
- * Serializes the Orama index to JSON format for storage
- * @param db - The Orama database instance
- * @returns Promise resolving to serialized index data
- */
-export async function serializeOramaIndex(db: OramaSearchDatabase): Promise<Buffer> {
-  try {
-    const serializedData = await persist(db, 'binary');
-    log.info('Successfully serialized Orama index to binary format');
-    return Buffer.from(serializedData);
-  } catch (error: any) {
-    log.error(`Error serializing Orama index: ${error.message}`, error);
-    throw error;
-  }
-}
 
-/**
- * Deserializes and restores an Orama index from JSON data
- * @param serializedData - The serialized index data
- * @returns Promise resolving to the restored Orama database instance
- */
-export async function deserializeOramaIndex(serializedData: Buffer): Promise<OramaSearchDatabase> {
-  try {
-    const db = await restore('json', serializedData.toString());
-    log.info('Successfully deserialized and restored Orama index from JSON data');
-    return db as OramaSearchDatabase;
-  } catch (error: any) {
-    log.error(`Error deserializing Orama index: ${error.message}`, error);
-    throw error;
-  }
-}

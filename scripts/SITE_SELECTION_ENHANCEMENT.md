@@ -81,7 +81,7 @@ pnpm s3:sync --site=claretandblue
 
 **Files Updated:**
 - `scripts/utils/site-selector.ts` - Removed environment variable defaults
-- `scripts/trigger-ingestion-lambda.ts` - Removed DEFAULT_SITE_ID usage  
+- `scripts/trigger-individual-ingestion-lambda.ts` - Removed DEFAULT_SITE_ID usage  
 - `docs/GETTING_STARTED.md` - Updated documentation
 - `sites/my-sites/README.md` - Updated usage instructions
 

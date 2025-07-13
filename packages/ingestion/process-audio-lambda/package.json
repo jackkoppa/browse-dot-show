@@ -8,6 +8,7 @@
   "files": [],
   "scripts": {
     "build:prod": "dotenvx run -f ../../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
+    "run:local": "tsx process-new-audio-files-via-whisper.ts",
     "run:spelling-corrections:local": "tsx run-apply-spelling-corrections.ts",
     "run:spelling-corrections:site": "tsx ../../../scripts/run-lambda-for-site.ts @browse-dot-show/process-audio-lambda run-apply-spelling-corrections.ts",
     "test": "vitest run",

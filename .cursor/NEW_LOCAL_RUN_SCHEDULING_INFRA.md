@@ -62,11 +62,11 @@
 
 **Phase 5.3: Scripts Removed from Root package.json** ✅
 - ✅ Removed `rss-retrieval-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-audio-processing --skip-s3-sync --skip-cloud-indexing`
-- ✅ Removed `rss-retrieval-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
+- ✅ Removed `rss-retrieval-lambda:run:prod` → Use: `tsx scripts/trigger-individual-ingestion-lambda.ts`
 - ✅ Removed `process-audio-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-s3-sync --skip-cloud-indexing`
-- ✅ Removed `process-audio-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
+- ✅ Removed `process-audio-lambda:run:prod` → Use: `tsx scripts/trigger-individual-ingestion-lambda.ts`
 - ✅ Removed `srt-indexing-lambda:run:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
-- ✅ Removed `srt-indexing-lambda:run:prod` → Use: `tsx scripts/trigger-ingestion-lambda.ts`
+- ✅ Removed `srt-indexing-lambda:run:prod` → Use: `tsx scripts/trigger-individual-ingestion-lambda.ts`
 - ✅ Removed `ingestion:run-all-ingestion-lambdas-for-all-sites:local` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule` (default)
 - ✅ Removed `s3:sync` → Use: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
 
@@ -640,7 +640,7 @@ Users can now access all previous individual lambda functionality through the un
 - SRT Indexing Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-s3-sync`
 - S3 Sync Only: `pnpm ingestion:run-pipeline:triggered-by-schedule --skip-rss-retrieval --skip-audio-processing --skip-cloud-indexing`
 - Interactive Mode: `pnpm ingestion:run-pipeline:interactive`
-- Cloud Lambda Triggering: Use `tsx scripts/trigger-ingestion-lambda.ts`
+- Cloud Lambda Triggering: Use `tsx scripts/trigger-individual-ingestion-lambda.ts`
 
 **Testing Verification:**
 - ✅ `--help` displays comprehensive documentation

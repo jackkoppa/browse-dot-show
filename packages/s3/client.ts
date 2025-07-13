@@ -248,9 +248,9 @@ export async function listFiles(prefix: string): Promise<string[]> {
         
         // Log pagination info for debugging large datasets
         if (response.IsTruncated) {
-          log.info(`S3 pagination (listFiles): Retrieved ${filesInPage.length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
+          log.debug(`S3 pagination (listFiles): Retrieved ${filesInPage.length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
         } else if (pageCount > 1) {
-          log.info(`S3 pagination (listFiles): Completed ${pageCount} pages, total ${allFiles.length} files for prefix '${prefix}'`);
+          log.debug(`S3 pagination (listFiles): Completed ${pageCount} pages, total ${allFiles.length} files for prefix '${prefix}'`);
         }
         
         continuationToken = response.NextContinuationToken;
@@ -317,9 +317,9 @@ export async function getDirectorySize(prefix: string): Promise<number> {
         
         // Log pagination info for debugging large datasets
         if (response.IsTruncated) {
-          log.info(`S3 pagination (getDirectorySize): Retrieved ${(response.Contents || []).length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
+          log.debug(`S3 pagination (getDirectorySize): Retrieved ${(response.Contents || []).length} files in page ${pageCount} for prefix '${prefix}', continuing...`);
         } else if (pageCount > 1) {
-          log.info(`S3 pagination (getDirectorySize): Completed ${pageCount} pages, total size ${totalSize} bytes for prefix '${prefix}'`);
+          log.debug(`S3 pagination (getDirectorySize): Completed ${pageCount} pages, total size ${totalSize} bytes for prefix '${prefix}'`);
         }
         
         continuationToken = response.NextContinuationToken;
@@ -463,9 +463,9 @@ export async function listDirectories(prefix: string): Promise<string[]> {
         
         // Log pagination info for debugging large datasets
         if (response.IsTruncated) {
-          log.info(`S3 pagination (listDirectories): Retrieved ${directoriesInPage.length} directories in page ${pageCount} for prefix '${prefix}', continuing...`);
+          log.debug(`S3 pagination (listDirectories): Retrieved ${directoriesInPage.length} directories in page ${pageCount} for prefix '${prefix}', continuing...`);
         } else if (pageCount > 1) {
-          log.info(`S3 pagination (listDirectories): Completed ${pageCount} pages, total ${allDirectories.length} directories for prefix '${prefix}'`);
+          log.debug(`S3 pagination (listDirectories): Completed ${pageCount} pages, total ${allDirectories.length} directories for prefix '${prefix}'`);
         }
         
         continuationToken = response.NextContinuationToken;

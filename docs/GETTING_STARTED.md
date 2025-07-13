@@ -116,11 +116,10 @@ pnpm validate:sites           # Validate site configurations
 
 ### Local Development
 ```bash
-pnpm client:dev               # Start development server
-pnpm rss-retrieval-lambda:run:local    # Download podcast episodes
-pnpm process-audio-lambda:run:local    # Process audio files locally
-pnpm srt-indexing-lambda:run:local     # Index transcripts locally
-pnpm search-lambda:dev:local           # Start search API server
+pnpm client:dev                         # Start development server, including search API
+pnpm rss-retrieval-lambda:run:local     # Download podcast episodes
+pnpm process-audio-lambda:run:local     # Process audio files locally
+pnpm srt-indexing-lambda:run:local      # Index transcripts locally
 ```
 
 ### Building & Testing

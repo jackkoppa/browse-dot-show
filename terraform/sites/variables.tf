@@ -86,6 +86,12 @@ variable "search_lambda_memory_size" {
   default     = 3008
 }
 
+variable "search_lambda_timeout" {
+  description = "Timeout duration in seconds for the search lambda function - 45 default, even higher if needed for longer cold starts"
+  type        = number
+  default     = 45
+}
+
 variable "srt_indexing_lambda_memory_size" {
   description = "Memory size in MB for the SRT indexing lambda function"
   type        = number

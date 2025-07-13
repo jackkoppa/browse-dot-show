@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
-import { restoreFromFileStreaming, searchOramaIndex, OramaSearchDatabase } from '@browse-dot-show/database';
+import { restoreFromFileStreaming, searchOramaIndex, OramaSearchDatabase, restoreFromFileStreamingOptimized } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
 import {
   getFile,
@@ -121,7 +121,7 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
   // Restore the Orama index from the downloaded file using streaming approach
   try {
     logMemoryUsage('Before Orama Streaming Restoration');
-    const index = await restoreFromFileStreaming(localDbPath, 'gzip');
+    const index = await restoreFromFileStreamingOptimized(localDbPath, 'gzip');
     logMemoryUsage('After Orama Streaming Restoration');
     
     log.info(`Orama search index loaded in ${Date.now() - startTime}ms`);

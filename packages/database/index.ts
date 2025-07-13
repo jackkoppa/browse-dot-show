@@ -2,11 +2,9 @@ export {
   createOramaIndex, 
   insertSearchEntry, 
   insertMultipleSearchEntries, 
-  searchOramaIndex, 
-  serializeOramaIndex, 
-  deserializeOramaIndex,
+  searchOramaIndex,
   persistToFileStreaming,
-  restoreFromFileStreaming,
+  restoreFromFileStreamingOptimized,
   type OramaSearchDatabase,
   type CompressionType
 } from './database.js';

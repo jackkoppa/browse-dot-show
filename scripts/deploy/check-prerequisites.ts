@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
-import { execCommand, commandExists } from '../utils/shell-exec';
-import { logError, logWarning, printError, logSuccess, logProgress } from '../utils/logging';
-import { validateAwsEnvironment } from '../utils/aws-utils';
+import { execCommand, commandExists } from '../utils/shell-exec.js';
+import { logError, logWarning, printError, logSuccess, printSuccess, logProgress, printInfo } from '../utils/logging.js';
+import { validateAwsEnvironment } from '../utils/aws-utils.js';
 
 interface PrerequisiteCheck {
   name: string;
@@ -10,6 +10,7 @@ interface PrerequisiteCheck {
   version?: string;
   warning?: string;
   error?: string;
+  errorRecommendedCommand?: string;
 }
 
 /**
@@ -161,15 +162,20 @@ async function checkAwsAuthentication(): Promise<PrerequisiteCheck> {
     const validation = await validateAwsEnvironment(awsProfile);
     
     if (!validation.valid) {
-      const errorMsg = validation.requiresSsoLogin
-        ? `AWS SSO session not active for profile: ${awsProfile}. Please run 'aws sso login --profile ${awsProfile}' to authenticate`
-        : validation.errors.join(', ');
-        
-      return {
-        name: 'AWS SSO Authentication',
-        passed: false,
-        error: errorMsg
-      };
+      if (validation.requiresSsoLogin) {
+        return {
+          name: 'AWS SSO Authentication',
+          passed: false,
+          error: `AWS SSO session not active for profile: ${awsProfile}. Please run:`,
+          errorRecommendedCommand: `aws sso login --profile ${awsProfile}`
+        };
+      } else {
+        return {
+          name: 'AWS SSO Authentication',
+          passed: false,
+          error: validation.errors.join(', ')
+        };
+      }
     }
 
     return {
@@ -211,6 +217,16 @@ async function main(): Promise<void> {
       }
     } else {
       printError(`❌ ${check.name}: ${check.error}`);
+      
+      if (check.errorRecommendedCommand) {
+        console.log('======');
+        console.log('');
+        printInfo(check.errorRecommendedCommand);
+        console.log('');
+        console.log('======');
+        console.log('to authenticate');
+      }
+      
       allPassed = false;
     }
   }

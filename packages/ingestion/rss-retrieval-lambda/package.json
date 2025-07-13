@@ -8,6 +8,7 @@
   "files": [],
   "scripts": {
     "test": "vitest run",
+    "run:local": "tsx retrieve-rss-feeds-and-download-audio-files.ts",
     "build:prod": "dotenvx run -f ../../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/rss-retrieval-lambda"
   },

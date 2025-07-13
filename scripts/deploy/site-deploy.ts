@@ -175,7 +175,7 @@ async function validateEnvironment(): Promise<void> {
 async function checkPrerequisites(): Promise<void> {
   printInfo('Running prerequisite checks...');
   try {
-    await execCommandOrThrow('tsx', ['scripts/deploy/check-prerequisites.ts']);
+    await execCommandLiveOrThrow('tsx', ['scripts/deploy/check-prerequisites.ts']);
   } catch {
     printError('Prerequisite check failed. Please address the issues above before deploying.');
     process.exit(1);
