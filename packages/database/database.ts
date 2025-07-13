@@ -8,12 +8,13 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { encode, decode, Decoder, Encoder } from '@msgpack/msgpack';
 import { pack, unpack } from 'msgpackr';
+import { compress, decompress } from '@mongodb-js/zstd';
 
 // Type for Orama database instance
 export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
 
 // Compression types for streaming persistence
-export type CompressionType = "none" | "gzip" | "brotli";
+export type CompressionType = "none" | "gzip" | "brotli" | "zstd";
 
 // Define the schema for msgpackr optimization
 // This matches the Orama database export structure
@@ -289,6 +290,10 @@ export async function persistToFileStreaming(
       await pipeline(Readable.from(bufferExport), zlib.createGzip(), fs.createWriteStream(filePath));
     } else if (compression === "brotli") {
       await pipeline(Readable.from(bufferExport), zlib.createBrotliCompress(), fs.createWriteStream(filePath));
+    } else if (compression === "zstd") {
+      // For zstd, we need to compress the entire buffer first, then write
+      const compressedBuffer = await compress(bufferExport, 3);
+      await fs.promises.writeFile(filePath, compressedBuffer);
     } else {
       throw new Error(`Unknown compression type: ${compression}`);
     }
@@ -442,6 +447,10 @@ export async function persistToFileStreamingMsgPackR(
       await pipeline(Readable.from(msgpackrBuffer), zlib.createGzip(), fs.createWriteStream(filePath));
     } else if (compression === "brotli") {
       await pipeline(Readable.from(msgpackrBuffer), zlib.createBrotliCompress(), fs.createWriteStream(filePath));
+    } else if (compression === "zstd") {
+      // For zstd, we need to compress the entire buffer first, then write
+      const compressedBuffer = await compress(msgpackrBuffer, 3);
+      await fs.promises.writeFile(filePath, compressedBuffer);
     } else {
       throw new Error(`Unknown compression type: ${compression}`);
     }
