@@ -1,0 +1,18 @@
+{
+    "name": "@browse-dot-show/alerting",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Alerting for the browse.show platform - primarily sending ingestion Lambda errors to Slack",
+    "main": "./dist/index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc"
+    },
+    "devDependencies": {
+        "typescript": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+}
