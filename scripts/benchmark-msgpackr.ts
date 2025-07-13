@@ -130,12 +130,16 @@ async function main() {
     // Test original MsgPack implementation
     const msgpackFile = path.join(tempDir, `test-msgpack-${compression}.msp`);
     log.info('Testing original @msgpack/msgpack implementation...');
+    console.log(`[${compression}] Starting MsgPack persist...`);
     results.msgpack[compression] = await benchmarkPersistence(db, msgpackFile, compression);
+    console.log(`[${compression}] MsgPack persist/restore done.`);
     
     // Test new MsgPackR implementation
     const msgpackrFile = path.join(tempDir, `test-msgpackr-${compression}.msp`);
     log.info('Testing new msgpackr implementation...');
+    console.log(`[${compression}] Starting MsgPackR persist...`);
     results.msgpackr[compression] = await benchmarkPersistenceMsgPackR(db, msgpackrFile, compression);
+    console.log(`[${compression}] MsgPackR persist/restore done.`);
   }
 
   // Clean up temp files
@@ -166,9 +170,25 @@ async function main() {
     log.info(`    Persist: ${persistImprovement}% faster`);
     log.info(`    Restore: ${restoreImprovement}% faster`);
     log.info(`    File Size: ${sizeImprovement}% smaller`);
+
+    // Also print to console
+    console.log(`\n${compression.toUpperCase()} Compression:`);
+    console.log(`  Original MsgPack:`);
+    console.log(`    Persist: ${results.msgpack[compression].persistTime}ms`);
+    console.log(`    Restore: ${results.msgpack[compression].restoreTime}ms`);
+    console.log(`    File Size: ${(results.msgpack[compression].fileSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  New MsgPackR:`);
+    console.log(`    Persist: ${results.msgpackr[compression].persistTime}ms`);
+    console.log(`    Restore: ${results.msgpackr[compression].restoreTime}ms`);
+    console.log(`    File Size: ${(results.msgpackr[compression].fileSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`  Improvements:`);
+    console.log(`    Persist: ${persistImprovement}% faster`);
+    console.log(`    Restore: ${restoreImprovement}% faster`);
+    console.log(`    File Size: ${sizeImprovement}% smaller`);
   }
   
   log.info('\n✅ Benchmark completed!');
+  console.log('\n✅ Benchmark completed!');
 }
 
 // Run the benchmark
