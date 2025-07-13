@@ -98,14 +98,19 @@ async function main() {
   
   // Create test data
   const entryCount = 10000; // 10k entries for realistic testing
+  console.log(`Generating ${entryCount} sample search entries...`);
   log.info(`Generating ${entryCount} sample search entries...`);
   
   const sampleEntries = generateSampleSearchEntries(entryCount);
+  console.log(`Generated ${sampleEntries.length} entries`);
   
   // Create Orama index and insert data
+  console.log('Creating Orama index and inserting sample data...');
   log.info('Creating Orama index and inserting sample data...');
   const db = await createOramaIndex();
+  console.log('Orama index created');
   await insertMultipleSearchEntries(db, sampleEntries);
+  console.log('Sample data inserted');
   
   // Create temp directory for test files
   const tempDir = path.join(process.cwd(), 'temp-benchmark');
