@@ -7,8 +7,9 @@ import zlib from 'node:zlib';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { encode, decode, Decoder, Encoder } from '@msgpack/msgpack';
-import { pack, unpack } from 'msgpackr';
+import { pack, unpack, Packr } from 'msgpackr';
 import { compress, decompress } from '@mongodb-js/zstd';
+import path from 'node:path';
 
 // Type for Orama database instance
 export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
@@ -16,23 +17,59 @@ export type OramaSearchDatabase = Awaited<ReturnType<typeof create>>;
 // Compression types for streaming persistence
 export type CompressionType = "none" | "gzip" | "brotli" | "zstd";
 
-// Define the schema for msgpackr optimization
-// This matches the Orama database export structure
-const MSGPACKR_SCHEMA = {
-  // Orama database structure with searchable properties
-  index: {
-    text: {},
-    sequentialEpisodeIdAsString: {},
-    startTimeMs: {},
-    endTimeMs: {},
-    episodePublishedUnixTimestamp: {}
-  },
-  // Documents storage
-  docs: {},
-  // Orama metadata
-  schema: {},
-  version: 'string'
-};
+// Helper function to get structures file path from index file path
+function getStructuresFilePath(indexFilePath: string): string {
+  const dir = path.dirname(indexFilePath);
+  const baseName = path.basename(indexFilePath, path.extname(indexFilePath));
+  return path.join(dir, `${baseName}_structures.mp`);
+}
+
+// Helper function to save structures to file
+async function saveStructuresToFile(structures: any[], structuresFilePath: string): Promise<void> {
+  try {
+    const packedStructures = pack(structures);
+    await fs.promises.writeFile(structuresFilePath, packedStructures);
+    log.info(`Saved ${structures.length} structures to ${structuresFilePath} (${(packedStructures.length / 1024).toFixed(2)} KB)`);
+  } catch (error: any) {
+    log.error(`Failed to save structures to ${structuresFilePath}: ${error.message}`, error);
+    throw error;
+  }
+}
+
+// Helper function to load structures from file
+async function loadStructuresFromFile(structuresFilePath: string): Promise<any[]> {
+  try {
+    const packedStructures = await fs.promises.readFile(structuresFilePath);
+    const structures = unpack(packedStructures);
+    log.info(`Loaded ${structures.length} structures from ${structuresFilePath} (${(packedStructures.length / 1024).toFixed(2)} KB)`);
+    return structures;
+  } catch (error: any) {
+    log.error(`Failed to load structures from ${structuresFilePath}: ${error.message}`, error);
+    throw error;
+  }
+}
+
+
+// CURSOR-TODO: Likely delete this section, once we confirm how we should actually make use of Structures/Records for msgpackr
+// // Define the schema for msgpackr optimization
+// // This matches the Orama database export structure
+// const MSGPACKR_SCHEMA = {
+//   // Orama database structure with searchable properties
+//   index: {
+//     text: {},
+//     sequentialEpisodeIdAsString: {},
+//     startTimeMs: {},
+//     endTimeMs: {},
+//     episodePublishedUnixTimestamp: {}
+//   },
+//   // Documents storage
+//   docs: {},
+//   // Orama metadata
+//   schema: {},
+//   version: 'string'
+// };
+
+
 
 // Reusable encoder instance for better performance
 const msgpackEncoder = new Encoder({
@@ -102,7 +139,11 @@ function optimizedMsgPackREncode(data: any): Buffer {
   
   try {
     log.info(`Starting MsgPackR encode with schema optimization`);
-    const result = pack(data);
+    
+    // Use Packr class with variableMapSize option to handle large objects that exceed 16-bit map size
+    const packr = new Packr({ variableMapSize: true });
+    const result = packr.pack(data);
+
     log.info(`MsgPackR encode completed in ${Date.now() - startTime}ms`);
     return result;
   } catch (error: any) {
