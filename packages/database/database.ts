@@ -7,7 +7,7 @@ import zlib from 'node:zlib';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { encode, decode, Decoder, Encoder } from '@msgpack/msgpack';
-import { pack, unpack, Packr } from 'msgpackr';
+import { pack, unpack, Packr, isNativeAccelerationEnabled } from 'msgpackr';
 import { compress, decompress } from '@mongodb-js/zstd';
 import path from 'node:path';
 
@@ -139,6 +139,7 @@ function optimizedMsgPackREncode(data: any): Buffer {
   
   try {
     log.info(`Starting MsgPackR encode with schema optimization`);
+    log.info(`Native acceleration enabled: ${isNativeAccelerationEnabled}`);
     
     // Use Packr class with variableMapSize option to handle large objects that exceed 16-bit map size
     const packr = new Packr({ variableMapSize: true });
@@ -162,6 +163,7 @@ async function optimizedMsgPackRDecode(buffer: Buffer): Promise<any> {
   
   try {
     log.info(`Starting MsgPackR decode for buffer (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+    log.info(`Native acceleration enabled: ${isNativeAccelerationEnabled}`);
     const result = unpack(buffer);
     
     const timeMs = Date.now() - startTime;

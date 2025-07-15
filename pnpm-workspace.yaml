@@ -45,5 +45,5 @@ ignoredBuiltDependencies:
 injectWorkspacePackages: true
 
 onlyBuiltDependencies:
+  - '@mongodb-js/zstd'
   - msgpackr-extract
-  - '@mongodb-js/zstd-darwin-arm64'

@@ -8,13 +8,30 @@ https://docs.aws.amazon.com/lambda/latest/dg/nodejs-layers.html
 We've used this very helpful site to generate layers for NPM packages:
 https://nodelayer.xyz/
 
-(note: as of 2025-06-02, we are *not* using any NPM packages as Layers, but we could in the future)
-
 We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM packages). We'll list those here as well.
 
 ## Layers
 
-### 1. `ffmpeg` - for media processing
+### 1.  `@mongodb-js/zstd` & `msgpackr`
+
+1. **Download the static binaries:**
+   ```shell
+   cd terraform/sites/lambda-layers
+   curl -L --fail-with-body -o mongodb-js-zstd__msgpackr.zip "https://api.nodelayer.xyz/arm64/layers/generate?version=v20.19.3&packages=@mongodb-js/zstd,msgpackr"
+   ```
+
+2. **Deploy with Terraform:**
+   The `mongodb-js-zstd__msgpackr.zip` file is automatically referenced in `terraform/sites/main.tf`:
+   ```hcl
+   resource "aws_lambda_layer_version" "compress_encode_layer" {
+      filename         = "lambda-layers/mongodb-js-zstd__msgpackr.zip"
+      layer_name       = "compress-encode-${var.site_id}"
+      # ...
+   }
+   ```
+
+
+### 2. `ffmpeg` - for media processing
 
 **Source:** https://johnvansickle.com/ffmpeg/ - `ffmpeg-release-arm64-static.tar.xz`
 
@@ -22,13 +39,13 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
 
 1. **Download the static binaries:**
    ```bash
-   cd terraform/lambda-layers
+   cd terraform/sites/lambda-layers
    curl -O https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz
    ```
 
 2. **Prepare the Lambda layer:**
    ```bash
-   tsx 1-prepare-ffmpeg-layer.ts
+   tsx 2-prepare-ffmpeg-layer.ts
    ```
 
    This script will:
@@ -39,7 +56,7 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
    - Create `ffmpeg-layer.zip` ready for Lambda deployment
 
 3. **Deploy with Terraform:**
-   The `ffmpeg-layer.zip` file is automatically referenced in `terraform/main.tf`:
+   The `ffmpeg-layer.zip` file is automatically referenced in `terraform/sites/main.tf`:
    ```hcl
    resource "aws_lambda_layer_version" "ffmpeg_layer" {
      filename         = "lambda-layers/ffmpeg-layer.zip"

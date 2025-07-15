@@ -61,6 +61,18 @@ module "s3_bucket" {
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
+# @mongodb-js/zstd & msgpackr Lambda Layer - for compressing & encoding/decoding search index files
+resource "aws_lambda_layer_version" "compress_encode_layer" {
+  filename         = "lambda-layers/mongodb_js_zstd__msgpackr.zip"
+  layer_name       = "compress-encode-${var.site_id}"
+  source_code_hash = filebase64sha256("lambda-layers/mongodb_js_zstd__msgpackr.zip")
+  
+  compatible_runtimes      = ["nodejs20.x"]
+  compatible_architectures = ["arm64"]
+  
+  description = "@mongodb-js/zstd & msgpackr NPM packages, for compressing & encoding/decoding search index files - ${var.site_id}"
+}
+
 # FFmpeg Lambda Layer for media processing
 resource "aws_lambda_layer_version" "ffmpeg_layer" {
   filename         = "lambda-layers/ffmpeg-layer.zip"
@@ -220,6 +232,7 @@ module "indexing_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
+  layers               = [aws_lambda_layer_version.compress_encode_layer.arn]
 }
 
 # IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)
@@ -251,6 +264,7 @@ module "search_lambda" {
   s3_bucket_name       = module.s3_bucket.bucket_name
   site_id              = var.site_id
   lambda_architecture  = ["arm64"]
+  layers               = [aws_lambda_layer_version.compress_encode_layer.arn]
 }
 
 # EventBridge schedule for search lambda warming (conditional)

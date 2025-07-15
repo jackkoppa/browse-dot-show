@@ -11,6 +11,8 @@ export default defineConfig({
   },
   external: [
     '@aws-sdk/client-lambda', // provided by AWS runtime
-    // Orama dependencies will be bundled with the Lambda function
+    '@mongodb-js/zstd', // requires native bindings, so handled via /terraform/sites/lambda-layers
+    'msgpackr', // requires native bindings, so handled via /terraform/sites/lambda-layers
+    // Orama dependencies are bundled with the Lambda function
   ]
 });

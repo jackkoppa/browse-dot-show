@@ -10,6 +10,8 @@ export default defineConfig({
     symlinks: true,
   },
   external: [
-    // Orama dependencies will be bundled with the Lambda function
+    '@mongodb-js/zstd', // requires native bindings, so handled via /terraform/sites/lambda-layers
+    'msgpackr', // requires native bindings, so handled via /terraform/sites/lambda-layers
+    // Orama dependencies are bundled with the Lambda function
   ]
 });
