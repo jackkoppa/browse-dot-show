@@ -19,6 +19,7 @@ import {
 import { trackEvent } from '../utils/goatcounter'
 import { PodcastId } from '@browse-dot-show/types';
 import siteConfig from '../config/site-config';
+import { PLAY_TIME_LIMIT_MINUTES } from '../hooks/usePlayTimeLimit';
 
 interface PlayTimeLimitDialogProps {
   isOpen: boolean;
@@ -40,9 +41,8 @@ export default function PlayTimeLimitDialog({
   const handlePodcastLinkClick = () => {
     const podcastInfo = siteConfig.podcastLinks[podcastId];
 
-    // Use a generic event type for now, with specific event name
     trackEvent({
-      eventType: podcastId === 'football-cliches' ? 'Open In Podcast App Link Clicked [Football Cliches]' : 'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]',
+      eventType: 'Open In Podcast App Link Clicked',
       eventName: `Open In Podcast App Link Clicked [${podcastInfo?.title || 'Unknown Podcast'}]`
     })
 
@@ -57,7 +57,7 @@ export default function PlayTimeLimitDialog({
 
   const dialogDescription = (
     <>
-      <span><em>{siteConfig.shortTitle}</em> sets a 5-minute listening limit <strong>per episode</strong>, per session.</span><br /><br />
+      <span><em>{siteConfig.appHeader.primaryTitle}</em> sets a {PLAY_TIME_LIMIT_MINUTES}-minute listening limit <strong>per episode</strong>, per session.</span><br /><br />
       <span>We want <span className="underline" onClick={handlePodcastLinkClick}>{podcastInfo?.title || 'this podcast'}</span> to receive all its regular downloads & ad plays.<br />So to keep listening to this episode, please open in your podcast player of choice.</span>
     </>
   );

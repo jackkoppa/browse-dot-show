@@ -17,7 +17,7 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
 1. **Download the static binaries:**
    ```shell
    cd terraform/sites/lambda-layers
-   curl -L --fail-with-body -o mongodb-js-zstd__msgpackr.zip "https://api.nodelayer.xyz/arm64/layers/generate?version=v20.19.3&packages=@mongodb-js/zstd,msgpackr"
+   curl -L --fail-with-body -o mongodb-js-zstd__msgpackr.zip "https://api.nodelayer.xyz/arm64/layers/generate?version=v20.19.3&packages=@msgpackr-extract/msgpackr-extract-linux-arm64,@mongodb-js/zstd,msgpackr"
    ```
 
 2. **Deploy with Terraform:**

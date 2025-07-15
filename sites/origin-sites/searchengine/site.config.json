@@ -25,8 +25,8 @@
         }
     ],
     "whisperTranscriptionPrompt": "Welcome to the Search Engine podcast. I'm your host, PJ Vogt. Search Engine is me, Sruthi Pinnamaneni, and Garrott Graham. No question too big, no question too small. What are the things in the world or in your life that you can’t stop wondering about, that you want explained? Let's get started.",
-    "themeColor": "#ff7154",
-    "themeColorDark": "#073234",
+    "themeColor": "#ff7e63",
+    "themeColorDark": "#bf4631",
     "searchPlaceholderOptions": [
         "coffee on airplanes"
     ]

@@ -12,14 +12,14 @@ root_domain_name = "claretandblue.browse.show"
 enable_custom_domain_on_cloudfront = true
 
 # SRT indexing Lambda configuration
-srt_indexing_lambda_memory_size = 5120 # Required for larger index size
+srt_indexing_lambda_memory_size = 7168 # Max observed memory as of 2025-07-15: 5698 MB
 
 # Lambda warming
 enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
-search_lambda_memory_size = 5120 # Required for larger index size
+search_lambda_memory_size = 5120  # Max observed memory as of 2025-07-15: 4205 MB
 
 # Logging
-log_level = "debug" 
+log_level = "info"

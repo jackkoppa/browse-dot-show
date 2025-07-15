@@ -63,9 +63,9 @@ module "s3_bucket" {
 
 # @mongodb-js/zstd & msgpackr Lambda Layer - for compressing & encoding/decoding search index files
 resource "aws_lambda_layer_version" "compress_encode_layer" {
-  filename         = "lambda-layers/mongodb_js_zstd__msgpackr.zip"
+  filename         = "lambda-layers/mongodb-js-zstd__msgpackr.zip"
   layer_name       = "compress-encode-${var.site_id}"
-  source_code_hash = filebase64sha256("lambda-layers/mongodb_js_zstd__msgpackr.zip")
+  source_code_hash = filebase64sha256("lambda-layers/mongodb-js-zstd__msgpackr.zip")
   
   compatible_runtimes      = ["nodejs20.x"]
   compatible_architectures = ["arm64"]

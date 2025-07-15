@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 // const PLAY_TIME_LIMIT_MS = 0.1 * 60 * 1000; // FOR TESTING - 0.1 minutes in milliseconds
-const PLAY_TIME_LIMIT_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+export const PLAY_TIME_LIMIT_MINUTES = 5;
+const PLAY_TIME_LIMIT_MS = PLAY_TIME_LIMIT_MINUTES * 60 * 1000;
 const SESSION_STORAGE_KEY_PREFIX = 'episode_play_time_';
 
 interface PlayTimeTracker {
