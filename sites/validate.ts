@@ -188,6 +188,19 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         result.errors.push('searchPlaceholderOptions must have at least 1 option');
     }
 
+    // Validate trackingScript if present
+    if (site.trackingScript) {
+        const hasOpeningTag = site.trackingScript.includes('<script');
+        const hasClosingTag = site.trackingScript.includes('</script>');
+        
+        if (!hasOpeningTag) {
+            result.errors.push('trackingScript must contain an opening <script> tag');
+        }
+        if (!hasClosingTag) {
+            result.errors.push('trackingScript must contain a closing </script> tag');
+        }
+    }
+
     
     if (!site.includedPodcasts || site.includedPodcasts.length === 0) {
         result.errors.push('Missing or empty includedPodcasts array');

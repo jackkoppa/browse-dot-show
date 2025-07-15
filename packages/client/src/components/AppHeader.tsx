@@ -3,11 +3,10 @@ import { Button } from '@browse-dot-show/ui'
 import ResponsiveDrawerOrDialog from './ResponsiveDrawerOrDialog'
 import { ThemeToggle } from './ThemeToggle'
 
-import BlueskyLogo from '../icons/bluesky-logo.svg'
-
-import { InfoCircledIcon, GitHubLogoIcon, GearIcon } from '@radix-ui/react-icons'
+import { InfoCircledIcon, GearIcon, ArrowRightIcon } from '@radix-ui/react-icons'
 import { AudioSourceSelect } from './AudioSourceSelect'
 import siteConfig from '../config/site-config'
+import { trackEvent } from '@/utils/goatcounter'
 
 function InfoDrawer() {
   const childTrigger = (
@@ -16,9 +15,18 @@ function InfoDrawer() {
     </Button>
   )
 
-  // Get the first active podcast for the main link
-  const activePodcasts = Object.entries(siteConfig.podcastLinks).filter(([_, podcast]) => podcast.status === 'active');
-  const primaryPodcast = activePodcasts.length > 0 ? activePodcasts[0] : null;
+  const handleContactClick = () => {
+    trackEvent({
+      eventType: 'Contact Button Clicked',
+    });
+    window.open('https://browse.show/contact', '_blank');
+  }
+
+  const handleBrowseShowClick = () => {
+    trackEvent({
+      eventType: 'browse.show Info Link Clicked',
+    });
+  }
 
   return (
     <ResponsiveDrawerOrDialog
@@ -27,37 +35,24 @@ function InfoDrawer() {
       description="About the application"
       descriptionHidden={true}
     >
-      <div>
+      <div className="text-sm xs:text-base">
         <p className="mb-2">
           Find your favorite moments & quotes from the{' '}
-          {primaryPodcast ? (
-            <strong>
-              <a href={primaryPodcast[1].url} className="underline" target="_blank" rel="noopener noreferrer">
-                {primaryPodcast[1].title}
-              </a>
-            </strong>
-          ) : (
-            <strong>podcast</strong>
-          )}{' '}
-          podcast.
+          <strong>
+            <a href={siteConfig.appHeader.taglinePrimaryPodcastExternalURL} className="underline" target="_blank" rel="noopener noreferrer">
+              {siteConfig.appHeader.taglinePrimaryPodcastName}
+            </a>
+          </strong>
+          {' '}podcast.
         </p>
-        <p className="mb-2">
-          <span className="font-bold italic">
-            {siteConfig.appHeader.includeTitlePrefix ? <span>[browse.show] </span> : null}
-            <span>{siteConfig.appHeader.primaryTitle}</span>
-          </span>{' '}
-          transcribes and indexes all episodes. Select a search result to jump to that point in the audio.
-        </p>
-        <p>
-          The code is fully open source, and available on <a href="https://github.com/jackkoppa/browse-dot-show" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a>.
-        </p>
-        <br />
-        <p className="mb-2">Something not working? Suggestion for a new feature? Let me know.</p>
-        <p>
-          <span><GitHubLogoIcon className="size-4 inline-block mr-1" /> <a href="https://github.com/jackkoppa/browse-dot-show/issues/new" className="underline" target="_blank" rel="noopener noreferrer">GitHub</a></span>
-          <span className="mx-6">|</span>
-          <span><img src={BlueskyLogo} alt="Bluesky Logo" className="size-4 inline-block mr-1" /> <a href="https://bsky.app/profile/jackkoppa.dev" className="underline" target="_blank" rel="noopener noreferrer">Bluesky</a></span>
-        </p>
+        <br/>
+        <p>Powered by <strong><a href="https://browse.show" onClick={handleBrowseShowClick} className="underline" target="_blank">browse.show</a></strong> - transcribe & search any podcast.</p>
+        <p>Open source, fully customizable, and free to use.</p>
+        <br/>
+        <p>Want a new podcast to be searchable? Have a feature request or a bug report? Let me know!</p>
+        <Button variant="default" size="lg" className="mt-4 w-full" onClick={handleContactClick}>
+          browse.show/contact <ArrowRightIcon className="size-4" />
+        </Button>
         <p className="mt-6 mb-2 text-sm">
           <em>created by <a href="http://jackkoppa.com" className="underline" target="_blank" rel="noopener noreferrer">Jack Koppa</a></em>
         </p>

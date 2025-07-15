@@ -12,7 +12,7 @@ root_domain_name = "naddpod.browse.show"
 enable_custom_domain_on_cloudfront = true
 
 # Lambda warming
-enable_search_lambda_warming = true
+enable_search_lambda_warming = false # TODO: Re-enable warming once we have a consistent way to finish search in < 30 seconds
 search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration

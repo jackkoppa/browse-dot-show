@@ -25,9 +25,17 @@
         }
     ],
     "whisperTranscriptionPrompt": "Welcome to My Favorite Murder. Hosted by Karen Kilgariff and Georgia Hardstark. Each week, we share compelling true crimes and hometown stories from friends and listeners. Stay sexy, don't get murdered, and let's get started!",
-    "themeColor": "#d65a47",
-    "themeColorDark": "#3b3936",
+    "themeColor": "#8999C8",
+    "themeColorDark": "#d65a47",
     "searchPlaceholderOptions": [
-        "stay sexy"
-    ]
+        "10 foot skeletons",
+        "murderino",
+        "This is terrible. Keep going",
+        "look for a goth",
+        "Fuck politeness",
+        "Fuck everyone",
+        "Fuck you I'm married",
+        "weet woo"
+    ],
+    "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }

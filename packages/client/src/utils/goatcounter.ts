@@ -1,7 +1,9 @@
 import { log } from './logging';
 
+import siteConfig from '@/config/site-config'
+
 /**
- * Disable if we're getting rate limited.
+ * Disable if we're getting rate limited. Has not been necessary yet.
  */
 const GOATCOUNTER_ENABLED = true;
 
@@ -12,7 +14,9 @@ interface GoatCounterEvent {
         'Result Clicked' | 
         'Play Button Clicked' | 
         'Play Time Limit Dialog Opened' |
-        'Open In Podcast App Link Clicked';
+        'Open In Podcast App Link Clicked' |
+        'Contact Button Clicked' |
+        'browse.show Info Link Clicked';
     /** e.g. `Searched: 'football clubbing'`- when you want each event to be tracked separately, provide a unique eventName per-tracked-event. Otherwise, eventType is suffcient.  */
     eventName?: string;
 }
@@ -25,7 +29,8 @@ interface GoatCounterEvent {
  * DOCS: https://www.goatcounter.com/help/events
  */
 export const trackEvent = ({ eventName, eventType }: GoatCounterEvent) => {
-    if (!GOATCOUNTER_ENABLED) {
+    // Don't attempt to track if goatcounter is disabled, or if the tracking script is not present
+    if (!GOATCOUNTER_ENABLED || !siteConfig.trackingScript) {
         return;
     }
 
@@ -36,14 +41,16 @@ export const trackEvent = ({ eventName, eventType }: GoatCounterEvent) => {
     Would have sent event: ${eventName} with type: ${eventType}`);
         return;
     }
+    
+    const title = `[${siteConfig.id}] ${eventType}`;
 
     // If no eventName was provided, then *both* title & path should be the same - path is what distinguishes uniquely-tracked events.
-    eventName = eventName ?? eventType;
+    const path = eventName ?? title;
 
     // DOCS: https://www.goatcounter.com/help/events
     goatcounter.count({
-        path: eventName,
-        title: eventType,
+        path,
+        title,
         event: true,
     });
 }

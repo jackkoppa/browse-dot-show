@@ -111,5 +111,11 @@ export interface SiteConfig {
      */
     searchPlaceholderOptions: string[];
 
+    /**
+     * GoatCounter tracking script, to be inserted into the <head> of the HTML file.
+     * @example `<script data-goatcounter="https://listenfairplay.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>`
+     */
+    trackingScript?: string;
+
     // TODO: We will likely add additional customization options, including - perhaps - certain React component files
 }

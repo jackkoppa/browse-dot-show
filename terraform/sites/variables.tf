@@ -97,3 +97,9 @@ variable "srt_indexing_lambda_memory_size" {
   type        = number
   default     = 3008
 }
+
+variable "api_gateway_timeout" {
+  description = "Timeout duration in seconds for the API Gateway - default 30 seconds, can be increased for sites with larger indexes"
+  type        = number
+  default     = 30
+}

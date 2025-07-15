@@ -15,12 +15,15 @@ enable_custom_domain_on_cloudfront = true
 srt_indexing_lambda_memory_size = 9728 # Max observed memory as of 2025-07-15: 9149 MB
 
 # Lambda warming
-enable_search_lambda_warming = false # Re-enable when search works reliably (i.e. enough memory, currently testing 8192 MB)
+enable_search_lambda_warming = false # TODO: Re-enable warming once we have a consistent way to finish search in < 30 seconds
 # search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
 search_lambda_memory_size = 8192 # Max observed memory as of 2025-07-15: 6803 MB
 search_lambda_timeout = 65 # 45 seconds is the default. As of 2025-07-15, 50 seconds has been enough for `myfavoritemurder` cold start. So leaving buffer here.
+
+# API Gateway configuration
+api_gateway_timeout = 30 # TODO - update to 60, once/if https://github.com/hashicorp/terraform-provider-aws/issues/42851 is resolved - needed because cold start is long for big index
 
 # Logging
 log_level = "info" 

@@ -27,5 +27,6 @@
     "whisperTranscriptionPrompt": "",
     "themeColor": "",
     "themeColorDark": "",
-    "searchPlaceholderOptions": []
+    "searchPlaceholderOptions": [],
+    "trackingScript": ""
 }

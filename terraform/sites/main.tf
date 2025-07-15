@@ -282,7 +282,6 @@ module "search_lambda_warming_schedule" {
 resource "aws_apigatewayv2_api" "search_api" {
   name          = "search-transcripts-api-${var.site_id}"
   protocol_type = "HTTP"
-  target        = module.search_lambda.lambda_function_arn
 
   cors_configuration {
     allow_origins = concat(
@@ -293,6 +292,23 @@ resource "aws_apigatewayv2_api" "search_api" {
     allow_headers = ["Content-Type", "Authorization"]
     max_age       = 300
   }
+}
+
+# API Gateway integration with configurable timeout
+resource "aws_apigatewayv2_integration" "search_lambda_integration" {
+  api_id           = aws_apigatewayv2_api.search_api.id
+  integration_type = "AWS_PROXY"
+  integration_uri  = module.search_lambda.lambda_function_arn
+  integration_method = "POST"
+  payload_format_version = "2.0"
+  timeout_milliseconds = var.api_gateway_timeout * 1000
+}
+
+# API Gateway route for all methods
+resource "aws_apigatewayv2_route" "search_route" {
+  api_id    = aws_apigatewayv2_api.search_api.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.search_lambda_integration.id}"
 }
 
 resource "aws_apigatewayv2_stage" "search_api_stage" {

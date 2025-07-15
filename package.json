@@ -13,6 +13,7 @@
     "client:dev": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/run-with-site-selection.ts \"client development\" \"concurrently\" \"\\\"pnpm --filter @browse-dot-show/client _vite-dev\\\"\" \"\\\"pnpm --filter @browse-dot-show/client _serve-s3-assets\\\"\" \"\\\"pnpm --filter @browse-dot-show/search-lambda dev:local\\\"\"",
     "client:build:all-sites": "pnpm --filter client build:all-sites",
     "client:build:specific-site": "pnpm --filter client build:specific-site",
+    "client:upload-all-sites": "tsx scripts/deploy/upload-all-client-sites.ts",
     "homepage:dev": "pnpm --filter homepage dev",
     "homepage:bootstrap-state": "pnpm tsx scripts/deploy/bootstrap-homepage-state.ts",
     "homepage:deploy": "pnpm tsx scripts/deploy/deploy-homepage.ts",

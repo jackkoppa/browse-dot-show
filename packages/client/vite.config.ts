@@ -43,6 +43,7 @@ function loadSiteConfig() {
     VITE_SITE_THEME_COLOR: siteConfig.themeColor,
     VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
     VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: JSON.stringify(siteConfig.searchPlaceholderOptions),
+    VITE_SITE_TRACKING_SCRIPT: siteConfig.trackingScript,
   };
 }
 
@@ -134,7 +135,8 @@ function templateReplacementPlugin() {
         .replace(/##META_DESCRIPTION##/g, siteConfig.socialAndMetadata.metaDescription)
         .replace(/##OPEN_GRAPH_IMAGE##/g, openGraphImageUrl)
         .replace(/##META_TITLE##/g, siteConfig.socialAndMetadata.metaTitle)
-        .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000');
+        .replace(/##THEME_COLOR##/g, siteConfig.themeColor || '#000000')
+        .replace(/##TRACKING_SCRIPT##/g, siteConfig.trackingScript || '');
     }
   };
 }
