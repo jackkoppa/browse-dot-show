@@ -13,6 +13,9 @@ This repository supports deploying multiple independent podcast archive sites, e
 ### 1. Create Your First Site
 
 ```bash
+# Fork the repository 
+# optional - suggested if you want to version-control site config & assets
+
 # Clone the repository
 git clone <repository-url>
 cd browse-dot-show
