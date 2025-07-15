@@ -1,5 +1,5 @@
 {
-  "name": "[browse.show]",
+  "name": "[browse.show] Lords of Limited",
   "short_name": "browse.show",
   "icons": [
     {
@@ -15,7 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#734ee4",
-  "background_color": "#734ee4",
+  "theme_color": "#484848",
+  "background_color": "#484848",
   "display": "standalone"
 }
