@@ -1,0 +1,33 @@
+{
+    "id": "lordsoflimited",
+    "domain": "lordsoflimited.browse.show",
+    "appHeader": {
+        "primaryTitle": "Lords of Limited",
+        "includeTitlePrefix": true,
+        "taglinePrimaryPodcastName": "Lords of Limited",
+        "taglinePrimaryPodcastExternalURL": "https://lordsoflimited.com",
+        "taglineSuffix": "podcast archives"
+    },
+    "socialAndMetadata": {
+        "pageTitle": "[browse.show] Lords of Limited",
+        "canonicalUrl": "https://lordsoflimited.browse.show",
+        "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+        "metaDescription": "Search all episodes of the Lords of Limited podcast",
+        "metaTitle": "[browse.show] Lords of Limited"
+    },
+    "includedPodcasts": [
+        {
+            "id": "lords-of-limited",
+            "rssFeedFile": "lords-of-limited.xml",
+            "title": "Lords of Limited",
+            "status": "active",
+            "url": "https://audioboom.com/channels/5064090.rss"
+        }
+    ],
+    "whisperTranscriptionPrompt": "Welcome to Lords of Limited, the podcast about the world of Magic: The Gathering. I'm your host, Ethan Saks, here with my co-host, Ben Werne. Let's get started!",
+    "themeColor": "#3e81c0",
+    "themeColorDark": "#5a5063",
+    "searchPlaceholderOptions": [
+        "TODO: ADD"
+    ]
+}
