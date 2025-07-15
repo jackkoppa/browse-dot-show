@@ -3,8 +3,6 @@ export {
   insertSearchEntry, 
   insertMultipleSearchEntries, 
   searchOramaIndex,
-  persistToFileStreaming,
-  restoreFromFileStreamingOptimized,
   persistToFileStreamingMsgPackR,
   restoreFromFileStreamingMsgPackR,
   type OramaSearchDatabase,
