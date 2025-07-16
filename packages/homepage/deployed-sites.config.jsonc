@@ -1,7 +1,7 @@
 {
     "sites": {
         // sites/origin-sites/listenfairplay
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         // First site created (Football Clichés being the original use case that inspired the project),
         // prior to the multi-site architecture that browse-dot-show now supports 
         "listenfairplay": {
@@ -14,7 +14,7 @@
             "searchInputPlaceholder": "come what February"
         },
         // sites/origin-sites/hardfork
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "hardfork": {
             "isOriginSite": true,
             "siteName": "[browse.show] Hard Fork",
@@ -25,7 +25,7 @@
             "searchInputPlaceholder": "Bing Sydney"
         },
         // sites/origin-sites/naddpod
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "naddpod": {
             "isOriginSite": true,
             "siteName": "[browse.show] NADDPOD",
@@ -36,7 +36,7 @@
             "searchInputPlaceholder": "olaf dies"
         },
         // sites/origin-sites/claretandblue
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "claretandblue": {
             "isOriginSite": true,
             "siteName": "[browse.show] Claret & Blue",
@@ -47,7 +47,7 @@
             "searchInputPlaceholder": "absolute scenes"
         },
         // sites/origin-sites/searchengine
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "searchengine": {
             "isOriginSite": true,
             "siteName": "[browse.show] Search Engine",
@@ -58,7 +58,7 @@
             "searchInputPlaceholder": "coffee on airplanes"
         },
         // sites/origin-sites/myfavoritemurder
-        // One of 6 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "myfavoritemurder": {
             "isOriginSite": true,
             "siteName": "[browse.show] My Favorite Murder",
@@ -67,6 +67,17 @@
             "domain": "myfavoritemurder.browse.show",
             "imageUrl": "https://myfavoritemurder.browse.show/assets/web-app-manifest-192x192.png",
             "searchInputPlaceholder": "10 foot skeletons"
+        },
+        // sites/origin-sites/lordsoflimited
+        // One of 7 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        "lordsoflimited": {
+            "isOriginSite": true,
+            "siteName": "[browse.show] Lords of Limited",
+            "displayedPodcastName": "Lords of Limited",
+            "podcastTagline": "A podcast dedicated to making you better at limited Magic. Hosted by Ethan Saks & Ben Werne.",
+            "domain": "lordsoflimited.browse.show",
+            "imageUrl": "https://lordsoflimited.browse.show/assets/web-app-manifest-192x192.png",
+            "searchInputPlaceholder": "magicians against data"
         }
     }
 }
