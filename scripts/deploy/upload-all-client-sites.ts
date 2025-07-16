@@ -47,7 +47,7 @@ const SITE_ACCOUNT_MAPPINGS: { [siteId: string]: { accountId: string; bucketName
     bucketName: 'searchengine-browse-dot-show'
   },
   'lordsoflimited': {
-    accountId: '927984855345',
+    accountId: '152849157974',
     bucketName: 'lordsoflimited-browse-dot-show'
   }
 };

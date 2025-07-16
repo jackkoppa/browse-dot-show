@@ -12,14 +12,14 @@ root_domain_name = "lordsoflimited.browse.show"
 enable_custom_domain_on_cloudfront = true
 
 # SRT indexing Lambda configuration
-srt_indexing_lambda_memory_size = 4096 # Max observed memory as of 2025-07-15: __?? MB
+srt_indexing_lambda_memory_size = 4608 # Max observed memory as of 2025-07-16: 4095 MB
 
 # Lambda warming
-enable_search_lambda_warming = false
+enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
-search_lambda_memory_size = 4096  # Max observed memory as of 2025-07-15: __?? MB
+search_lambda_memory_size = 3584  # Max observed memory as of 2025-07-16: 2736 MB
 
 # Logging
 log_level = "info" 

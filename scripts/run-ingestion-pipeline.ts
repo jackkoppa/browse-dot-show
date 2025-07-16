@@ -403,6 +403,7 @@ const ALL_SYNC_FOLDERS = [
 ];
 
 // Site account mappings - these match the terraform configurations
+// TODO: Move this to a shared utils file to avoid duplication with upload-all-client-sites.ts
 const SITE_ACCOUNT_MAPPINGS: SiteAccountMapping = {
   'hardfork': {
     accountId: '927984855345',
@@ -427,6 +428,10 @@ const SITE_ACCOUNT_MAPPINGS: SiteAccountMapping = {
   'searchengine': {
     accountId: '927984855345',
     bucketName: 'searchengine-browse-dot-show'
+  },
+  'lordsoflimited': {
+    accountId: '152849157974',
+    bucketName: 'lordsoflimited-browse-dot-show'
   }
 };
 
