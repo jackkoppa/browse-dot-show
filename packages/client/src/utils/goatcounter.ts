@@ -44,8 +44,14 @@ export const trackEvent = ({ eventName, eventType }: GoatCounterEvent) => {
     
     const title = `[${siteConfig.id}] ${eventType}`;
 
-    // If no eventName was provided, then *both* title & path should be the same - path is what distinguishes uniquely-tracked events.
-    const path = eventName ?? title;
+    /**
+     * If no eventName was provided, then *both* title & path should be the same - path is what distinguishes uniquely-tracked events.
+     * For path - the more visible + unique identifier, we put siteConfig.id _after_ eventName
+     * 
+     * @example `Searched: 'Hat GPT' [hardfork]`
+     * @example `/ [claretandblue]`
+     */
+    const path = eventName ? `${eventName} [${siteConfig.id}]` : title;
 
     // DOCS: https://www.goatcounter.com/help/events
     goatcounter.count({
