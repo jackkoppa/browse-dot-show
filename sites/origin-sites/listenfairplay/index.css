@@ -1,36 +1,44 @@
+/* 
+Styles copied directly from: TODO - saving wasn't working for https://tweakcn.com/editor/theme - use import, with styles below, to save in the future
+*/
+
+/*
+Color palette: https://www.figma.com/color-palette-generator/?colors=FDF100-136CBA-CB3F42-F5B618-FAF7E6-AF282F-56A8F0
+*/
+
 :root {
-  --background: rgb(255, 255, 255);
-  --foreground: rgb(0, 0, 0);
-  --card: rgb(255, 255, 255);
-  --card-foreground: rgb(0, 0, 0);
-  --popover: rgb(255, 255, 255);
-  --popover-foreground: rgb(0, 0, 0);
-  --primary: rgb(255, 51, 51);
-  --secondary: var(--browse-dot-show-theme-light); /* Match hooks/useTheme.ts - for `light` theme */
-  --primary-foreground: rgb(255, 255, 255);
-  --secondary-foreground: rgb(0, 0, 0);
-  --muted: rgb(240, 240, 240);
-  --muted-foreground: rgb(51, 51, 51);
-  --accent: var(--browse-dot-show-theme-dark); /* Match hooks/useTheme.ts - for `dark` theme */
-  --accent-foreground: rgb(255, 255, 255);
-  --destructive: rgb(0, 0, 0);
-  --destructive-foreground: rgb(255, 255, 255);
-  --border: rgb(0, 0, 0);
-  --input: rgb(0, 0, 0);
-  --ring: rgb(255, 51, 51);
-  --chart-1: rgb(255, 51, 51);
-  --chart-2: var(--browse-dot-show-theme-light);
-  --chart-3: var(--browse-dot-show-theme-dark);
-  --chart-4: rgb(0, 204, 0);
-  --chart-5: rgb(204, 0, 204);
-  --sidebar: rgb(240, 240, 240);
-  --sidebar-foreground: rgb(0, 0, 0);
-  --sidebar-primary: rgb(255, 51, 51);
-  --sidebar-primary-foreground: rgb(255, 255, 255);
-  --sidebar-accent: var(--browse-dot-show-theme-dark);
-  --sidebar-accent-foreground: rgb(255, 255, 255);
-  --sidebar-border: rgb(0, 0, 0);
-  --sidebar-ring: rgb(255, 51, 51);
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #e81717;
+  --primary-foreground: #ffffff;
+  --secondary: #fdf100;
+  --secondary-foreground: #000000;
+  --muted: #faf7e6;
+  --muted-foreground: #333333;
+  --accent: #136cba;
+  --accent-foreground: #ffffff;
+  --destructive: #000000;
+  --destructive-foreground: #ffffff;
+  --border: #000000;
+  --input: #000000;
+  --ring: #f5b618;
+  --chart-1: #fdf100;
+  --chart-2: #136cba;
+  --chart-3: #e81717;
+  --chart-4: #f5b618;
+  --chart-5: #56a8f0;
+  --sidebar: #faf7e6;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #136cba;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e81717;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #000000;
+  --sidebar-ring: #fdf100;
   --font-sans: DM Sans, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Space Mono, monospace;
@@ -43,41 +51,43 @@
   --shadow-lg: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 4px 6px -1px hsl(0 0% 0% / 1.00);
   --shadow-xl: 4px 4px 0px 0px hsl(0 0% 0% / 1.00), 4px 8px 10px -1px hsl(0 0% 0% / 1.00);
   --shadow-2xl: 4px 4px 0px 0px hsl(0 0% 0% / 2.50);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
 }
 
 .dark {
-  --background: rgb(0, 0, 0);
-  --foreground: rgb(255, 255, 255);
-  --card: rgb(51, 51, 51);
-  --card-foreground: rgb(255, 255, 255);
-  --popover: rgb(51, 51, 51);
-  --popover-foreground: rgb(255, 255, 255);
-  --primary: rgb(255, 102, 102);
-  --primary-foreground: rgb(0, 0, 0);
-  --secondary: var(--browse-dot-show-theme-light);
-  --secondary-foreground: rgb(0, 0, 0);
-  --muted: rgb(51, 51, 51);
-  --muted-foreground: rgb(204, 204, 204);
-  --accent: rgb(51, 153, 255);
-  --accent-foreground: rgb(0, 0, 0);
-  --destructive: rgb(255, 255, 255);
-  --destructive-foreground: rgb(0, 0, 0);
-  --border: rgb(255, 255, 255);
-  --input: rgb(255, 255, 255);
-  --ring: rgb(255, 102, 102);
-  --chart-1: rgb(255, 102, 102);
-  --chart-2: var(--browse-dot-show-theme-light);
-  --chart-3: rgb(51, 153, 255);
-  --chart-4: rgb(51, 204, 51);
-  --chart-5: rgb(204, 51, 204);
-  --sidebar: rgb(0, 0, 0);
-  --sidebar-foreground: rgb(255, 255, 255);
-  --sidebar-primary: rgb(255, 102, 102);
-  --sidebar-primary-foreground: rgb(0, 0, 0);
-  --sidebar-accent: rgb(51, 153, 255);
-  --sidebar-accent-foreground: rgb(0, 0, 0);
-  --sidebar-border: rgb(255, 255, 255);
-  --sidebar-ring: rgb(255, 102, 102);
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #333333;
+  --card-foreground: #ffffff;
+  --popover: #333333;
+  --popover-foreground: #ffffff;
+  --primary: #fdf100;
+  --primary-foreground: #000000;
+  --secondary: #56a8f0;
+  --secondary-foreground: #000000;
+  --muted: #333333;
+  --muted-foreground: #faf7e6;
+  --accent: #f5b618;
+  --accent-foreground: #000000;
+  --destructive: #ffffff;
+  --destructive-foreground: #000000;
+  --border: #ffffff;
+  --input: #ffffff;
+  --ring: #136cba;
+  --chart-1: #fdf100;
+  --chart-2: #136cba;
+  --chart-3: #e81717;
+  --chart-4: #f5b618;
+  --chart-5: #56a8f0;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #fdf100;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #f5b618;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #ffffff;
+  --sidebar-ring: #e81717;
   --font-sans: DM Sans, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Space Mono, monospace;
