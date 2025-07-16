@@ -25,8 +25,8 @@
         }
     ],
     "whisperTranscriptionPrompt": "Welcome to Lords of Limited, the podcast about the world of Magic: The Gathering. I'm your host, Ethan Saks, here with my co-host, Ben Werne. Let's get started!",
-    "themeColor": "#3e81c0",
-    "themeColorDark": "#5a5063",
+    "themeColor": "#4FA1E8",
+    "themeColorDark": "#5A5365",
     "searchPlaceholderOptions": [
         "TODO: ADD"
     ],
