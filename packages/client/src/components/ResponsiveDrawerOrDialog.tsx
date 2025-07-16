@@ -43,7 +43,7 @@ export default function ResponsiveDrawerOrDialog({ childTrigger, title, descript
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px] font-mono bg-background text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-xl">{title}</DialogTitle>
+            <DialogTitle className="text-xl" tabIndex={0}>{title}</DialogTitle>
             <DialogDescription className={descriptionHidden ? "sr-only" : ""}>
               {description}
             </DialogDescription>
