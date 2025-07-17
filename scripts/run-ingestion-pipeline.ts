@@ -93,7 +93,7 @@ OPTIONS:
   --skip-rss-retrieval     Skip RSS retrieval phase
   --skip-audio-processing  Skip audio processing phase
   --skip-local-indexing    Skip local search index update phase
-  --skip-s3-sync           Skip local-to-S3 sync phase
+  --skip-s3-sync           Skip local-to-S3 upload phase
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss,search-entries,search-index)
 
 EXAMPLES:
@@ -117,7 +117,7 @@ PHASES:
   Phase 2: RSS retrieval (downloads new episodes)
   Phase 3: Audio processing (transcribes audio files)
   Phase 4: Local indexing (updates search indices for sites with new files)
-  Phase 5: S3 sync (uploads all new files to S3, including search indices)
+  Phase 5: S3 upload (uploads new files to S3, including search indices)
 
 For automation/cron jobs, use without --interactive flag.
 For manual runs, --interactive provides a guided configuration experience.
@@ -1536,6 +1536,14 @@ async function main(): Promise<void> {
           results[i].hasNewFiles = true;
         }
         
+        // TODO: Investigate why search-entries folder may be uploading more files than expected.
+        // We've seen cases where 450+ search-entry files get uploaded when only 1 new episode was processed.
+        // This could indicate:
+        // 1. Search entries are being regenerated unnecessarily during local indexing
+        // 2. File timestamps/checksums causing AWS CLI to think files need re-uploading
+        // 3. Search-entries directory structure changes affecting sync detection
+        // Monitor this in future runs, especially multi-site runs.
+        
         if (audioResult.error) {
           results[i].errors.push(audioResult.error);
         }
@@ -1591,11 +1599,11 @@ async function main(): Promise<void> {
   // Phase 5: Final S3 sync for ALL new files (including search indices)
   if (config.phases.s3Sync) {
     console.log('\n' + '='.repeat(60));
-    console.log('☁️  Phase 5: Final S3 sync for ALL new files (including search indices)');
+    console.log('☁️  Phase 5: Upload new files to S3 (including search indices)');
     console.log('='.repeat(60));
     
     if (config.dryRun) {
-      console.log('🔍 DRY RUN: Would perform post-sync consistency check, upload missing files to S3, and refresh search-api Lambda for sites with uploads');
+      console.log('🔍 DRY RUN: Would check for files to upload (local→S3), upload missing files to S3, and refresh search-api Lambda for sites with uploads');
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
@@ -1631,31 +1639,31 @@ async function main(): Promise<void> {
           const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
           const tempCredentials = assumeRoleOutput.Credentials;
           
-          // Generate full sync consistency report (check both directions)
-          const postSyncReport = await generateSyncConsistencyReport(
+          // Generate upload consistency report (only check local→S3)
+          const uploadReport = await generateSyncConsistencyReport(
             site.id,
             siteConfig.bucketName,
             tempCredentials,
-            SYNC_MODES.FULL_SYNC
+            SYNC_MODES.UPLOAD_ONLY
           );
           
           // Display the report
-          displaySyncConsistencyReport(site.id, postSyncReport);
+          displaySyncConsistencyReport(site.id, uploadReport);
           
           const duration = Date.now() - startTime;
           
           // Update results
           results[i].postConsistencyCheckSuccess = true;
           results[i].postConsistencyCheckDuration = duration;
-          results[i].filesToUpload = postSyncReport.summary.totalLocalOnlyFiles;
-          results[i].filesInSync = postSyncReport.summary.totalConsistentFiles;
+          results[i].filesToUpload = uploadReport.summary.totalLocalOnlyFiles;
+          results[i].filesInSync = uploadReport.summary.totalConsistentFiles;
           
           // Upload files if any need to be uploaded
-          if (postSyncReport.summary.totalLocalOnlyFiles > 0) {
+          if (uploadReport.summary.totalLocalOnlyFiles > 0) {
             const syncResult = await performComprehensiveS3Sync(
               site.id, 
               credentials, 
-              postSyncReport.summary.totalLocalOnlyFiles
+              uploadReport.summary.totalLocalOnlyFiles
             );
             
             results[i].s3SyncSuccess = syncResult.success;

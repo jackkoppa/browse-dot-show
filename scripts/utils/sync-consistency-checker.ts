@@ -371,6 +371,7 @@ export function displaySyncConsistencyReport(siteId: string, report: SyncGapRepo
  * Pre-defined modes for common use cases
  */
 export const SYNC_MODES = {
-  PRE_SYNC: { checkS3ToLocal: true, checkLocalToS3: false },
-  FULL_SYNC: { checkS3ToLocal: true, checkLocalToS3: true }
+  PRE_SYNC: { checkS3ToLocal: true, checkLocalToS3: false },    // Phase 1: Download missing files
+  UPLOAD_ONLY: { checkS3ToLocal: false, checkLocalToS3: true }, // Phase 5: Upload new files
+  FULL_SYNC: { checkS3ToLocal: true, checkLocalToS3: true }     // Legacy: Check both directions
 } as const; 

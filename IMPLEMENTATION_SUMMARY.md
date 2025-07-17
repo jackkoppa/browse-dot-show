@@ -17,7 +17,7 @@ This document summarizes the successful implementation of the ingestion pipeline
 
 **Solution**: Split into two phases:
 - **Phase 1**: Pre-sync check (only S3→local) - downloads missing files before processing
-- **Phase 5**: Post-sync check (bidirectional) - identifies files to upload after processing
+- **Phase 5**: Upload check (only local→S3) - identifies and uploads new files after processing
 
 **Code Changes**:
 - Added `SyncConsistencyMode` interface with `checkS3ToLocal` and `checkLocalToS3` flags
@@ -88,7 +88,7 @@ const ALL_SYNC_FOLDERS = [
 - **Phase 2**: RSS retrieval
 - **Phase 3**: Audio processing
 - **Phase 4**: Local indexing (conditional - only sites with new files)
-- **Phase 5**: Final S3 sync (bidirectional check + upload + search-api Lambda refresh)
+- **Phase 5**: S3 upload (upload new files + search-api Lambda refresh)
 
 ### 6. Updated Configuration and CLI
 
@@ -102,8 +102,8 @@ const ALL_SYNC_FOLDERS = [
 
 ### 1. ✅ Bug Fix: Proper Timing of Sync Checks
 - Pre-sync only checks for files missing locally (Phase 1)
-- Post-sync performs full bidirectional check after processing (Phase 5)
-- Eliminates premature upload detection
+- Upload check only identifies files to upload after processing (Phase 5)
+- Eliminates premature upload detection and unnecessary downloads
 
 ### 2. ✅ Cost Optimization
 - Local indexing instead of expensive AWS Lambda calls
@@ -129,7 +129,7 @@ const ALL_SYNC_FOLDERS = [
 | 2 | RSS retrieval | Always | ✅ Sets `hasNewFiles` flag |
 | 3 | Audio processing | Always | ✅ Sets `hasNewFiles` flag |
 | 4 | Local indexing | `hasNewFiles = true` | ✅ Conditional execution |
-| 5 | Final S3 sync | Always | ✅ Full bidirectional check + search-api refresh |
+| 5 | S3 upload | Always | ✅ Upload new files + search-api refresh |
 
 ## 🧪 Testing Results
 
