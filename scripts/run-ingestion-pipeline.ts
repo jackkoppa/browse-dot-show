@@ -9,11 +9,11 @@
  * - Targeted execution (for specific sites or phases)
  * 
  * Pipeline Phases:
- * 0. Pre-sync all S3 content to local storage
- * 1. Load automation credentials from .env.automation
- * 2. Run local ingestion for all sites (RSS retrieval + audio processing)
- * 3. Detect which sites have new content and sync comprehensive changes to S3
- * 4. Trigger cloud indexing lambdas for sites with S3 uploads using automation role
+ * 1. Pre-sync check: Download any files from S3 that don't exist locally
+ * 2. RSS download: Retrieve new episodes from RSS feeds for each site
+ * 3. Transcription: Transcribe any new audio files for each site
+ * 4. Local indexing: Run search indexing locally for sites with new files
+ * 5. Final S3 sync: Upload all new files to S3, including search indices
  * 
  * Usage: tsx scripts/run-ingestion-pipeline.ts [OPTIONS]
  */
@@ -27,7 +27,7 @@ import prompts from 'prompts';
 import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
-import { generateSyncConsistencyReport, displaySyncConsistencyReport } from './utils/sync-consistency-checker.js';
+import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,15 +41,12 @@ interface WorkflowConfig {
   interactive: boolean;
   help: boolean;
   dryRun: boolean;
-  skipCloudIndexing: boolean;
   phases: {
     preSync: boolean;
-    consistencyCheck: boolean;
     rssRetrieval: boolean;
     audioProcessing: boolean;
-    s3Sync: boolean;
-    cloudIndexing: boolean;
     localIndexing: boolean;
+    s3Sync: boolean;
   };
   syncOptions: {
     foldersToSync: string[];
@@ -64,15 +61,12 @@ function getDefaultConfig(): WorkflowConfig {
     interactive: false,
     help: false,
     dryRun: false,
-    skipCloudIndexing: false,
     phases: {
       preSync: true,
-      consistencyCheck: true,
       rssRetrieval: true,
       audioProcessing: true,
-      s3Sync: true,
-      cloudIndexing: true,
-      localIndexing: true
+      localIndexing: true,
+      s3Sync: true
     },
     syncOptions: {
       foldersToSync: ALL_SYNC_FOLDERS
@@ -95,13 +89,11 @@ OPTIONS:
   --interactive             Run in interactive mode to configure options
   --sites=site1,site2       Process only specific sites (comma-separated)
   --dry-run                 Show what would be done without executing
-  --skip-cloud-indexing     Skip triggering cloud indexing lambdas
   --skip-pre-sync           Skip S3-to-local pre-sync phase
-  --skip-consistency-check  Skip sync consistency check phase
   --skip-rss-retrieval     Skip RSS retrieval phase
   --skip-audio-processing  Skip audio processing phase
-  --skip-s3-sync           Skip local-to-S3 sync phase
   --skip-local-indexing    Skip local search index update phase
+  --skip-s3-sync           Skip local-to-S3 sync phase
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss)
 
 EXAMPLES:
@@ -117,17 +109,15 @@ EXAMPLES:
   # Dry run to see what would happen
   tsx scripts/run-ingestion-pipeline.ts --dry-run --sites=hardfork
   
-  # Skip cloud indexing (local processing only)
-  tsx scripts/run-ingestion-pipeline.ts --skip-cloud-indexing
+  # Skip local indexing 
+  tsx scripts/run-ingestion-pipeline.ts --skip-local-indexing
 
 PHASES:
-  Phase 0: S3-to-local pre-sync (downloads existing S3 files)
-  Phase 0.5: Sync consistency check (compares local vs S3)
-  Phase 1: RSS retrieval (downloads new episodes)
-  Phase 2: Audio processing (transcribes audio files)
-  Phase 3: S3 sync (uploads missing files to S3)
-  Phase 4: Cloud indexing (triggers search index updates)
-  Phase 5: Local indexing (updates local search index for development)
+  Phase 1: Pre-sync check (downloads files from S3 that don't exist locally)
+  Phase 2: RSS retrieval (downloads new episodes)
+  Phase 3: Audio processing (transcribes audio files)
+  Phase 4: Local indexing (updates search indices for sites with new files)
+  Phase 5: S3 sync (uploads all new files to S3, including search indices)
 
 For automation/cron jobs, use without --interactive flag.
 For manual runs, --interactive provides a guided configuration experience.
@@ -148,21 +138,16 @@ function parseArguments(): WorkflowConfig {
       config.interactive = true;
     } else if (arg === '--dry-run') {
       config.dryRun = true;
-    } else if (arg === '--skip-cloud-indexing') {
-      config.skipCloudIndexing = true;
-      config.phases.cloudIndexing = false;
     } else if (arg === '--skip-pre-sync') {
       config.phases.preSync = false;
-    } else if (arg === '--skip-consistency-check') {
-      config.phases.consistencyCheck = false;
     } else if (arg === '--skip-rss-retrieval') {
       config.phases.rssRetrieval = false;
     } else if (arg === '--skip-audio-processing') {
       config.phases.audioProcessing = false;
-    } else if (arg === '--skip-s3-sync') {
-      config.phases.s3Sync = false;
     } else if (arg === '--skip-local-indexing') {
       config.phases.localIndexing = false;
+    } else if (arg === '--skip-s3-sync') {
+      config.phases.s3Sync = false;
     } else if (arg.startsWith('--sites=')) {
       const sitesArg = arg.split('=')[1];
       if (sitesArg) {
@@ -255,13 +240,11 @@ async function configureInteractively(config: WorkflowConfig, allSites: Site[]):
 
   if (phaseResponse.phaseSelection === 'select') {
     const phaseChoices = [
-      { title: 'Phase 0: S3-to-local pre-sync', value: 'preSync', selected: config.phases.preSync },
-      { title: 'Phase 0.5: Sync consistency check', value: 'consistencyCheck', selected: config.phases.consistencyCheck },
-      { title: 'Phase 1: RSS retrieval', value: 'rssRetrieval', selected: config.phases.rssRetrieval },
-      { title: 'Phase 2: Audio processing', value: 'audioProcessing', selected: config.phases.audioProcessing },
-      { title: 'Phase 3: S3 sync', value: 's3Sync', selected: config.phases.s3Sync },
-      { title: 'Phase 4: Cloud indexing', value: 'cloudIndexing', selected: config.phases.cloudIndexing },
-      { title: 'Phase 5: Local indexing', value: 'localIndexing', selected: config.phases.localIndexing }
+      { title: 'Phase 1: Pre-sync check', value: 'preSync', selected: config.phases.preSync },
+      { title: 'Phase 2: RSS retrieval', value: 'rssRetrieval', selected: config.phases.rssRetrieval },
+      { title: 'Phase 3: Audio processing', value: 'audioProcessing', selected: config.phases.audioProcessing },
+      { title: 'Phase 4: Local indexing', value: 'localIndexing', selected: config.phases.localIndexing },
+      { title: 'Phase 5: S3 sync', value: 's3Sync', selected: config.phases.s3Sync }
     ];
 
     const selectedPhasesResponse = await prompts({
@@ -317,18 +300,7 @@ async function configureInteractively(config: WorkflowConfig, allSites: Site[]):
     }
   }
 
-  // Cloud indexing options
-  if (config.phases.cloudIndexing) {
-    const indexingResponse = await prompts({
-      type: 'confirm',
-      name: 'enableCloudIndexing',
-      message: 'Trigger cloud indexing lambdas? (recommended if files will be uploaded)',
-      initial: true
-    });
-
-    config.skipCloudIndexing = !indexingResponse.enableCloudIndexing;
-    config.phases.cloudIndexing = indexingResponse.enableCloudIndexing;
-  }
+  // No additional configuration needed for the new streamlined phases
 
   return config;
 }
@@ -339,26 +311,26 @@ interface SiteProcessingResult {
   s3PreSyncSuccess?: boolean;
   s3PreSyncDuration?: number;
   s3PreSyncFilesDownloaded?: number;
-  syncConsistencyCheckSuccess?: boolean;
-  syncConsistencyCheckDuration?: number;
-  filesToUpload?: number;
+  preConsistencyCheckSuccess?: boolean;
+  preConsistencyCheckDuration?: number;
   filesMissingLocally?: number;
-  filesInSync?: number;
   rssRetrievalSuccess: boolean;
   rssRetrievalDuration: number;
   audioProcessingSuccess: boolean;
   audioProcessingDuration: number;
   newAudioFilesDownloaded: number;
   newEpisodesTranscribed: number;
-  hasNewSrtFiles: boolean;
-  s3SyncSuccess?: boolean;
-  s3SyncDuration?: number;
-  s3SyncTotalFilesUploaded?: number;
-  indexingTriggerSuccess?: boolean;
-  indexingTriggerDuration?: number;
+  hasNewFiles: boolean; // Track if ANY new files were created during ingestion
   localIndexingSuccess?: boolean;
   localIndexingDuration?: number;
   localIndexingEntriesProcessed?: number;
+  postConsistencyCheckSuccess?: boolean;
+  postConsistencyCheckDuration?: number;
+  filesToUpload?: number;
+  filesInSync?: number;
+  s3SyncSuccess?: boolean;
+  s3SyncDuration?: number;
+  s3SyncTotalFilesUploaded?: number;
   errors: string[];
 }
 
@@ -394,12 +366,14 @@ interface SyncResult {
 }
 
 // All folders that need to be synced
-// Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
+// Now including search-entries and search-index as we run indexing locally and sync results
 const ALL_SYNC_FOLDERS = [
   'audio',
   'transcripts', 
   'episode-manifest',
-  'rss'
+  'rss',
+  'search-entries',
+  'search-index'
 ];
 
 // Site account mappings - these match the terraform configurations
@@ -1400,56 +1374,28 @@ async function main(): Promise<void> {
       s3PreSyncSuccess: undefined,
       s3PreSyncDuration: undefined,
       s3PreSyncFilesDownloaded: undefined,
-      syncConsistencyCheckSuccess: undefined,
-      syncConsistencyCheckDuration: undefined,
-      filesToUpload: undefined,
+      preConsistencyCheckSuccess: undefined,
+      preConsistencyCheckDuration: undefined,
       filesMissingLocally: undefined,
-      filesInSync: undefined,
       rssRetrievalSuccess: false,
       rssRetrievalDuration: 0,
       audioProcessingSuccess: false,
       audioProcessingDuration: 0,
       newAudioFilesDownloaded: 0,
       newEpisodesTranscribed: 0,
-      hasNewSrtFiles: false,
+      hasNewFiles: false,
       errors: []
     });
   }
 
-  // Phase 0: Pre-sync all S3 content to local storage
+  // Phase 1: Pre-sync check - Download files from S3 that don't exist locally
   if (config.phases.preSync) {
     console.log('\n' + '='.repeat(60));
-    console.log('📡 Phase 0: Pre-sync all S3 content to local storage');
+    console.log('📡 Phase 1: Pre-sync check - Download files from S3 that don\'t exist locally');
     console.log('='.repeat(60));
     
     if (config.dryRun) {
-      console.log('🔍 DRY RUN: Would download existing S3 files to local storage (skip existing)');
-    } else {
-      for (let i = 0; i < sites.length; i++) {
-        const site = sites[i];
-        const preSyncResult = await performS3ToLocalPreSync(site.id, credentials);
-        
-        results[i].s3PreSyncSuccess = preSyncResult.success;
-        results[i].s3PreSyncDuration = preSyncResult.duration;
-        results[i].s3PreSyncFilesDownloaded = preSyncResult.totalFilesTransferred;
-        
-        if (preSyncResult.error) {
-          results[i].errors.push(preSyncResult.error);
-        }
-      }
-    }
-  } else {
-    console.log('\n⏭️  Skipping Phase 0: Pre-sync (disabled)');
-  }
-  
-  // Phase 0.5: Check sync consistency to identify files that need uploading
-  if (config.phases.consistencyCheck) {
-    console.log('\n' + '='.repeat(60));
-    console.log('🔍 Phase 0.5: Check sync consistency (local vs S3)');
-    console.log('='.repeat(60));
-    
-    if (config.dryRun) {
-      console.log('🔍 DRY RUN: Would compare local vs S3 file inventories');
+      console.log('🔍 DRY RUN: Would check for and download files missing locally from S3');
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
@@ -1467,7 +1413,7 @@ async function main(): Promise<void> {
           const assumeRoleResult = await execCommand('aws', [
             'sts', 'assume-role',
             '--role-arn', roleArn,
-            '--role-session-name', `automation-consistency-check-${site.id}-${Date.now()}`
+            '--role-session-name', `automation-pre-sync-${site.id}-${Date.now()}`
           ], {
             silent: true,
             env: {
@@ -1485,46 +1431,63 @@ async function main(): Promise<void> {
           const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
           const tempCredentials = assumeRoleOutput.Credentials;
           
-          // Generate sync consistency report
-          const consistencyReport = await generateSyncConsistencyReport(
+          // Generate pre-sync consistency report (only check for files missing locally)
+          const preSyncReport = await generateSyncConsistencyReport(
             site.id,
             siteConfig.bucketName,
-            tempCredentials
+            tempCredentials,
+            SYNC_MODES.PRE_SYNC
           );
           
-          // Display the report (will use logInfo/logDebug appropriately)
-          displaySyncConsistencyReport(site.id, consistencyReport);
+          // Display the report
+          displaySyncConsistencyReport(site.id, preSyncReport);
+          
+          // Download missing files if any
+          if (preSyncReport.summary.totalS3OnlyFiles > 0) {
+            const downloadResult = await performS3ToLocalPreSync(site.id, credentials);
+            
+            results[i].s3PreSyncSuccess = downloadResult.success;
+            results[i].s3PreSyncDuration = downloadResult.duration;
+            results[i].s3PreSyncFilesDownloaded = downloadResult.totalFilesTransferred;
+            
+            if (downloadResult.error) {
+              results[i].errors.push(downloadResult.error);
+            }
+          } else {
+            logInfo(`No files to download for ${site.id} - local files are up to date`);
+            results[i].s3PreSyncSuccess = true;
+            results[i].s3PreSyncDuration = Date.now() - startTime;
+            results[i].s3PreSyncFilesDownloaded = 0;
+          }
           
           const duration = Date.now() - startTime;
-          
-          // Update results
-          results[i].syncConsistencyCheckSuccess = true;
-          results[i].syncConsistencyCheckDuration = duration;
-          results[i].filesToUpload = consistencyReport.summary.totalLocalOnlyFiles;
-          results[i].filesMissingLocally = consistencyReport.summary.totalS3OnlyFiles;
-          results[i].filesInSync = consistencyReport.summary.totalConsistentFiles;
+          results[i].preConsistencyCheckSuccess = true;
+          results[i].preConsistencyCheckDuration = duration;
+          results[i].filesMissingLocally = preSyncReport.summary.totalS3OnlyFiles;
           
         } catch (error: any) {
           const duration = Date.now() - startTime;
-          logError(`Failed to check sync consistency for ${site.id}: ${error.message}`);
+          logError(`Failed pre-sync check for ${site.id}: ${error.message}`);
           
-          results[i].syncConsistencyCheckSuccess = false;
-          results[i].syncConsistencyCheckDuration = duration;
-          results[i].filesToUpload = 0;
+          results[i].preConsistencyCheckSuccess = false;
+          results[i].preConsistencyCheckDuration = duration;
           results[i].filesMissingLocally = 0;
-          results[i].filesInSync = 0;
-          results[i].errors.push(`Sync consistency check error: ${error.message}`);
+          results[i].s3PreSyncSuccess = false;
+          results[i].s3PreSyncDuration = duration;
+          results[i].s3PreSyncFilesDownloaded = 0;
+          results[i].errors.push(`Pre-sync check error: ${error.message}`);
         }
       }
     }
   } else {
-    console.log('\n⏭️  Skipping Phase 0.5: Consistency check (disabled)');
+    console.log('\n⏭️  Skipping Phase 1: Pre-sync check (disabled)');
   }
   
-  // Phase 1: RSS Retrieval for all sites
+  
+  // Phase 2: RSS Retrieval for all sites
   if (config.phases.rssRetrieval) {
     console.log('\n' + '='.repeat(60));
-    console.log('📡 Phase 1: RSS Retrieval for all sites');
+    console.log('📡 Phase 2: RSS Retrieval for all sites');
     console.log('='.repeat(60));
     
     if (config.dryRun) {
@@ -1543,19 +1506,24 @@ async function main(): Promise<void> {
         results[siteIndex].rssRetrievalDuration = rssResult.duration;
         results[siteIndex].newAudioFilesDownloaded = rssResult.newAudioFiles || 0;
         
+        // Update hasNewFiles if new audio was downloaded
+        if ((rssResult.newAudioFiles || 0) > 0) {
+          results[siteIndex].hasNewFiles = true;
+        }
+        
         if (rssResult.error) {
           results[siteIndex].errors.push(rssResult.error);
         }
       }
     }
   } else {
-    console.log('\n⏭️  Skipping Phase 1: RSS Retrieval (disabled)');
+    console.log('\n⏭️  Skipping Phase 2: RSS Retrieval (disabled)');
   }
   
-  // Phase 2: Audio Processing for all sites
+  // Phase 3: Audio Processing for all sites
   if (config.phases.audioProcessing) {
     console.log('\n' + '='.repeat(60));
-    console.log('🎵 Phase 2: Audio Processing for all sites');
+    console.log('🎵 Phase 3: Audio Processing for all sites');
     console.log('='.repeat(60));
     
     if (config.dryRun) {
@@ -1574,7 +1542,11 @@ async function main(): Promise<void> {
         results[i].audioProcessingSuccess = audioResult.success;
         results[i].audioProcessingDuration = audioResult.duration;
         results[i].newEpisodesTranscribed = audioResult.newTranscripts || 0;
-        results[i].hasNewSrtFiles = (audioResult.newTranscripts || 0) > 0;
+        
+        // Update hasNewFiles if new transcripts were created
+        if ((audioResult.newTranscripts || 0) > 0) {
+          results[i].hasNewFiles = true;
+        }
         
         if (audioResult.error) {
           results[i].errors.push(audioResult.error);
@@ -1582,132 +1554,156 @@ async function main(): Promise<void> {
       }
     }
   } else {
-    console.log('\n⏭️  Skipping Phase 2: Audio Processing (disabled)');
+    console.log('\n⏭️  Skipping Phase 3: Audio Processing (disabled)');
   }
   
-  // Phase 3: Comprehensive S3 sync for ALL missing files (ENHANCED - Phase 4.3)
-  if (config.phases.s3Sync) {
-    console.log('\n' + '='.repeat(60));
-    console.log('☁️  Phase 3 (Enhanced): Comprehensive S3 sync for ALL missing files');
-    console.log('='.repeat(60));
-    
-    const sitesNeedingSync = results.filter(result => 
-      result.syncConsistencyCheckSuccess && 
-      (result.filesToUpload || 0) > 0
-    );
-    
-    if (config.dryRun) {
-      console.log(`🔍 DRY RUN: Would upload ${sitesNeedingSync.length} site(s) with missing files to S3`);
-      sitesNeedingSync.forEach(result => {
-        console.log(`   - ${result.siteId}: ${result.filesToUpload} files`);
-      });
-    } else {
-      if (sitesNeedingSync.length === 0) {
-        console.log('ℹ️  No sites have files to upload. All sites are in sync with S3.');
-      } else {
-        console.log(`📝 Found ${sitesNeedingSync.length} site(s) with files to upload:${sitesNeedingSync.map(r => ` ${r.siteId} (${r.filesToUpload} files)`).join(',')}`);
-        
-        for (const result of sitesNeedingSync) {
-          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
-          
-          // Perform comprehensive S3 sync
-          const syncResult = await performComprehensiveS3Sync(
-            result.siteId, 
-            credentials, 
-            result.filesToUpload || 0
-          );
-          
-          results[resultIndex].s3SyncSuccess = syncResult.success;
-          results[resultIndex].s3SyncDuration = syncResult.duration;
-          results[resultIndex].s3SyncTotalFilesUploaded = syncResult.totalFilesTransferred;
-          
-          if (syncResult.error) {
-            results[resultIndex].errors.push(`Comprehensive S3 sync error: ${syncResult.error}`);
-          }
-        }
-      }
-    }
-  } else {
-    console.log('\n⏭️  Skipping Phase 3: S3 sync (disabled)');
-  }
-  
-  // Phase 4: Trigger Cloud Indexing for sites with S3 uploads (ENHANCED - Phase 4.4)
-  if (config.phases.cloudIndexing && !config.skipCloudIndexing) {
-    console.log('\n' + '='.repeat(60));
-    console.log('⚡ Phase 4 (Enhanced): Trigger Cloud Indexing for sites with S3 uploads');
-    console.log('='.repeat(60));
-    
-    const sitesWithSuccessfulSync = results.filter(result => 
-      (result.s3SyncTotalFilesUploaded || 0) > 0  // Trigger indexing if ANY files were uploaded
-    );
-    
-    if (config.dryRun) {
-      console.log(`🔍 DRY RUN: Would trigger cloud indexing for ${sitesWithSuccessfulSync.length} site(s) with S3 uploads`);
-      sitesWithSuccessfulSync.forEach(result => {
-        console.log(`   - ${result.siteId}: ${result.s3SyncTotalFilesUploaded} files uploaded`);
-      });
-    } else {
-      if (sitesWithSuccessfulSync.length === 0) {
-        console.log('ℹ️  No sites uploaded files to S3. Skipping cloud indexing phase.');
-      } else {
-        console.log(`📝 Found ${sitesWithSuccessfulSync.length} site(s) with S3 uploads:${sitesWithSuccessfulSync.map(r => ` ${r.siteId} (${r.s3SyncTotalFilesUploaded} files)`).join(',')}`);
-        
-        for (const result of sitesWithSuccessfulSync) {
-          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
-          
-          // Get lambda function name from terraform outputs
-          const lambdaName = await getSiteIndexingLambdaName(result.siteId);
-          
-          if (!lambdaName) {
-            console.error(`❌ Could not get indexing lambda name for ${result.siteId}, skipping cloud indexing`);
-            results[resultIndex].errors.push('Could not get indexing lambda name');
-            continue;
-          }
-          
-          // Trigger the indexing lambda
-          const indexingResult = await triggerIndexingLambda(result.siteId, lambdaName, credentials);
-          
-          results[resultIndex].indexingTriggerSuccess = indexingResult.success;
-          results[resultIndex].indexingTriggerDuration = indexingResult.duration;
-          
-          if (indexingResult.error) {
-            results[resultIndex].errors.push(indexingResult.error);
-          }
-        }
-      }
-    }
-  } else {
-    console.log('\n⏭️  Skipping Phase 4: Cloud indexing (disabled)');
-  }
-  
-  // Phase 5: Local Indexing for local development
+  // Phase 4: Local Indexing for sites with new files
   if (config.phases.localIndexing) {
     console.log('\n' + '='.repeat(60));
-    console.log('🔍 Phase 5: Local Indexing (update local search index)');
+    console.log('🔍 Phase 4: Local Indexing for sites with new files');
     console.log('='.repeat(60));
     
+    const sitesWithNewFiles = results.filter(result => result.hasNewFiles);
+    
     if (config.dryRun) {
-      console.log('🔍 DRY RUN: Would update local search indexes for all sites');
+      console.log(`🔍 DRY RUN: Would run local indexing for ${sitesWithNewFiles.length} site(s) with new files`);
+      sitesWithNewFiles.forEach(result => {
+        console.log(`   - ${result.siteId}: has new files`);
+      });
     } else {
-      console.log('ℹ️  Updating local search indexes for all sites (for local development)...');
-      
-      for (let i = 0; i < sites.length; i++) {
-        const site = sites[i];
+      if (sitesWithNewFiles.length === 0) {
+        console.log('ℹ️  No sites have new files. Skipping local indexing phase.');
+      } else {
+        console.log(`📝 Found ${sitesWithNewFiles.length} site(s) with new files:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
         
-        const localIndexingResult = await runLocalIndexingForSite(site.id);
-        
-        results[i].localIndexingSuccess = localIndexingResult.success;
-        results[i].localIndexingDuration = localIndexingResult.duration;
-        results[i].localIndexingEntriesProcessed = localIndexingResult.entriesProcessed || 0;
-        
-        if (localIndexingResult.error) {
-          results[i].errors.push(`Local indexing error: ${localIndexingResult.error}`);
+        for (const result of sitesWithNewFiles) {
+          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
+          
+          const localIndexingResult = await runLocalIndexingForSite(result.siteId);
+          
+          results[resultIndex].localIndexingSuccess = localIndexingResult.success;
+          results[resultIndex].localIndexingDuration = localIndexingResult.duration;
+          results[resultIndex].localIndexingEntriesProcessed = localIndexingResult.entriesProcessed || 0;
+          
+          // Mark that new search files were created
+          if (localIndexingResult.success) {
+            results[resultIndex].hasNewFiles = true; // Ensure this remains true since we created search files
+          }
+          
+          if (localIndexingResult.error) {
+            results[resultIndex].errors.push(`Local indexing error: ${localIndexingResult.error}`);
+          }
         }
       }
     }
   } else {
-    console.log('\n⏭️  Skipping Phase 5: Local indexing (disabled)');
+    console.log('\n⏭️  Skipping Phase 4: Local indexing (disabled)');
   }
+  
+  // Phase 5: Final S3 sync for ALL new files (including search indices)
+  if (config.phases.s3Sync) {
+    console.log('\n' + '='.repeat(60));
+    console.log('☁️  Phase 5: Final S3 sync for ALL new files (including search indices)');
+    console.log('='.repeat(60));
+    
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would perform post-sync consistency check and upload missing files to S3');
+    } else {
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        const startTime = Date.now();
+        
+        try {
+          const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
+          if (!siteConfig) {
+            throw new Error(`No account mapping found for site: ${site.id}`);
+          }
+
+          const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+          
+          // Assume the role to get temporary credentials
+          const assumeRoleResult = await execCommand('aws', [
+            'sts', 'assume-role',
+            '--role-arn', roleArn,
+            '--role-session-name', `automation-post-sync-${site.id}-${Date.now()}`
+          ], {
+            silent: true,
+            env: {
+              ...process.env,
+              AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+              AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+              AWS_REGION: credentials.AWS_REGION
+            }
+          });
+          
+          if (assumeRoleResult.exitCode !== 0) {
+            throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
+          }
+          
+          const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
+          const tempCredentials = assumeRoleOutput.Credentials;
+          
+          // Generate full sync consistency report (check both directions)
+          const postSyncReport = await generateSyncConsistencyReport(
+            site.id,
+            siteConfig.bucketName,
+            tempCredentials,
+            SYNC_MODES.FULL_SYNC
+          );
+          
+          // Display the report
+          displaySyncConsistencyReport(site.id, postSyncReport);
+          
+          const duration = Date.now() - startTime;
+          
+          // Update results
+          results[i].postConsistencyCheckSuccess = true;
+          results[i].postConsistencyCheckDuration = duration;
+          results[i].filesToUpload = postSyncReport.summary.totalLocalOnlyFiles;
+          results[i].filesInSync = postSyncReport.summary.totalConsistentFiles;
+          
+          // Upload files if any need to be uploaded
+          if (postSyncReport.summary.totalLocalOnlyFiles > 0) {
+            const syncResult = await performComprehensiveS3Sync(
+              site.id, 
+              credentials, 
+              postSyncReport.summary.totalLocalOnlyFiles
+            );
+            
+            results[i].s3SyncSuccess = syncResult.success;
+            results[i].s3SyncDuration = syncResult.duration;
+            results[i].s3SyncTotalFilesUploaded = syncResult.totalFilesTransferred;
+            
+            if (syncResult.error) {
+              results[i].errors.push(`S3 sync error: ${syncResult.error}`);
+            }
+          } else {
+            logInfo(`No files to upload for ${site.id} - all files are in sync with S3`);
+            results[i].s3SyncSuccess = true;
+            results[i].s3SyncDuration = 0;
+            results[i].s3SyncTotalFilesUploaded = 0;
+          }
+          
+        } catch (error: any) {
+          const duration = Date.now() - startTime;
+          logError(`Failed final S3 sync for ${site.id}: ${error.message}`);
+          
+          results[i].postConsistencyCheckSuccess = false;
+          results[i].postConsistencyCheckDuration = duration;
+          results[i].filesToUpload = 0;
+          results[i].filesInSync = 0;
+          results[i].s3SyncSuccess = false;
+          results[i].s3SyncDuration = duration;
+          results[i].s3SyncTotalFilesUploaded = 0;
+          results[i].errors.push(`Final S3 sync error: ${error.message}`);
+        }
+      }
+    }
+  } else {
+    console.log('\n⏭️  Skipping Phase 5: S3 sync (disabled)');
+  }
+  
+  // All phases complete - no more cloud indexing needed as we run indexing locally
   
   // Generate final summary
   const overallDuration = Date.now() - overallStartTime;

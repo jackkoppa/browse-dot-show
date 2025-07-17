@@ -15,6 +15,13 @@ interface FileInventory {
   transcriptFiles: string[];
   manifestFiles: string[];
   rssFiles: string[];
+  searchEntriesFiles: string[];
+  searchIndexFiles: string[];
+}
+
+interface SyncConsistencyMode {
+  checkS3ToLocal: boolean;   // Check for files missing locally that exist in S3
+  checkLocalToS3: boolean;   // Check for files existing locally that are missing in S3
 }
 
 interface SyncGapReport {
@@ -23,18 +30,24 @@ interface SyncGapReport {
     transcripts: string[];
     manifest: string[];
     rss: string[];
+    searchEntries: string[];
+    searchIndex: string[];
   };
   s3Only: {
     audio: string[];
     transcripts: string[];
     manifest: string[];
     rss: string[];
+    searchEntries: string[];
+    searchIndex: string[];
   };
   consistent: {
     audio: string[];
     transcripts: string[];
     manifest: string[];
     rss: string[];
+    searchEntries: string[];
+    searchIndex: string[];
   };
   summary: {
     totalLocalOnlyFiles: number;
@@ -54,15 +67,19 @@ async function scanLocalFiles(siteId: string): Promise<FileInventory> {
     audioFiles: [],
     transcriptFiles: [],
     manifestFiles: [],
-    rssFiles: []
+    rssFiles: [],
+    searchEntriesFiles: [],
+    searchIndexFiles: []
   };
   
-  // Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
+  // Now including search-entries and search-index as they will be synced
   const folders = [
     { name: 'audio', key: 'audioFiles', extensions: ['.mp3'] },
     { name: 'transcripts', key: 'transcriptFiles', extensions: ['.srt'] },
     { name: 'episode-manifest', key: 'manifestFiles', extensions: ['.json'] },
-    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] }
+    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] },
+    { name: 'search-entries', key: 'searchEntriesFiles', extensions: ['.json'] },
+    { name: 'search-index', key: 'searchIndexFiles', extensions: ['.msp', '.json'] }
   ];
   
   // Helper function to recursively read directory
@@ -129,15 +146,19 @@ async function scanS3Files(
     audioFiles: [],
     transcriptFiles: [],
     manifestFiles: [],
-    rssFiles: []
+    rssFiles: [],
+    searchEntriesFiles: [],
+    searchIndexFiles: []
   };
   
-  // Note: search-entries and search-index are excluded as they're managed by the indexing Lambda
+  // Now including search-entries and search-index as they will be synced
   const folders = [
     { name: 'audio', key: 'audioFiles', extensions: ['.mp3'] },
     { name: 'transcripts', key: 'transcriptFiles', extensions: ['.srt'] },
     { name: 'episode-manifest', key: 'manifestFiles', extensions: ['.json'] },
-    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] }
+    { name: 'rss', key: 'rssFiles', extensions: ['.xml', '.json'] },
+    { name: 'search-entries', key: 'searchEntriesFiles', extensions: ['.json'] },
+    { name: 'search-index', key: 'searchIndexFiles', extensions: ['.msp', '.json'] }
   ];
   
   for (const folder of folders) {
@@ -191,25 +212,35 @@ async function scanS3Files(
 /**
  * Compare local and S3 inventories to identify sync gaps
  */
-function compareInventories(localInventory: FileInventory, s3Inventory: FileInventory): SyncGapReport {
+function compareInventories(
+  localInventory: FileInventory, 
+  s3Inventory: FileInventory, 
+  mode: SyncConsistencyMode
+): SyncGapReport {
   const report: SyncGapReport = {
     localOnly: {
       audio: [],
       transcripts: [],
       manifest: [],
-      rss: []
+      rss: [],
+      searchEntries: [],
+      searchIndex: []
     },
     s3Only: {
       audio: [],
       transcripts: [],
       manifest: [],
-      rss: []
+      rss: [],
+      searchEntries: [],
+      searchIndex: []
     },
     consistent: {
       audio: [],
       transcripts: [],
       manifest: [],
-      rss: []
+      rss: [],
+      searchEntries: [],
+      searchIndex: []
     },
     summary: {
       totalLocalOnlyFiles: 0,
@@ -224,7 +255,9 @@ function compareInventories(localInventory: FileInventory, s3Inventory: FileInve
     { localKey: 'audioFiles', s3Key: 'audioFiles', reportKey: 'audio' },
     { localKey: 'transcriptFiles', s3Key: 'transcriptFiles', reportKey: 'transcripts' },
     { localKey: 'manifestFiles', s3Key: 'manifestFiles', reportKey: 'manifest' },
-    { localKey: 'rssFiles', s3Key: 'rssFiles', reportKey: 'rss' }
+    { localKey: 'rssFiles', s3Key: 'rssFiles', reportKey: 'rss' },
+    { localKey: 'searchEntriesFiles', s3Key: 'searchEntriesFiles', reportKey: 'searchEntries' },
+    { localKey: 'searchIndexFiles', s3Key: 'searchIndexFiles', reportKey: 'searchIndex' }
   ];
   
   for (const comparison of comparisons) {
@@ -234,15 +267,19 @@ function compareInventories(localInventory: FileInventory, s3Inventory: FileInve
     const localSet = new Set(localFiles);
     const s3Set = new Set(s3Files);
     
-    // Files only in local
-    const localOnlyFiles = localFiles.filter(file => !s3Set.has(file));
+    // Files only in local (only check if mode allows)
+    const localOnlyFiles = mode.checkLocalToS3 
+      ? localFiles.filter(file => !s3Set.has(file))
+      : [];
     (report.localOnly as any)[comparison.reportKey] = localOnlyFiles;
     
-    // Files only in S3
-    const s3OnlyFiles = s3Files.filter(file => !localSet.has(file));
+    // Files only in S3 (only check if mode allows)
+    const s3OnlyFiles = mode.checkS3ToLocal 
+      ? s3Files.filter(file => !localSet.has(file))
+      : [];
     (report.s3Only as any)[comparison.reportKey] = s3OnlyFiles;
     
-    // Files in both (consistent)
+    // Files in both (consistent) - always calculate for completeness
     const consistentFiles = localFiles.filter(file => s3Set.has(file));
     (report.consistent as any)[comparison.reportKey] = consistentFiles;
     
@@ -265,9 +302,16 @@ function compareInventories(localInventory: FileInventory, s3Inventory: FileInve
 export async function generateSyncConsistencyReport(
   siteId: string,
   bucketName: string,
-  tempCredentials: any
+  tempCredentials: any,
+  mode: SyncConsistencyMode = { checkS3ToLocal: true, checkLocalToS3: true }
 ): Promise<SyncGapReport> {
-  logInfo(`Checking sync consistency for ${siteId}...`);
+  const modeDesc = mode.checkS3ToLocal && mode.checkLocalToS3 
+    ? 'bidirectional' 
+    : mode.checkS3ToLocal 
+    ? 'S3→local only'
+    : 'local→S3 only';
+  
+  logInfo(`Checking sync consistency for ${siteId} (${modeDesc})...`);
   
   try {
     // Scan both local and S3 in parallel
@@ -276,8 +320,8 @@ export async function generateSyncConsistencyReport(
       scanS3Files(siteId, bucketName, tempCredentials)
     ]);
     
-    // Compare the inventories
-    const report = compareInventories(localInventory, s3Inventory);
+    // Compare the inventories using the specified mode
+    const report = compareInventories(localInventory, s3Inventory, mode);
     
     logInfo(`Sync consistency check completed for ${siteId}: ${report.summary.totalLocalOnlyFiles} local-only, ${report.summary.totalS3OnlyFiles} S3-only, ${report.summary.totalConsistentFiles} consistent files`);
     
@@ -321,4 +365,12 @@ export function displaySyncConsistencyReport(siteId: string, report: SyncGapRepo
   if (report.summary.totalLocalOnlyFiles === 0 && report.summary.totalS3OnlyFiles === 0) {
     logInfo(`🎉 All files are in perfect sync!`);
   }
-} 
+}
+
+/**
+ * Pre-defined modes for common use cases
+ */
+export const SYNC_MODES = {
+  PRE_SYNC: { checkS3ToLocal: true, checkLocalToS3: false },
+  FULL_SYNC: { checkS3ToLocal: true, checkLocalToS3: true }
+} as const; 
