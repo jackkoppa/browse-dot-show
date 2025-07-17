@@ -331,6 +331,8 @@ interface SiteProcessingResult {
   s3SyncSuccess?: boolean;
   s3SyncDuration?: number;
   s3SyncTotalFilesUploaded?: number;
+  searchApiRefreshSuccess?: boolean;
+  searchApiRefreshDuration?: number;
   errors: string[];
 }
 
@@ -411,7 +413,91 @@ const SITE_ACCOUNT_MAPPINGS: SiteAccountMapping = {
 
 
 
-// Removed cloud indexing functions - we now run indexing locally for cost optimization
+// Removed old cloud indexing functions - we now run indexing locally for cost optimization
+
+/**
+ * Trigger search-api Lambda to refresh its index after new files are uploaded
+ * This ensures warm Lambda instances get the updated index file from S3
+ */
+async function triggerSearchApiLambdaRefresh(
+  siteId: string,
+  credentials: AutomationCredentials
+): Promise<{ success: boolean; duration: number; error?: string }> {
+  const startTime = Date.now();
+  
+  logProgress(`Triggering search-api Lambda refresh for ${siteId}`);
+  
+  try {
+    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
+    if (!siteConfig) {
+      throw new Error(`No account mapping found for site: ${siteId}`);
+    }
+    
+    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+    const searchLambdaName = `search-api-${siteId}`;
+    
+    // First assume the role to get temporary credentials
+    const assumeRoleResult = await execCommand('aws', [
+      'sts', 'assume-role',
+      '--role-arn', roleArn,
+      '--role-session-name', `automation-search-refresh-${siteId}-${Date.now()}`
+    ], {
+      silent: true,
+      env: {
+        ...process.env,
+        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+        AWS_REGION: credentials.AWS_REGION
+      }
+    });
+    
+    if (assumeRoleResult.exitCode !== 0) {
+      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
+    }
+    
+    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
+    const tempCredentials = assumeRoleOutput.Credentials;
+    
+    // Create the payload to force fresh DB file download
+    const payload = JSON.stringify({
+      forceFreshDBFileDownload: true
+    });
+    
+    // Invoke the search-api lambda function using the assumed role credentials
+    const invokeResult = await execCommand('aws', [
+      'lambda', 'invoke',
+      '--function-name', searchLambdaName,
+      '--invocation-type', 'Event', // Async invocation
+      '--payload', payload,
+      '/tmp/search-lambda-refresh-output.json'
+    ], {
+      silent: true,
+      env: {
+        ...process.env,
+        AWS_ACCESS_KEY_ID: tempCredentials.AccessKeyId,
+        AWS_SECRET_ACCESS_KEY: tempCredentials.SecretAccessKey,
+        AWS_SESSION_TOKEN: tempCredentials.SessionToken,
+        AWS_REGION: credentials.AWS_REGION
+      }
+    });
+    
+    const duration = Date.now() - startTime;
+    
+    if (invokeResult.exitCode === 0) {
+      logSuccess(`Successfully triggered search-api Lambda refresh for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
+      return { success: true, duration };
+    } else {
+      const error = `Search-api Lambda invoke failed: ${invokeResult.stderr}`;
+      logError(`Failed to trigger search-api Lambda refresh for ${siteId}: ${error}`);
+      return { success: false, duration, error };
+    }
+    
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    logError(`Error triggering search-api Lambda refresh for ${siteId}: ${error.message}`);
+    return { success: false, duration, error: error.message };
+  }
+}
 
 /**
  * Execute AWS S3 sync command (extracted from s3-sync.ts)
@@ -1509,7 +1595,7 @@ async function main(): Promise<void> {
     console.log('='.repeat(60));
     
     if (config.dryRun) {
-      console.log('🔍 DRY RUN: Would perform post-sync consistency check and upload missing files to S3');
+      console.log('🔍 DRY RUN: Would perform post-sync consistency check, upload missing files to S3, and refresh search-api Lambda for sites with uploads');
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
@@ -1579,6 +1665,21 @@ async function main(): Promise<void> {
             if (syncResult.error) {
               results[i].errors.push(`S3 sync error: ${syncResult.error}`);
             }
+            
+            // Trigger search-api Lambda refresh if files were successfully uploaded
+            if (syncResult.success && syncResult.totalFilesTransferred > 0) {
+              logInfo(`Files uploaded to S3 for ${site.id}. Triggering search-api Lambda refresh...`);
+              const refreshResult = await triggerSearchApiLambdaRefresh(site.id, credentials);
+              
+              results[i].searchApiRefreshSuccess = refreshResult.success;
+              results[i].searchApiRefreshDuration = refreshResult.duration;
+              
+              if (refreshResult.error) {
+                results[i].errors.push(`Search-api Lambda refresh error: ${refreshResult.error}`);
+              }
+            } else {
+              logInfo(`No files uploaded to S3 for ${site.id} or upload failed. Skipping search-api Lambda refresh.`);
+            }
           } else {
             logInfo(`No files to upload for ${site.id} - all files are in sync with S3`);
             results[i].s3SyncSuccess = true;
@@ -1630,11 +1731,15 @@ async function main(): Promise<void> {
     const s3SyncStatus = (result.filesToUpload || 0) > 0
       ? (result.s3SyncSuccess ? '✅' : '❌')
       : '⚪'; // No sync needed
+    const searchApiRefreshStatus = (result.s3SyncTotalFilesUploaded || 0) > 0
+      ? (result.searchApiRefreshSuccess === true ? '✅' : 
+         result.searchApiRefreshSuccess === false ? '❌' : '⏸️')
+      : '⚪'; // Not needed
     
     const totalDuration = (result.preConsistencyCheckDuration || 0) + (result.s3PreSyncDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
                          (result.localIndexingDuration || 0) + (result.postConsistencyCheckDuration || 0) +
-                         (result.s3SyncDuration || 0);
+                         (result.s3SyncDuration || 0) + (result.searchApiRefreshDuration || 0);
     
     console.log(`\n   ${result.siteId} (${result.siteTitle}):`);
     console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} (${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`);
@@ -1643,6 +1748,7 @@ async function main(): Promise<void> {
     console.log(`      Phase 4 - Local Index: ${localIndexingStatus} ${result.hasNewFiles ? `(${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries` : '(not needed - no new files)'}`);
     console.log(`      Phase 5 - Final Sync: ${postSyncStatus} (${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`);
     console.log(`      S3 Upload: ${s3SyncStatus} ${(result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)'}`);
+    console.log(`      Search-API Refresh: ${searchApiRefreshStatus} ${(result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.searchApiRefreshDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)'}`);
     console.log(`      📂 Has new files: ${result.hasNewFiles ? '✅' : '❌'}`);
     console.log(`      📁 Files in sync: ${result.filesInSync || 0}`);
     console.log(`      Total: ${(totalDuration / 1000).toFixed(1)}s`);
@@ -1662,6 +1768,8 @@ async function main(): Promise<void> {
   const successfulPostSyncCount = results.filter(r => r.postConsistencyCheckSuccess).length;
   const sitesWithFilesToUpload = results.filter(r => (r.filesToUpload || 0) > 0).length;
   const successfulS3SyncCount = results.filter(r => (r.filesToUpload || 0) > 0 && r.s3SyncSuccess).length;
+  const sitesWithUploads = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0).length;
+  const successfulSearchApiRefreshCount = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.searchApiRefreshSuccess === true).length;
   const totalPreSyncFilesDownloaded = results.reduce((sum, r) => sum + (r.s3PreSyncFilesDownloaded || 0), 0);
   const totalFilesUploaded = results.reduce((sum, r) => sum + (r.s3SyncTotalFilesUploaded || 0), 0);
   const totalAudioFilesDownloaded = results.reduce((sum, r) => sum + r.newAudioFilesDownloaded, 0);
@@ -1678,6 +1786,8 @@ async function main(): Promise<void> {
   console.log(`   Sites with new files: ${sitesWithNewFiles}/${results.length}`);
   console.log(`   Sites with files to upload: ${sitesWithFilesToUpload}/${results.length}`);
   console.log(`   S3 Upload success rate: ${successfulS3SyncCount}/${sitesWithFilesToUpload} (${sitesWithFilesToUpload > 0 ? ((successfulS3SyncCount / sitesWithFilesToUpload) * 100).toFixed(1) : 'N/A'}%)`);
+  console.log(`   Sites with successful uploads: ${sitesWithUploads}/${results.length}`);
+  console.log(`   Search-API refresh success rate: ${successfulSearchApiRefreshCount}/${sitesWithUploads} (${sitesWithUploads > 0 ? ((successfulSearchApiRefreshCount / sitesWithUploads) * 100).toFixed(1) : 'N/A'}%)`);
   console.log(`   📥 Total Files Downloaded from S3: ${totalPreSyncFilesDownloaded}`);
   console.log(`   📤 Total Files Uploaded to S3: ${totalFilesUploaded}`);
   console.log(`   📥 Total Audio Files Downloaded: ${totalAudioFilesDownloaded}`);

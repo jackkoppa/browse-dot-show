@@ -57,7 +57,22 @@ const ALL_SYNC_FOLDERS = [
 - Removed `getSiteIndexingLambdaName()` and `triggerIndexingLambda()` functions
 - Updated file tracking in RSS and audio processing phases
 
-### 4. Restructured Phase Flow
+### 4. Added Search-API Lambda Refresh
+
+**Problem**: After uploading new index files to S3, warm search-api Lambda instances still had old index files in memory.
+
+**Solution**: 
+- Trigger search-api Lambda with `forceFreshDBFileDownload: true` after successful S3 uploads
+- Only trigger for sites that actually uploaded files
+- Follow the same pattern as the SRT indexing function
+
+**Code Changes**:
+- Added `triggerSearchApiLambdaRefresh()` function
+- Added `searchApiRefreshSuccess` and `searchApiRefreshDuration` to results tracking
+- Integrated into Phase 5 after successful S3 uploads
+- Added comprehensive logging and error handling
+
+### 5. Restructured Phase Flow
 
 **Old Phases**:
 - Phase 0: Pre-sync all S3 content
@@ -73,9 +88,9 @@ const ALL_SYNC_FOLDERS = [
 - **Phase 2**: RSS retrieval
 - **Phase 3**: Audio processing
 - **Phase 4**: Local indexing (conditional - only sites with new files)
-- **Phase 5**: Final S3 sync (bidirectional check + upload)
+- **Phase 5**: Final S3 sync (bidirectional check + upload + search-api Lambda refresh)
 
-### 5. Updated Configuration and CLI
+### 6. Updated Configuration and CLI
 
 **Changes**:
 - Removed `--skip-cloud-indexing` and `--skip-consistency-check` flags
@@ -104,6 +119,7 @@ const ALL_SYNC_FOLDERS = [
 - Clear separation of pre-sync and post-sync consistency checks
 - Better error handling and reporting per phase
 - Comprehensive logging of file counts and processing times
+- Search-api Lambda refresh ensures warm instances get updated index files
 
 ## 📊 Updated Phase Summary
 
@@ -113,7 +129,7 @@ const ALL_SYNC_FOLDERS = [
 | 2 | RSS retrieval | Always | ✅ Sets `hasNewFiles` flag |
 | 3 | Audio processing | Always | ✅ Sets `hasNewFiles` flag |
 | 4 | Local indexing | `hasNewFiles = true` | ✅ Conditional execution |
-| 5 | Final S3 sync | Always | ✅ Full bidirectional check |
+| 5 | Final S3 sync | Always | ✅ Full bidirectional check + search-api refresh |
 
 ## 🧪 Testing Results
 
