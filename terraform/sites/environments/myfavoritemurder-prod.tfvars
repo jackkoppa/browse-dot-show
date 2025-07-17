@@ -15,7 +15,7 @@ enable_custom_domain_on_cloudfront = true
 srt_indexing_lambda_memory_size = 9728 # Max observed memory as of 2025-07-15: 9149 MB
 
 # Lambda warming
-enable_search_lambda_warming = false # TODO: Re-enable warming once we have a consistent way to finish search in < 30 seconds
+enable_search_lambda_warming = true
 # search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
