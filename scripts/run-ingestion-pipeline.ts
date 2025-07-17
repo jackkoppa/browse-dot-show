@@ -94,7 +94,7 @@ OPTIONS:
   --skip-audio-processing  Skip audio processing phase
   --skip-local-indexing    Skip local search index update phase
   --skip-s3-sync           Skip local-to-S3 sync phase
-  --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss)
+  --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss,search-entries,search-index)
 
 EXAMPLES:
   # Run full workflow for all sites (default)
@@ -411,103 +411,7 @@ const SITE_ACCOUNT_MAPPINGS: SiteAccountMapping = {
 
 
 
-/**
- * Get lambda function name using the consistent naming pattern
- * This avoids terraform credential issues by using the known naming convention: srt-indexing-${siteId}
- */
-async function getSiteIndexingLambdaName(siteId: string): Promise<string | null> {
-  try {
-    console.log(`🔍 Getting indexing lambda name for site: ${siteId}`);
-    
-    // Use the consistent naming pattern from terraform: srt-indexing-${siteId}
-    const lambdaName = `srt-indexing-${siteId}`;
-    
-    console.log(`✅ Using indexing lambda name for ${siteId}: ${lambdaName}`);
-    return lambdaName;
-    
-  } catch (error: any) {
-    console.error(`❌ Error getting indexing lambda name for ${siteId}:`, error.message);
-    return null;
-  }
-}
-
-/**
- * Trigger cloud indexing lambda for a site using automation role
- */
-async function triggerIndexingLambda(
-  siteId: string, 
-  lambdaName: string, 
-  credentials: AutomationCredentials
-): Promise<{ success: boolean; duration: number; error?: string }> {
-  const startTime = Date.now();
-  
-  console.log(`⚡ Triggering indexing lambda for ${siteId}: ${lambdaName}`);
-  
-  try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
-    
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-    
-    // First assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-indexing-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
-    
-    // Invoke the lambda function using the assumed role credentials
-    const invokeResult = await execCommand('aws', [
-      'lambda', 'invoke',
-      '--function-name', lambdaName,
-      '--invocation-type', 'Event', // Async invocation
-      '--payload', '{}',
-      '/tmp/lambda-invoke-output.json'
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: tempCredentials.AccessKeyId,
-        AWS_SECRET_ACCESS_KEY: tempCredentials.SecretAccessKey,
-        AWS_SESSION_TOKEN: tempCredentials.SessionToken,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    const duration = Date.now() - startTime;
-    
-    if (invokeResult.exitCode === 0) {
-      console.log(`✅ Successfully triggered indexing lambda for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
-      return { success: true, duration };
-    } else {
-      const error = `Lambda invoke failed: ${invokeResult.stderr}`;
-      console.error(`❌ Failed to trigger indexing lambda for ${siteId}: ${error}`);
-      return { success: false, duration, error };
-    }
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    console.error(`❌ Error triggering indexing lambda for ${siteId}:`, error.message);
-    return { success: false, duration, error: error.message };
-  }
-}
+// Removed cloud indexing functions - we now run indexing locally for cost optimization
 
 /**
  * Execute AWS S3 sync command (extracted from s3-sync.ts)
@@ -1348,13 +1252,11 @@ async function main(): Promise<void> {
   console.log('\n⚙️  Configuration Summary:');
   console.log(`   Execution mode: ${config.dryRun ? 'DRY RUN (preview only)' : 'Full execution'}`);
   console.log(`   Enabled phases:`);
-  if (config.phases.preSync) console.log(`     ✅ Phase 0: S3-to-local pre-sync`);
-  if (config.phases.consistencyCheck) console.log(`     ✅ Phase 0.5: Sync consistency check`);
-  if (config.phases.rssRetrieval) console.log(`     ✅ Phase 1: RSS retrieval`);
-  if (config.phases.audioProcessing) console.log(`     ✅ Phase 2: Audio processing`);
-  if (config.phases.s3Sync) console.log(`     ✅ Phase 3: S3 sync`);
-  if (config.phases.cloudIndexing) console.log(`     ✅ Phase 4: Cloud indexing`);
-  if (config.phases.localIndexing) console.log(`     ✅ Phase 5: Local indexing`);
+  if (config.phases.preSync) console.log(`     ✅ Phase 1: Pre-sync check`);
+  if (config.phases.rssRetrieval) console.log(`     ✅ Phase 2: RSS retrieval`);
+  if (config.phases.audioProcessing) console.log(`     ✅ Phase 3: Audio processing`);
+  if (config.phases.localIndexing) console.log(`     ✅ Phase 4: Local indexing`);
+  if (config.phases.s3Sync) console.log(`     ✅ Phase 5: S3 sync`);
   console.log(`   Sync folders: ${config.syncOptions.foldersToSync.join(', ')}`);
   
   if (config.dryRun) {
@@ -1717,34 +1619,32 @@ async function main(): Promise<void> {
   
   console.log('\n📈 Per-Site Results:');
   results.forEach(result => {
-    const preSyncStatus = result.s3PreSyncSuccess ? '✅' : '❌';
-    const consistencyStatus = result.syncConsistencyCheckSuccess ? '✅' : '❌';
+    const preSyncStatus = result.preConsistencyCheckSuccess ? '✅' : '❌';
     const rssStatus = result.rssRetrievalSuccess ? '✅' : '❌';
     const audioStatus = result.audioProcessingSuccess ? '✅' : '❌';
+    const localIndexingStatus = result.hasNewFiles
+      ? (result.localIndexingSuccess === true ? '✅' : 
+         result.localIndexingSuccess === false ? '❌' : '⏸️')
+      : '⚪'; // Not needed
+    const postSyncStatus = result.postConsistencyCheckSuccess ? '✅' : '❌';
     const s3SyncStatus = (result.filesToUpload || 0) > 0
       ? (result.s3SyncSuccess ? '✅' : '❌')
       : '⚪'; // No sync needed
-    const indexingStatus = (result.s3SyncTotalFilesUploaded || 0) > 0
-      ? (result.indexingTriggerSuccess ? '✅' : '❌')
-      : '⚪'; // No indexing needed
-    const localIndexingStatus = result.localIndexingSuccess === true ? '✅' : 
-                                result.localIndexingSuccess === false ? '❌' : 
-                                '⚪'; // Not run
-    const totalDuration = (result.s3PreSyncDuration || 0) + (result.syncConsistencyCheckDuration || 0) + 
+    
+    const totalDuration = (result.preConsistencyCheckDuration || 0) + (result.s3PreSyncDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
-                         (result.s3SyncDuration || 0) + (result.indexingTriggerDuration || 0) + 
-                         (result.localIndexingDuration || 0);
+                         (result.localIndexingDuration || 0) + (result.postConsistencyCheckDuration || 0) +
+                         (result.s3SyncDuration || 0);
     
     console.log(`\n   ${result.siteId} (${result.siteTitle}):`);
-    console.log(`      S3 Pre-Sync: ${preSyncStatus} (${((result.s3PreSyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files`);
-    console.log(`      Sync Check: ${consistencyStatus} (${((result.syncConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.filesToUpload || 0} to upload, ${result.filesInSync || 0} in sync`);
-    console.log(`      RSS Retrieval: ${rssStatus} (${(result.rssRetrievalDuration / 1000).toFixed(1)}s)`);
-    console.log(`      Audio Processing: ${audioStatus} (${(result.audioProcessingDuration / 1000).toFixed(1)}s)`);
-    console.log(`      S3 Upload: ${s3SyncStatus} ${(result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files` : '(not needed)'}`);
-    console.log(`      Cloud Indexing: ${indexingStatus} ${(result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.indexingTriggerDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)'}`);
-    console.log(`      Local Indexing: ${localIndexingStatus} (${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries`);
-    console.log(`      📥 New Audio Files Downloaded: ${result.newAudioFilesDownloaded}`);
-    console.log(`      🎤 Episodes Transcribed: ${result.newEpisodesTranscribed}`);
+    console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} (${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`);
+    console.log(`      Phase 2 - RSS: ${rssStatus} (${(result.rssRetrievalDuration / 1000).toFixed(1)}s) - ${result.newAudioFilesDownloaded} new audio files`);
+    console.log(`      Phase 3 - Audio: ${audioStatus} (${(result.audioProcessingDuration / 1000).toFixed(1)}s) - ${result.newEpisodesTranscribed} episodes transcribed`);
+    console.log(`      Phase 4 - Local Index: ${localIndexingStatus} ${result.hasNewFiles ? `(${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries` : '(not needed - no new files)'}`);
+    console.log(`      Phase 5 - Final Sync: ${postSyncStatus} (${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`);
+    console.log(`      S3 Upload: ${s3SyncStatus} ${(result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)'}`);
+    console.log(`      📂 Has new files: ${result.hasNewFiles ? '✅' : '❌'}`);
+    console.log(`      📁 Files in sync: ${result.filesInSync || 0}`);
     console.log(`      Total: ${(totalDuration / 1000).toFixed(1)}s`);
     
     if (result.errors.length > 0) {
@@ -1753,16 +1653,15 @@ async function main(): Promise<void> {
   });
   
   // Overall statistics
-  const successfulPreSyncCount = results.filter(r => r.s3PreSyncSuccess).length;
-  const successfulConsistencyCheckCount = results.filter(r => r.syncConsistencyCheckSuccess).length;
+  const successfulPreSyncCount = results.filter(r => r.preConsistencyCheckSuccess).length;
   const successfulRssCount = results.filter(r => r.rssRetrievalSuccess).length;
   const successfulAudioCount = results.filter(r => r.audioProcessingSuccess).length;
+  const sitesWithNewFiles = results.filter(r => r.hasNewFiles).length;
+  const successfulLocalIndexingCount = results.filter(r => r.hasNewFiles && r.localIndexingSuccess === true).length;
+  const localIndexingAttempts = results.filter(r => r.hasNewFiles).length;
+  const successfulPostSyncCount = results.filter(r => r.postConsistencyCheckSuccess).length;
   const sitesWithFilesToUpload = results.filter(r => (r.filesToUpload || 0) > 0).length;
   const successfulS3SyncCount = results.filter(r => (r.filesToUpload || 0) > 0 && r.s3SyncSuccess).length;
-  const successfulIndexingCount = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.indexingTriggerSuccess).length;
-  const sitesTriggeredIndexing = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0).length;
-  const successfulLocalIndexingCount = results.filter(r => r.localIndexingSuccess === true).length;
-  const totalLocalIndexingAttempts = results.filter(r => r.localIndexingSuccess !== undefined).length;
   const totalPreSyncFilesDownloaded = results.reduce((sum, r) => sum + (r.s3PreSyncFilesDownloaded || 0), 0);
   const totalFilesUploaded = results.reduce((sum, r) => sum + (r.s3SyncTotalFilesUploaded || 0), 0);
   const totalAudioFilesDownloaded = results.reduce((sum, r) => sum + r.newAudioFilesDownloaded, 0);
@@ -1771,14 +1670,14 @@ async function main(): Promise<void> {
   
   console.log('\n📊 Overall Statistics:');
   console.log(`   Sites processed: ${results.length}`);
-  console.log(`   Pre-Sync success rate: ${successfulPreSyncCount}/${results.length} (${((successfulPreSyncCount / results.length) * 100).toFixed(1)}%)`);
-  console.log(`   Consistency Check success rate: ${successfulConsistencyCheckCount}/${results.length} (${((successfulConsistencyCheckCount / results.length) * 100).toFixed(1)}%)`);
-  console.log(`   RSS Retrieval success rate: ${successfulRssCount}/${results.length} (${((successfulRssCount / results.length) * 100).toFixed(1)}%)`);
-  console.log(`   Audio Processing success rate: ${successfulAudioCount}/${results.length} (${((successfulAudioCount / results.length) * 100).toFixed(1)}%)`);
-  console.log(`   Sites with files to upload: ${sitesWithFilesToUpload}`);
-  console.log(`   S3 Upload success rate: ${successfulS3SyncCount}/${sitesWithFilesToUpload} (${sitesWithFilesToUpload > 0 ? ((successfulS3SyncCount / sitesWithFilesToUpload) * 100).toFixed(1) : 0}%)`);
-  console.log(`   Cloud Indexing success rate: ${successfulIndexingCount}/${sitesTriggeredIndexing} (${sitesTriggeredIndexing > 0 ? ((successfulIndexingCount / sitesTriggeredIndexing) * 100).toFixed(1) : 0}%)`);
-  console.log(`   Local Indexing success rate: ${successfulLocalIndexingCount}/${results.length} (${((successfulLocalIndexingCount / totalLocalIndexingAttempts) * 100).toFixed(1)}%)`);
+  console.log(`   Phase 1 - Pre-sync success rate: ${successfulPreSyncCount}/${results.length} (${((successfulPreSyncCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Phase 2 - RSS Retrieval success rate: ${successfulRssCount}/${results.length} (${((successfulRssCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Phase 3 - Audio Processing success rate: ${successfulAudioCount}/${results.length} (${((successfulAudioCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Phase 4 - Local Indexing success rate: ${successfulLocalIndexingCount}/${localIndexingAttempts} (${localIndexingAttempts > 0 ? ((successfulLocalIndexingCount / localIndexingAttempts) * 100).toFixed(1) : 'N/A'}%)`);
+  console.log(`   Phase 5 - Final Sync success rate: ${successfulPostSyncCount}/${results.length} (${((successfulPostSyncCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Sites with new files: ${sitesWithNewFiles}/${results.length}`);
+  console.log(`   Sites with files to upload: ${sitesWithFilesToUpload}/${results.length}`);
+  console.log(`   S3 Upload success rate: ${successfulS3SyncCount}/${sitesWithFilesToUpload} (${sitesWithFilesToUpload > 0 ? ((successfulS3SyncCount / sitesWithFilesToUpload) * 100).toFixed(1) : 'N/A'}%)`);
   console.log(`   📥 Total Files Downloaded from S3: ${totalPreSyncFilesDownloaded}`);
   console.log(`   📤 Total Files Uploaded to S3: ${totalFilesUploaded}`);
   console.log(`   📥 Total Audio Files Downloaded: ${totalAudioFilesDownloaded}`);
