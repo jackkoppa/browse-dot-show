@@ -4,7 +4,7 @@ import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@browse-dot-show/logging';
 import { getSiteById } from '../../../sites/index.js';
-import { hasDownloadedAtTimestamp, extractDownloadedAtFromFileKey, parseFileKey } from '../rss-retrieval-lambda/utils/get-episode-file-key.js';
+import { hasDownloadedAtTimestamp, parseFileKey } from '../rss-retrieval-lambda/utils/get-episode-file-key.js';
 import {
   fileExists,
   getFile,

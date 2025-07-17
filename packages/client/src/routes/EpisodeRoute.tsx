@@ -238,6 +238,10 @@ export default function EpisodeRoute() {
         setShowLimitDialog(true);
         // Play alert sound at half volume
         playAlertSound();
+
+        trackEvent({
+          eventType: 'Play Time Limit Dialog Opened',
+        });
       }
     }
   }

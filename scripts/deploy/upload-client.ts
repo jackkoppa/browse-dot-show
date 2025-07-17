@@ -64,11 +64,7 @@ async function main(): Promise<void> {
     // Get deployment details from Terraform
     const terraformOutputs = await getTerraformOutputsWithProfile();
 
-    const config: UploadConfig = {
-      siteId,
-      awsProfile,
-      terraformOutputs
-    };
+    
 
     // Build the client
     const buildResult = await buildClientForSite(siteId, terraformOutputs.searchApiUrl);

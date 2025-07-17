@@ -152,7 +152,7 @@ async function runTerraformDeployment(options: DeploymentOptions): Promise<{ acc
       env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE } 
     });
 
-    let terraformApplied = false;
+    let _terraformApplied = false;
     let outputs: { accessKeyId?: string; secretAccessKey?: string } = {};
 
     if (options.plan) {
@@ -234,7 +234,7 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
       // Apply terraform with progress monitoring
       printInfo('Applying Terraform plan...');
       await applyTerraformWithProgress();
-      terraformApplied = true;
+      _terraformApplied = true;
 
       printSuccess('✅ Terraform apply completed successfully!');
 

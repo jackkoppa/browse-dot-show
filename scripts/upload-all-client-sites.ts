@@ -12,7 +12,7 @@
 import { discoverSites, Site } from './utils/site-selector.js';
 import { loadAutomationCredentials } from './utils/automation-credentials.js';
 import { execCommand } from './utils/shell-exec.js';
-import { logInfo, logSuccess, logError, logWarning, logProgress, logHeader } from './utils/logging.js';
+import { logInfo, logSuccess, logError, } from './utils/logging.js';
 import { 
   buildClientForSite, 
   uploadClientToS3WithCredentials, 

@@ -3,7 +3,7 @@
 import { spawn } from 'child_process';
 import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
 import { getSearchIndexKey } from '@browse-dot-show/constants';
-import { fileExists, getFile } from '@browse-dot-show/s3';
+import { } from '@browse-dot-show/s3';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

@@ -125,7 +125,7 @@ function testRoleAssumption(siteId: SiteId, roleArn: string): TestResult {
   if (result.success) {
     try {
       const assumeRoleOutput = JSON.parse(result.output);
-      const credentials = assumeRoleOutput.Credentials;
+      
       
       return {
         test: 'Role Assumption',

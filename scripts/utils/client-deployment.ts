@@ -4,7 +4,7 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { execCommand, execCommandOrThrow } from './shell-exec.js';
 import { exists } from './file-operations.js';
-import { logInfo, logSuccess, logError, logProgress, printInfo, printError, printSuccess } from './logging.js';
+import { logInfo, logSuccess, logError, logProgress, } from './logging.js';
 import { terraformOutput } from './terraform-utils.js';
 
 /**

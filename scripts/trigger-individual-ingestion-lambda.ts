@@ -3,7 +3,7 @@
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { exists } from './utils/file-operations.js';
-import { logError, printInfo, printError, logProgress, logSuccess, logWarning } from './utils/logging.js';
+import { logError, printInfo, logProgress, logSuccess, logWarning } from './utils/logging.js';
 import { validateAwsEnvironment, invokeLambda } from './utils/aws-utils.js';
 import { loadEnvFile } from './utils/env-validation.js';
 import { execCommand } from './utils/shell-exec.js';

@@ -19,14 +19,14 @@
  */
 
 import { spawn } from 'child_process';
-import { readFileSync } from 'fs';
+
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import prompts from 'prompts';
 import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
 import { execCommand } from './utils/shell-exec.js';
-import { logInfo, logSuccess, logError, logWarning, logProgress, logHeader, logDebug } from './utils/logging.js';
+import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
 import { generateSyncConsistencyReport, displaySyncConsistencyReport } from './utils/sync-consistency-checker.js';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
 

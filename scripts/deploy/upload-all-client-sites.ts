@@ -12,7 +12,7 @@
 import { discoverSites, Site } from '../utils/site-selector.js';
 import { loadAutomationCredentials } from '../utils/automation-credentials.js';
 import { execCommand } from '../utils/shell-exec.js';
-import { logInfo, logSuccess, logError, logWarning, logProgress, logHeader } from '../utils/logging.js';
+import { logSuccess, logError, logWarning, logProgress, logHeader } from '../utils/logging.js';
 import { 
   buildClientForSite, 
   validateBuildOutput, 
@@ -170,7 +170,7 @@ async function uploadSite(
   site: Site,
   credentials: any
 ): Promise<SiteUploadResult> {
-  const startTime = Date.now();
+  
   const result: SiteUploadResult = {
     siteId: site.id,
     siteTitle: site.title,
@@ -323,7 +323,7 @@ async function main(): Promise<void> {
     let failureCount = 0;
     
     results.forEach(result => {
-      const status = result.errors.length === 0 ? '✅' : '❌';
+      
       const totalTime = result.buildDuration + result.uploadDuration;
       
       console.log(`   ${result.siteId} (${result.siteTitle}):`);

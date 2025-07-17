@@ -12,7 +12,6 @@ import {
 import { log } from '@browse-dot-show/logging';
 import { SearchEntry, EpisodeInManifest, SearchRequest } from '@browse-dot-show/types';
 import {
-  fileExists,
   getFile,
   saveFile,
   listFiles,

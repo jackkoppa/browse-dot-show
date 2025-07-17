@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   Button,
@@ -61,12 +61,6 @@ export default function PlayTimeLimitDialog({
       <span>We want <span className="underline" onClick={handlePodcastLinkClick}>{podcastInfo?.title || 'this podcast'}</span> to receive all its regular downloads & ad plays.<br />So to keep listening to this episode, please open in your podcast player of choice.</span>
     </>
   );
-
-  useEffect(() => {
-    trackEvent({
-      eventType: 'Play Time Limit Dialog Opened',
-    });
-  }, []);
 
   const dialogContent = (
     <div className="space-y-4">

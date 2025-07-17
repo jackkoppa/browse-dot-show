@@ -5,8 +5,7 @@ import {
   fileExists, 
   getFile, 
   listFiles, 
-  listDirectories 
-} from '@browse-dot-show/s3';
+  } from '@browse-dot-show/s3';
 import { getSiteById, getAvailableSiteIds } from '../../sites/dist/index.js';
 import { EpisodeManifest, EpisodeInManifest, PodcastId } from '@browse-dot-show/types';
 import { 
@@ -14,11 +13,9 @@ import {
   getAudioDirPrefix,
   getTranscriptsDirPrefix,
   getSearchEntriesDirPrefix,
-  hasDownloadedAtTimestamp,
   extractDownloadedAtFromFileKey,
   parseFileKey,
-  getEpisodeFilePaths
-} from '@browse-dot-show/constants';
+  } from '@browse-dot-show/constants';
 
 // Types for consistency checking
 interface ConsistencyIssue {
