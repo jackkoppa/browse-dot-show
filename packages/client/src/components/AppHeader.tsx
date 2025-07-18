@@ -84,7 +84,7 @@ function InfoDrawer() {
                 </PopoverTrigger>
                 <PopoverContent className="max-w-xs p-3">
                   <p className="text-sm">
-                    Episode should always be refreshed at least once-per-week.<br/><br/>If it's been more than 7 days since the episodes were updated, we have a bug! Please{' '}
+                    Episodes should always be refreshed at least once-per-week.<br/><br/>If it's been more than 7 days since the episodes were updated, we have a bug! Please{' '}
                     <a 
                       href="https://github.com/jackkoppa/browse-dot-show/issues" 
                       target="_blank" 
