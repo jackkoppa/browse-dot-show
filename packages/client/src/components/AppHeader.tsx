@@ -1,5 +1,5 @@
 import { AppHeader as SharedAppHeader, AppHeaderConfig } from '@browse-dot-show/blocks'
-import { Button } from '@browse-dot-show/ui'
+import { Button, Popover, PopoverTrigger, PopoverContent } from '@browse-dot-show/ui'
 import ResponsiveDrawerOrDialog from './ResponsiveDrawerOrDialog'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -7,8 +7,26 @@ import { InfoCircledIcon, GearIcon, ArrowRightIcon } from '@radix-ui/react-icons
 import { AudioSourceSelect } from './AudioSourceSelect'
 import siteConfig from '../config/site-config'
 import { trackEvent } from '@/utils/goatcounter'
+import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
+
+// Utility function to format date as "M/D/YY - H:MM AM/PM"
+const formatLastUpdated = (dateString: string): string => {
+  const date = new Date(dateString);
+  const month = date.getMonth() + 1; // getMonth() returns 0-11
+  const day = date.getDate();
+  const year = date.getFullYear().toString().slice(-2); // Get last 2 digits
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12; // Convert 0 to 12
+  const displayMinutes = minutes.toString().padStart(2, '0');
+  
+  return `${month}/${day}/${year}, ${displayHours}:${displayMinutes} ${ampm}`;
+}
 
 function InfoDrawer() {
+  const { episodeManifest } = useEpisodeManifest();
+  
   const childTrigger = (
     <Button variant="ghost" size="icon">
       <InfoCircledIcon className="size-6" />
@@ -53,9 +71,34 @@ function InfoDrawer() {
         <Button variant="default" size="lg" className="mt-4 w-full" onClick={handleContactClick}>
           browse.show/contact <ArrowRightIcon className="size-4" />
         </Button>
-        <p className="mt-6 mb-2 text-sm">
+        <div className="mt-6 mb-2 text-xs flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
           <em>created by <a href="http://jackkoppa.com" className="underline" target="_blank" rel="noopener noreferrer">Jack Koppa</a></em>
-        </p>
+          {episodeManifest?.lastUpdated && (
+            <>
+              <span className="hidden sm:inline text-muted-foreground">|</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <span className="text-muted-foreground cursor-pointer">
+                    episodes updated @ <span className="underline">{formatLastUpdated(episodeManifest.lastUpdated)}</span>
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="max-w-xs p-3">
+                  <p className="text-sm">
+                    Episode should always be refreshed at least once-per-week.<br/><br/>If it's been more than 7 days since the episodes were updated, we have a bug! Please{' '}
+                    <a 
+                      href="https://github.com/jackkoppa/browse-dot-show/issues" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-medium"
+                    >
+                      reach out
+                    </a>.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
+        </div>
       </div>
     </ResponsiveDrawerOrDialog>
   )
