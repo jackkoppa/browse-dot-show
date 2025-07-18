@@ -1,15 +1,15 @@
 # Deployment Guide
 
-This guide will walk you through deploying your podcast site to AWS with proper authentication and configuration.
+This guide will walk you through deploying your podcast site to AWS using the automated deployment scripts.
 
 ## 🎯 Overview
 
 Your site will be deployed to AWS with:
 - **S3**: Static website hosting
 - **CloudFront**: Global CDN for fast loading
-- **Lambda**: Backend API functions
-- **Auth0**: User authentication (SSO)
+- **Lambda**: Backend API functions for search and ingestion
 - **Route 53**: Custom domain management
+- **Local transcription**: Cost-effective transcript generation
 
 ## 🔧 Prerequisites
 
@@ -23,7 +23,7 @@ pnpm --version  # Should be >=10.0.0
 aws --version
 # If not installed: brew install awscli (Mac) or visit aws.amazon.com/cli
 
-# Terraform
+# Terraform (managed by scripts, but good to have)
 terraform --version
 # If not installed: brew install terraform (Mac) or visit terraform.io
 ```
@@ -31,7 +31,7 @@ terraform --version
 ### AWS Account Setup
 1. **AWS Account**: You need an AWS account with billing enabled
 2. **Administrative Access**: IAM permissions for S3, CloudFront, Lambda, Route 53
-3. **Domain**: A domain name (can purchase through AWS Route 53)
+3. **Domain**: Your site will use `[site-name].browse.show` subdomain
 
 ## 🔐 Step 1: Configure AWS Authentication
 
@@ -75,276 +75,230 @@ aws configure --profile your-podcast-site
 aws sts get-caller-identity --profile your-podcast-site
 ```
 
-## 🔑 Step 2: Configure Auth0 SSO
+## 🌐 Step 2: Domain Configuration
 
-### Create Auth0 Account
+Your site will automatically be configured with a `*.browse.show` subdomain:
 
-1. Visit [auth0.com](https://auth0.com) and create a free account
-2. Create a new "Single Page Application"
-3. Note your domain, client ID, and client secret
+- **Automatic setup**: Your domain is `[your-site].browse.show`
+- **DNS management**: Handled automatically by browse.show infrastructure
+- **SSL certificate**: Automatically provisioned and managed
+- **No additional configuration needed**
 
-### Configure Auth0 Application
+If you want to use a custom domain later, you can modify the site configuration after deployment.
 
-**Allowed Callback URLs:**
-```
-https://your-site.browse.show/callback,
-http://localhost:3000/callback
-```
+## 🚀 Step 3: Bootstrap Terraform State
 
-**Allowed Logout URLs:**
-```
-https://your-site.browse.show,
-http://localhost:3000
-```
-
-**Allowed Web Origins:**
-```
-https://your-site.browse.show,
-http://localhost:3000
-```
-
-### Environment Configuration
-
-Create your environment file:
+Before deploying for the first time, you need to set up the Terraform state management:
 
 ```bash
-# Copy the template
-cp terraform/sites/[your-site]/.env.example terraform/sites/[your-site]/.env
+# Bootstrap the Terraform state for your site
+pnpm run automation:bootstrap-state
 
-# Edit with your values
-vim terraform/sites/[your-site]/.env
+# When prompted, select your site
+# This creates the S3 bucket and DynamoDB table for Terraform state
 ```
 
-Add these Auth0 values:
-```bash
-# Auth0 Configuration
-AUTH0_DOMAIN=your-domain.auth0.com
-AUTH0_CLIENT_ID=your-client-id
-AUTH0_CLIENT_SECRET=your-client-secret
-AUTH0_AUDIENCE=https://your-site.browse.show
+This step:
+- Creates S3 bucket for Terraform state storage
+- Sets up DynamoDB table for state locking
+- Configures remote state backend
+- Only needs to be run once per site
 
-# AWS Configuration
-AWS_PROFILE=your-podcast-site
-AWS_REGION=us-east-1
+## 📦 Step 4: Deploy Site Infrastructure
 
-# Site Configuration
-SITE_ID=your-site
-DOMAIN_NAME=your-site.browse.show
-```
-
-## 🌐 Step 3: Configure Domain
-
-### Option A: Use browse.show Subdomain
-
-If using a `*.browse.show` subdomain (recommended for testing):
-
-1. Your domain is automatically configured as `your-site.browse.show`
-2. DNS will be managed by the browse.show team
-3. SSL certificate will be automatically provisioned
-
-### Option B: Use Custom Domain
-
-If you want to use your own domain:
-
-1. **Purchase domain** through AWS Route 53 or your preferred registrar
-2. **Update site config** to use your domain:
-```json
-{
-  "domain": "your-custom-domain.com"
-}
-```
-
-3. **Update Terraform variables:**
-```bash
-# In terraform/sites/[your-site]/variables.tf
-variable "domain_name" {
-  default = "your-custom-domain.com"
-}
-```
-
-## 🚀 Step 4: Deploy Infrastructure
-
-### Initialize Terraform
+Deploy your site to AWS using the automated deployment script:
 
 ```bash
-cd terraform/sites/[your-site]
+# Deploy your site infrastructure and content
+pnpm run site:deploy
 
-# Initialize Terraform
-terraform init
-
-# Review the planned changes
-terraform plan
+# When prompted, select your site
+# This will:
+# - Create all AWS resources (S3, CloudFront, Lambda functions)
+# - Build and upload your site content
+# - Configure domain and SSL certificate
+# - Set up the search API
 ```
 
-### Deploy to AWS
-
-```bash
-# Apply the infrastructure
-terraform apply
-
-# Type 'yes' when prompted
-```
-
-This will create:
-- S3 bucket for your website
-- CloudFront distribution
-- Lambda functions for search API
-- Route 53 DNS records (if using custom domain)
-- SSL certificate
+The deployment script handles:
+- **Infrastructure creation**: All AWS resources via Terraform
+- **Content building**: Compiles your site for production
+- **Asset uploading**: Deploys to S3 and CloudFront
+- **Configuration**: Sets up all necessary environment variables
 
 ### Verify Deployment
 
-```bash
-# Check that resources were created
-aws s3 ls --profile your-podcast-site
-aws cloudfront list-distributions --profile your-podcast-site
-```
+Your site should now be live at `https://[your-site].browse.show`
 
-## 📦 Step 5: Deploy Site Content
+Test that:
+- [ ] Site loads correctly
+- [ ] Basic navigation works
+- [ ] Search interface is present (but no content yet)
 
-### Build and Upload
+## 🔄 Step 5: Generate Content with Local Ingestion
 
-```bash
-# Return to project root
-cd ../../..
-
-# Build your site for production
-pnpm client:build:specific-site
-
-# When prompted, select your site
-
-# Upload to S3
-pnpm client:upload-all-sites
-```
-
-### Verify Site is Live
-
-Visit your domain to confirm the site is working:
-- `https://your-site.browse.show` (for subdomain)
-- `https://your-custom-domain.com` (for custom domain)
-
-## 🔄 Step 6: Set Up Content Pipeline
-
-### Initial Data Load
+After your site is deployed, run the ingestion pipeline to populate it with podcast content:
 
 ```bash
-# Trigger podcast data ingestion
-pnpm ingestion:run-pipeline:interactive
+# Run the complete ingestion pipeline
+pnpm run ingestion:run-pipeline:interactive
 
-# Select your site when prompted
-# Choose "Full pipeline" to download and process all episodes
+# When prompted:
+# 1. Select your site
+# 2. Choose "Full pipeline" for initial setup
+# 3. Confirm you want to proceed
 ```
 
-### Schedule Regular Updates
+### What the Ingestion Pipeline Does
 
-Set up automatic podcast updates:
+**Step 1: Download Episodes**
+- Downloads podcast RSS feed
+- Fetches episode metadata
+- Downloads audio files to local storage
 
-```bash
-# Deploy the ingestion pipeline
-pnpm automation:deploy
+**Step 2: Generate Transcripts (Local)**
+- Uses local Whisper API for transcription
+- Significantly cheaper than cloud APIs
+- Processes audio files to generate accurate transcripts
 
-# This creates CloudWatch scheduled events to:
-# - Check for new episodes daily
-# - Process new audio weekly
-# - Update search index continuously
-```
+**Step 3: Process and Index**
+- Converts transcripts to searchable format
+- Generates episode summaries and metadata
+- Creates search index for fast queries
 
-## ✅ Step 7: Verify Everything Works
+**Step 4: Upload to AWS**
+- Uploads processed content to S3
+- Updates search database
+- Refreshes CloudFront cache
+
+### Cost Savings with Local Transcription
+
+By running transcription locally, you save significant costs:
+- **Cloud API costs**: $0.006 per minute (adds up quickly)
+- **Local processing**: Only compute time on your machine
+- **One-time setup**: Process entire podcast archive locally
+- **Ongoing updates**: Only new episodes need processing
+
+## ✅ Step 6: Verify Everything Works
 
 ### Test Website Features
 
-- [ ] **Site loads** at your domain
-- [ ] **Search works** (try searching for episode topics)
-- [ ] **Episodes display** with proper formatting
+Visit `https://[your-site].browse.show` and verify:
+
+- [ ] **Site loads** quickly and correctly
+- [ ] **Episodes display** with proper formatting and metadata
+- [ ] **Search works** (try searching for episode topics, guest names)
 - [ ] **Transcripts load** when clicking on episodes
 - [ ] **Dark/light mode** toggles correctly
-- [ ] **Mobile responsive** design works
-
-### Test Authentication
-
-- [ ] **Login button** appears on site
-- [ ] **Auth0 login** redirects properly
-- [ ] **User session** persists after login
-- [ ] **Logout** works correctly
+- [ ] **Mobile responsive** design works properly
 
 ### Test Performance
 
 - [ ] **Page loads** in under 3 seconds
-- [ ] **Search responds** quickly
-- [ ] **Images load** properly
+- [ ] **Search responds** quickly (under 1 second)
+- [ ] **Images and assets load** properly
 - [ ] **CDN delivers** content globally
+
+## 🔄 Step 7: Set Up Ongoing Updates
+
+### Automatic Updates (Optional)
+
+Set up scheduled processing for new episodes:
+
+```bash
+# Deploy automation for regular updates
+pnpm run automation:deploy
+
+# This creates scheduled events to:
+# - Check for new episodes daily
+# - Process new content automatically
+# - Update search index continuously
+```
+
+### Manual Updates
+
+When you want to add new episodes manually:
+
+```bash
+# Run incremental update
+pnpm run ingestion:run-pipeline:interactive
+
+# Select "Incremental update" to process only new episodes
+```
 
 ## 🔧 Troubleshooting
 
 ### Common Deployment Issues
 
-**Terraform Fails**
+**AWS Authentication Problems**
 ```bash
-# Check AWS credentials
+# Verify your AWS credentials
 aws sts get-caller-identity --profile your-podcast-site
 
-# Verify permissions
-aws iam list-attached-user-policies --user-name your-username
+# If using SSO, refresh your session
+aws sso login --profile your-podcast-site
 ```
 
 **Site Not Loading**
 ```bash
-# Check CloudFront distribution status
-aws cloudfront list-distributions --profile your-podcast-site
+# Check deployment status
+pnpm run site:deploy
 
-# Verify S3 bucket contents
-aws s3 ls s3://your-site-bucket --profile your-podcast-site
+# Verify resources in AWS console
+# Look for CloudFront distribution and S3 bucket
 ```
 
-**Auth0 Issues**
-- Verify callback URLs match exactly
-- Check that domain is correct in .env file
-- Ensure client secret is not exposed in frontend code
-
-**DNS Problems**
+**Missing Content**
 ```bash
-# Check DNS propagation
-dig your-site.browse.show
-nslookup your-site.browse.show
+# Re-run the ingestion pipeline
+pnpm run ingestion:run-pipeline:interactive
+
+# Check local data directory
+ls -la aws-local-dev/s3/sites/[your-site]/
 ```
 
 ### Performance Issues
 
-**Slow Loading**
-- Check CloudFront cache hit ratio in AWS console
-- Verify assets are properly compressed
-- Test from different geographic locations
+**Slow Search**
+- Check if search index was properly created
+- Verify Lambda function is running correctly
+- Monitor CloudWatch logs for errors
 
-**Search Performance**
-- Monitor Lambda function metrics
-- Check if search index needs rebuilding
-- Verify database connections
+**Missing Episodes**
+- Verify RSS feed URL is correct in site configuration
+- Check that RSS feed is publicly accessible
+- Re-run ingestion pipeline if needed
 
 ## 🔄 Ongoing Maintenance
 
-### Regular Updates
+### Regular Tasks
+
+**Weekly:**
+- Check for new episodes: `pnpm run ingestion:run-pipeline:interactive`
+- Monitor AWS costs in the billing console
+- Verify site performance and uptime
 
 **Monthly:**
-- Review AWS billing and usage
-- Check for security updates in dependencies
-- Monitor search performance metrics
+- Review AWS resource usage
+- Update dependencies: `pnpm update`
+- Check for security updates
 
 **Quarterly:**
-- Update podcast feed configurations
-- Review and rotate Auth0 secrets
-- Test disaster recovery procedures
+- Review podcast feed configuration
+- Optimize search performance if needed
+- Consider adding more podcasts to your site
 
 ### Scaling Considerations
 
 **High Traffic:**
-- Monitor CloudFront bandwidth usage
-- Consider upgrading Lambda memory/timeout
+- Monitor CloudFront bandwidth and costs
+- Consider upgrading Lambda memory allocation
 - Set up CloudWatch alerts for errors
 
 **Large Podcast Archives:**
 - Monitor S3 storage costs
-- Consider lifecycle policies for old episodes
-- Optimize search index size
+- Consider lifecycle policies for old audio files
+- Optimize search index for performance
 
 ## 💰 Cost Estimation
 
@@ -354,39 +308,77 @@ Typical monthly costs for a medium-sized podcast site:
 - **CloudFront**: $5-20 (depending on traffic)
 - **Lambda**: $0-10 (depending on search usage)
 - **Route 53**: $0.50 (per hosted zone)
-- **Auth0**: Free tier covers most personal projects
 
-**Total Estimated Monthly Cost: $10-50**
+**Total Estimated Monthly Cost: $10-35**
+
+**One-time Setup Costs:**
+- **Local transcription**: Free (uses your computer)
+- **Initial data processing**: Minimal Lambda costs
+- **Domain setup**: Free for *.browse.show subdomains
 
 ## 🔒 Security Best Practices
 
 ### Access Control
 - Use least-privilege IAM policies
 - Rotate AWS access keys regularly
-- Enable CloudTrail logging
-- Set up billing alerts
+- Enable CloudTrail logging for audit trails
+- Set up billing alerts to monitor costs
 
 ### Application Security
-- Keep Auth0 secrets secure and rotated
-- Use HTTPS everywhere
-- Enable CORS properly
-- Validate all user inputs
+- All traffic uses HTTPS
+- API endpoints have proper rate limiting
+- Search queries are sanitized
+- No sensitive data in client-side code
 
 ### Monitoring
-- Set up CloudWatch alarms
+- CloudWatch alarms for errors and performance
+- Regular security scans of dependencies
 - Monitor unusual access patterns
-- Enable AWS Config for compliance
-- Regular security scans
+- AWS Config for compliance tracking
+
+## 🆘 Need Help?
+
+### Common Support Resources
+
+1. **Check the logs**: 
+   - Local logs: Check terminal output during ingestion
+   - AWS logs: CloudWatch Logs for Lambda functions
+
+2. **Verify configuration**:
+   - Site config: `sites/my-sites/[your-site]/site.config.json`
+   - AWS resources: Check AWS console
+
+3. **Re-run processes**:
+   - Deployment: `pnpm run site:deploy`
+   - Content: `pnpm run ingestion:run-pipeline:interactive`
+
+### Getting Additional Help
+
+- **AWS Documentation**: Official AWS service documentation
+- **Community Support**: browse.show community forums
+- **Professional Help**: Consider AWS support plans for production sites
 
 ---
 
-**Congratulations!** Your podcast site is now live and searchable. Visit your domain to see it in action, and don't forget to share it with your podcast community! 🎉
+**Congratulations!** Your podcast site is now live and fully functional. Visit `https://[your-site].browse.show` to see your searchable podcast archive in action! 🎉
 
-## 📞 Getting Help
+## 📋 Quick Reference
 
-If you encounter issues:
+### Essential Commands
+```bash
+# Initial deployment
+pnpm run automation:bootstrap-state  # One-time setup
+pnpm run site:deploy                 # Deploy infrastructure & content
 
-1. **Check the logs**: CloudWatch Logs for Lambda functions
-2. **Review documentation**: AWS and Auth0 official docs
-3. **Community support**: Browse.show community forums
-4. **Professional help**: Consider AWS support plans for production sites
+# Content management  
+pnpm run ingestion:run-pipeline:interactive  # Add/update episodes
+
+# Maintenance
+pnpm run automation:deploy           # Set up automatic updates
+pnpm validate:sites                  # Verify configuration
+```
+
+### Important Files
+- **Site config**: `sites/my-sites/[your-site]/site.config.json`
+- **Terraform state**: Managed automatically in S3
+- **Local data**: `aws-local-dev/s3/sites/[your-site]/`
