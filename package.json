@@ -25,7 +25,7 @@
     "search-lambda:dev:health-check": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/run-with-site-selection.ts \"search lambda (local health check)\" \"pnpm --filter @browse-dot-show/search-lambda dev:health-check\"",
     "site:deploy": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/site-deploy.ts\"",
     "site:destroy": "tsx scripts/run-with-site-selection.ts \"infrastructure destruction\" \"tsx scripts/deploy/site-destroy.ts\"",
-    "site:create": "tsx scripts/site-create.ts",
+    "site:create": "tsx scripts/create-site.ts",
     "site:setup-directories": "tsx scripts/site-setup-directories.ts",
     "validate:local": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:all:local\"",
     "validate:prod": "tsx scripts/run-with-site-selection.ts \"prod validation\" \"pnpm --filter @browse-dot-show/validation validate:all:prod\"",

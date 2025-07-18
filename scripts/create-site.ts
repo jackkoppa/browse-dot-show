@@ -283,7 +283,7 @@ async function runSiteValidation(siteId: string): Promise<boolean> {
   }
 }
 
-async function presentNextSteps(): Promise<void> {
+async function presentNextSteps(siteId: string): Promise<void> {
   printSuccess('\n🎉 Site created successfully!\n');
   
   const choices = [
@@ -334,7 +334,7 @@ async function presentNextSteps(): Promise<void> {
       break;
     case 'config':
       printInfo('Your site configuration is located at:');
-      printInfo(`sites/my-sites/${response.siteId}/site.config.json`);
+      printInfo(`sites/my-sites/${siteId}/site.config.json`);
       break;
     case 'done':
     default:
@@ -481,7 +481,7 @@ async function main(): Promise<void> {
   await runSiteValidation(siteId);
   
   // Step 9: Present next steps
-  await presentNextSteps();
+  await presentNextSteps(siteId);
 }
 
 // Run the script
