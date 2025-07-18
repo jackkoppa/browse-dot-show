@@ -463,13 +463,16 @@ async function triggerSearchApiLambdaRefresh(
       forceFreshDBFileDownload: true
     });
     
+    // https://stackoverflow.com/a/64922434/4167438
+    const encodedPayload = Buffer.from(payload).toString('base64');
+    
     // Invoke the search-api lambda function using the assumed role credentials
     const invokeResult = await execCommand('aws', [
       'lambda', 'invoke',
       '--function-name', searchLambdaName,
       '--invocation-type', 'Event', // Async invocation
-      '--payload', payload,
-      '/tmp/search-lambda-refresh-output.json'
+      '--payload', encodedPayload,
+      '/tmp/lambda-invoke-output.json'
     ], {
       silent: true,
       env: {
@@ -480,6 +483,8 @@ async function triggerSearchApiLambdaRefresh(
         AWS_REGION: credentials.AWS_REGION
       }
     });
+
+    
     
     const duration = Date.now() - startTime;
     
