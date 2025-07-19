@@ -29,6 +29,7 @@ import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
 import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
+import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1284,9 +1285,10 @@ async function runLocalIndexingForSite(
  * Main function
  */
 async function main(): Promise<void> {
+  const startTime = new Date();
   console.log('🤖 Ingestion Pipeline - Comprehensive Podcast Processing');
   console.log('='.repeat(60));
-  console.log(`Started at: ${new Date().toISOString()}`);
+  console.log(`Started at: ${startTime.toISOString()}`);
   
   // Parse command line arguments
   let config = parseArguments();
@@ -1807,6 +1809,16 @@ async function main(): Promise<void> {
   console.log(`   🎤 Total Episodes Transcribed: ${totalEpisodesTranscribed}`);
   console.log(`   🔍 Total Local Index Entries Processed: ${totalLocalIndexingEntriesProcessed}`);
   
+  // Log pipeline results to file
+  const endTime = new Date();
+  try {
+    const logger = new PipelineResultLogger();
+    logger.logPipelineRun(results, startTime, endTime);
+    console.log(`\n📝 Pipeline results logged to: ${logger.getLogFilePath()}`);
+  } catch (error) {
+    console.warn(`⚠️  Failed to log pipeline results: ${error instanceof Error ? error.message : error}`);
+  }
+
   // Exit with appropriate code
   const hasErrors = results.some(r => r.errors.length > 0);
   if (hasErrors) {
