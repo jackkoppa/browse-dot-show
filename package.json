@@ -29,7 +29,8 @@
     "validate:local": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:all:local\"",
     "validate:prod": "tsx scripts/run-with-site-selection.ts \"prod validation\" \"pnpm --filter @browse-dot-show/validation validate:all:prod\"",
     "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
-    "validate:consistency": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:consistency\""
+    "validate:consistency": "tsx scripts/run-with-site-selection.ts \"local validation\" \"pnpm --filter @browse-dot-show/validation validate:consistency\"",
+    "power:manage": "tsx scripts/power-management.ts"
   },
   "engines": {
     "node": ">=20.0.0",
