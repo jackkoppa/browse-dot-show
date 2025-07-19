@@ -1,10 +1,11 @@
 #!/usr/bin/env tsx
 
 import { execSync, spawn } from 'child_process';
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import * as readline from 'readline';
 import { homedir } from 'os';
+import prompts from 'prompts';
 import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
 
 interface PowerStatus {
@@ -16,6 +17,7 @@ interface PowerStatus {
 interface PowerConfig {
   isConfigured: boolean;
   wakeTime: string;
+  daysOfWeek: string[];
   hasScheduledEvents: boolean;
   lidwake: boolean;
   womp: boolean;
@@ -23,10 +25,17 @@ interface PowerConfig {
   ttyskeepawake: boolean;
 }
 
+interface UserScheduleConfig {
+  wakeTime: string;
+  daysOfWeek: string[];
+}
+
 class MacPowerManager {
   private readonly CONFIG_FILE = join(process.cwd(), '.power-management-config');
-  private readonly WAKE_TIME = "01:00:00"; // 1:00 AM local time
+  private readonly DEFAULT_WAKE_TIME = "01:00:00"; // 1:00 AM local time
+  private readonly DEFAULT_DAYS_OF_WEEK = ['MTWRFSU']; // Monday through Sunday
   private readonly MIN_BATTERY_LEVEL = 50;
+  private readonly LOG_DIR = join(process.cwd(), 'scripts/automation-logs');
   private rl: readline.Interface;
 
   constructor() {
@@ -72,7 +81,7 @@ class MacPowerManager {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 This script configures your Mac to automatically:
-  • Wake up at 1:00 AM daily (works with lid closed/open)
+  • Wake up at a configurable time on selected days (works with lid closed/open)
   • Run the ingestion pipeline if conditions are met
   • Return to sleep/off state after completion
 
@@ -128,8 +137,8 @@ REQUIREMENTS:
     // Scheduled Events
     console.log('⏰ SCHEDULED EVENTS:');
     if (config.hasScheduledEvents) {
-      console.log(`   ✅ Daily wake scheduled at ${this.WAKE_TIME} (1:00 AM local time)`);
-      console.log('   📅 Schedule: Every day of the week (MTWRFSU)');
+      console.log(`   ✅ Wake scheduled at ${config.wakeTime}`);
+      console.log(`   📅 Schedule: ${this.formatDaysForDisplay(config.daysOfWeek)}`);
       
       try {
         const scheduleOutput = this.executeCommand('pmset -g sched', false);
@@ -225,9 +234,14 @@ REQUIREMENTS:
       console.log('                              INITIAL SETUP REQUIRED');
       console.log('═══════════════════════════════════════════════════════════════════════════════\n');
       
-      const shouldSetup = await this.askYesNo('Would you like to set up power management for the ingestion pipeline?');
+      const response = await prompts({
+        type: 'confirm',
+        name: 'setup',
+        message: 'Would you like to set up power management for the ingestion pipeline?',
+        initial: true
+      });
       
-      if (shouldSetup) {
+      if (response.setup) {
         await this.performInitialSetup();
       } else {
         console.log('\nSetup skipped. Run this script again when you\'re ready to configure power management.');
@@ -246,36 +260,44 @@ REQUIREMENTS:
    */
   private async showConfigurationMenu(): Promise<void> {
     console.log('Current configuration looks good! What would you like to do?\n');
-    console.log('1. Keep current configuration (no changes)');
-    console.log('2. Clear all power management scheduling');
-    console.log('3. Reconfigure from scratch');
-    console.log('4. Test the pipeline manually (without changing power state)');
-    console.log('5. View recent pipeline run history');
-    console.log('6. Show detailed help information');
     
-    const choice = await this.askQuestion('\nEnter your choice (1-6): ');
-    
-    switch (choice.trim()) {
-      case '1':
-        console.log('\n✅ Configuration unchanged. Your Mac will continue waking at 1:00 AM daily.');
+    const menuChoices = [
+      { title: 'Keep current configuration (no changes)', value: 'keep' },
+      { title: 'Clear all power management scheduling', value: 'clear' },
+      { title: 'Reconfigure from scratch', value: 'reconfigure' },
+      { title: 'Test the pipeline manually (without changing power state)', value: 'test' },
+      { title: 'View recent pipeline run history', value: 'history' },
+      { title: 'Show detailed help information', value: 'help' }
+    ];
+
+    const response = await prompts({
+      type: 'select',
+      name: 'action',
+      message: 'Select an action:',
+      choices: menuChoices
+    });
+
+    switch (response.action) {
+      case 'keep':
+        console.log('\n✅ Configuration unchanged. Your Mac will continue with the current schedule.');
         break;
-      case '2':
+      case 'clear':
         await this.clearConfiguration();
         break;
-      case '3':
+      case 'reconfigure':
         await this.performInitialSetup();
         break;
-      case '4':
+      case 'test':
         await this.testPipelineManually();
         break;
-      case '5':
+      case 'history':
         await this.showPipelineHistory();
         break;
-      case '6':
+      case 'help':
         this.showDetailedHelp();
         break;
       default:
-        console.log('\n❌ Invalid choice. No changes made.');
+        console.log('\n❌ No action selected. No changes made.');
     }
   }
 
@@ -284,6 +306,9 @@ REQUIREMENTS:
    */
   private async performInitialSetup(): Promise<void> {
     console.log('\n🚀 Starting power management setup...\n');
+
+    // Get user preferences for schedule
+    const scheduleConfig = await this.getUserSchedulePreferences();
 
     try {
       // Clear any existing schedules
@@ -300,22 +325,23 @@ REQUIREMENTS:
       console.log('   ✅ Power settings configured\n');
 
       // Set up the schedule
-      console.log('3️⃣  Setting up daily wake schedule...');
-      const scheduleCommand = `pmset repeat wakeorpoweron MTWRFSU ${this.WAKE_TIME}`;
+      console.log('3️⃣  Setting up wake schedule...');
+      const daysString = scheduleConfig.daysOfWeek.join('');
+      const scheduleCommand = `pmset repeat wakeorpoweron ${daysString} ${scheduleConfig.wakeTime}`;
       this.executeCommand(scheduleCommand);
-      console.log(`   ✅ Daily wake scheduled for ${this.WAKE_TIME} (1:00 AM local time)\n`);
+      console.log(`   ✅ Wake scheduled for ${scheduleConfig.wakeTime} on ${this.formatDaysForDisplay(scheduleConfig.daysOfWeek)}\n`);
 
       // Set up LaunchAgent for automatic execution
       console.log('4️⃣  Setting up automatic pipeline execution...');
-      await this.setupLaunchAgent();
+      await this.setupLaunchAgent(scheduleConfig);
       console.log('   ✅ LaunchAgent configured for automatic pipeline execution\n');
 
       // Mark as configured
-      this.markAsConfigured();
+      this.markAsConfigured(scheduleConfig);
 
       console.log('🎉 SETUP COMPLETE!\n');
       console.log('Your Mac is now configured to:');
-      console.log(`   • Wake up daily at ${this.WAKE_TIME} (1:00 AM local time)`);
+      console.log(`   • Wake up at ${scheduleConfig.wakeTime} on ${this.formatDaysForDisplay(scheduleConfig.daysOfWeek)}`);
       console.log('   • Run the ingestion pipeline automatically');
       console.log('   • Return to sleep/off state after completion');
       console.log('   • Work with lid open or closed');
@@ -324,9 +350,9 @@ REQUIREMENTS:
       console.log('On battery power, it will only run if battery > 50%.');
       console.log();
       console.log('📝 IMPORTANT NOTES:');
-      console.log('   • Logs will be written to /tmp/power-management.log');
-      console.log('   • Error logs will be written to /tmp/power-management-error.log');
-      console.log('   • The LaunchAgent will automatically run the pipeline at 1:01 AM');
+      console.log(`   • Logs will be written to ${this.LOG_DIR}/power-management.log`);
+      console.log(`   • Error logs will be written to ${this.LOG_DIR}/power-management-error.log`);
+      console.log(`   • The LaunchAgent will automatically run the pipeline at ${this.getLaunchAgentTime(scheduleConfig.wakeTime)}`);
       console.log('   • pmset handles the wake scheduling, LaunchAgent handles the execution');
 
     } catch (error) {
@@ -339,9 +365,14 @@ REQUIREMENTS:
    * Clears configuration
    */
   private async clearConfiguration(): Promise<void> {
-    const confirm = await this.askYesNo('\n⚠️  Are you sure you want to clear all power management scheduling?');
+    const response = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: '⚠️  Are you sure you want to clear all power management scheduling?',
+      initial: false
+    });
     
-    if (confirm) {
+    if (response.confirm) {
       console.log('\nClearing power management configuration...');
       this.executeCommand('pmset repeat cancel');
       await this.removeLaunchAgent();
@@ -360,9 +391,14 @@ REQUIREMENTS:
     console.log('\n🧪 Testing ingestion pipeline manually...');
     console.log('This will run the pipeline without changing power states.\n');
     
-    const confirm = await this.askYesNo('Do you want to proceed with the test?');
+    const response = await prompts({
+      type: 'confirm',
+      name: 'confirm',
+      message: 'Do you want to proceed with the test?',
+      initial: false
+    });
     
-    if (confirm) {
+    if (response.confirm) {
       try {
         console.log('\nStarting pipeline test...');
         await this.runIngestionPipeline();
@@ -396,8 +432,14 @@ REQUIREMENTS:
       console.error('❌ Failed to read pipeline history:', error);
     }
     
-    const viewMore = await this.askYesNo('\nWould you like to open the full log file?');
-    if (viewMore) {
+    const response = await prompts({
+      type: 'confirm',
+      name: 'openLog',
+      message: 'Would you like to open the full log file?',
+      initial: false
+    });
+    
+    if (response.openLog) {
       try {
         const logger = new PipelineResultLogger();
         this.executeCommand(`open "${logger.getLogFilePath()}"`, false);
@@ -419,11 +461,11 @@ REQUIREMENTS:
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 WHAT THIS SCRIPT DOES:
-This script configures your Mac to automatically wake up at 1:00 AM every day
-and run the ingestion pipeline. It's designed for unattended operation.
+This script configures your Mac to automatically wake up at a configurable time
+on selected days and run the ingestion pipeline. It's designed for unattended operation.
 
 POWER MANAGEMENT BEHAVIOR:
-• Wakes at 1:00 AM daily (local time) regardless of lid position
+• Wakes at configurable time on selected days (local time) regardless of lid position
 • Checks power source and battery level
 • Runs pipeline if conditions are met
 • Returns to previous power state (sleep or off)
@@ -440,7 +482,8 @@ TECHNICAL DETAILS:
 • Keeps system awake during SSH sessions
 
 SCHEDULED WAKE COMMAND:
-pmset repeat wakeorpoweron MTWRFSU ${this.WAKE_TIME}
+pmset repeat wakeorpoweron [DAYS] [TIME]
+Example: pmset repeat wakeorpoweron MTWRFSU 01:00:00
 
 FILES MODIFIED:
 • /Library/Preferences/SystemConfiguration/com.apple.AutoWake.plist
@@ -513,7 +556,24 @@ For more information about pmset, see: man pmset
    * Gets current configuration status
    */
   private getCurrentConfig(): PowerConfig {
-    const isConfigured = existsSync(this.CONFIG_FILE) && existsSync(this.getLaunchAgentPath());
+    let isConfigured = false;
+    let wakeTime = this.DEFAULT_WAKE_TIME;
+    let daysOfWeek = this.DEFAULT_DAYS_OF_WEEK;
+
+    // Check if config file exists and read saved configuration
+    if (existsSync(this.CONFIG_FILE)) {
+      try {
+        const configData = JSON.parse(readFileSync(this.CONFIG_FILE, 'utf8'));
+        isConfigured = configData.configured || false;
+        wakeTime = configData.wakeTime || this.DEFAULT_WAKE_TIME;
+        daysOfWeek = configData.daysOfWeek || this.DEFAULT_DAYS_OF_WEEK;
+      } catch (e) {
+        // Ignore config file errors
+      }
+    }
+
+    // Also check if LaunchAgent exists
+    isConfigured = isConfigured && existsSync(this.getLaunchAgentPath());
     
     try {
       // Check for scheduled events
@@ -529,7 +589,8 @@ For more information about pmset, see: man pmset
       
       return {
         isConfigured,
-        wakeTime: this.WAKE_TIME,
+        wakeTime,
+        daysOfWeek,
         hasScheduledEvents,
         lidwake,
         womp,
@@ -539,7 +600,8 @@ For more information about pmset, see: man pmset
     } catch (error) {
       return {
         isConfigured: false,
-        wakeTime: this.WAKE_TIME,
+        wakeTime,
+        daysOfWeek,
         hasScheduledEvents: false,
         lidwake: false,
         womp: false,
@@ -624,9 +686,9 @@ For more information about pmset, see: man pmset
   /**
    * Sets up LaunchAgent for automatic pipeline execution
    */
-  private async setupLaunchAgent(): Promise<void> {
+  private async setupLaunchAgent(scheduleConfig: UserScheduleConfig): Promise<void> {
     const launchAgentPath = this.getLaunchAgentPath();
-    const plistContent = this.generateLaunchAgentPlist();
+    const plistContent = this.generateLaunchAgentPlist(scheduleConfig);
     
     try {
       // Remove existing LaunchAgent if it exists
@@ -678,9 +740,21 @@ For more information about pmset, see: man pmset
   /**
    * Generates the LaunchAgent plist content
    */
-  private generateLaunchAgentPlist(): string {
+  private generateLaunchAgentPlist(scheduleConfig: UserScheduleConfig): string {
     const projectPath = process.cwd();
     const scriptPath = join(projectPath, 'scripts/power-management.ts');
+    const logDir = this.LOG_DIR;
+    const launchTime = this.getLaunchAgentTime(scheduleConfig.wakeTime);
+    const [launchHour, launchMinute] = launchTime.split(':').map(Number);
+    
+    // Ensure log directory exists
+    if (!existsSync(logDir)) {
+      try {
+        mkdirSync(logDir, { recursive: true });
+      } catch (e) {
+        // Ignore errors - will be handled at runtime
+      }
+    }
     
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -702,16 +776,16 @@ For more information about pmset, see: man pmset
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
-        <integer>1</integer>
+        <integer>${launchHour}</integer>
         <key>Minute</key>
-        <integer>1</integer>
+        <integer>${launchMinute}</integer>
     </dict>
     
     <key>StandardOutPath</key>
-    <string>/tmp/power-management.log</string>
+    <string>${logDir}/power-management.log</string>
     
     <key>StandardErrorPath</key>
-    <string>/tmp/power-management-error.log</string>
+    <string>${logDir}/power-management-error.log</string>
     
     <key>WorkingDirectory</key>
     <string>${projectPath}</string>
@@ -725,6 +799,110 @@ For more information about pmset, see: man pmset
     </dict>
 </dict>
 </plist>`;
+  }
+
+  /**
+   * Gets user preferences for schedule configuration
+   */
+  private async getUserSchedulePreferences(): Promise<UserScheduleConfig> {
+    console.log('═══════════════════════════════════════════════════════════════════════════════');
+    console.log('                              SCHEDULE CONFIGURATION');
+    console.log('═══════════════════════════════════════════════════════════════════════════════\n');
+
+    // Time selection
+    const timeChoices = [
+      { title: '12:00 AM (Midnight)', value: '00:00:00' },
+      { title: '1:00 AM', value: '01:00:00' },
+      { title: '2:00 AM', value: '02:00:00' },
+      { title: '3:00 AM', value: '03:00:00' },
+      { title: '4:00 AM', value: '04:00:00' },
+      { title: '5:00 AM', value: '05:00:00' },
+      { title: '6:00 AM', value: '06:00:00' },
+      { title: 'Custom time', value: 'custom' }
+    ];
+
+    const timeResponse = await prompts({
+      type: 'select',
+      name: 'wakeTime',
+      message: 'Select the time when the pipeline should run:',
+      choices: timeChoices,
+      initial: 1 // Default to 1:00 AM
+    });
+
+    let wakeTime = timeResponse.wakeTime;
+    
+    if (wakeTime === 'custom') {
+      const customTimeResponse = await prompts({
+        type: 'text',
+        name: 'customTime',
+        message: 'Enter custom time (HH:MM:SS format, e.g., 02:30:00):',
+        initial: '02:30:00',
+        validate: (value) => {
+          const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/;
+          return timeRegex.test(value) ? true : 'Please enter a valid time in HH:MM:SS format';
+        }
+      });
+      wakeTime = customTimeResponse.customTime;
+    }
+
+    // Days of week selection
+    const dayChoices = [
+      { title: 'Monday', value: 'M' },
+      { title: 'Tuesday', value: 'T' },
+      { title: 'Wednesday', value: 'W' },
+      { title: 'Thursday', value: 'R' },
+      { title: 'Friday', value: 'F' },
+      { title: 'Saturday', value: 'S' },
+      { title: 'Sunday', value: 'U' }
+    ];
+
+    const daysResponse = await prompts({
+      type: 'multiselect',
+      name: 'daysOfWeek',
+      message: 'Select which days of the week to run the pipeline:',
+      choices: dayChoices,
+      initial: [0, 1, 2, 3, 4, 5, 6] // Default to all days
+    });
+
+    return {
+      wakeTime,
+      daysOfWeek: daysResponse.daysOfWeek
+    };
+  }
+
+  /**
+   * Formats days of week for display
+   */
+  private formatDaysForDisplay(days: string[]): string {
+    const dayNames = {
+      'M': 'Monday',
+      'T': 'Tuesday', 
+      'W': 'Wednesday',
+      'R': 'Thursday',
+      'F': 'Friday',
+      'S': 'Saturday',
+      'U': 'Sunday'
+    };
+
+    if (days.length === 7) {
+      return 'Every day of the week';
+    } else if (days.length === 5 && days.includes('M') && days.includes('T') && days.includes('W') && days.includes('R') && days.includes('F')) {
+      return 'Weekdays (Monday-Friday)';
+    } else if (days.length === 2 && days.includes('S') && days.includes('U')) {
+      return 'Weekends (Saturday-Sunday)';
+    } else {
+      return days.map(day => dayNames[day]).join(', ');
+    }
+  }
+
+  /**
+   * Gets the LaunchAgent execution time (1 minute after wake time)
+   */
+  private getLaunchAgentTime(wakeTime: string): string {
+    const [hours, minutes, seconds] = wakeTime.split(':').map(Number);
+    const launchMinutes = (minutes + 1) % 60;
+    const launchHours = launchMinutes === 0 ? (hours + 1) % 24 : hours;
+    return `${launchHours.toString().padStart(2, '0')}:${launchMinutes.toString().padStart(2, '0')}:00`;
   }
 
   /**
@@ -743,11 +921,12 @@ For more information about pmset, see: man pmset
     return answer.toLowerCase().startsWith('y');
   }
 
-  private markAsConfigured(): void {
+  private markAsConfigured(scheduleConfig: UserScheduleConfig): void {
     writeFileSync(this.CONFIG_FILE, JSON.stringify({
       configured: true,
       timestamp: new Date().toISOString(),
-      wakeTime: this.WAKE_TIME
+      wakeTime: scheduleConfig.wakeTime,
+      daysOfWeek: scheduleConfig.daysOfWeek
     }, null, 2));
   }
 
