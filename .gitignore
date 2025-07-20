@@ -10,9 +10,6 @@ lerna-debug.log*
 # Ingestion pipeline logs
 ingestion-pipeline-runs.md
 
-# Power management config
-.power-management-config
-
 # Node
 node_modules
 dist
