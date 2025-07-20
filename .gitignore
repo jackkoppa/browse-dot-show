@@ -10,6 +10,10 @@ lerna-debug.log*
 # Ingestion pipeline logs
 ingestion-pipeline-runs.md
 
+# Automation system files
+.automation-config
+scripts/automation-logs/
+
 # Node
 node_modules
 dist

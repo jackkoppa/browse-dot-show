@@ -24,8 +24,8 @@ interface AutomationConfig {
 }
 
 class IngestionAutomationManager {
-  private readonly CONFIG_FILE = join(process.cwd(), '.automation-config');
-  private readonly TIMESTAMP_FILE = join(process.cwd(), '.last-pipeline-run');
+  private readonly CONFIG_FILE = join(process.cwd(), 'scripts/automation-logs/automation-config.json');
+  private readonly TIMESTAMP_FILE = join(process.cwd(), 'scripts/automation-logs/last-pipeline-run.json');
   private readonly MIN_BATTERY_LEVEL = 50;
   private readonly HOURS_BETWEEN_RUNS = 24;
   private readonly LOG_DIR = join(process.cwd(), 'scripts/automation-logs');
