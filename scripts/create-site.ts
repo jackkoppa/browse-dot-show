@@ -587,6 +587,16 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
     printInfo('🎨 Copied default browse.show theme');
   }
   
+  // Copy key colors CSS
+  const keyColorsSourcePath = 'packages/blocks/styles/key-colors.css';
+  const keyColorsTargetPath = join(targetDir, 'key-colors.css');
+  
+  if (await exists(keyColorsSourcePath)) {
+    const keyColorsContent = await readTextFile(keyColorsSourcePath);
+    await writeTextFile(keyColorsTargetPath, keyColorsContent);
+    printInfo('🎨 Copied key colors CSS');
+  }
+  
   // Copy default assets from homepage
   const assetsSourceDir = 'packages/homepage/original-assets';
   const assetsTargetDir = join(targetDir, 'assets');

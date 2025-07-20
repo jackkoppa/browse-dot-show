@@ -90,6 +90,9 @@ function validateSiteConfiguration(site: SiteConfig): ValidationResult {
     // 6. Validate terraform .tfvars file exists
     validateTerraformConfig(site, result);
     
+    // 7. Validate color consistency across files
+    validateColorConsistency(site, result);
+    
     return result;
 }
 
@@ -415,6 +418,115 @@ function validateTerraformConfig(site: SiteConfig, result: ValidationResult): vo
         
     } catch (error) {
         result.errors.push(`Error reading terraform .tfvars file: ${error}`);
+    }
+}
+
+/**
+ * Validates color consistency across index.css, key-colors.css, and site.webmanifest
+ * Ensures each site uses at most 2 unique colors across all 6 properties
+ */
+function validateColorConsistency(site: SiteConfig, result: ValidationResult): void {
+    const siteDir = getSiteDirectory(site.id);
+    if (!siteDir) {
+        result.warnings.push('Color validation skipped - site directory not found');
+        return;
+    }
+    
+    const normalizeColor = (color: string) => color.toLowerCase();
+    const foundProperties: { [key: string]: string } = {};
+    
+    // 1. Extract colors from index.css
+    const indexCssPath = path.join(siteDir, 'index.css');
+    if (fs.existsSync(indexCssPath)) {
+        try {
+            const cssContent = fs.readFileSync(indexCssPath, 'utf8');
+            
+            // Extract --primary color
+            const primaryMatch = cssContent.match(/--primary:\s*(#[a-fA-F0-9]{6})/);
+            if (primaryMatch) {
+                foundProperties['--primary (index.css)'] = primaryMatch[1];
+            }
+            
+            // Extract --secondary color
+            const secondaryMatch = cssContent.match(/--secondary:\s*(#[a-fA-F0-9]{6})/);
+            if (secondaryMatch) {
+                foundProperties['--secondary (index.css)'] = secondaryMatch[1];
+            }
+        } catch (error) {
+            result.warnings.push(`Error reading index.css for color validation: ${error}`);
+        }
+    }
+    
+    // 2. Extract colors from key-colors.css
+    const keyColorsCssPath = path.join(siteDir, 'key-colors.css');
+    if (fs.existsSync(keyColorsCssPath)) {
+        try {
+            const cssContent = fs.readFileSync(keyColorsCssPath, 'utf8');
+            
+            // Extract --browse-dot-show-theme-light color
+            const lightMatch = cssContent.match(/--browse-dot-show-theme-light:\s*(#[a-fA-F0-9]{6})/);
+            if (lightMatch) {
+                foundProperties['--browse-dot-show-theme-light (key-colors.css)'] = lightMatch[1];
+            }
+            
+            // Extract --browse-dot-show-theme-dark color
+            const darkMatch = cssContent.match(/--browse-dot-show-theme-dark:\s*(#[a-fA-F0-9]{6})/);
+            if (darkMatch) {
+                foundProperties['--browse-dot-show-theme-dark (key-colors.css)'] = darkMatch[1];
+            }
+        } catch (error) {
+            result.warnings.push(`Error reading key-colors.css for color validation: ${error}`);
+        }
+    }
+    
+    // 3. Extract colors from site.webmanifest
+    const webmanifestPath = path.join(siteDir, 'assets', 'site.webmanifest');
+    if (fs.existsSync(webmanifestPath)) {
+        try {
+            const manifestContent = fs.readFileSync(webmanifestPath, 'utf8');
+            const manifest = JSON.parse(manifestContent);
+            
+            // Extract theme_color
+            if (manifest.theme_color) {
+                foundProperties['theme_color (site.webmanifest)'] = manifest.theme_color;
+            }
+            
+            // Extract background_color
+            if (manifest.background_color) {
+                foundProperties['background_color (site.webmanifest)'] = manifest.background_color;
+            }
+        } catch (error) {
+            result.warnings.push(`Error reading site.webmanifest for color validation: ${error}`);
+        }
+    }
+    
+    // Count unique colors (case-insensitive)
+    const uniqueColors = new Set();
+    for (const color of Object.values(foundProperties)) {
+        uniqueColors.add(normalizeColor(color));
+    }
+    
+    // Check if more than 3 unique colors are used
+    if (uniqueColors.size > 3) {
+        result.errors.push(`Site uses ${uniqueColors.size} unique colors, but only 3 are allowed. Found:`);
+        
+        // Group properties by color for better error reporting
+        const colorGroups: { [color: string]: string[] } = {};
+        for (const [property, color] of Object.entries(foundProperties)) {
+            const normalizedColor = normalizeColor(color);
+            if (!colorGroups[normalizedColor]) {
+                colorGroups[normalizedColor] = [];
+            }
+            colorGroups[normalizedColor].push(`${property}: ${color}`);
+        }
+        
+        // List all colors and which properties use them
+        for (const [color, properties] of Object.entries(colorGroups)) {
+            result.errors.push(`  Color ${color}:`);
+            for (const property of properties) {
+                result.errors.push(`    - ${property}`);
+            }
+        }
     }
 }
 

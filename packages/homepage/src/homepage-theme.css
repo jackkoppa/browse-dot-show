@@ -1,4 +1,4 @@
-@import "./key-colors.css";
+@import "../../blocks/styles/key-colors";
 
 /* Updated mobile responsiveness */
 @media (max-width: 768px) {
