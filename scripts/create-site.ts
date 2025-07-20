@@ -579,7 +579,7 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
   
   // Copy default theme CSS
   const themeSourcePath = 'packages/blocks/styles/browse-dot-show-base-theme.css';
-  const themeTargetPath = join(targetDir, 'browse-dot-show-theme.css');
+  const themeTargetPath = join(targetDir, 'index.css');
   
   if (await exists(themeSourcePath)) {
     const themeContent = await readTextFile(themeSourcePath);
