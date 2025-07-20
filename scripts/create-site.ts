@@ -67,6 +67,7 @@ interface PodcastSearchResult {
   id: number;
   title: string;
   url: string;
+  link?: string;
   description?: string;
   author?: string;
   image?: string;
@@ -501,7 +502,7 @@ function createSiteId(podcastName: string): string {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
-async function searchPodcastRSSFeed(podcastName: string, _website?: string): Promise<PodcastSearchResult[]> {
+async function searchPodcastRSSFeed(podcastName: string): Promise<PodcastSearchResult[]> {
   try {
     printInfo(`Searching for "${podcastName}" podcast RSS feed...`);
     
@@ -900,31 +901,14 @@ async function handleNewSiteCreation(): Promise<void> {
     process.exit(0);
   }
   
-  // Step 2: Get podcast homepage
-  const homepageResponse = await prompts({
-    type: 'text',
-    name: 'podcastHomepage',
-    message: 'What is the homepage URL of your podcast?',
-    validate: (value: string) => {
-      if (!value.trim()) return 'Homepage URL is required';
-      if (!/^https?:\/\//.test(value)) return 'Please enter a valid URL starting with http:// or https://';
-      return true;
-    }
-  });
-  
-  if (!homepageResponse.podcastHomepage) {
-    printError('Site creation cancelled.');
-    process.exit(0);
-  }
-  
   const podcastName = nameResponse.podcastName;
-  const podcastHomepage = homepageResponse.podcastHomepage;
   
-  // Step 3: Search for RSS feed
+  // Step 2: Search for RSS feed
   printInfo('\n🔍 Searching for your podcast RSS feed...');
-  const searchResults = await searchPodcastRSSFeed(podcastName, podcastHomepage);
+  const searchResults = await searchPodcastRSSFeed(podcastName);
   
   let rssUrl: string;
+  let podcastHomepage: string;
   
   if (searchResults.length > 0) {
     // Present search results for confirmation
@@ -933,10 +917,10 @@ async function handleNewSiteCreation(): Promise<void> {
       name: 'selectedRss',
       message: 'Found potential RSS feeds. Please select the correct one:',
       choices: [
-        ...searchResults.map((result) => ({
+        ...searchResults.map((result, index) => ({
           title: result.title,
           description: result.description || result.url,
-          value: result.url
+          value: index.toString()
         })),
         {
           title: 'None of these are correct',
@@ -947,6 +931,7 @@ async function handleNewSiteCreation(): Promise<void> {
     });
     
     if (rssResponse.selectedRss === 'manual') {
+      // Prompt for both RSS URL and homepage when manually entering
       const manualRssResponse = await prompts({
         type: 'text',
         name: 'rssUrl',
@@ -957,9 +942,25 @@ async function handleNewSiteCreation(): Promise<void> {
           return true;
         }
       });
+      
+      const manualHomepageResponse = await prompts({
+        type: 'text',
+        name: 'podcastHomepage',
+        message: 'Please enter the podcast homepage URL:',
+        validate: (value: string) => {
+          if (!value.trim()) return 'Homepage URL is required';
+          if (!/^https?:\/\//.test(value)) return 'Please enter a valid URL starting with http:// or https://';
+          return true;
+        }
+      });
+      
       rssUrl = manualRssResponse.rssUrl;
+      podcastHomepage = manualHomepageResponse.podcastHomepage;
     } else {
-      rssUrl = rssResponse.selectedRss;
+      // Use selected result from search
+      const selectedResult = searchResults[parseInt(rssResponse.selectedRss)];
+      rssUrl = selectedResult.url;
+      podcastHomepage = selectedResult.link || selectedResult.url; // Fallback to RSS URL if no homepage link
     }
   } else {
     // No search results, direct user to manual search
@@ -980,12 +981,24 @@ async function handleNewSiteCreation(): Promise<void> {
       }
     });
     
-    if (!manualRssResponse.rssUrl) {
+    const manualHomepageResponse = await prompts({
+      type: 'text',
+      name: 'podcastHomepage',
+      message: 'Please enter the podcast homepage URL:',
+      validate: (value: string) => {
+        if (!value.trim()) return 'Homepage URL is required';
+        if (!/^https?:\/\//.test(value)) return 'Please enter a valid URL starting with http:// or https://';
+        return true;
+      }
+    });
+    
+    if (!manualRssResponse.rssUrl || !manualHomepageResponse.podcastHomepage) {
       printError('Site creation cancelled.');
       process.exit(0);
     }
     
     rssUrl = manualRssResponse.rssUrl;
+    podcastHomepage = manualHomepageResponse.podcastHomepage;
   }
   
   // Step 4: Generate site ID and validate
