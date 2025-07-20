@@ -51,7 +51,7 @@ export class PipelineResultLogger {
   private readonly logFilePath: string;
 
   constructor(projectRoot: string = process.cwd()) {
-    this.logFilePath = path.join(projectRoot, 'ingestion-pipeline-runs.md');
+    this.logFilePath = path.join(projectRoot, 'scripts/automation-logs/ingestion-pipeline-runs.md');
   }
 
   /**

@@ -266,7 +266,7 @@ REQUIREMENTS:
         const recentRuns = logger.getRecentEntries(3).split('\n').slice(0, 10);
         console.log(recentRuns.map(line => `   ${line}`).join('\n'));
         if (recentRuns.length >= 10) {
-          console.log('   ... (see ingestion-pipeline-runs.md for full history)');
+          console.log('   ... (see scripts/automation-logs/ingestion-pipeline-runs.md for full history)');
         }
       } else {
         console.log('   No pipeline runs logged yet.');
