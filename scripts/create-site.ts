@@ -7,6 +7,7 @@ import { printInfo, printSuccess, printWarning, printError, logInColor } from '.
 import prompts from 'prompts';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
 
 const execAsync = promisify(exec);
 
@@ -346,9 +347,9 @@ async function executeRunLocallyStep(progress: SetupProgress): Promise<StepStatu
   logInColor('green', `pnpm client:dev --filter ${progress.siteId}`);
   console.log('');
   console.log('This will start your React development server. You should see your');
-  console.log('podcast site running at http://localhost:3000');
+  console.log(`podcast site running at http://localhost:${CLIENT_PORT_NUMBER}`);
   console.log('');
-  printInfo('💡 Pro tip: Keep this command handy! You\'ll use it every time you want to preview your site.');
+  printWarning(`Note: the site won't yet work for searching - we'll get to that next! For now, just make sure you can view the UI`);
   console.log('');
   
   const confirmResponse = await prompts({

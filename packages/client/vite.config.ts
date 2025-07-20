@@ -7,6 +7,7 @@ import path from 'path'
 import type { ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
+import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
 
 import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
 
@@ -339,6 +340,9 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
+    },
+    server: {
+      port: CLIENT_PORT_NUMBER,
     }
   };
 })
