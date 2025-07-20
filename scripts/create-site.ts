@@ -377,6 +377,28 @@ async function openGuide(guidePath: string): Promise<void> {
 async function main(): Promise<void> {
   console.log('🎧 Welcome to the browse.show Site Creator!\n');
   
+  console.log('This quick setup will help you create a searchable podcast archive site.');
+  console.log('We\'ll ask you just a couple of questions to get started:\n');
+  console.log('📝 Your podcast name');
+  console.log('🌐 Your podcast homepage URL');
+  console.log('📡 We\'ll try to find your RSS feed automatically\n');
+  console.log('⏱️  Initial setup takes about a minute, then a few more minutes');
+  console.log('   to generate your site files and get everything ready to run locally.\n');
+  
+  const readyResponse = await prompts({
+    type: 'confirm',
+    name: 'ready',
+    message: 'Ready to get started?',
+    initial: true
+  });
+  
+  if (!readyResponse.ready) {
+    printInfo('No problem! Run this command again when you\'re ready.');
+    process.exit(0);
+  }
+  
+  console.log('Great! Let\'s build your podcast site. 🚀\n');
+  
   // Step 1: Get podcast name
   const nameResponse = await prompts({
     type: 'text',
