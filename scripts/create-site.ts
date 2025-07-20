@@ -224,14 +224,6 @@ function displayProgressUpdate(progress: SetupProgress, stepId: string, oldStatu
       console.log('');
       printSuccess('🚀 AMAZING! You\'ve completed your entire podcast site setup!');
       console.log('🎊 Time to celebrate - your site is ready for the world! 🎊');
-    } else if (percentage >= 75) {
-      printSuccess('🔥 You\'re on fire! Almost there!');
-    } else if (percentage >= 50) {
-      printSuccess('💪 Great progress! You\'re over halfway done!');
-    } else if (percentage >= 25) {
-      printSuccess('⭐ Nice work! You\'re building momentum!');
-    } else {
-      printSuccess('🌟 Great start! Every step counts!');
     }
   } else if (newStatus === 'DEFERRED') {
     printInfo(`📅 ${step.displayName} - We'll come back to this later`);
@@ -349,8 +341,9 @@ async function executeRunLocallyStep(progress: SetupProgress): Promise<StepStatu
   console.log('');
   printInfo('🖥️  Let\'s get your site running locally!');
   console.log('');
-  console.log('To run your site locally, use this command:');
-  console.log(`   pnpm run client:dev --filter ${progress.siteId}`);
+  console.log('To run your site locally, use this command in a new terminal window:');
+  console.log('');
+  logInColor('green', `pnpm client:dev --filter ${progress.siteId}`);
   console.log('');
   console.log('This will start your React development server. You should see your');
   console.log('podcast site running at http://localhost:3000');
