@@ -140,6 +140,11 @@ export function logProgress(message: string, ...args: any[]): void {
   console.log(`${colors.magenta}🚀 ${message}${colors.reset}`, ...args);
 }
 
+export function logInColor(color: keyof typeof colors, message: string, ...args: any[]): void {
+  const colorCode = colors[color] || colors.reset;
+  console.log(`${colorCode}${message}${colors.reset}`, ...args);
+}
+
 export function logHeader(message: string): void {
   const separator = '='.repeat(Math.max(50, message.length + 4));
   console.log(`\n${colors.bold}${colors.cyan}${separator}`);

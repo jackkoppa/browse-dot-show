@@ -2,7 +2,7 @@
 
 import { join } from 'path';
 import { copyDir, ensureDir, exists, writeJsonFile, readJsonFile, writeTextFile, readTextFile } from './utils/file-operations.js';
-import { printInfo, printSuccess, printWarning, printError } from './utils/logging.js';
+import { printInfo, printSuccess, printWarning, printError, logInColor } from './utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
 import { exec } from 'child_process';
@@ -761,7 +761,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const isReviewMode = args.includes('--review');
   
-  console.log('🎧 Welcome to the browse.show Site Creator!\n');
+  logInColor('green', '🎧 Welcome to the browse.show Site Creator!\n');
   
   if (isReviewMode) {
     return await handleReviewMode();
@@ -860,10 +860,8 @@ async function handleExistingSites(existingSites: string[]): Promise<void> {
 
 async function handleNewSiteCreation(): Promise<void> {
   console.log('This quick setup will help you create a searchable podcast archive site.');
-  console.log('We\'ll walk you through 8 phases - you can complete them all now or come back later!\n');
-  console.log('📝 Your podcast name');
-  console.log('🌐 Your podcast homepage URL');
-  console.log('📡 We\'ll try to find your RSS feed automatically\n');
+  console.log('We\'ll walk you through up to 8 phases (some are optional) - you can complete');
+  console.log('them all now or come back later!\n');
   console.log('⏱️  Phase 1 takes about a minute, then you\'ll see your progress');
   console.log('   and can choose what to do next.\n');
   
