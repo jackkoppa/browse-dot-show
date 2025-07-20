@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
-import { join, basename } from 'path';
-import { copySync, ensureDir, exists, writeJsonFile, readJsonFile, writeTextFile, readTextFile } from './utils/file-operations.js';
+import { join } from 'path';
+import { copyDir, ensureDir, exists, writeJsonFile, writeTextFile, readTextFile } from './utils/file-operations.js';
 import { printInfo, printSuccess, printWarning, printError } from './utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
@@ -11,11 +11,20 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 interface PodcastSearchResult {
-  id: string;
-  title_original: string;
-  rss: string;
-  website?: string;
-  description_original?: string;
+  id: number;
+  title: string;
+  url: string;
+  description?: string;
+  author?: string;
+  image?: string;
+}
+
+interface PodcastIndexResponse {
+  status: string;
+  feeds: PodcastSearchResult[];
+  count: number;
+  query: string;
+  description: string;
 }
 
 interface SiteConfig {
@@ -58,22 +67,31 @@ function createSiteId(podcastName: string): string {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
-async function searchPodcastRSSFeed(podcastName: string, website?: string): Promise<PodcastSearchResult[]> {
+async function searchPodcastRSSFeed(podcastName: string, _website?: string): Promise<PodcastSearchResult[]> {
   try {
-    // Using Listen Notes API for podcast search
-    // For demo purposes, we'll use their free tier endpoint
-    const searchQuery = encodeURIComponent(podcastName);
-    const mockUrl = `https://listen-api.listennotes.com/api/v2/search?q=${searchQuery}&type=podcast&only_in=title&safe_mode=0`;
-    
-    // Since we can't make actual API calls without a key in this environment,
-    // we'll implement a fallback that prompts user for RSS feed
     printInfo(`Searching for "${podcastName}" podcast RSS feed...`);
     
-    // TODO: Implement actual API call when API key is available
-    // For now, return empty array to trigger manual input
-    return [];
+    // Use Podcast Index API for podcast search
+    const searchQuery = encodeURIComponent(podcastName);
+    const apiUrl = `https://podcastindex.org/api/search/byterm?q=${searchQuery}`;
+    
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+    
+    const data: PodcastIndexResponse = await response.json();
+    
+    if (data.status === 'true' && data.feeds && data.feeds.length > 0) {
+      printSuccess(`Found ${data.feeds.length} potential match(es)`);
+      return data.feeds;
+    } else {
+      printInfo('No exact matches found in Podcast Index');
+      return [];
+    }
   } catch (error) {
-    printWarning('RSS feed search failed, will prompt for manual input');
+    printWarning(`RSS feed search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return [];
   }
 }
@@ -124,7 +142,7 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
   await ensureDir(targetDir);
   
   // Copy template files
-  copySync(templateDir, targetDir);
+  await copyDir(templateDir, targetDir);
   
   // Copy default theme CSS
   const themeSourcePath = 'packages/blocks/styles/browse-dot-show-base-theme.css';
@@ -142,7 +160,7 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
   
   if (await exists(assetsSourceDir)) {
     await ensureDir(assetsTargetDir);
-    copySync(assetsSourceDir, assetsTargetDir);
+    await copyDir(assetsSourceDir, assetsTargetDir);
     printInfo('🖼️  Copied default assets');
   }
 }
@@ -252,9 +270,6 @@ AWS_REGION=us-east-1
 ENVIRONMENT=prod
 
 # Add your specific environment variables here
-# AUTH0_DOMAIN=your-auth0-domain
-# AUTH0_CLIENT_ID=your-auth0-client-id
-# AUTH0_CLIENT_SECRET=your-auth0-client-secret
 `;
   
   await writeTextFile(join(terraformDir, '.env.example'), envContent);
@@ -262,12 +277,12 @@ ENVIRONMENT=prod
   printSuccess(`📄 Generated Terraform files in terraform/sites/${siteId}/`);
 }
 
-async function runSiteValidation(siteId: string): Promise<boolean> {
+async function runSiteValidation(_siteId: string): Promise<boolean> {
   try {
     printInfo('🔍 Running site validation...');
     
     // Run the sites validation script
-    const { stdout, stderr } = await execAsync('pnpm run validate:sites');
+    const { stderr } = await execAsync('pnpm run validate:sites');
     
     if (stderr && !stderr.includes('warning')) {
       printWarning('Validation completed with warnings:');
@@ -276,7 +291,7 @@ async function runSiteValidation(siteId: string): Promise<boolean> {
     
     printSuccess('✅ Site validation passed');
     return true;
-  } catch (error) {
+  } catch (_error) {
     printWarning('⚠️  Site validation found issues (this is normal for new sites)');
     printInfo('You can address these after completing the setup.');
     return false;
@@ -299,7 +314,7 @@ async function presentNextSteps(siteId: string): Promise<void> {
     },
     {
       title: '🚀 View deployment guide',
-      description: 'Learn how to configure SSO and deploy your site',
+      description: 'Learn how to deploy your site to AWS',
       value: 'deploy'
     },
     {
@@ -354,7 +369,7 @@ async function openGuide(guidePath: string): Promise<void> {
       await execAsync(`xdg-open "${guidePath}"`);
     }
     printSuccess(`📖 Opened ${guidePath}`);
-  } catch (error) {
+  } catch (_error) {
     printInfo(`📖 Please open: ${guidePath}`);
   }
 }
@@ -392,7 +407,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
   
-  const { podcastName, podcastHomepage } = { ...nameResponse, ...homepageResponse };
+  const podcastName = nameResponse.podcastName;
+  const podcastHomepage = homepageResponse.podcastHomepage;
   
   // Step 3: Search for RSS feed
   printInfo('\n🔍 Searching for your podcast RSS feed...');
@@ -407,10 +423,10 @@ async function main(): Promise<void> {
       name: 'selectedRss',
       message: 'Found potential RSS feeds. Please select the correct one:',
       choices: [
-        ...searchResults.map((result, index) => ({
-          title: result.title_original,
-          description: result.rss,
-          value: result.rss
+        ...searchResults.map((result) => ({
+          title: result.title,
+          description: result.description || result.url,
+          value: result.url
         })),
         {
           title: 'None of these are correct',
@@ -436,12 +452,17 @@ async function main(): Promise<void> {
       rssUrl = rssResponse.selectedRss;
     }
   } else {
-    // No search results, prompt for manual input
-    printInfo('Could not automatically find RSS feed. Please enter it manually.');
+    // No search results, direct user to manual search
+    const searchQuery = encodeURIComponent(podcastName);
+    const searchUrl = `https://podcastindex.org/search?q=${searchQuery}&type=all`;
+    
+    printInfo('Could not automatically find RSS feed.');
+    printInfo(`Please visit this URL to search for your podcast: ${searchUrl}`);
+    
     const manualRssResponse = await prompts({
       type: 'text',
       name: 'rssUrl',
-      message: 'Please enter the RSS feed URL:',
+      message: 'Please enter the RSS feed URL from your search:',
       validate: (value: string) => {
         if (!value.trim()) return 'RSS URL is required';
         if (!/^https?:\/\//.test(value)) return 'Please enter a valid URL starting with http:// or https://';
@@ -471,7 +492,7 @@ async function main(): Promise<void> {
   // Step 6: Generate site configuration
   const siteConfig = generateSiteConfig(siteId, podcastName, podcastHomepage, rssUrl);
   const configPath = join('sites/my-sites', siteId, 'site.config.json');
-  await writeJsonFile(configPath, siteConfig, 2);
+  await writeJsonFile(configPath, siteConfig, { spaces: 2 });
   printSuccess('📝 Generated site configuration');
   
   // Step 7: Generate Terraform files

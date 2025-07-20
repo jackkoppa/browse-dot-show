@@ -19,7 +19,7 @@ Successfully implemented a fresh, interactive site creation system for browse.sh
 - **`docs/GETTING_STARTED.md`**: Completely rewritten, minimal guide pointing to interactive script
 - **`docs/custom-icons-guide.md`**: Complete guide for creating custom branding and assets
 - **`docs/custom-theme-guide.md`**: Detailed guide for customizing colors using shadcn themes
-- **`docs/deployment-guide.md`**: Step-by-step AWS deployment with Auth0 SSO setup
+- **`docs/deployment-guide.md`**: Step-by-step AWS deployment guide
 - **`docs/rss-feed-api-research.md`**: Research on RSS discovery APIs for future enhancement
 
 ### 3. **Configuration Updates**
@@ -44,7 +44,7 @@ Successfully implemented a fresh, interactive site creation system for browse.sh
 ### **Deployment Ready**
 - **Terraform files**: Backend, variables, and environment templates
 - **AWS integration**: Proper S3, CloudFront, Lambda configuration
-- **Auth0 setup**: SSO configuration templates and documentation
+- **AWS deployment**: Infrastructure configuration templates and documentation
 
 ### **Guided Customization**
 - **Post-creation menu**: 5 clear next-step options
@@ -117,7 +117,7 @@ Post-creation, users choose from:
 ### **Customization Paths**
 - **Icons**: Step-by-step guide with tool recommendations
 - **Themes**: Direct integration with shadcn theme generator
-- **Deployment**: Complete AWS + Auth0 setup walkthrough
+- **Deployment**: Complete AWS setup walkthrough
 
 ## 🔮 Future Enhancements
 
