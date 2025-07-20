@@ -8,11 +8,18 @@ import prompts from 'prompts';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
+import { arch, platform } from 'os';
 
 const execAsync = promisify(exec);
 
 // Setup step definitions
 const SETUP_STEPS: Omit<SetupStep, 'status' | 'completedAt'>[] = [
+  {
+    id: 'platform-support',
+    displayName: 'Check platform compatibility',
+    description: 'Verify your development platform support level',
+    optional: false
+  },
   {
     id: 'generate-site-files',
     displayName: 'Generate initial site files',
@@ -129,6 +136,84 @@ interface SiteConfig {
   themeColorDark: string;
   searchPlaceholderOptions: string[];
   trackingScript: string;
+}
+
+type SupportLevel = 'FULL_SUPPORT' | 'LIMITED_TESTING' | 'UNTESTED' | 'KNOWN_TO_BE_UNOPERATIONAL';
+
+interface PlatformSupportConfig {
+  platforms: Record<string, {
+    name: string;
+    features: Record<string, SupportLevel>;
+  }>;
+  features: Record<string, {
+    name: string;
+    description: string;
+  }>;
+  supportLevels: Record<SupportLevel, {
+    emoji: string;
+    description: string;
+  }>;
+}
+
+// Platform support functions
+async function loadPlatformSupportConfig(): Promise<PlatformSupportConfig> {
+  const configPath = 'packages/config/platform-support.json';
+  return await readJsonFile<PlatformSupportConfig>(configPath);
+}
+
+function detectCurrentPlatform(): string {
+  const os = platform();
+  const architecture = arch();
+  
+  if (os === 'darwin') {
+    // Mac
+    if (architecture === 'arm64') {
+      return 'mac-silicon';
+    } else {
+      return 'mac-intel';
+    }
+  } else if (os === 'linux') {
+    return 'linux';
+  } else if (os === 'win32') {
+    return 'windows';
+  } else {
+    // Default to linux for unknown platforms
+    return 'linux';
+  }
+}
+
+function displayPlatformSupport(config: PlatformSupportConfig, platformKey: string): void {
+  const platform = config.platforms[platformKey];
+  if (!platform) {
+    printError(`Unknown platform: ${platformKey}`);
+    return;
+  }
+  
+  console.log(`\n🖥️  Platform: ${platform.name}`);
+  console.log('📋 Feature Support:');
+  console.log('');
+  
+  const features = Object.keys(platform.features);
+  features.forEach(featureKey => {
+    const feature = config.features[featureKey];
+    const supportLevel = platform.features[featureKey];
+    const supportInfo = config.supportLevels[supportLevel];
+    
+    if (feature && supportInfo) {
+      console.log(`${supportInfo.emoji} ${feature.name}`);
+      console.log(`   ${supportInfo.description}`);
+      console.log('');
+    }
+  });
+}
+
+function hasLimitedSupport(config: PlatformSupportConfig, platformKey: string): boolean {
+  const platform = config.platforms[platformKey];
+  if (!platform) return true;
+  
+  const features = Object.values(platform.features);
+  const nonFullSupportCount = features.filter(level => level !== 'FULL_SUPPORT').length;
+  return nonFullSupportCount > 1;
 }
 
 // Progress management functions
@@ -305,6 +390,9 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
   const step = progress.steps[stepId];
   
   switch (stepId) {
+    case 'platform-support':
+      return await executePlatformSupportStep();
+      
     case 'generate-site-files':
       // This step is handled in the main flow
       return 'COMPLETED';
@@ -336,6 +424,48 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
     default:
       printWarning(`Unknown step: ${stepId}`);
       return 'NOT_STARTED';
+  }
+}
+
+async function executePlatformSupportStep(): Promise<StepStatus> {
+  console.log('');
+  printInfo('🔍 Checking your platform compatibility...');
+  
+  try {
+    const config = await loadPlatformSupportConfig();
+    const currentPlatform = detectCurrentPlatform();
+    
+    displayPlatformSupport(config, currentPlatform);
+    
+    if (hasLimitedSupport(config, currentPlatform)) {
+      printWarning('⚠️  Your platform has limited support for some features.');
+      console.log('');
+      console.log('You may encounter errors during setup or when using certain features.');
+      console.log('All platforms should eventually work, but you might need to troubleshoot');
+      console.log('or contribute fixes for your specific platform.');
+      console.log('');
+      console.log('💡 If you run into issues, please check our GitHub issues:');
+      console.log('   https://github.com/jackkoppa/browse-dot-show/issues');
+      console.log('');
+    }
+    
+    const confirmResponse = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Would you like to continue with the setup?',
+      initial: true
+    });
+    
+    if (confirmResponse.continue) {
+      printSuccess('Great! Let\'s proceed with the setup.');
+      return 'COMPLETED';
+    } else {
+      printInfo('Setup cancelled. You can restart anytime with `pnpm run site:create`.');
+      process.exit(0);
+    }
+  } catch (error) {
+    printWarning('Could not load platform support configuration. Proceeding anyway...');
+    return 'COMPLETED';
   }
 }
 
@@ -865,7 +995,7 @@ async function handleExistingSites(existingSites: string[]): Promise<void> {
 
 async function handleNewSiteCreation(): Promise<void> {
   console.log('This quick setup will help you create a searchable podcast archive site.');
-  console.log('We\'ll walk you through up to 8 phases (some are optional) - you can complete');
+  console.log('We\'ll walk you through up to 9 phases (some are optional) - you can complete');
   console.log('them all now or come back later!\n');
   console.log('⏱️  Phase 1 takes about a minute, then you\'ll see your progress');
   console.log('   and can choose what to do next.\n');

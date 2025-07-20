@@ -1,0 +1,84 @@
+{
+  "platforms": {
+    "mac-silicon": {
+      "name": "Mac (Apple Silicon)",
+      "features": {
+        "client-development": "FULL_SUPPORT",
+        "episode-downloading": "FULL_SUPPORT", 
+        "episode-transcription": "FULL_SUPPORT",
+        "episode-indexing": "FULL_SUPPORT",
+        "aws-deployment": "FULL_SUPPORT"
+      }
+    },
+    "mac-intel": {
+      "name": "Mac (Intel)",
+      "features": {
+        "client-development": "FULL_SUPPORT",
+        "episode-downloading": "FULL_SUPPORT",
+        "episode-transcription": "LIMITED_TESTING",
+        "episode-indexing": "LIMITED_TESTING", 
+        "aws-deployment": "FULL_SUPPORT"
+      }
+    },
+    "linux": {
+      "name": "Linux",
+      "features": {
+        "client-development": "FULL_SUPPORT",
+        "episode-downloading": "FULL_SUPPORT",
+        "episode-transcription": "UNTESTED",
+        "episode-indexing": "LIMITED_TESTING",
+        "aws-deployment": "FULL_SUPPORT"
+      }
+    },
+    "windows": {
+      "name": "Windows", 
+      "features": {
+        "client-development": "FULL_SUPPORT",
+        "episode-downloading": "FULL_SUPPORT",
+        "episode-transcription": "UNTESTED",
+        "episode-indexing": "LIMITED_TESTING",
+        "aws-deployment": "FULL_SUPPORT"
+      }
+    }
+  },
+  "features": {
+    "client-development": {
+      "name": "Client Development",
+      "description": "Running the React development server locally"
+    },
+    "episode-downloading": {
+      "name": "Episode Downloading", 
+      "description": "Downloading podcast episodes from RSS feeds"
+    },
+    "episode-transcription": {
+      "name": "Episode Transcription",
+      "description": "Transcribing episodes using local Whisper model"
+    },
+    "episode-indexing": {
+      "name": "Episode Indexing & Local Search",
+      "description": "Indexing transcripts and running local search functionality"
+    },
+    "aws-deployment": {
+      "name": "Deployment to AWS",
+      "description": "Deploying your site to AWS infrastructure"
+    }
+  },
+  "supportLevels": {
+    "FULL_SUPPORT": {
+      "emoji": "✅",
+      "description": "Fully supported and tested"
+    },
+    "LIMITED_TESTING": {
+      "emoji": "⚠️",
+      "description": "Should work but limited testing"
+    },
+    "UNTESTED": {
+      "emoji": "❓",
+      "description": "Untested - may need troubleshooting"
+    },
+    "KNOWN_TO_BE_UNOPERATIONAL": {
+      "emoji": "❌",
+      "description": "Known to not work currently"
+    }
+  }
+} 
