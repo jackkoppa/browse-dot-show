@@ -205,11 +205,25 @@ Visit `https://[your-site].browse.show` and verify:
 
 Set up scheduled processing for new episodes:
 
+**Option 1: Local Automation (Recommended for Development)**
 ```bash
-# Deploy automation for regular updates
+# Set up local automation that runs on login
+sudo pnpm run ingestion:automation:manage
+
+# This creates a macOS LaunchAgent that:
+# - Runs pipeline automatically when you log in
+# - Executes at most once per 24 hours
+# - Only runs on battery if >50% charged
+# - Provides fast exit if already run recently
+# - Includes interactive management interface
+```
+
+**Option 2: Cloud-Based Automation (Production)**
+```bash
+# Deploy cloud automation for regular updates
 pnpm run automation:deploy
 
-# This creates scheduled events to:
+# This creates CloudWatch scheduled events to:
 # - Check for new episodes daily
 # - Process new content automatically
 # - Update search index continuously
@@ -224,6 +238,22 @@ When you want to add new episodes manually:
 pnpm run ingestion:run-pipeline:interactive
 
 # Select "Incremental update" to process only new episodes
+```
+
+### Managing Local Automation
+
+If you set up local automation, you can manage it anytime:
+
+```bash
+# Interactive management interface
+sudo pnpm run ingestion:automation:manage
+
+# This allows you to:
+# - Enable/disable automation
+# - View execution history
+# - Test pipeline manually
+# - Check power and timing status
+# - View detailed logs
 ```
 
 ## 🔧 Troubleshooting
@@ -268,6 +298,21 @@ ls -la aws-local-dev/s3/sites/[your-site]/
 - Verify RSS feed URL is correct in site configuration
 - Check that RSS feed is publicly accessible
 - Re-run ingestion pipeline if needed
+
+**Local Automation Issues (macOS)**
+```bash
+# Check automation status
+sudo pnpm run ingestion:automation:manage
+
+# Check LaunchAgent status
+launchctl list | grep ingestion-automation
+
+# View automation logs
+tail -f scripts/automation-logs/automation.log
+
+# Check power conditions
+pmset -g ps
+```
 
 ## 🔄 Ongoing Maintenance
 
