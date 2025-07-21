@@ -431,6 +431,81 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
   }
 }
 
+async function executeRepoForkCheck(): Promise<void> {
+  try {
+    printInfo('🔍 Checking repository setup...');
+    
+    // Get the git remote origin URL
+    const { stdout: remoteUrl } = await execAsync('git remote get-url origin');
+    const cleanUrl = remoteUrl.trim();
+    
+    // Check if this is the original repo
+    const originalRepoUrls = [
+      'https://github.com/jackkoppa/browse-dot-show',
+      'https://github.com/jackkoppa/browse-dot-show.git',
+      'git@github.com:jackkoppa/browse-dot-show.git'
+    ];
+    
+    const isOriginalRepo = originalRepoUrls.some(url => cleanUrl.includes('jackkoppa/browse-dot-show'));
+    
+    if (!isOriginalRepo) {
+      // This appears to be a fork - good!
+      printSuccess('✅ Great! You\'re using a fork of the repository.');
+      printInfo('This will make it easy to version control your custom sites and configurations.');
+      return;
+    }
+    
+    // This is the original repo - show warning
+    console.log('');
+    printWarning('⚠️  WARNING: You\'re using the original repository, not a fork!');
+    console.log('');
+    console.log('🔧 We highly recommend forking this repo first, so that you\'re able to easily');
+    console.log('   version control your site(s). If you proceed with cloning the main repo,');
+    console.log('   it will be fairly difficult to move your local dev files over to a fork');
+    console.log('   in the future.');
+    console.log('');
+    console.log('💡 To fork: Visit https://github.com/jackkoppa/browse-dot-show and click "Fork"');
+    console.log('');
+    
+    const firstPromptResponse = await prompts({
+      type: 'confirm',
+      name: 'exitToFork',
+      message: 'Would you like to exit now, so you can fork the repo & start over from that clone?',
+      initial: true
+    });
+    
+    if (firstPromptResponse.exitToFork) {
+      printInfo('👍 Smart choice! Please fork the repo and clone your fork, then run this setup again.');
+      printInfo('Fork at: https://github.com/jackkoppa/browse-dot-show');
+      process.exit(0);
+    }
+    
+    // Second confirmation
+    console.log('');
+    const secondPromptResponse = await prompts({
+      type: 'confirm',
+      name: 'reallyProceed',
+      message: 'Are you sure you wish to proceed with this clone of the main repo?',
+      initial: false
+    });
+    
+    if (!secondPromptResponse.reallyProceed) {
+      printInfo('👍 Good decision! Please fork the repo and clone your fork, then run this setup again.');
+      printInfo('Fork at: https://github.com/jackkoppa/browse-dot-show');
+      process.exit(0);
+    }
+    
+    // User really wants to proceed
+    printWarning('⚠️  Proceeding with original repo clone. Remember to fork later if you want to version control your changes.');
+    console.log('');
+    
+  } catch (error) {
+    // If we can't check git remote (maybe not a git repo?), just log a warning and continue
+    printWarning('Could not check git repository setup. Proceeding anyway...');
+    printInfo('💡 If you haven\'t already, consider forking https://github.com/jackkoppa/browse-dot-show');
+  }
+}
+
 async function executePlatformSupportStep(): Promise<StepStatus> {
   console.log('');
   printInfo('🔍 Checking your platform compatibility...');
@@ -1204,7 +1279,10 @@ async function handleNewSiteCreation(): Promise<void> {
   
   console.log('Great! Let\'s build your podcast site. 🚀\n');
   
-  // Step 1: Check platform compatibility
+  // Step 1: Check if using fork vs original repo
+  await executeRepoForkCheck();
+  
+  // Step 2: Check platform compatibility
   await executePlatformSupportStep();
   
   // Step 2: Get podcast name
