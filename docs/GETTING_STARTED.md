@@ -28,6 +28,9 @@ pnpm i && pnpm all:build
 pnpm site:create
 ```
 
+![Site Creator CLI](./site-creator.png "Site Creator")
+
+
 The interactive wizard will guide you through **8 phases** to create your podcast site:
 
 1. **Platform compatibility check** - Verify your development environment
