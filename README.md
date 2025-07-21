@@ -15,8 +15,8 @@ Use this repo to deploy & host your own podcast search engine, for any number of
 <br/>
 ## Get Started
 
-See the [Getting Started Guide](docs/GETTING_STARTED.md) to host your own search engine.
+📖 See the [Getting Started Guide](docs/GETTING_STARTED.md) to host your own search engine.
 
-Follow the interactive Site Creator there, to get started with local development in a few minutes.
+🛠️ Follow the interactive Site Creator there, to get started with local development in a few minutes.
 
-Local transcription & serverless architecture - easy deployment to AWS - keep hosting costs low.
+☁️ Local transcription & serverless architecture - including simple deployment to AWS - keep hosting costs low.

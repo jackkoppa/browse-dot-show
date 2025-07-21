@@ -13,6 +13,11 @@ Start your own podcast archive and search engine with our interactive setup wiza
 # Then clone your fork:
 git clone <your-fork-url>
 cd browse-dot-show
+
+# Confirm Node & pnpm installs
+./scripts/prereqs.sh
+
+# Install dependencies
 pnpm install
 ```
 
