@@ -42,6 +42,7 @@ interface WorkflowConfig {
   interactive: boolean;
   help: boolean;
   dryRun: boolean;
+  maxEpisodes?: number;
   phases: {
     preSync: boolean;
     rssRetrieval: boolean;
@@ -166,6 +167,16 @@ function parseArguments(): WorkflowConfig {
           process.exit(1);
         }
         config.syncOptions.foldersToSync = validFolders;
+      }
+    } else if (arg.startsWith('--max-episodes=')) {
+      const maxEpisodesArg = arg.split('=')[1];
+      if (maxEpisodesArg) {
+        const maxEpisodes = parseInt(maxEpisodesArg, 10);
+        if (isNaN(maxEpisodes) || maxEpisodes <= 0) {
+          console.error(`❌ Invalid max-episodes value: ${maxEpisodesArg}. Must be a positive integer.`);
+          process.exit(1);
+        }
+        config.maxEpisodes = maxEpisodes;
       }
     }
   }
@@ -322,6 +333,7 @@ interface SiteProcessingResult {
   newAudioFilesDownloaded: number;
   newEpisodesTranscribed: number;
   hasNewFiles: boolean; // Track if ANY new files were created during ingestion
+  hasNewSrtFiles: boolean;
   localIndexingSuccess?: boolean;
   localIndexingDuration?: number;
   localIndexingEntriesProcessed?: number;
@@ -1379,6 +1391,7 @@ async function main(): Promise<void> {
       newAudioFilesDownloaded: 0,
       newEpisodesTranscribed: 0,
       hasNewFiles: false,
+      hasNewSrtFiles: false,
       errors: []
     });
   }
@@ -1489,10 +1502,15 @@ async function main(): Promise<void> {
       console.log('🔍 DRY RUN: Would download new episodes from RSS feeds');
     } else {
       for (const site of sites) {
+        const rssArgs = ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'];
+        if (config.maxEpisodes) {
+          rssArgs.push('--', '--max-episodes', config.maxEpisodes.toString());
+        }
+        
         const rssResult = await runCommandWithSiteContext(
           site.id,
           'pnpm',
-          ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'],
+          rssArgs,
           'RSS retrieval'
         );
         
@@ -1526,10 +1544,15 @@ async function main(): Promise<void> {
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
+        const audioArgs = ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'];
+        if (config.maxEpisodes) {
+          audioArgs.push('--', '--max-episodes', config.maxEpisodes.toString());
+        }
+        
         const audioResult = await runCommandWithSiteContext(
           site.id,
           'pnpm',
-          ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'],
+          audioArgs,
           'Audio processing'
         );
         

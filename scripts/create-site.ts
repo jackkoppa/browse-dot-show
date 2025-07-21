@@ -406,8 +406,7 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
       return await executeRunLocallyStep(progress);
       
     case 'first-transcriptions':
-      printInfo('🚧 Transcription workflow coming soon! For now, we\'ll mark this as complete.');
-      return 'COMPLETED';
+      return await executeFirstTranscriptionsStep(progress);
       
     case 'custom-icons':
       return await executeCustomIconsStep();
@@ -542,6 +541,178 @@ async function executeCustomStylingStep(): Promise<StepStatus> {
   });
   
   return confirmResponse.completed ? 'COMPLETED' : 'DEFERRED';
+}
+
+async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<StepStatus> {
+  console.log('');
+  printInfo('🎙️  Let\'s setup transcriptions for your first few episodes!');
+  console.log('');
+  console.log('This will help you see a working searchable site quickly. We\'ll download');
+  console.log('and transcribe 2 episodes locally (this takes about 5-10 minutes).');
+  console.log('');
+  
+  // Step 1: Check existing Whisper setup
+  const hasWhisperResponse = await prompts({
+    type: 'confirm',
+    name: 'hasWhisper',
+    message: 'Do you already have whisper.cpp configured locally on your machine?',
+    initial: false
+  });
+  
+  if (!hasWhisperResponse.hasWhisper) {
+    // User needs to setup whisper.cpp
+    console.log('');
+    printInfo('📖 You\'ll need to setup whisper.cpp for local transcription.');
+    console.log('');
+    console.log('Please follow these steps:');
+    console.log('1. Visit: https://github.com/ggml-org/whisper.cpp?tab=readme-ov-file#quick-start');
+    console.log('2. Clone the whisper.cpp repository');
+    console.log('3. Follow the build instructions for your platform');
+    console.log('4. Download a model (we recommend large-v3-turbo)');
+    console.log('');
+    
+    const setupResponse = await prompts({
+      type: 'confirm',
+      name: 'setupComplete',
+      message: 'Have you completed the whisper.cpp setup?',
+      initial: false
+    });
+    
+    if (!setupResponse.setupComplete) {
+      printInfo('No problem! You can continue with this step when you\'re ready.');
+      return 'DEFERRED';
+    }
+  }
+  
+  // Step 2: Get whisper.cpp path
+  const pathResponse = await prompts({
+    type: 'text',
+    name: 'whisperPath',
+    message: 'Please enter the path to your whisper.cpp directory:',
+    validate: (value: string) => {
+      if (!value.trim()) return 'Path is required';
+      return true;
+    }
+  });
+  
+  if (!pathResponse.whisperPath) {
+    return 'DEFERRED';
+  }
+  
+  // Step 3: Get model preference
+  const modelResponse = await prompts({
+    type: 'text',
+    name: 'whisperModel',
+    message: 'Which whisper model would you like to use?',
+    initial: 'large-v3-turbo',
+    validate: (value: string) => {
+      if (!value.trim()) return 'Model name is required';
+      return true;
+    }
+  });
+  
+  if (!modelResponse.whisperModel) {
+    return 'DEFERRED';
+  }
+  
+  // Step 4: Update .env.local
+  try {
+    printInfo('⚙️  Updating .env.local with your configuration...');
+    
+    const envLocalPath = '.env.local';
+    let envContent = '';
+    
+    if (await exists(envLocalPath)) {
+      envContent = await readTextFile(envLocalPath);
+    }
+    
+    // Update or add the required environment variables
+    const updates = {
+      'FILE_STORAGE_ENV': 'local',
+      'WHISPER_API_PROVIDER': 'local-whisper.cpp',
+      'WHISPER_CPP_PATH': `"${pathResponse.whisperPath}"`,
+      'WHISPER_CPP_MODEL': `"${modelResponse.whisperModel}"`
+    };
+    
+    for (const [key, value] of Object.entries(updates)) {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      if (regex.test(envContent)) {
+        envContent = envContent.replace(regex, `${key}=${value}`);
+      } else {
+        envContent += `\n${key}=${value}`;
+      }
+    }
+    
+    await writeTextFile(envLocalPath, envContent);
+    printSuccess('✅ Updated .env.local with your Whisper configuration');
+  } catch (error) {
+    printError(`Failed to update .env.local: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return 'DEFERRED';
+  }
+  
+  // Step 5: Test whisper installation
+  printInfo('🧪 Testing your Whisper installation...');
+  console.log('This may take a moment...');
+  
+  // TODO: Add whisper test here when we have access to the transcription function
+  printInfo('⚠️  Whisper test not yet implemented. Proceeding with ingestion...');
+  
+  // Step 6: Run ingestion pipeline
+  console.log('');
+  printInfo('🎵 Running ingestion pipeline for your first 2 episodes...');
+  console.log('This will download and transcribe 2 episodes (estimated 5-10 minutes).');
+  console.log('');
+  
+  try {
+    const ingestionArgs = [
+      'tsx', 'scripts/run-ingestion-pipeline.ts',
+      `--sites=${progress.siteId}`,
+      '--max-episodes=2',
+      '--skip-s3-sync'
+    ];
+    
+    const { stdout, stderr } = await execAsync(`pnpm ${ingestionArgs.join(' ')}`, {
+      cwd: process.cwd(),
+      maxBuffer: 1024 * 1024 * 10 // 10MB buffer for large outputs
+    });
+    
+    // Show relevant output to user
+    if (stdout) {
+      console.log('📄 Ingestion Output:');
+      console.log(stdout);
+    }
+    if (stderr) {
+      console.log('⚠️  Ingestion Warnings:');
+      console.log(stderr);
+    }
+    
+    printSuccess('✅ Ingestion pipeline completed successfully!');
+  } catch (error) {
+    printError(`Failed to run ingestion pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log('');
+    console.log('You can try running this manually:');
+    console.log(`pnpm tsx scripts/run-ingestion-pipeline.ts --sites=${progress.siteId} --max-episodes=2 --skip-s3-sync`);
+    return 'DEFERRED';
+  }
+  
+  // Step 7: Test the result
+  console.log('');
+  printInfo('🎉 Your first episodes are now transcribed and searchable!');
+  console.log('');
+  console.log('To test your setup:');
+  console.log(`1. Run: pnpm client:dev --filter ${progress.siteId}`);
+  console.log(`2. Visit: http://localhost:5173`);
+  console.log('3. Try searching for a topic from your podcast');
+  console.log('');
+  
+  const testResponse = await prompts({
+    type: 'confirm',
+    name: 'tested',
+    message: 'Have you successfully tested the search functionality?',
+    initial: false
+  });
+  
+  return testResponse.tested ? 'COMPLETED' : 'DEFERRED';
 }
 
 async function executeAwsDeploymentStep(): Promise<StepStatus> {
@@ -742,6 +913,16 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
     await ensureDir(assetsTargetDir);
     await copyDir(assetsSourceDir, assetsTargetDir);
     printInfo('🖼️  Copied default assets');
+  }
+  
+  // Copy .env to .env.local if it doesn't exist
+  const envSourcePath = '.env';
+  const envLocalPath = '.env.local';
+  
+  if (await exists(envSourcePath) && !(await exists(envLocalPath))) {
+    const envContent = await readTextFile(envSourcePath);
+    await writeTextFile(envLocalPath, envContent);
+    printInfo('⚙️  Copied .env to .env.local for local configuration');
   }
 }
 
