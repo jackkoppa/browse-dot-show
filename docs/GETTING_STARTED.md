@@ -17,8 +17,8 @@ cd browse-dot-show
 # Confirm Node & pnpm installs
 ./scripts/prereqs.sh
 
-# Install dependencies
-pnpm install
+# Install dependencies & build initial packages
+pnpm i && pnpm all:build
 ```
 
 ### 2. Create Your Site

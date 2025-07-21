@@ -38,10 +38,10 @@ if [ "$NODE_OK" = true ] && [ "$PNPM_OK" = true ]; then
     echo "🎉 All prerequisites are installed! You're ready to go."
     echo ""
     echo "📦 Next step: Install project dependencies"
-    echo "   💻 Run: pnpm install"
+    echo "   💻 Run: pnpm i && pnpm all:build"
     echo ""
 else
     echo "⚠️  Please install the missing prerequisites above, then run:"
-    echo "   💻 pnpm install"
+    echo "   💻 pnpm i && pnpm all:build"
     echo ""
 fi 
