@@ -15,12 +15,6 @@ const execAsync = promisify(exec);
 // Setup step definitions
 const SETUP_STEPS: Omit<SetupStep, 'status' | 'completedAt'>[] = [
   {
-    id: 'platform-support',
-    displayName: 'Check platform compatibility',
-    description: 'Verify your development platform support level',
-    optional: false
-  },
-  {
     id: 'generate-site-files',
     displayName: 'Generate initial site files',
     description: 'Create the core site structure and configuration',
@@ -268,6 +262,17 @@ async function updateStepStatus(siteId: string, stepId: string, status: StepStat
     return;
   }
   
+  // Create step if it doesn't exist (for newly added steps)
+  if (!progress.steps[stepId]) {
+    const stepDef = SETUP_STEPS.find(s => s.id === stepId);
+    if (stepDef) {
+      progress.steps[stepId] = {
+        ...stepDef,
+        status: 'NOT_STARTED'
+      };
+    }
+  }
+  
   if (progress.steps[stepId]) {
     const oldStatus = progress.steps[stepId].status;
     progress.steps[stepId].status = status;
@@ -282,9 +287,12 @@ async function updateStepStatus(siteId: string, stepId: string, status: StepStat
 }
 
 function calculateProgress(progress: SetupProgress): { completed: number; total: number; percentage: number } {
-  const allSteps = Object.values(progress.steps);
-  const completed = allSteps.filter(step => step.status === 'COMPLETED').length;
-  const total = allSteps.length;
+  // Use SETUP_STEPS as the source of truth for total steps
+  const total = SETUP_STEPS.length;
+  const completed = SETUP_STEPS.filter(stepDef => {
+    const step = progress.steps[stepDef.id];
+    return step?.status === 'COMPLETED';
+  }).length;
   const percentage = Math.round((completed / total) * 100);
   
   return { completed, total, percentage };
@@ -390,9 +398,6 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
   const step = progress.steps[stepId];
   
   switch (stepId) {
-    case 'platform-support':
-      return await executePlatformSupportStep();
-      
     case 'generate-site-files':
       // This step is handled in the main flow
       return 'COMPLETED';
@@ -567,14 +572,14 @@ async function displayProgressReview(progress: SetupProgress): Promise<void> {
   
   SETUP_STEPS.forEach(stepDef => {
     const step = progress.steps[stepDef.id];
-    const status = step.status;
+    const status = step?.status || 'NOT_STARTED';
     let icon = '⬜';
     let label = 'Not Started';
     
     switch (status) {
       case 'COMPLETED':
         icon = '✅';
-        label = `Completed${step.completedAt ? ` on ${new Date(step.completedAt).toLocaleDateString()}` : ''}`;
+        label = `Completed${step?.completedAt ? ` on ${new Date(step.completedAt).toLocaleDateString()}` : ''}`;
         break;
       case 'DEFERRED':
         icon = '📅';
@@ -586,10 +591,10 @@ async function displayProgressReview(progress: SetupProgress): Promise<void> {
         break;
     }
     
-    console.log(`${icon} ${step.displayName}${step.optional ? ' (optional)' : ''}`);
+    console.log(`${icon} ${stepDef.displayName}${stepDef.optional ? ' (optional)' : ''}`);
     console.log(`   ${label}`);
     if (status === 'NOT_STARTED' || status === 'DEFERRED') {
-      console.log(`   ${step.description}`);
+      console.log(`   ${stepDef.description}`);
     }
     console.log('');
   });
@@ -995,7 +1000,7 @@ async function handleExistingSites(existingSites: string[]): Promise<void> {
 
 async function handleNewSiteCreation(): Promise<void> {
   console.log('This quick setup will help you create a searchable podcast archive site.');
-  console.log('We\'ll walk you through up to 9 phases (some are optional) - you can complete');
+  console.log('We\'ll walk you through up to 8 phases (some are optional) - you can complete');
   console.log('them all now or come back later!\n');
   console.log('⏱️  Phase 1 takes about a minute, then you\'ll see your progress');
   console.log('   and can choose what to do next.\n');
@@ -1018,7 +1023,10 @@ async function handleNewSiteCreation(): Promise<void> {
   
   console.log('Great! Let\'s build your podcast site. 🚀\n');
   
-  // Step 1: Get podcast name
+  // Step 1: Check platform compatibility
+  await executePlatformSupportStep();
+  
+  // Step 2: Get podcast name
   const nameResponse = await prompts({
     type: 'text',
     name: 'podcastName',
@@ -1033,7 +1041,7 @@ async function handleNewSiteCreation(): Promise<void> {
   
   const podcastName = nameResponse.podcastName;
   
-  // Step 2: Search for RSS feed
+  // Step 3: Search for RSS feed
   printInfo('\n🔍 Searching for your podcast RSS feed...');
   const searchResults = await searchPodcastRSSFeed(podcastName);
   
@@ -1176,6 +1184,8 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
   // Find next step to work on
   const nextStep = SETUP_STEPS.find(stepDef => {
     const step = progress.steps[stepDef.id];
+    // If step doesn't exist in progress (new step added), treat as NOT_STARTED
+    if (!step) return true;
     return step.status === 'NOT_STARTED' || step.status === 'DEFERRED';
   });
   
