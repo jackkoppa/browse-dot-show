@@ -17,4 +17,6 @@ Use this repo to deploy & host your own podcast search engine, for any number of
 
 See the [Getting Started Guide](docs/GETTING_STARTED.md) to host your own search engine.
 
-Minimal setup required. Local transcription via Whisper & serverless AWS architecture keep hosting costs low.
+Follow the interactive Site Creator there, to get started with local development in a few minutes.
+
+Local transcription & serverless architecture - easy deployment to AWS - keep hosting costs low.

@@ -2,7 +2,7 @@
 
 ### 📝🔍🎙️ transcribe & search any podcast
 
-Deploy your own podcast archive and search engine in minutes with our interactive setup wizard.
+Start your own podcast archive and search engine with our interactive setup wizard.
 
 ## 🚀 Quick Start
 
@@ -20,45 +20,40 @@ pnpm install
 
 ```bash
 # Run the interactive site creation wizard
-pnpm run site:create
+pnpm site:create
 ```
 
-That's it! The interactive wizard will:
-- Ask for your podcast name and homepage (just 2 questions!)
-- Automatically search for your RSS feed
-- Generate your site with smart defaults
-- Create deployment files
-- Guide you through next steps
+The interactive wizard will guide you through **8 phases** to create your podcast site:
 
-## 📚 Additional Resources
+1. **Platform compatibility check** - Verify your development environment
+2. **Site file generation** - Create your core site structure  
+3. **Local development** - Test your site locally
+4. **First transcriptions** - Process initial episodes
+5. **Custom icons** _(optional)_ - Add your branding
+6. **Custom styling** _(optional)_ - Customize your theme
+7. **Complete transcriptions** - Process your full archive
+8. **AWS deployment** _(optional)_ - Deploy to production
 
-After creating your site, you may want to customize it further:
+You can complete phases all at once or return anytime to continue where you left off.
 
-- **[Custom Icons Guide](./custom-icons-guide.md)** - Create custom branding and icons for your site
-- **[Custom Theme Guide](./custom-theme-guide.md)** - Customize colors and styling with shadcn themes  
-- **[Deployment Guide](./deployment-guide.md)** - Configure SSO and deploy to AWS
-
-## 🛠️ Development Commands
-
-Once your site is created, these commands help with development:
+## 📊 Check Your Progress
 
 ```bash
-# Start local development server
-pnpm client:dev
+# See progress on all your sites
+pnpm site:create --review
 
-# Validate your site configuration
-pnpm validate:sites
-
-# Deploy to production (when ready)
-pnpm site:deploy
+# Continue setup for any site
+pnpm site:create
 ```
 
-## ❓ Need Help?
+## 📚 Next Steps
 
-- Check the individual guide documents linked above
-- Review the generated site configuration in `sites/my-sites/[your-site]/`
-- Look at example configurations in `sites/origin-sites/`
+After running the wizard, you may want to explore:
+
+- **[Custom Icons Guide](./custom-icons-guide.md)** - Customize your site branding
+- **[Custom Theme Guide](./custom-theme-guide.md)** - Personalize colors and styling  
+- **[Deployment Guide](./deployment-guide.md)** - Deploy to AWS
 
 ---
 
-**Ready to get started?** Run `pnpm run site:create` and follow the prompts!
+**Ready to get started?** Run `pnpm site:create` and follow the prompts!
