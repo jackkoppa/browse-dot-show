@@ -5,7 +5,7 @@ import { copyDir, ensureDir, exists, writeJsonFile, readJsonFile, writeTextFile,
 import { printInfo, printSuccess, printWarning, printError, logInColor } from './utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
 import { arch, platform } from 'os';
@@ -729,8 +729,81 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   printInfo('🧪 Testing your Whisper installation...');
   console.log('This may take a moment...');
   
-  // TODO: Add whisper test here when we have access to the transcription function
-  printInfo('⚠️  Whisper test not yet implemented. Proceeding with ingestion...');
+  try {
+    // Test with a known audio file
+    const testAudioFile = '/Users/jackkoppa/Personal_Development/browse-dot-show/docs/welcome-to-browse-dot-show.wav';
+    
+    if (!(await exists(testAudioFile))) {
+      printWarning('⚠️  Test audio file not found. Skipping whisper test...');
+      printInfo('Proceeding with ingestion - if there are issues, they\'ll be caught during processing.');
+    } else {
+      // Build whisper command
+      const whisperCliBin = join(pathResponse.whisperPath, 'build/bin/whisper-cli');
+      const whisperModel = `ggml-${modelResponse.whisperModel}.bin`;
+      const modelPath = join(pathResponse.whisperPath, 'models', whisperModel);
+      
+      // Run simple whisper test command (output to stdout)
+      const testCommand = `"${whisperCliBin}" -m "${modelPath}" -f "${testAudioFile}"`;
+      
+      printInfo(`Running test: ${testCommand}`);
+      printInfo('🎧 Transcribing welcome message - this might take up to a minute, but likely less...');
+      
+      const { stdout } = await execAsync(testCommand, {
+        timeout: 60000, // 60 second timeout for test
+        maxBuffer: 1024 * 1024 // 1MB buffer
+      });
+      
+      // Show the transcription result
+      if (stdout && stdout.trim()) {
+        console.log('');
+        printInfo('📝 Transcription result:');
+        console.log('─'.repeat(60));
+        console.log(stdout.trim());
+        console.log('─'.repeat(60));
+        console.log('');
+      }
+      
+      // Check if transcription contains expected content
+      if (stdout && stdout.toLowerCase().includes('best of luck')) {
+        printInfo('🎉 The transcription contains the expected content - you\'re all set!');
+        printSuccess('Your local installation of the Whisper model is working correctly 🎉');
+        console.log('');
+        printSuccess('This is one of the best features of browse.show - local transcriptions means free site setup, rather than paid transcriptions via the OpenAI API.');
+        printSuccess('This could otherwise end up costing $100+ for a few hundred hours of audio.');
+        console.log('');
+        printSuccess(`You'll also be able to use local transcriptions on a schedule, if you'd like to transcribe locally for all future episodes, too.`);
+        console.log('');
+        console.log('');
+        console.log('');
+      } else {
+        throw new Error('Transcription test failed - output did not contain expected phrase "best of luck"');
+      }
+    }
+  } catch (error) {
+    printError(`❌ Whisper test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.log('');
+    console.log('This usually means one of these issues:');
+    console.log('1. whisper.cpp is not properly compiled');
+    console.log('2. The model file is missing or incorrect');
+    console.log('3. The path to whisper.cpp is incorrect');
+    console.log('');
+    console.log('Please check the whisper.cpp documentation:');
+    console.log('https://github.com/ggml-org/whisper.cpp?tab=readme-ov-file#quick-start');
+    console.log('');
+    
+    const continueResponse = await prompts({
+      type: 'confirm',
+      name: 'continue',
+      message: 'Would you like to continue anyway? (Transcription may fail later)',
+      initial: false
+    });
+    
+    if (!continueResponse.continue) {
+      return 'DEFERRED';
+    }
+    
+    printWarning('⚠️  Proceeding with potentially broken whisper setup...');
+  }
   
   // Step 6: Run ingestion pipeline
   console.log('');
@@ -743,25 +816,48 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       'tsx', 'scripts/run-ingestion-pipeline.ts',
       `--sites=${progress.siteId}`,
       '--max-episodes=2',
+      '--skip-pre-sync',
       '--skip-s3-sync'
     ];
     
-    const { stdout, stderr } = await execAsync(`pnpm ${ingestionArgs.join(' ')}`, {
-      cwd: process.cwd(),
-      maxBuffer: 1024 * 1024 * 10 // 10MB buffer for large outputs
+    // Use spawn for real-time output
+    const success = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', ingestionArgs, {
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      // Stream stdout in real-time
+      child.stdout?.on('data', (data) => {
+        const output = data.toString();
+        // Print output as it comes, preserving formatting
+        process.stdout.write(output);
+      });
+      
+      // Stream stderr in real-time  
+      child.stderr?.on('data', (data) => {
+        const output = data.toString();
+        // Print errors/warnings as they come
+        process.stderr.write(output);
+      });
+      
+      child.on('close', (code) => {
+        console.log(''); // Add spacing after ingestion output
+        if (code === 0) {
+          resolve(true);
+        } else {
+          reject(new Error(`Ingestion pipeline failed with exit code ${code}`));
+        }
+      });
+      
+      child.on('error', (error) => {
+        reject(error);
+      });
     });
     
-    // Show relevant output to user
-    if (stdout) {
-      console.log('📄 Ingestion Output:');
-      console.log(stdout);
+    if (success) {
+      printSuccess('✅ Ingestion pipeline completed successfully!');
     }
-    if (stderr) {
-      console.log('⚠️  Ingestion Warnings:');
-      console.log(stderr);
-    }
-    
-    printSuccess('✅ Ingestion pipeline completed successfully!');
   } catch (error) {
     printError(`Failed to run ingestion pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
     console.log('');

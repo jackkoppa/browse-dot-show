@@ -185,10 +185,17 @@ function getEpisodeSummary(rssItem: RssEpisode): string {
 async function updateManifestWithNewEpisodes(
   parsedFeed: any, 
   podcastConfig: any,
-  episodeManifest: EpisodeManifest
+  episodeManifest: EpisodeManifest,
+  maxEpisodes?: number
 ): Promise<{ newEpisodesInManifest: EpisodeInManifest[], existingEpisodesInManifest: EpisodeInManifest[] }> {
-  const rssEpisodes: RssEpisode[] = parsedFeed.rss.channel.item || [];
+  let rssEpisodes: RssEpisode[] = parsedFeed.rss.channel.item || [];
   const podcastId = podcastConfig.id;
+  
+  // Limit episodes if maxEpisodes is specified
+  if (maxEpisodes && rssEpisodes.length > maxEpisodes) {
+    log.info(`📊 Limiting RSS episodes from ${rssEpisodes.length} to ${maxEpisodes} episodes for ${podcastId}`);
+    rssEpisodes = rssEpisodes.slice(0, maxEpisodes);
+  }
   let newEpisodesInManifest: EpisodeInManifest[] = [];
   let existingEpisodesInManifest: EpisodeInManifest[] = episodeManifest.episodes.filter((ep: EpisodeInManifest) => ep.podcastId === podcastId);
 
@@ -466,7 +473,7 @@ async function invalidateCloudFrontCacheForManifest(): Promise<void> {
 }
 
 // Main handler function
-export async function handler(): Promise<void> {
+export async function handler(maxEpisodes?: number): Promise<void> {
   log.info(`🟢 Starting retrieve-rss-feeds-and-download-audio-files > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️  Starting at', new Date().toISOString());
@@ -512,7 +519,7 @@ export async function handler(): Promise<void> {
         
         // 4. Update Episode Manifest with new episodes from this feed
         // This function now modifies episodeManifest directly
-        const { newEpisodesInManifest } = await updateManifestWithNewEpisodes(parsedFeed, podcastConfig, episodeManifest);
+        const { newEpisodesInManifest } = await updateManifestWithNewEpisodes(parsedFeed, podcastConfig, episodeManifest, maxEpisodes);
         
         if (newEpisodesInManifest.length > 0) {
           log.info(`Identified ${newEpisodesInManifest.length} new episodes from ${podcastConfig.title} to add to manifest.`);
@@ -658,6 +665,26 @@ export async function handler(): Promise<void> {
   }
 }
 
+// Parse command line arguments
+function parseCommandLineArgs(): { maxEpisodes?: number } {
+  const args = process.argv.slice(2);
+  let maxEpisodes: number | undefined;
+  
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--max-episodes' && args[i + 1]) {
+      maxEpisodes = parseInt(args[i + 1], 10);
+      if (isNaN(maxEpisodes) || maxEpisodes <= 0) {
+        log.error(`Invalid max-episodes value: ${args[i + 1]}. Must be a positive integer.`);
+        process.exit(1);
+      }
+      log.info(`📊 Max episodes limit set to: ${maxEpisodes}`);
+      break;
+    }
+  }
+  
+  return { maxEpisodes };
+}
+
 // For local development, call the handler directly
 // ESM check:
 const scriptPath = path.resolve(process.argv[1]);
@@ -665,7 +692,11 @@ const scriptUrl = import.meta.url;
 
 if (scriptUrl.startsWith('file://') && scriptUrl.endsWith(scriptPath)) {
   log.info('🚀 Starting podcast RSS feed retrieval & manifest update (running via pnpm / direct script execution)... ');
-  handler()
+  
+  // Parse command line arguments
+  const { maxEpisodes } = parseCommandLineArgs();
+  
+  handler(maxEpisodes)
     .then(() => log.info('✅ Processing completed successfully.'))
     .catch(error => {
       log.error('❌ Processing failed with an error:', error);
