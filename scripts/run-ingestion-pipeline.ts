@@ -396,6 +396,67 @@ const ALL_SYNC_FOLDERS = [
   'search-index'
 ];
 
+/**
+ * Helper function to assume AWS role and get temporary credentials
+ */
+async function assumeAwsRole(
+  siteId: string,
+  sessionNameSuffix: string,
+  credentials: AutomationCredentials
+): Promise<{ siteConfig: { accountId: string; bucketName: string }; tempCredentials: any }> {
+  const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
+  if (!siteConfig) {
+    throw new Error(`No account mapping found for site: ${siteId}`);
+  }
+
+  const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+  
+  const assumeRoleResult = await execCommand('aws', [
+    'sts', 'assume-role',
+    '--role-arn', roleArn,
+    '--role-session-name', `automation-${sessionNameSuffix}-${siteId}-${Date.now()}`
+  ], {
+    silent: true,
+    env: {
+      ...process.env,
+      AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+      AWS_REGION: credentials.AWS_REGION
+    }
+  });
+  
+  if (assumeRoleResult.exitCode !== 0) {
+    throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
+  }
+  
+  const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
+  const tempCredentials = assumeRoleOutput.Credentials;
+  
+  return { siteConfig, tempCredentials };
+}
+
+/**
+ * Helper function to create sync options
+ */
+function createSyncOptions(
+  siteId: string,
+  direction: SyncDirection,
+  conflictResolution: ConflictResolution,
+  siteConfig: { accountId: string; bucketName: string },
+  tempCredentials: any
+): SyncOptions {
+  const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+  
+  return {
+    siteId,
+    direction,
+    conflictResolution,
+    localBasePath,
+    s3BucketName: siteConfig.bucketName,
+    tempCredentials
+  };
+}
+
 // Site account mappings - these match the terraform configurations
 // TODO: Move this to a shared utils file to avoid duplication with upload-all-client-sites.ts
 const SITE_ACCOUNT_MAPPINGS: SiteAccountMapping = {
@@ -446,35 +507,10 @@ async function triggerSearchApiLambdaRefresh(
   logProgress(`Triggering search-api Lambda refresh for ${siteId}`);
   
   try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
+    // Assume AWS role and get temporary credentials
+    const { tempCredentials } = await assumeAwsRole(siteId, 'search-refresh', credentials);
     
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
     const searchLambdaName = `search-api-${siteId}`;
-    
-    // First assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-search-refresh-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
     
     // Create the payload to force fresh DB file download
     const payload = JSON.stringify({
@@ -769,34 +805,8 @@ async function performS3ToLocalPreSync(
   logProgress(`Phase 0: Pre-syncing all S3 content to local for ${siteId}`);
   
   try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
-
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-    
-    // Assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-pre-sync-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
+    // Assume AWS role and get temporary credentials
+    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'pre-sync', credentials);
     
     // Set up sync options for S3-to-local direction
     const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
@@ -806,14 +816,13 @@ async function performS3ToLocalPreSync(
       fs.mkdirSync(localBasePath, { recursive: true });
     }
     
-    const syncOptions: SyncOptions = {
+    const syncOptions = createSyncOptions(
       siteId,
-      direction: 's3-to-local',
-      conflictResolution: 'skip-existing', // Only download files that don't exist locally
-      localBasePath,
-      s3BucketName: siteConfig.bucketName,
+      's3-to-local',
+      'skip-existing', // Only download files that don't exist locally
+      siteConfig,
       tempCredentials
-    };
+    );
     
     let totalFilesTransferred = 0;
     const errors: string[] = [];
@@ -874,36 +883,10 @@ async function syncTranscriptsToS3(
   logProgress(`Syncing new transcripts to S3 for ${siteId}`);
   
   try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
+    // Assume AWS role and get temporary credentials
+    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 's3-sync', credentials);
     
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-    
-    // First assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-s3-sync-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
-    
-    // Set up sync options
+    // Set up paths
     const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
     const localTranscriptsPath = path.join(localBasePath, 'transcripts');
     const s3TranscriptsPath = `s3://${siteConfig.bucketName}/transcripts`;
@@ -914,14 +897,14 @@ async function syncTranscriptsToS3(
       return { success: true, duration: Date.now() - startTime }; // Not an error - just no files to sync
     }
     
-    const syncOptions: SyncOptions = {
+    // Set up sync options
+    const syncOptions = createSyncOptions(
       siteId,
-      direction: 'local-to-s3',
-      conflictResolution: 'overwrite-if-newer',
-      localBasePath,
-      s3BucketName: siteConfig.bucketName,
+      'local-to-s3',
+      'overwrite-if-newer',
+      siteConfig,
       tempCredentials
-    };
+    );
     
     // Sync transcripts folder
     const result = await executeS3Sync(
@@ -958,46 +941,17 @@ async function syncEpisodeManifestFolder(
   logProgress(`Syncing episode-manifest folder to S3 for ${siteId} (always updated)`);
   
   try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
-
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-    
-    // Assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-episode-manifest-sync-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
+    // Assume AWS role and get temporary credentials
+    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'episode-manifest-sync', credentials);
     
     // Set up sync options for local-to-S3 direction
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
-    
-    const syncOptions: SyncOptions = {
+    const syncOptions = createSyncOptions(
       siteId,
-      direction: 'local-to-s3',
-      conflictResolution: 'overwrite-always', // Always overwrite since timestamp updates every run
-      localBasePath,
-      s3BucketName: siteConfig.bucketName,
+      'local-to-s3',
+      'overwrite-always', // Always overwrite since timestamp updates every run
+      siteConfig,
       tempCredentials
-    };
+    );
     
     // Sync only the episode-manifest folder
     const folderResult = await syncSingleFolder('episode-manifest', syncOptions);
@@ -1052,46 +1006,17 @@ async function performComprehensiveS3Sync(
   logProgress(`Phase 3 (Enhanced): Comprehensive S3 sync for ${siteId} - uploading ${filesToUploadCount} files`);
   
   try {
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${siteId}`);
-    }
-
-    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-    
-    // Assume the role to get temporary credentials
-    const assumeRoleResult = await execCommand('aws', [
-      'sts', 'assume-role',
-      '--role-arn', roleArn,
-      '--role-session-name', `automation-comprehensive-sync-${siteId}-${Date.now()}`
-    ], {
-      silent: true,
-      env: {
-        ...process.env,
-        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-        AWS_REGION: credentials.AWS_REGION
-      }
-    });
-    
-    if (assumeRoleResult.exitCode !== 0) {
-      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-    }
-    
-    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-    const tempCredentials = assumeRoleOutput.Credentials;
+    // Assume AWS role and get temporary credentials
+    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'comprehensive-sync', credentials);
     
     // Set up sync options for local-to-S3 direction
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
-    
-    const syncOptions: SyncOptions = {
+    const syncOptions = createSyncOptions(
       siteId,
-      direction: 'local-to-s3',
-      conflictResolution: 'overwrite-if-newer',
-      localBasePath,
-      s3BucketName: siteConfig.bucketName,
+      'local-to-s3',
+      'overwrite-if-newer',
+      siteConfig,
       tempCredentials
-    };
+    );
     
     let totalFilesTransferred = 0;
     const errors: string[] = [];
@@ -1518,34 +1443,8 @@ async function main(): Promise<void> {
         const startTime = Date.now();
         
         try {
-          const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
-          if (!siteConfig) {
-            throw new Error(`No account mapping found for site: ${site.id}`);
-          }
-
-          const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-          
-          // Assume the role to get temporary credentials
-          const assumeRoleResult = await execCommand('aws', [
-            'sts', 'assume-role',
-            '--role-arn', roleArn,
-            '--role-session-name', `automation-pre-sync-${site.id}-${Date.now()}`
-          ], {
-            silent: true,
-            env: {
-              ...process.env,
-              AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-              AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-              AWS_REGION: credentials.AWS_REGION
-            }
-          });
-          
-          if (assumeRoleResult.exitCode !== 0) {
-            throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-          }
-          
-          const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-          const tempCredentials = assumeRoleOutput.Credentials;
+          // Assume AWS role and get temporary credentials
+          const { siteConfig, tempCredentials } = await assumeAwsRole(site.id, 'pre-sync', credentials);
           
           // Generate pre-sync consistency report (only check for files missing locally)
           const preSyncReport = await generateSyncConsistencyReport(
@@ -1763,34 +1662,8 @@ async function main(): Promise<void> {
         const startTime = Date.now();
         
         try {
-          const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
-          if (!siteConfig) {
-            throw new Error(`No account mapping found for site: ${site.id}`);
-          }
-
-          const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-          
-          // Assume the role to get temporary credentials
-          const assumeRoleResult = await execCommand('aws', [
-            'sts', 'assume-role',
-            '--role-arn', roleArn,
-            '--role-session-name', `automation-post-sync-${site.id}-${Date.now()}`
-          ], {
-            silent: true,
-            env: {
-              ...process.env,
-              AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-              AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-              AWS_REGION: credentials.AWS_REGION
-            }
-          });
-          
-          if (assumeRoleResult.exitCode !== 0) {
-            throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-          }
-          
-          const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-          const tempCredentials = assumeRoleOutput.Credentials;
+          // Assume AWS role and get temporary credentials
+          const { siteConfig, tempCredentials } = await assumeAwsRole(site.id, 'post-sync', credentials);
           
           // Generate upload consistency report (only check local→S3)
           const uploadReport = await generateSyncConsistencyReport(
