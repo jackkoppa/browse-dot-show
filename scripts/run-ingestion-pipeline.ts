@@ -43,6 +43,7 @@ interface WorkflowConfig {
   help: boolean;
   dryRun: boolean;
   maxEpisodes?: number;
+  forceLocalIndexing: boolean;
   phases: {
     preSync: boolean;
     rssRetrieval: boolean;
@@ -63,6 +64,7 @@ function getDefaultConfig(): WorkflowConfig {
     interactive: false,
     help: false,
     dryRun: false,
+    forceLocalIndexing: false,
     phases: {
       preSync: true,
       rssRetrieval: true,
@@ -96,6 +98,7 @@ OPTIONS:
   --skip-audio-processing  Skip audio processing phase
   --skip-local-indexing    Skip local search index update phase
   --skip-s3-sync           Skip local-to-S3 upload phase
+  --force-local-indexing   Force local indexing to run even if no new files detected
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss,search-entries,search-index)
 
 EXAMPLES:
@@ -150,6 +153,8 @@ function parseArguments(): WorkflowConfig {
       config.phases.localIndexing = false;
     } else if (arg === '--skip-s3-sync') {
       config.phases.s3Sync = false;
+    } else if (arg === '--force-local-indexing') {
+      config.forceLocalIndexing = true;
     } else if (arg.startsWith('--sites=')) {
       const sitesArg = arg.split('=')[1];
       if (sitesArg) {
@@ -1091,12 +1096,13 @@ async function runCommandWithSiteContext(
         cwd: process.cwd()
       });
 
-      // Set up progress logging for audio processing operations
+      // Set up progress logging for non-audio operations
+      // Audio processing already provides detailed transcription progress messages
       let progressInterval: NodeJS.Timeout | undefined;
-      if (operation === 'Audio processing') {
+      if (operation !== 'Audio processing') {
         progressInterval = setInterval(() => {
           const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          console.log(`   🎙️  ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
+          console.log(`   🔄 ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
         }, 10000); // Log every 10 seconds
       }
 
@@ -1608,18 +1614,33 @@ async function main(): Promise<void> {
     console.log('🔍 Phase 4: Local Indexing for sites with new files');
     console.log('='.repeat(60));
     
-    const sitesWithNewFiles = results.filter(result => result.hasNewFiles);
+    let sitesWithNewFiles = results.filter(result => result.hasNewFiles);
+    
+    // If force local indexing is enabled, include all sites
+    if (config.forceLocalIndexing) {
+      console.log('🔄 Force local indexing enabled - processing all sites');
+      sitesWithNewFiles = results; // Include all sites
+    }
     
     if (config.dryRun) {
-      console.log(`🔍 DRY RUN: Would run local indexing for ${sitesWithNewFiles.length} site(s) with new files`);
+      console.log(`🔍 DRY RUN: Would run local indexing for ${sitesWithNewFiles.length} site(s)`);
+      if (config.forceLocalIndexing) {
+        console.log('   (Force local indexing enabled - all sites included)');
+      } else {
+        console.log('   (Only sites with new files)');
+      }
       sitesWithNewFiles.forEach(result => {
-        console.log(`   - ${result.siteId}: has new files`);
+        console.log(`   - ${result.siteId}: ${config.forceLocalIndexing ? 'forced indexing' : 'has new files'}`);
       });
     } else {
       if (sitesWithNewFiles.length === 0) {
         console.log('ℹ️  No sites have new files. Skipping local indexing phase.');
       } else {
-        console.log(`📝 Found ${sitesWithNewFiles.length} site(s) with new files:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
+        if (config.forceLocalIndexing) {
+          console.log(`📝 Processing ${sitesWithNewFiles.length} site(s) with forced local indexing:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
+        } else {
+          console.log(`📝 Found ${sitesWithNewFiles.length} site(s) with new files:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
+        }
         
         for (const result of sitesWithNewFiles) {
           const resultIndex = results.findIndex(r => r.siteId === result.siteId);
@@ -1630,7 +1651,7 @@ async function main(): Promise<void> {
           results[resultIndex].localIndexingDuration = localIndexingResult.duration;
           results[resultIndex].localIndexingEntriesProcessed = localIndexingResult.entriesProcessed || 0;
           
-          // Mark that new search files were created
+          // Mark that new search files were created if indexing succeeded
           if (localIndexingResult.success) {
             results[resultIndex].hasNewFiles = true; // Ensure this remains true since we created search files
           }

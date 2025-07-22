@@ -805,6 +805,20 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
     printWarning('⚠️  Proceeding with potentially broken whisper setup...');
   }
   
+  // Add confirmation prompt before starting ingestion pipeline
+  console.log('');
+  const readyForIngestionResponse = await prompts({
+    type: 'confirm',
+    name: 'ready',
+    message: 'Ready to start downloading and transcribing your first 2 episodes? This will take about 5-10 minutes.',
+    initial: true
+  });
+  
+  if (!readyForIngestionResponse.ready) {
+    printInfo('No problem! You can continue with this step when you\'re ready.');
+    return 'DEFERRED';
+  }
+  
   // Step 6: Run ingestion pipeline
   console.log('');
   printInfo('🎵 Running ingestion pipeline for your first 2 episodes...');
@@ -817,7 +831,8 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       `--sites=${progress.siteId}`,
       '--max-episodes=2',
       '--skip-pre-sync',
-      '--skip-s3-sync'
+      '--skip-s3-sync',
+      '--force-local-indexing'
     ];
     
     // Use spawn for real-time output
@@ -862,7 +877,7 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
     printError(`Failed to run ingestion pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
     console.log('');
     console.log('You can try running this manually:');
-    console.log(`pnpm tsx scripts/run-ingestion-pipeline.ts --sites=${progress.siteId} --max-episodes=2 --skip-s3-sync`);
+    console.log(`pnpm tsx scripts/run-ingestion-pipeline.ts --sites=${progress.siteId} --max-episodes=2 --skip-s3-sync --force-local-indexing`);
     return 'DEFERRED';
   }
   
