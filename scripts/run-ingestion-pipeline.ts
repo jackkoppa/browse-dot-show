@@ -947,6 +947,89 @@ async function syncTranscriptsToS3(
 }
 
 /**
+ * Sync episode-manifest folder to S3 for a site (always runs regardless of other files)
+ */
+async function syncEpisodeManifestFolder(
+  siteId: string,
+  credentials: AutomationCredentials
+): Promise<SyncResult> {
+  const startTime = Date.now();
+  
+  logProgress(`Syncing episode-manifest folder to S3 for ${siteId} (always updated)`);
+  
+  try {
+    const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
+    if (!siteConfig) {
+      throw new Error(`No account mapping found for site: ${siteId}`);
+    }
+
+    const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
+    
+    // Assume the role to get temporary credentials
+    const assumeRoleResult = await execCommand('aws', [
+      'sts', 'assume-role',
+      '--role-arn', roleArn,
+      '--role-session-name', `automation-episode-manifest-sync-${siteId}-${Date.now()}`
+    ], {
+      silent: true,
+      env: {
+        ...process.env,
+        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+        AWS_REGION: credentials.AWS_REGION
+      }
+    });
+    
+    if (assumeRoleResult.exitCode !== 0) {
+      throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
+    }
+    
+    const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
+    const tempCredentials = assumeRoleOutput.Credentials;
+    
+    // Set up sync options for local-to-S3 direction
+    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+    
+    const syncOptions: SyncOptions = {
+      siteId,
+      direction: 'local-to-s3',
+      conflictResolution: 'overwrite-always', // Always overwrite since timestamp updates every run
+      localBasePath,
+      s3BucketName: siteConfig.bucketName,
+      tempCredentials
+    };
+    
+    // Sync only the episode-manifest folder
+    const folderResult = await syncSingleFolder('episode-manifest', syncOptions);
+    
+    const duration = Date.now() - startTime;
+    
+    if (!folderResult.success && folderResult.error) {
+      logWarning(`Episode-manifest sync completed with error for ${siteId}: ${folderResult.error}`);
+    } else {
+      logSuccess(`Episode-manifest sync completed for ${siteId}: ${folderResult.filesTransferred} files uploaded in ${duration}ms`);
+    }
+    
+    return {
+      success: folderResult.success,
+      duration,
+      totalFilesTransferred: folderResult.filesTransferred,
+      error: folderResult.error
+    };
+    
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    logError(`Failed to sync episode-manifest folder for ${siteId}: ${error.message}`);
+    return {
+      success: false,
+      duration,
+      totalFilesTransferred: 0,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Comprehensive Local-to-S3 Sync - Phase 4.3
  * Uploads ALL files that exist locally but not on S3 (not just new files)
  */
@@ -1728,7 +1811,18 @@ async function main(): Promise<void> {
           results[i].filesToUpload = uploadReport.summary.totalLocalOnlyFiles;
           results[i].filesInSync = uploadReport.summary.totalConsistentFiles;
           
-          // Upload files if any need to be uploaded
+          // Always sync episode-manifest folder (contains timestamp that updates every pipeline run)
+          logInfo(`Always syncing episode-manifest folder for ${site.id} (contains updated timestamp)`);
+          const episodeManifestSyncResult = await syncEpisodeManifestFolder(site.id, credentials);
+          
+          let totalFilesUploaded = episodeManifestSyncResult.totalFilesTransferred;
+          let syncErrors: string[] = [];
+          
+          if (episodeManifestSyncResult.error) {
+            syncErrors.push(`Episode-manifest sync error: ${episodeManifestSyncResult.error}`);
+          }
+          
+          // Upload other files if any need to be uploaded
           if (uploadReport.summary.totalLocalOnlyFiles > 0) {
             const syncResult = await performComprehensiveS3Sync(
               site.id, 
@@ -1736,33 +1830,38 @@ async function main(): Promise<void> {
               uploadReport.summary.totalLocalOnlyFiles
             );
             
-            results[i].s3SyncSuccess = syncResult.success;
-            results[i].s3SyncDuration = syncResult.duration;
-            results[i].s3SyncTotalFilesUploaded = syncResult.totalFilesTransferred;
+            totalFilesUploaded += syncResult.totalFilesTransferred;
             
             if (syncResult.error) {
-              results[i].errors.push(`S3 sync error: ${syncResult.error}`);
-            }
-            
-            // Trigger search-api Lambda refresh if files were successfully uploaded
-            if (syncResult.success && syncResult.totalFilesTransferred > 0) {
-              logInfo(`Files uploaded to S3 for ${site.id}. Triggering search-api Lambda refresh...`);
-              const refreshResult = await triggerSearchApiLambdaRefresh(site.id, credentials);
-              
-              results[i].searchApiRefreshSuccess = refreshResult.success;
-              results[i].searchApiRefreshDuration = refreshResult.duration;
-              
-              if (refreshResult.error) {
-                results[i].errors.push(`Search-api Lambda refresh error: ${refreshResult.error}`);
-              }
-            } else {
-              logInfo(`No files uploaded to S3 for ${site.id} or upload failed. Skipping search-api Lambda refresh.`);
+              syncErrors.push(`Comprehensive S3 sync error: ${syncResult.error}`);
             }
           } else {
-            logInfo(`No files to upload for ${site.id} - all files are in sync with S3`);
-            results[i].s3SyncSuccess = true;
-            results[i].s3SyncDuration = 0;
-            results[i].s3SyncTotalFilesUploaded = 0;
+            logInfo(`No additional files to upload for ${site.id} beyond episode-manifest`);
+          }
+          
+          // Set final sync results
+          results[i].s3SyncSuccess = syncErrors.length === 0;
+          results[i].s3SyncDuration = episodeManifestSyncResult.duration; // Comprehensive sync duration is tracked separately
+          results[i].s3SyncTotalFilesUploaded = totalFilesUploaded;
+          
+          // Add any sync errors to results
+          syncErrors.forEach(error => results[i].errors.push(error));
+          
+          // Trigger search-api Lambda refresh if any files were successfully uploaded
+          if (results[i].s3SyncSuccess && totalFilesUploaded > 0) {
+            logInfo(`Files uploaded to S3 for ${site.id}. Triggering search-api Lambda refresh...`);
+            const refreshResult = await triggerSearchApiLambdaRefresh(site.id, credentials);
+            
+            results[i].searchApiRefreshSuccess = refreshResult.success;
+            results[i].searchApiRefreshDuration = refreshResult.duration;
+            
+            if (refreshResult.error) {
+              results[i].errors.push(`Search-api Lambda refresh error: ${refreshResult.error}`);
+            }
+          } else if (totalFilesUploaded === 0) {
+            logInfo(`No files uploaded to S3 for ${site.id}. Skipping search-api Lambda refresh.`);
+          } else {
+            logInfo(`File upload failed for ${site.id}. Skipping search-api Lambda refresh.`);
           }
           
         } catch (error: any) {

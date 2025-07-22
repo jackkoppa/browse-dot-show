@@ -43,7 +43,7 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
   console.log('│ Next Steps:                                                                                                 │');
   console.log('│ 1. Get the certificate validation records from AWS (next step below)                                      │');
   console.log('│ 2. Add the DNS validation CNAME record to your domain registrar                                           │');
-  console.log('│ 3. Wait for validation to complete (usually 5-10 minutes)                                                 │');
+  console.log('│ 3. Wait for validation to complete (usually 10-20 minutes)                                                 │');
   console.log('│ 4. Run the deployment again - it should succeed                                                            │');
   console.log('│                                                                                                             │');
   console.log('│ 📖 For detailed instructions, see: terraform/sites/CUSTOM_DOMAIN.md                                             │');

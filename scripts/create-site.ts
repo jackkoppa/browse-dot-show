@@ -623,7 +623,7 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   printInfo('🎙️  Let\'s setup transcriptions for your first few episodes!');
   console.log('');
   console.log('This will help you see a working searchable site quickly. We\'ll download');
-  console.log('and transcribe 2 episodes locally (this takes about 5-10 minutes).');
+  console.log('and transcribe 2 episodes locally (this takes about 10-20 minutes).');
   console.log('');
   
   // Step 1: Check existing Whisper setup
@@ -810,7 +810,7 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   const readyForIngestionResponse = await prompts({
     type: 'confirm',
     name: 'ready',
-    message: 'Ready to start downloading and transcribing your first 2 episodes? This will take about 5-10 minutes.',
+    message: 'Ready to start downloading and transcribing your first 2 episodes? This will take about 10-20 minutes (depends on your machine).',
     initial: true
   });
   
@@ -822,7 +822,7 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   // Step 6: Run ingestion pipeline
   console.log('');
   printInfo('🎵 Running ingestion pipeline for your first 2 episodes...');
-  console.log('This will download and transcribe 2 episodes (estimated 5-10 minutes).');
+  console.log('This will download and transcribe 2 episodes (estimated 10-20 minutes).');
   console.log('');
   
   try {

@@ -56,7 +56,7 @@ Create a new function `executeFirstTranscriptionsStep()` that:
   - `--sites=<the_new_site>`
   - `--skip-s3-sync`
 - Pipe stdout/stderr from ingestion pipeline to create-site terminal
-- Show progress updates and estimated time (5-10 minutes)
+- Show progress updates and estimated time (10-20 minutes)
 - Handle any errors gracefully
 
 ### 5. Test Final Result
@@ -85,7 +85,7 @@ Create a new function `executeFirstTranscriptionsStep()` that:
 - Timeout handling for long-running transcription processes
 
 ## User Experience Considerations
-- Clear time expectations (5-10 minutes for transcription)
+- Clear time expectations (10-20 minutes for transcription)
 - Progress indicators during long operations
 - Helpful error messages with next steps
 - Option to defer this step if user encounters issues
