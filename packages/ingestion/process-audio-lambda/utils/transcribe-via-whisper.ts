@@ -113,6 +113,8 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
       // Race between timeout and transcription
       const transcriptionStartTime = Date.now();
       log.info(`🚀 Starting transcription for ${path.basename(filePath)} at ${new Date().toISOString()}`);
+      // Also log to stdout for visibility in parent processes
+      console.log(`🚀 Starting transcription for ${path.basename(filePath)} using ${whisperApiProvider}...`);
 
       const result = await Promise.race([transcriptionPromise, timeoutPromise]);
 
@@ -123,6 +125,8 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
 
       const transcriptionDuration = (Date.now() - transcriptionStartTime) / 1000;
       log.info(`✅ Transcription attempt ${attempt} succeeded for ${path.basename(filePath)} in ${transcriptionDuration.toFixed(2)} seconds`);
+      // Also log to stdout for visibility in parent processes
+      console.log(`✅ Transcription completed for ${path.basename(filePath)} in ${transcriptionDuration.toFixed(2)} seconds`);
       return result;
 
     } catch (error) {
@@ -262,6 +266,8 @@ async function transcribeWithLocalWhisperCpp(
       const progressInterval = setInterval(() => {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         log.info(`⏱️  Whisper process still running after ${elapsed}s for PID ${child.pid}`);
+        // Also log to stdout for visibility in parent processes
+        console.log(`⏱️  Transcribing ${path.basename(filePath)}... ${elapsed}s elapsed`);
       }, 10000);
 
       // Cleanup function

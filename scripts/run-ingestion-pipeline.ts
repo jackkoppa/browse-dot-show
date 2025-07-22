@@ -1091,6 +1091,15 @@ async function runCommandWithSiteContext(
         cwd: process.cwd()
       });
 
+      // Set up progress logging for audio processing operations
+      let progressInterval: NodeJS.Timeout | undefined;
+      if (operation === 'Audio processing') {
+        progressInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          console.log(`   🎙️  ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
+        }, 10000); // Log every 10 seconds
+      }
+
       // Capture stdout and stderr while also displaying them
       child.stdout?.on('data', (data: Buffer) => {
         const output = data.toString();
@@ -1105,6 +1114,11 @@ async function runCommandWithSiteContext(
       });
 
       child.on('close', (code: number | null) => {
+        // Clear progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+        
         const duration = Date.now() - startTime;
         const success = code === 0;
         
@@ -1140,6 +1154,11 @@ async function runCommandWithSiteContext(
       });
 
       child.on('error', (error: Error) => {
+        // Clear progress interval on error
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+        
         const duration = Date.now() - startTime;
         console.log(`   ❌ ${operation} failed for ${siteId} with error: ${error.message} (${(duration / 1000).toFixed(1)}s)`);
         
@@ -1758,21 +1777,25 @@ async function main(): Promise<void> {
   
   console.log('\n📈 Per-Site Results:');
   results.forEach(result => {
-    const preSyncStatus = result.preConsistencyCheckSuccess ? '✅' : '❌';
-    const rssStatus = result.rssRetrievalSuccess ? '✅' : '❌';
-    const audioStatus = result.audioProcessingSuccess ? '✅' : '❌';
-    const localIndexingStatus = result.hasNewFiles
-      ? (result.localIndexingSuccess === true ? '✅' : 
-         result.localIndexingSuccess === false ? '❌' : '⏸️')
-      : '⚪'; // Not needed
-    const postSyncStatus = result.postConsistencyCheckSuccess ? '✅' : '❌';
-    const s3SyncStatus = (result.filesToUpload || 0) > 0
-      ? (result.s3SyncSuccess ? '✅' : '❌')
-      : '⚪'; // No sync needed
-    const searchApiRefreshStatus = (result.s3SyncTotalFilesUploaded || 0) > 0
-      ? (result.searchApiRefreshSuccess === true ? '✅' : 
-         result.searchApiRefreshSuccess === false ? '❌' : '⏸️')
-      : '⚪'; // Not needed
+    // Check if phases were skipped via command line flags
+    const preSyncStatus = !config.phases.preSync ? '⏭️' : (result.preConsistencyCheckSuccess ? '✅' : '❌');
+    const rssStatus = !config.phases.rssRetrieval ? '⏭️' : (result.rssRetrievalSuccess ? '✅' : '❌');
+    const audioStatus = !config.phases.audioProcessing ? '⏭️' : (result.audioProcessingSuccess ? '✅' : '❌');
+    const localIndexingStatus = !config.phases.localIndexing ? '⏭️' : 
+      (result.hasNewFiles
+        ? (result.localIndexingSuccess === true ? '✅' : 
+           result.localIndexingSuccess === false ? '❌' : '⏸️')
+        : '⚪'); // Not needed
+    const postSyncStatus = !config.phases.s3Sync ? '⏭️' : (result.postConsistencyCheckSuccess ? '✅' : '❌');
+    const s3SyncStatus = !config.phases.s3Sync ? '⏭️' : 
+      ((result.filesToUpload || 0) > 0
+        ? (result.s3SyncSuccess ? '✅' : '❌')
+        : '⚪'); // No sync needed
+    const searchApiRefreshStatus = !config.phases.s3Sync ? '⏭️' :
+      ((result.s3SyncTotalFilesUploaded || 0) > 0
+        ? (result.searchApiRefreshSuccess === true ? '✅' : 
+           result.searchApiRefreshSuccess === false ? '❌' : '⏸️')
+        : '⚪'); // Not needed
     
     const totalDuration = (result.preConsistencyCheckDuration || 0) + (result.s3PreSyncDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
@@ -1780,13 +1803,13 @@ async function main(): Promise<void> {
                          (result.s3SyncDuration || 0) + (result.searchApiRefreshDuration || 0);
     
     console.log(`\n   ${result.siteId} (${result.siteTitle}):`);
-    console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} (${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`);
-    console.log(`      Phase 2 - RSS: ${rssStatus} (${(result.rssRetrievalDuration / 1000).toFixed(1)}s) - ${result.newAudioFilesDownloaded} new audio files`);
-    console.log(`      Phase 3 - Audio: ${audioStatus} (${(result.audioProcessingDuration / 1000).toFixed(1)}s) - ${result.newEpisodesTranscribed} episodes transcribed`);
-    console.log(`      Phase 4 - Local Index: ${localIndexingStatus} ${result.hasNewFiles ? `(${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries` : '(not needed - no new files)'}`);
-    console.log(`      Phase 5 - Final Sync: ${postSyncStatus} (${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`);
-    console.log(`      S3 Upload: ${s3SyncStatus} ${(result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)'}`);
-    console.log(`      Search-API Refresh: ${searchApiRefreshStatus} ${(result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.searchApiRefreshDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)'}`);
+    console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} ${!config.phases.preSync ? '(skipped)' : `(${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`}`);
+    console.log(`      Phase 2 - RSS: ${rssStatus} ${!config.phases.rssRetrieval ? '(skipped)' : `(${(result.rssRetrievalDuration / 1000).toFixed(1)}s) - ${result.newAudioFilesDownloaded} new audio files`}`);
+    console.log(`      Phase 3 - Audio: ${audioStatus} ${!config.phases.audioProcessing ? '(skipped)' : `(${(result.audioProcessingDuration / 1000).toFixed(1)}s) - ${result.newEpisodesTranscribed} episodes transcribed`}`);
+    console.log(`      Phase 4 - Local Index: ${localIndexingStatus} ${!config.phases.localIndexing ? '(skipped)' : (result.hasNewFiles ? `(${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries` : '(not needed - no new files)')}`);
+    console.log(`      Phase 5 - Final Sync: ${postSyncStatus} ${!config.phases.s3Sync ? '(skipped)' : `(${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`}`);
+    console.log(`      S3 Upload: ${s3SyncStatus} ${!config.phases.s3Sync ? '(skipped)' : ((result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)')}`);
+    console.log(`      Search-API Refresh: ${searchApiRefreshStatus} ${!config.phases.s3Sync ? '(skipped)' : ((result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.searchApiRefreshDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)')}`);
     console.log(`      📂 Has new files: ${result.hasNewFiles ? '✅' : '❌'}`);
     console.log(`      📁 Files in sync: ${result.filesInSync || 0}`);
     console.log(`      Total: ${(totalDuration / 1000).toFixed(1)}s`);
