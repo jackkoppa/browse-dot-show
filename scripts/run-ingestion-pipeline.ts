@@ -1,5 +1,14 @@
 #!/usr/bin/env tsx
 
+// CURSOR-TODO: Add a `--local-run-only` flag that will:
+// 1. Not attempt to load any .env.automation file / credentials
+// 2. Skip the S3-to-local pre-sync phase
+// 3. Skip the local-to-S3 post-sync phase
+// 4. Skip the search-api Lambda refresh
+// 5. Adjust logging accordingly (e.g. no logs about S3 sync, new files, etc.)
+// NOTE: Most/some of this can be moved to another file. This file is still the only entry point,
+// but there will be enough differences that we should start moving some of this functionality into a new scripts/ingestion-pipeline/ directory.
+
 /**
  * Ingestion Pipeline Script - Complete Podcast Processing Workflow
  * 

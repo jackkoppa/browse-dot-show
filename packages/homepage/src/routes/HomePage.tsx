@@ -78,8 +78,8 @@ function HomePage() {
 
     // Track the search event
     trackEvent({
-      eventName: `Universal Search: '${trimmedQuery}' on ${selectedSite}`,
-      eventType: 'Search Performed',
+      eventType: `Universal Search: '${trimmedQuery}' on [${selectedSite}]`,
+      eventName: `Universal Search Performed`,
     })
 
     // Redirect to the selected site with the search query
@@ -94,16 +94,14 @@ function HomePage() {
    */
   const handleRequestPodcastClick = () => {
     trackEvent({
-      eventName: 'Request Podcast CTA Clicked',
-      eventType: 'Result Clicked',
+      eventType: 'Request Podcast Button Clicked',
     })
     window.open('https://docs.google.com/document/d/11p38njNdKeJF49XHPtYN-Gb6fotPCkoQIW8V4UDC9hA/edit?usp=sharing', '_blank')
   }
 
   const handleSelfHostClick = () => {
     trackEvent({
-      eventName: 'Self-Host CTA Clicked',
-      eventType: 'Result Clicked',
+      eventType: 'Self-Host Guide Button Clicked',
     })
     window.open('https://github.com/jackkoppa/browse-dot-show/blob/main/docs/GETTING_STARTED.md', '_blank')
   }

@@ -6,15 +6,13 @@ import { log } from './logging';
 const GOATCOUNTER_ENABLED = true;
 
 interface GoatCounterEvent {
+    /** Unique identifier for the event - any event with the same eventType will be counted towards the same event */
     eventType: 
-        'Search Performed' | 
-        'Share Link Copied' | 
-        'Result Clicked' | 
-        'Play Button Clicked' | 
-        'Play Time Limit Dialog Opened' |
-        'Open In Podcast App Link Clicked [Football Cliches]' |
-        'Open In Podcast App Link Clicked [For Our Sins: The Cliches Pod Archive]';
-    /** e.g. `Searched: 'football clubbing'`- when you want each event to be tracked separately, provide a unique eventName per-tracked-event. Otherwise, eventType is suffcient.  */
+        'Request Podcast Button Clicked' |
+        'Self-Host Guide Button Clicked' | 
+        any; // Allow any, for dynamic event types
+
+    /** Optional category for the event - eventType is what distinguishes uniquely-tracked events. */
     eventName?: string;
 }
 
@@ -25,26 +23,29 @@ interface GoatCounterEvent {
  * 
  * DOCS: https://www.goatcounter.com/help/events
  */
-export const trackEvent = ({ eventName, eventType }: GoatCounterEvent) => {
+export const trackEvent = ({ eventType, eventName }: GoatCounterEvent) => {
     if (!GOATCOUNTER_ENABLED) {
         return;
     }
+
+    /** `path` is the value that determines distinct events. */
+    const path = eventType;
+
+    /** `title` is the value that additional info added to the goatcounter dashboard, not used in determining distinct events. */
+    const title = eventName ?? eventType;
 
     const goatcounter = (window as any).goatcounter;
     if (!goatcounter?.count) {
         log.debug(`
     Cannot find goatcounter script. Is it missing from index.html? 
-    Would have sent event: ${eventName} with type: ${eventType}`);
+    Would have sent event: ${path} with type: ${title}`);
         return;
     }
 
-    // If no eventName was provided, then *both* title & path should be the same - path is what distinguishes uniquely-tracked events.
-    eventName = eventName ?? eventType;
-
     // DOCS: https://www.goatcounter.com/help/events
     goatcounter.count({
-        path: eventName,
-        title: eventType,
+        path,
+        title,
         event: true,
     });
 }
