@@ -213,10 +213,35 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     if (!site.includedPodcasts || site.includedPodcasts.length === 0) {
         result.errors.push('Missing or empty includedPodcasts array');
     } else {
+        // Track podcast IDs to check for duplicates
+        const podcastIds = new Set<string>();
+        
         // Validate each podcast
         site.includedPodcasts.forEach((podcast, index) => {
             if (!podcast.id) {
                 result.errors.push(`Podcast ${index}: Missing required field: id`);
+            } else {
+                // Validate podcast ID length (64 character limit)
+                if (podcast.id.length > 64) {
+                    result.errors.push(`Podcast ${index}: ID "${podcast.id}" exceeds 64 character limit (current length: ${podcast.id.length})`);
+                }
+                
+                // Validate podcast ID format (lowercase letters, hyphens, and underscores only)
+                if (!/^[a-z_-]+$/.test(podcast.id)) {
+                    result.errors.push(`Podcast ${index}: ID "${podcast.id}" can only contain lowercase letters, hyphens (-), and underscores (_). No numbers or other special characters allowed.`);
+                }
+                
+                // Validate podcast ID doesn't match site ID (they should be different)
+                if (podcast.id === site.id) {
+                    result.errors.push(`Podcast ${index}: ID "${podcast.id}" cannot be the same as site ID "${site.id}". Podcast IDs should be distinct from site IDs.`);
+                }
+                
+                // Check for duplicate podcast IDs
+                if (podcastIds.has(podcast.id)) {
+                    result.errors.push(`Podcast ${index}: Duplicate podcast ID "${podcast.id}". Each podcast must have a unique ID.`);
+                } else {
+                    podcastIds.add(podcast.id);
+                }
             }
             if (!podcast.title) {
                 result.errors.push(`Podcast ${index}: Missing required field: title`);

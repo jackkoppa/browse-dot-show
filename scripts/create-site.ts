@@ -1582,6 +1582,22 @@ function createSiteId(podcastName: string): string {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
+function createPodcastId(podcastName: string, siteId: string): string {
+  let podcastId = podcastName
+    .toLowerCase()
+    .replace(/[^a-z\s-]/g, '') // Remove numbers and special characters except spaces and hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  
+  // If podcast ID matches site ID, add -podcast suffix to differentiate
+  if (podcastId === siteId) {
+    podcastId = `${podcastId}-podcast`;
+  }
+  
+  return podcastId;
+}
+
 async function searchPodcastRSSFeed(podcastName: string): Promise<PodcastSearchResult[]> {
   try {
     printInfo(`Searching for "${podcastName}" podcast RSS feed...`);
@@ -1767,6 +1783,7 @@ function generateSiteConfig(
 ): SiteConfig {
   const domain = `${siteId}.browse.show`;
   const rssFilename = `${siteId}.xml`;
+  const podcastId = createPodcastId(podcastName, siteId);
   
   return {
     id: siteId,
@@ -1787,7 +1804,7 @@ function generateSiteConfig(
     },
     includedPodcasts: [
       {
-        id: siteId,
+        id: podcastId,
         rssFeedFile: rssFilename,
         title: podcastName,
         status: "active",
