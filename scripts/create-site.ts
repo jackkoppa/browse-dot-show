@@ -988,7 +988,7 @@ async function getExistingSites(): Promise<string[]> {
 function createSiteId(podcastName: string): string {
   return podcastName
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .replace(/[^a-z\s-]/g, '') // Remove numbers and special characters except spaces and hyphens
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
@@ -1023,6 +1023,65 @@ async function searchPodcastRSSFeed(podcastName: string): Promise<PodcastSearchR
   }
 }
 
+async function promptForSiteId(podcastName: string): Promise<string> {
+  const suggestedSiteId = createSiteId(podcastName);
+  
+  console.log('\n🏷️  Site ID Configuration');
+  console.log(`Based on your podcast name, we suggest the site ID: "${suggestedSiteId}"`);
+  console.log(`Your site will be available at: ${suggestedSiteId}.browse.show`);
+  console.log('');
+  console.log('💡 Tips for a great site ID:');
+  console.log('   • Simpler is better (e.g. all lowercase letters)');
+  console.log('   • Must be less than 32 characters');
+  console.log('   • No numbers or other special characters allowed');
+  console.log('');
+  
+  const customizeResponse = await prompts({
+    type: 'confirm',
+    name: 'customize',
+    message: `Use "${suggestedSiteId}" as your site ID?`,
+    initial: true
+  });
+  
+  if (!customizeResponse.customize) {
+    // User wants to customize
+    while (true) {
+      const customResponse = await prompts({
+        type: 'text',
+        name: 'customSiteId',
+        message: 'Enter your preferred site ID:',
+        initial: suggestedSiteId,
+        validate: (value: string) => {
+          if (!value.trim()) return 'Site ID cannot be empty';
+          if (value.length > 32) return `Site ID must be 32 characters or less (current: ${value.length})`;
+          if (!/^[a-z_-]+$/.test(value)) return 'Site ID can only contain lowercase letters, hyphens (-), and underscores (_)';
+          return true;
+        }
+      });
+      
+      if (!customResponse.customSiteId) {
+        printError('Site creation cancelled.');
+        process.exit(0);
+      }
+      
+      const customSiteId = customResponse.customSiteId.trim();
+      
+      // Check if custom ID is available
+      const customSiteDir = join('sites/my-sites', customSiteId);
+      if (!(await exists(customSiteDir))) {
+        printInfo(`✅ Great choice! Using "${customSiteId}" for your site ID.`);
+        return customSiteId;
+      } else {
+        printError(`❌ Site "${customSiteId}" already exists. Please try another name.`);
+        // Continue the loop to ask again
+      }
+    }
+  }
+  
+  // User accepted the suggestion, but we still need to validate it's available
+  return await getValidSiteId(suggestedSiteId);
+}
+
 async function getValidSiteId(suggestedId: string): Promise<string> {
   // Check if suggested ID is available
   const siteDir = join('sites/my-sites', suggestedId);
@@ -1039,8 +1098,8 @@ async function getValidSiteId(suggestedId: string): Promise<string> {
       initial: `${suggestedId}-2`,
       validate: (value: string) => {
         if (!value.trim()) return 'Site ID cannot be empty';
-        if (!/^[a-z0-9-]+$/.test(value)) return 'Site ID can only contain lowercase letters, numbers, and hyphens';
-        if (!/^[a-z]/.test(value)) return 'Site ID must start with a letter';
+        if (value.length > 32) return `Site ID must be 32 characters or less (current: ${value.length})`;
+        if (!/^[a-z_-]+$/.test(value)) return 'Site ID can only contain lowercase letters, hyphens (-), and underscores (_)';
         return true;
       }
     });
@@ -1509,9 +1568,8 @@ async function handleNewSiteCreation(): Promise<void> {
     podcastHomepage = manualHomepageResponse.podcastHomepage;
   }
   
-  // Step 4: Generate site ID and validate
-  const suggestedSiteId = createSiteId(podcastName);
-  const siteId = await getValidSiteId(suggestedSiteId);
+  // Step 4: Get site ID with user customization
+  const siteId = await promptForSiteId(podcastName);
   
   printInfo(`\n🏗️  Creating site: ${siteId}`);
   printInfo(`📧 Domain: ${siteId}.browse.show`);

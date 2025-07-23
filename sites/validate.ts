@@ -109,6 +109,11 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
             result.errors.push(`Site ID "${site.id}" exceeds 32 character limit (current length: ${site.id.length})`);
         }
         
+        // Validate site ID format (lowercase letters, hyphens, and underscores only)
+        if (!/^[a-z_-]+$/.test(site.id)) {
+            result.errors.push(`Site ID "${site.id}" can only contain lowercase letters, hyphens (-), and underscores (_). No numbers or other special characters allowed.`);
+        }
+        
         // Validate site ID matches directory name
         const siteDir = getSiteDirectory(site.id);
         if (siteDir) {
