@@ -109,6 +109,9 @@ interface SetupProgress {
   initial2EpisodesResults?: Initial2EpisodesResults;
 }
 
+// Track steps deferred in current session to avoid infinite loops
+const sessionDeferredSteps = new Set<string>();
+
 interface SiteConfig {
   id: string;
   domain: string;
@@ -2281,6 +2284,12 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
     const step = progress.steps[stepDef.id];
     // If step doesn't exist in progress (new step added), treat as NOT_STARTED
     if (!step) return true;
+    
+    // Skip steps that were deferred in this session (to avoid infinite loops)
+    if (step.status === 'DEFERRED' && sessionDeferredSteps.has(stepDef.id)) {
+      return false;
+    }
+    
     return step.status === 'NOT_STARTED' || step.status === 'DEFERRED';
   });
   
@@ -2302,8 +2311,16 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
   if (newStatus !== 'NOT_STARTED') {
     await updateStepStatus(progress.siteId, nextStep.id, newStatus);
     
-    // If user completed a step, ask if they want to continue
+    // Track deferred steps in current session
+    if (newStatus === 'DEFERRED') {
+      sessionDeferredSteps.add(nextStep.id);
+    }
+    
+    // If user completed a step, clear session deferred tracking and ask if they want to continue
     if (newStatus === 'COMPLETED') {
+      // Clear deferred tracking since completing a step means user is ready to tackle more
+      sessionDeferredSteps.clear();
+      
       console.log('');
       const continueResponse = await prompts({
         type: 'confirm',
