@@ -1217,6 +1217,74 @@ async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promi
   console.log('🎯 Phase 2: Transcription Planning');
   console.log('');
 
+  // Step B.1: Review transcription prompt
+  try {
+    printInfo('🎯 Let\'s review your whisper transcription prompt!');
+    console.log('');
+    console.log('A good transcription prompt can slightly improve transcription quality by');
+    console.log('helping Whisper understand the podcast\'s style and format.');
+    console.log('');
+    console.log('Here are examples from other browse.show sites:');
+    console.log('');
+    console.log('📻 Hard Fork:');
+    console.log('   "Hi, we\'re Kevin Roose and Casey Newton, here with Hard Fork. The show about the future that\'s already here. Let\'s jump in!"');
+    console.log('');
+    console.log('📻 My Favorite Murder:');
+    console.log('   "Welcome to My Favorite Murder. Hosted by Karen Kilgariff and Georgia Hardstark. Each week, we share compelling true crimes and hometown stories from friends and listeners. Stay sexy, don\'t get murdered, and let\'s get started!"');
+    console.log('');
+    
+    // Load current site config to show current prompt
+    const configPath = join('sites/my-sites', progress.siteId, 'site.config.json');
+    const currentConfig = await readJsonFile<SiteConfig>(configPath);
+    
+    console.log('📝 Your current transcription prompt:');
+    console.log(`   "${currentConfig.whisperTranscriptionPrompt}"`);
+    console.log('');
+    console.log('💡 To customize this prompt, edit the "whisperTranscriptionPrompt" field in:');
+    console.log(`   sites/my-sites/${progress.siteId}/site.config.json`);
+    console.log('');
+    
+    const reviewResponse = await prompts({
+      type: 'confirm',
+      name: 'ready',
+      message: 'Ready to proceed with transcription? (Edit the config file first if you want to customize the prompt)',
+      initial: true
+    });
+    
+    if (!reviewResponse.ready) {
+      printInfo('No problem! Take your time to customize the prompt, then run this step again.');
+      return 'DEFERRED';
+    }
+    
+    // Check if prompt was updated
+    const updatedConfig = await readJsonFile<SiteConfig>(configPath);
+    console.log('');
+    console.log('📝 Using transcription prompt:');
+    console.log(`   "${updatedConfig.whisperTranscriptionPrompt}"`);
+    console.log('');
+    
+    if (updatedConfig.whisperTranscriptionPrompt !== currentConfig.whisperTranscriptionPrompt) {
+      printSuccess('✅ Great! You\'ve customized your transcription prompt.');
+    } else {
+      // Prompt wasn't changed, ask for confirmation
+      const confirmResponse = await prompts({
+        type: 'confirm',
+        name: 'proceed',
+        message: 'You haven\'t changed the prompt. Is this transcription prompt good enough to proceed?',
+        initial: true
+      });
+      
+      if (!confirmResponse.proceed) {
+        printInfo('No problem! Edit the prompt in your site config file, then run this step again.');
+        return 'DEFERRED';
+      }
+    }
+    
+  } catch (error) {
+    printWarning('Could not load site config for prompt review. Proceeding with transcription...');
+  }
+
+  // Step B.2: Calculate transcription time estimates
   try {
     const totalAudioDuration = await calculateTotalAudioDuration(progress.siteId);
     const transcriptionRatio = metrics.episodesTranscriptionTimeInSeconds / metrics.episodesDurationInSeconds;
