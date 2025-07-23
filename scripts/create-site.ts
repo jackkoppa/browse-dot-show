@@ -93,12 +93,20 @@ interface SetupStep {
   completedAt?: string;
 }
 
+interface Initial2EpisodesResults {
+  episodesSizeInMB: number;
+  episodesDurationInSeconds: number;
+  episodesTranscriptionTimeInSeconds: number;
+  episodesAudioFileDownloadTimeInSeconds: number;
+}
+
 interface SetupProgress {
   siteId: string;
   podcastName: string;
   createdAt: string;
   lastUpdated: string;
   steps: Record<string, SetupStep>;
+  initial2EpisodesResults?: Initial2EpisodesResults;
 }
 
 interface SiteConfig {
@@ -415,8 +423,7 @@ async function executeStep(progress: SetupProgress, stepId: string): Promise<Ste
       return await executeCustomStylingStep();
       
     case 'complete-transcriptions':
-      printInfo('🚧 Full transcription workflow coming soon! For now, we\'ll mark this as complete.');
-      return 'COMPLETED';
+      return await executeCompleteTranscriptionsStep(progress);
       
     case 'aws-deployment':
       return await executeAwsDeploymentStep();
@@ -825,6 +832,9 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   console.log('This will download and transcribe 2 episodes (estimated 10-20 minutes).');
   console.log('');
   
+  let transcriptionStartTime: number;
+  let transcriptionEndTime: number = Date.now(); // Initialize with current time as fallback
+  
   try {
     const ingestionArgs = [
       'tsx', 'scripts/run-ingestion-pipeline.ts',
@@ -834,6 +844,8 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       '--skip-s3-sync',
       '--force-local-indexing'
     ];
+    
+    transcriptionStartTime = Date.now();
     
     // Use spawn for real-time output
     const success = await new Promise<boolean>((resolve, reject) => {
@@ -858,6 +870,7 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       
       child.on('close', (code) => {
         console.log(''); // Add spacing after ingestion output
+        transcriptionEndTime = Date.now();
         if (code === 0) {
           resolve(true);
         } else {
@@ -872,6 +885,23 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
     
     if (success) {
       printSuccess('✅ Ingestion pipeline completed successfully!');
+      
+      // Step 6.1: Collect metrics from the first 2 episodes
+      try {
+        printInfo('📊 Collecting metrics from your first 2 episodes...');
+        const metrics = await collectInitial2EpisodesMetrics(progress.siteId, transcriptionStartTime, transcriptionEndTime);
+        
+        // Save metrics to progress
+        const currentProgress = await loadProgress(progress.siteId);
+        if (currentProgress) {
+          currentProgress.initial2EpisodesResults = metrics;
+          await saveProgress(currentProgress);
+          printSuccess(`📈 Metrics saved: ${metrics.episodesSizeInMB.toFixed(1)}MB, ${Math.round(metrics.episodesDurationInSeconds/60)} min duration, ${Math.round(metrics.episodesTranscriptionTimeInSeconds/60)} min transcription time, ${Math.round(metrics.episodesAudioFileDownloadTimeInSeconds/60)} min download time`);
+        }
+      } catch (metricsError) {
+        printWarning(`Could not collect metrics: ${metricsError instanceof Error ? metricsError.message : 'Unknown error'}`);
+        // Don't fail the step just because metrics collection failed
+      }
     }
   } catch (error) {
     printError(`Failed to run ingestion pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -899,6 +929,561 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   });
   
   return testResponse.tested ? 'COMPLETED' : 'DEFERRED';
+}
+
+// Helper functions for complete transcriptions step
+function formatTimeEstimate(seconds: number): string {
+  const roundedSeconds = Math.round(seconds / 10) * 10; // Round to nearest 10 seconds
+  const hours = Math.floor(roundedSeconds / 3600);
+  const minutes = Math.floor((roundedSeconds % 3600) / 60);
+  const remainingSeconds = roundedSeconds % 60;
+  
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  } else if (minutes > 0) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+  } else {
+    return `${remainingSeconds}s`;
+  }
+}
+
+async function parseRSSFileForEpisodeCount(siteId: string): Promise<number> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  const rssDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'rss');
+  const rssFile = path.join(rssDir, `${siteId}.xml`);
+  
+  if (!fs.existsSync(rssFile)) {
+    throw new Error(`RSS file not found: ${rssFile}`);
+  }
+  
+  const rssContent = fs.readFileSync(rssFile, 'utf8');
+  
+  // Count <item> tags which represent episodes
+  const itemMatches = rssContent.match(/<item\b[^>]*>/gi);
+  return itemMatches ? itemMatches.length : 0;
+}
+
+async function calculateTotalAudioDuration(siteId: string): Promise<number> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+  let totalDurationInSeconds = 0;
+  
+  if (!fs.existsSync(audioDir)) {
+    return 0;
+  }
+  
+  // Get all subdirectories (podcast IDs)
+  const podcastDirs = fs.readdirSync(audioDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
+  
+  // Scan each podcast directory for audio files
+  for (const podcastId of podcastDirs) {
+    const podcastAudioDir = path.join(audioDir, podcastId);
+    
+    if (fs.existsSync(podcastAudioDir)) {
+      const audioFiles = fs.readdirSync(podcastAudioDir)
+        .filter(file => file.endsWith('.mp3'));
+      
+      for (const audioFile of audioFiles) {
+        const filePath = path.join(podcastAudioDir, audioFile);
+        
+        try {
+          const { stdout } = await execAsync(`ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${filePath}"`);
+          const duration = parseFloat(stdout.trim());
+          if (!isNaN(duration)) {
+            totalDurationInSeconds += duration;
+          }
+        } catch (ffprobeError) {
+          // If ffprobe fails, estimate duration based on file size (rough estimate: ~1MB per minute for MP3)
+          const stats = fs.statSync(filePath);
+          const estimatedDuration = (stats.size / 1024 / 1024) * 60; // MB * 60 seconds
+          totalDurationInSeconds += estimatedDuration;
+        }
+      }
+    }
+  }
+  
+  return totalDurationInSeconds;
+}
+
+async function validateTranscriptionCompletion(siteId: string): Promise<{ isComplete: boolean; audioCount: number; transcriptCount: number; rssCount: number }> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  try {
+    // Count RSS episodes
+    const rssCount = await parseRSSFileForEpisodeCount(siteId);
+    
+    // Count audio files
+    const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+    let audioCount = 0;
+    
+    if (fs.existsSync(audioDir)) {
+      const podcastDirs = fs.readdirSync(audioDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+      
+      for (const podcastId of podcastDirs) {
+        const podcastAudioDir = path.join(audioDir, podcastId);
+        if (fs.existsSync(podcastAudioDir)) {
+          const audioFiles = fs.readdirSync(podcastAudioDir).filter(file => file.endsWith('.mp3'));
+          audioCount += audioFiles.length;
+        }
+      }
+    }
+    
+    // Count transcript files
+    const transcriptDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'transcripts');
+    let transcriptCount = 0;
+    
+    if (fs.existsSync(transcriptDir)) {
+      const podcastDirs = fs.readdirSync(transcriptDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+      
+      for (const podcastId of podcastDirs) {
+        const podcastTranscriptDir = path.join(transcriptDir, podcastId);
+        if (fs.existsSync(podcastTranscriptDir)) {
+          const transcriptFiles = fs.readdirSync(podcastTranscriptDir).filter(file => file.endsWith('.srt'));
+          transcriptCount += transcriptFiles.length;
+        }
+      }
+    }
+    
+    const isComplete = audioCount === transcriptCount && audioCount === rssCount && audioCount > 0;
+    return { isComplete, audioCount, transcriptCount, rssCount };
+    
+  } catch (error) {
+    return { isComplete: false, audioCount: 0, transcriptCount: 0, rssCount: 0 };
+  }
+}
+
+async function validateFinalIndexing(siteId: string): Promise<{ isComplete: boolean; hasSearchIndex: boolean; searchEntriesCount: number; expectedCount: number }> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  try {
+    // Check if search index exists
+    const searchIndexFile = path.join('aws-local-dev', 's3', 'sites', siteId, 'search-index', 'orama_index.msp');
+    const hasSearchIndex = fs.existsSync(searchIndexFile);
+    
+    // Count search entries
+    const searchEntriesDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'search-entries', siteId);
+    let searchEntriesCount = 0;
+    
+    if (fs.existsSync(searchEntriesDir)) {
+      const searchEntryFiles = fs.readdirSync(searchEntriesDir).filter(file => file.endsWith('.json'));
+      searchEntriesCount = searchEntryFiles.length;
+    }
+    
+    // Get expected count from audio files
+    const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+    let expectedCount = 0;
+    
+    if (fs.existsSync(audioDir)) {
+      const podcastDirs = fs.readdirSync(audioDir, { withFileTypes: true })
+        .filter(dirent => dirent.isDirectory())
+        .map(dirent => dirent.name);
+      
+      for (const podcastId of podcastDirs) {
+        const podcastAudioDir = path.join(audioDir, podcastId);
+        if (fs.existsSync(podcastAudioDir)) {
+          const audioFiles = fs.readdirSync(podcastAudioDir).filter(file => file.endsWith('.mp3'));
+          expectedCount += audioFiles.length;
+        }
+      }
+    }
+    
+    const isComplete = hasSearchIndex && searchEntriesCount === expectedCount && expectedCount > 0;
+    return { isComplete, hasSearchIndex, searchEntriesCount, expectedCount };
+    
+  } catch (error) {
+    return { isComplete: false, hasSearchIndex: false, searchEntriesCount: 0, expectedCount: 0 };
+  }
+}
+
+async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promise<StepStatus> {
+  console.log('');
+  printInfo('🎙️  Time to complete transcriptions for your entire podcast archive!');
+  console.log('');
+  console.log('This is the most time-intensive phase, but will make your entire podcast');
+  console.log('searchable. The process has 3 main steps:');
+  console.log('');
+  console.log('1. Download all remaining episode audio files');
+  console.log('2. Transcribe all episodes using Whisper');
+  console.log('3. Create the searchable index');
+  console.log('');
+
+  // Check if we have initial metrics
+  if (!progress.initial2EpisodesResults) {
+    printError('Cannot estimate times - please complete the "first transcriptions" step first.');
+    return 'DEFERRED';
+  }
+
+  const metrics = progress.initial2EpisodesResults;
+
+  // Phase A: Download All Episodes
+  console.log('📥 Phase 1: Download All Episode Files');
+  console.log('');
+
+  try {
+    const totalEpisodes = await parseRSSFileForEpisodeCount(progress.siteId);
+    const remainingEpisodes = Math.max(0, totalEpisodes - 2); // Subtract the 2 already downloaded
+    const estimatedDownloadTime = Math.round((remainingEpisodes / 2) * metrics.episodesAudioFileDownloadTimeInSeconds);
+    
+    console.log(`📊 Found ${totalEpisodes} episodes in your RSS feed`);
+    console.log(`   • Already downloaded: 2 episodes`);
+    console.log(`   • Remaining to download: ${remainingEpisodes} episodes`);
+    console.log(`   • Estimated download time: ${formatTimeEstimate(estimatedDownloadTime)}`);
+    console.log('');
+    console.log('💡 Note: This estimate assumes similar file sizes. Actual time may vary.');
+    console.log('');
+
+    const downloadResponse = await prompts({
+      type: 'confirm',
+      name: 'startDownload',
+      message: `Ready to download all ${remainingEpisodes} remaining episodes?`,
+      initial: true
+    });
+
+    if (!downloadResponse.startDownload) {
+      printInfo('No problem! You can continue with this step when you\'re ready.');
+      return 'DEFERRED';
+    }
+
+    // Execute download
+    printInfo('🚀 Starting download of all episode files...');
+    const downloadArgs = [
+      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
+      `--sites=${progress.siteId}`,
+      '--lambda=rss-retrieval',
+      '--env=local'
+    ];
+
+    const downloadSuccess = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', downloadArgs, {
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        }
+      });
+
+      child.stdout?.on('data', (data) => {
+        process.stdout.write(data.toString());
+      });
+
+      child.stderr?.on('data', (data) => {
+        process.stderr.write(data.toString());
+      });
+
+      child.on('close', (code) => {
+        console.log('');
+        if (code === 0) {
+          resolve(true);
+        } else {
+          reject(new Error(`Download failed with exit code ${code}`));
+        }
+      });
+
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
+
+    if (!downloadSuccess) {
+      printError('Download failed. Please try again.');
+      return 'DEFERRED';
+    }
+
+    printSuccess('✅ All episode files downloaded successfully!');
+
+  } catch (error) {
+    printError(`Failed to download episodes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return 'DEFERRED';
+  }
+
+  // Phase B: Transcription Planning
+  console.log('');
+  console.log('🎯 Phase 2: Transcription Planning');
+  console.log('');
+
+  try {
+    const totalAudioDuration = await calculateTotalAudioDuration(progress.siteId);
+    const transcriptionRatio = metrics.episodesTranscriptionTimeInSeconds / metrics.episodesDurationInSeconds;
+    const estimatedTranscriptionTime = Math.round(totalAudioDuration * transcriptionRatio);
+    
+    const totalHours = Math.round(totalAudioDuration / 3600);
+    const transcriptionHours = Math.round(estimatedTranscriptionTime / 3600);
+    
+    console.log(`📊 Total Audio Duration: ~${totalHours} hours`);
+    console.log('');
+    console.log('⏱️  ESTIMATED TOTAL TRANSCRIPTION TIME: ' + formatTimeEstimate(estimatedTranscriptionTime));
+    console.log('');
+    console.log('💡 This is the longest phase - your machine can run in the background');
+    console.log('   or be left alone during this time.');
+    console.log('');
+    console.log('You have two options for transcription:');
+    console.log('');
+    console.log('1. 🐌 Single Terminal (Sequential)');
+    console.log('   • Process one episode at a time');
+    console.log('   • Safer for machines with limited RAM');
+    console.log('   • Full estimated time: ' + formatTimeEstimate(estimatedTranscriptionTime));
+    console.log('');
+    console.log('2. 🚀 Multiple Terminals (Parallel)');
+    console.log('   • Process 2-3 episodes simultaneously');
+    console.log('   • Recommended for machines with 16GB+ RAM and decent GPU');
+    console.log('   • Can reduce time by 50-66%: ' + formatTimeEstimate(estimatedTranscriptionTime / 2.5));
+    console.log('');
+
+    const transcriptionChoice = await prompts({
+      type: 'select',
+      name: 'choice',
+      message: 'How would you like to run transcriptions?',
+      choices: [
+        {
+          title: 'Single terminal (safer, slower)',
+          description: 'Process episodes one at a time in this terminal',
+          value: 'single'
+        },
+        {
+          title: 'Multiple terminals (faster, needs more RAM)',
+          description: 'You\'ll run the same command in 2-3 separate terminals',
+          value: 'multiple'
+        }
+      ],
+      initial: 0
+    });
+
+    if (!transcriptionChoice.choice) {
+      return 'DEFERRED';
+    }
+
+    // Phase C: Execute Transcriptions
+    if (transcriptionChoice.choice === 'single') {
+      console.log('');
+      printInfo('🎵 Starting transcription of all episodes...');
+      console.log('This will take a significant amount of time. Progress will be shown as it processes.');
+      console.log('');
+
+      const transcriptionArgs = [
+        'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
+        `--sites=${progress.siteId}`,
+        '--lambda=process-audio',
+        '--env=local'
+      ];
+
+      const transcriptionSuccess = await new Promise<boolean>((resolve, reject) => {
+        const child = spawn('pnpm', transcriptionArgs, {
+          cwd: process.cwd(),
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: {
+            ...process.env,
+            NODE_OPTIONS: '--max-old-space-size=8192'
+          }
+        });
+
+        child.stdout?.on('data', (data) => {
+          process.stdout.write(data.toString());
+        });
+
+        child.stderr?.on('data', (data) => {
+          process.stderr.write(data.toString());
+        });
+
+        child.on('close', (code) => {
+          console.log('');
+          if (code === 0) {
+            resolve(true);
+          } else {
+            reject(new Error(`Transcription failed with exit code ${code}`));
+          }
+        });
+
+        child.on('error', (error) => {
+          reject(error);
+        });
+      });
+
+      if (!transcriptionSuccess) {
+        printError('Transcription failed. Please try again.');
+        return 'DEFERRED';
+      }
+
+      printSuccess('✅ All episodes transcribed successfully!');
+
+    } else {
+      // Multiple terminals option
+      console.log('');
+      printInfo('🚀 Multiple Terminal Setup Instructions:');
+      console.log('');
+      console.log('1. Open 2-3 new terminal windows/tabs');
+      console.log('2. In each terminal, navigate to this project directory');
+      console.log('3. Run this command in each terminal:');
+      console.log('');
+      logInColor('green', `NODE_OPTIONS=--max-old-space-size=8192 pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=process-audio --env=local`);
+      console.log('');
+      console.log('4. Let all terminals run until completion');
+      console.log('5. Come back to this terminal and continue');
+      console.log('');
+      console.log('💡 The terminals will coordinate automatically - no conflicts will occur.');
+      console.log('');
+
+      const continueResponse = await prompts({
+        type: 'confirm',
+        name: 'transcriptionsComplete',
+        message: 'Have all transcription terminals completed successfully?',
+        initial: false
+      });
+
+      if (!continueResponse.transcriptionsComplete) {
+        printInfo('No problem! Continue when all transcriptions are complete.');
+        return 'DEFERRED';
+      }
+    }
+
+  } catch (error) {
+    printError(`Failed during transcription phase: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return 'DEFERRED';
+  }
+
+  // Phase D: Validate transcriptions and run final indexing
+  console.log('');
+  console.log('✅ Phase 3: Final Validation and Indexing');
+  console.log('');
+
+  try {
+    printInfo('🔍 Validating transcription completion...');
+    const validation = await validateTranscriptionCompletion(progress.siteId);
+    
+    console.log(`📊 Validation Results:`);
+    console.log(`   • RSS episodes: ${validation.rssCount}`);
+    console.log(`   • Audio files: ${validation.audioCount}`);
+    console.log(`   • Transcript files: ${validation.transcriptCount}`);
+    console.log('');
+
+    if (!validation.isComplete) {
+      if (validation.audioCount !== validation.rssCount) {
+        printWarning(`Not all episodes downloaded: ${validation.audioCount}/${validation.rssCount}`);
+      }
+      if (validation.transcriptCount !== validation.audioCount) {
+        printWarning(`Not all episodes transcribed: ${validation.transcriptCount}/${validation.audioCount}`);
+      }
+      
+      console.log('');
+      const retryResponse = await prompts({
+        type: 'confirm',
+        name: 'continueAnyway',
+        message: 'Transcriptions appear incomplete. Continue with indexing anyway?',
+        initial: false
+      });
+
+      if (!retryResponse.continueAnyway) {
+        printInfo('Please complete the missing transcriptions and return to this step.');
+        return 'DEFERRED';
+      }
+    } else {
+      printSuccess('🎉 All transcriptions completed successfully!');
+    }
+
+    // Final indexing step
+    console.log('');
+    const indexResponse = await prompts({
+      type: 'confirm',
+      name: 'startIndexing',
+      message: 'Ready to create the searchable index? (This will take a few minutes)',
+      initial: true
+    });
+
+    if (!indexResponse.startIndexing) {
+      return 'DEFERRED';
+    }
+
+    printInfo('🔍 Creating searchable index...');
+    const indexingArgs = [
+      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
+      `--sites=${progress.siteId}`,
+      '--lambda=srt-indexing',
+      '--env=local'
+    ];
+
+    const indexingSuccess = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', indexingArgs, {
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        }
+      });
+
+      child.stdout?.on('data', (data) => {
+        process.stdout.write(data.toString());
+      });
+
+      child.stderr?.on('data', (data) => {
+        process.stderr.write(data.toString());
+      });
+
+      child.on('close', (code) => {
+        console.log('');
+        if (code === 0) {
+          resolve(true);
+        } else {
+          reject(new Error(`Indexing failed with exit code ${code}`));
+        }
+      });
+
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
+
+    if (!indexingSuccess) {
+      printError('Indexing failed. Please try again.');
+      return 'DEFERRED';
+    }
+
+    // Final validation
+    printInfo('🔍 Validating final results...');
+    const finalValidation = await validateFinalIndexing(progress.siteId);
+    
+    console.log(`📊 Final Results:`);
+    console.log(`   • Search index: ${finalValidation.hasSearchIndex ? '✅' : '❌'}`);
+    console.log(`   • Search entries: ${finalValidation.searchEntriesCount}/${finalValidation.expectedCount}`);
+    console.log('');
+
+    if (finalValidation.isComplete) {
+      printSuccess('🎉 Complete transcription workflow finished successfully!');
+      console.log('');
+      console.log('✨ Your entire podcast archive is now searchable!');
+      console.log(`🔍 Test it by running: pnpm client:dev --filter ${progress.siteId}`);
+      console.log('');
+      return 'COMPLETED';
+    } else {
+      printWarning('⚠️  Indexing completed but some files may be missing.');
+      printInfo('Your site should still work, but some episodes might not be searchable.');
+      
+      const acceptResponse = await prompts({
+        type: 'confirm',
+        name: 'acceptPartial',
+        message: 'Mark this step as complete anyway?',
+        initial: true
+      });
+
+      return acceptResponse.acceptPartial ? 'COMPLETED' : 'DEFERRED';
+    }
+
+  } catch (error) {
+    printError(`Failed during final validation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return 'DEFERRED';
+  }
 }
 
 async function executeAwsDeploymentStep(): Promise<StepStatus> {
@@ -1305,6 +1890,88 @@ async function runSiteValidation(_siteId: string): Promise<boolean> {
 }
 
 
+
+async function collectInitial2EpisodesMetrics(siteId: string, transcriptionStartTime: number, transcriptionEndTime: number): Promise<Initial2EpisodesResults> {
+  const fs = await import('fs');
+  const path = await import('path');
+  
+  // Calculate transcription time in seconds
+  const episodesTranscriptionTimeInSeconds = Math.round((transcriptionEndTime - transcriptionStartTime) / 1000);
+  
+  // Find the local audio directory for this site
+  const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+  
+  let totalSizeInBytes = 0;
+  let totalDurationInSeconds = 0;
+  let audioFileCount = 0;
+  
+  try {
+    // Check if audio directory exists
+    if (!fs.existsSync(audioDir)) {
+      throw new Error(`Audio directory not found: ${audioDir}`);
+    }
+    
+    // Get all subdirectories (podcast IDs)
+    const podcastDirs = fs.readdirSync(audioDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
+    
+    // Scan each podcast directory for audio files
+    for (const podcastId of podcastDirs) {
+      const podcastAudioDir = path.join(audioDir, podcastId);
+      
+      if (fs.existsSync(podcastAudioDir)) {
+        const audioFiles = fs.readdirSync(podcastAudioDir)
+          .filter(file => file.endsWith('.mp3'));
+        
+        for (const audioFile of audioFiles) {
+          const filePath = path.join(podcastAudioDir, audioFile);
+          const stats = fs.statSync(filePath);
+          totalSizeInBytes += stats.size;
+          audioFileCount++;
+          
+          // Get audio duration using ffprobe (if available)
+          try {
+            const { stdout } = await execAsync(`ffprobe -v quiet -show_entries format=duration -of csv=p=0 "${filePath}"`);
+            const duration = parseFloat(stdout.trim());
+            if (!isNaN(duration)) {
+              totalDurationInSeconds += duration;
+            }
+          } catch (ffprobeError) {
+            // If ffprobe fails, estimate duration based on file size (rough estimate: ~1MB per minute for MP3)
+            const estimatedDuration = (stats.size / 1024 / 1024) * 60; // MB * 60 seconds
+            totalDurationInSeconds += estimatedDuration;
+            printWarning(`Could not get exact duration for ${audioFile}, using size-based estimate`);
+          }
+        }
+      }
+    }
+    
+    if (audioFileCount === 0) {
+      throw new Error('No audio files found in the expected directory');
+    }
+    
+    // Convert bytes to MB
+    const episodesSizeInMB = totalSizeInBytes / 1024 / 1024;
+    
+    printInfo(`Found ${audioFileCount} audio files totaling ${episodesSizeInMB.toFixed(1)}MB and ${Math.round(totalDurationInSeconds/60)} minutes`);
+    
+    // Estimate download time as approximately 15% of total pipeline time
+    // This is a reasonable estimate since transcription is typically the bottleneck
+    // TODO: Improve this by timing the download phase separately in the ingestion pipeline
+    const episodesAudioFileDownloadTimeInSeconds = Math.round(episodesTranscriptionTimeInSeconds * 0.15);
+    
+    return {
+      episodesSizeInMB,
+      episodesDurationInSeconds: Math.round(totalDurationInSeconds),
+      episodesTranscriptionTimeInSeconds,
+      episodesAudioFileDownloadTimeInSeconds
+    };
+    
+  } catch (error) {
+    throw new Error(`Failed to collect episode metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
 
 async function openGuide(guidePath: string): Promise<void> {
   try {
