@@ -829,55 +829,53 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
     return 'DEFERRED';
   }
   
-  // Step 6: Run ingestion pipeline
+  // Step 6: Run download and transcription phases separately
   console.log('');
-  printInfo('🎵 Running ingestion pipeline for your first 2 episodes...');
+  printInfo('🎵 Processing your first 2 episodes...');
   console.log('This will download and transcribe 2 episodes (estimated 10-20 minutes).');
+  console.log('We\'ll run this in 2 phases to get accurate timing metrics.');
   console.log('');
   
+  let downloadStartTime: number;
+  let downloadEndTime: number = Date.now(); // Initialize with fallback
   let transcriptionStartTime: number;
-  let transcriptionEndTime: number = Date.now(); // Initialize with current time as fallback
+  let transcriptionEndTime: number = Date.now(); // Initialize with fallback
   
   try {
-    const ingestionArgs = [
-      'tsx', 'scripts/run-ingestion-pipeline.ts',
+    // Phase 1: Download episodes
+    printInfo('📥 Phase 1: Downloading episode audio files...');
+    
+    const downloadArgs = [
+      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
       `--sites=${progress.siteId}`,
-      '--max-episodes=2',
-      '--skip-pre-sync',
-      '--skip-s3-sync',
-      '--force-local-indexing'
+      '--lambda=rss-retrieval',
+      '--env=local',
+      '--max-episodes=2'
     ];
     
-    transcriptionStartTime = Date.now();
+    downloadStartTime = Date.now();
     
-    // Use spawn for real-time output
-    const success = await new Promise<boolean>((resolve, reject) => {
-      const child = spawn('pnpm', ingestionArgs, {
+    const downloadSuccess = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', downloadArgs, {
         cwd: process.cwd(),
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
-      // Stream stdout in real-time
       child.stdout?.on('data', (data) => {
-        const output = data.toString();
-        // Print output as it comes, preserving formatting
-        process.stdout.write(output);
+        process.stdout.write(data.toString());
       });
       
-      // Stream stderr in real-time  
       child.stderr?.on('data', (data) => {
-        const output = data.toString();
-        // Print errors/warnings as they come
-        process.stderr.write(output);
+        process.stderr.write(data.toString());
       });
       
       child.on('close', (code) => {
-        console.log(''); // Add spacing after ingestion output
-        transcriptionEndTime = Date.now();
+        console.log('');
+        downloadEndTime = Date.now();
         if (code === 0) {
           resolve(true);
         } else {
-          reject(new Error(`Ingestion pipeline failed with exit code ${code}`));
+          reject(new Error(`Download failed with exit code ${code}`));
         }
       });
       
@@ -886,31 +884,129 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       });
     });
     
-    if (success) {
-      printSuccess('✅ Ingestion pipeline completed successfully!');
+    if (!downloadSuccess) {
+      throw new Error('Download phase failed');
+    }
+    
+    printSuccess('✅ Episode download completed!');
+    
+    // Phase 2: Transcription
+    printInfo('🎙️  Phase 2: Transcribing episodes...');
+    
+    const transcriptionArgs = [
+      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
+      `--sites=${progress.siteId}`,
+      '--lambda=process-audio',
+      '--env=local'
+    ];
+    
+    transcriptionStartTime = Date.now();
+    
+    const transcriptionSuccess = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', transcriptionArgs, {
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
       
-      // Step 6.1: Collect metrics from the first 2 episodes
-      try {
-        printInfo('📊 Collecting metrics from your first 2 episodes...');
-        const metrics = await collectInitial2EpisodesMetrics(progress.siteId, transcriptionStartTime, transcriptionEndTime);
-        
-        // Save metrics to progress
-        const currentProgress = await loadProgress(progress.siteId);
-        if (currentProgress) {
-          currentProgress.initial2EpisodesResults = metrics;
-          await saveProgress(currentProgress);
-          printSuccess(`📈 Metrics saved: ${metrics.episodesSizeInMB.toFixed(1)}MB, ${Math.round(metrics.episodesDurationInSeconds/60)} min duration, ${Math.round(metrics.episodesTranscriptionTimeInSeconds/60)} min transcription time, ${Math.round(metrics.episodesAudioFileDownloadTimeInSeconds/60)} min download time`);
+      child.stdout?.on('data', (data) => {
+        process.stdout.write(data.toString());
+      });
+      
+      child.stderr?.on('data', (data) => {
+        process.stderr.write(data.toString());
+      });
+      
+      child.on('close', (code) => {
+        console.log('');
+        transcriptionEndTime = Date.now();
+        if (code === 0) {
+          resolve(true);
+        } else {
+          reject(new Error(`Transcription failed with exit code ${code}`));
         }
-      } catch (metricsError) {
-        printWarning(`Could not collect metrics: ${metricsError instanceof Error ? metricsError.message : 'Unknown error'}`);
-        // Don't fail the step just because metrics collection failed
+      });
+      
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
+    
+    if (!transcriptionSuccess) {
+      throw new Error('Transcription phase failed');
+    }
+    
+    printSuccess('✅ Episode transcription completed!');
+    
+    // Phase 3: Indexing
+    printInfo('🔍 Phase 3: Creating search index...');
+    
+    const indexingArgs = [
+      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
+      `--sites=${progress.siteId}`,
+      '--lambda=srt-indexing',
+      '--env=local'
+    ];
+    
+    const indexingSuccess = await new Promise<boolean>((resolve, reject) => {
+      const child = spawn('pnpm', indexingArgs, {
+        cwd: process.cwd(),
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      child.stdout?.on('data', (data) => {
+        process.stdout.write(data.toString());
+      });
+      
+      child.stderr?.on('data', (data) => {
+        process.stderr.write(data.toString());
+      });
+      
+      child.on('close', (code) => {
+        console.log('');
+        if (code === 0) {
+          resolve(true);
+        } else {
+          reject(new Error(`Indexing failed with exit code ${code}`));
+        }
+      });
+      
+      child.on('error', (error) => {
+        reject(error);
+      });
+    });
+    
+    if (!indexingSuccess) {
+      throw new Error('Indexing phase failed');
+    }
+    
+    printSuccess('✅ All phases completed successfully!');
+    
+    // Step 6.1: Collect metrics from the first 2 episodes
+    try {
+      printInfo('📊 Collecting metrics from your first 2 episodes...');
+      const downloadTimeInSeconds = Math.round((downloadEndTime - downloadStartTime) / 1000);
+      const transcriptionTimeInSeconds = Math.round((transcriptionEndTime - transcriptionStartTime) / 1000);
+      
+      const metrics = await collectInitial2EpisodesMetrics(progress.siteId, downloadTimeInSeconds, transcriptionTimeInSeconds);
+      
+      // Save metrics to progress
+      const currentProgress = await loadProgress(progress.siteId);
+      if (currentProgress) {
+        currentProgress.initial2EpisodesResults = metrics;
+        await saveProgress(currentProgress);
+        printSuccess(`📈 Metrics saved: ${metrics.episodesSizeInMB.toFixed(1)}MB, ${Math.round(metrics.episodesDurationInSeconds/60)} min duration, ${Math.round(metrics.episodesTranscriptionTimeInSeconds/60)} min transcription time, ${Math.round(metrics.episodesAudioFileDownloadTimeInSeconds/60)} min download time`);
       }
+    } catch (metricsError) {
+      printWarning(`Could not collect metrics: ${metricsError instanceof Error ? metricsError.message : 'Unknown error'}`);
+      // Don't fail the step just because metrics collection failed
     }
   } catch (error) {
-    printError(`Failed to run ingestion pipeline: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    printError(`Failed during episode processing: ${error instanceof Error ? error.message : 'Unknown error'}`);
     console.log('');
-    console.log('You can try running this manually:');
-    console.log(`pnpm tsx scripts/run-ingestion-pipeline.ts --sites=${progress.siteId} --max-episodes=2 --skip-s3-sync --force-local-indexing`);
+    console.log('You can try running these commands manually:');
+    console.log(`1. Download: pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=rss-retrieval --env=local --max-episodes=2`);
+    console.log(`2. Transcribe: pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=process-audio --env=local`);
+    console.log(`3. Index: pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=srt-indexing --env=local`);
     return 'DEFERRED';
   }
   
@@ -1298,7 +1394,7 @@ async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promi
     console.log('⏱️  ESTIMATED TOTAL TRANSCRIPTION TIME: ' + formatTimeEstimate(estimatedTranscriptionTime));
     console.log('');
     console.log('💡 This is the longest phase - your machine can run in the background');
-    console.log('   or be left alone during this time.');
+    console.log('   or be left alone during this time. The time estimates below are very rough - could be singificantly more or less time, depending on the machine details.');
     console.log('');
     console.log('You have two options for transcription:');
     console.log('');
@@ -1310,7 +1406,7 @@ async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promi
     console.log('2. 🚀 Multiple Terminals (Parallel)');
     console.log('   • Process 2-3 episodes simultaneously');
     console.log('   • Recommended for machines with 16GB+ RAM and decent GPU');
-    console.log('   • Can reduce time by 50-66%: ' + formatTimeEstimate(estimatedTranscriptionTime / 2.5));
+    console.log('   • Can reduce time by 20-30%, depending on the machine: ' + formatTimeEstimate(estimatedTranscriptionTime * 0.75));
     console.log('');
 
     const transcriptionChoice = await prompts({
@@ -1319,7 +1415,7 @@ async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promi
       message: 'How would you like to run transcriptions?',
       choices: [
         {
-          title: 'Single terminal (safer, slower)',
+          title: 'Single terminal (simpler, slower)',
           description: 'Process episodes one at a time in this terminal',
           value: 'single'
         },
@@ -1979,12 +2075,12 @@ async function runSiteValidation(_siteId: string): Promise<boolean> {
 
 
 
-async function collectInitial2EpisodesMetrics(siteId: string, transcriptionStartTime: number, transcriptionEndTime: number): Promise<Initial2EpisodesResults> {
+async function collectInitial2EpisodesMetrics(siteId: string, downloadTimeInSeconds: number, transcriptionTimeInSeconds: number): Promise<Initial2EpisodesResults> {
   const fs = await import('fs');
   const path = await import('path');
   
-  // Calculate transcription time in seconds
-  const episodesTranscriptionTimeInSeconds = Math.round((transcriptionEndTime - transcriptionStartTime) / 1000);
+  // Use the actual measured times
+  const episodesTranscriptionTimeInSeconds = transcriptionTimeInSeconds;
   
   // Find the local audio directory for this site
   const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
@@ -2044,10 +2140,8 @@ async function collectInitial2EpisodesMetrics(siteId: string, transcriptionStart
     
     printInfo(`Found ${audioFileCount} audio files totaling ${episodesSizeInMB.toFixed(1)}MB and ${Math.round(totalDurationInSeconds/60)} minutes`);
     
-    // Estimate download time as approximately 15% of total pipeline time
-    // This is a reasonable estimate since transcription is typically the bottleneck
-    // TODO: Improve this by timing the download phase separately in the ingestion pipeline
-    const episodesAudioFileDownloadTimeInSeconds = Math.round(episodesTranscriptionTimeInSeconds * 0.15);
+    // Use the actual measured download time
+    const episodesAudioFileDownloadTimeInSeconds = downloadTimeInSeconds;
     
     return {
       episodesSizeInMB,

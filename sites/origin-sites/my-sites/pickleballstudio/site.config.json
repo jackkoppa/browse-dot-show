@@ -1,0 +1,37 @@
+{
+  "id": "pickleballstudio",
+  "domain": "pickleballstudio.browse.show",
+  "appHeader": {
+    "primaryTitle": "The Pickleball Studio",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "The Pickleball Studio",
+    "taglinePrimaryPodcastExternalURL": "https://pickleballstudio.com/podcast",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] The Pickleball Studio",
+    "canonicalUrl": "https://pickleballstudio.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the The Pickleball Studio podcast",
+    "metaTitle": "[browse.show] The Pickleball Studio"
+  },
+  "includedPodcasts": [
+    {
+      "id": "the-pickleball-studio",
+      "rssFeedFile": "pickleballstudio.xml",
+      "title": "The Pickleball Studio",
+      "status": "active",
+      "url": "https://feeds.buzzsprout.com/1997851.rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to The Pickleball Studio podcast. I'm your host, Chris Olson, with my cohost, Will Chaing. We cover how to improve, the latest gear, and news on the pro scene - in short, everything you need to know about the Pickleball world. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}

@@ -1,0 +1,73 @@
+{
+  "siteId": "pickleballstudio",
+  "podcastName": "The Pickleball Studio",
+  "createdAt": "2025-07-23T13:14:55.645Z",
+  "lastUpdated": "2025-07-23T13:37:23.671Z",
+  "steps": {
+    "generate-site-files": {
+      "id": "generate-site-files",
+      "displayName": "Generate initial site files",
+      "description": "Create the core site structure and configuration",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-07-23T13:14:55.646Z"
+    },
+    "run-locally": {
+      "id": "run-locally",
+      "displayName": "Run React site locally",
+      "description": "Verify your local development environment works",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-07-23T13:15:07.075Z"
+    },
+    "first-transcriptions": {
+      "id": "first-transcriptions",
+      "displayName": "Generate first episode transcriptions",
+      "description": "Process a few episodes locally to test the workflow",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-07-23T13:14:55.646Z"
+    },
+    "custom-icons": {
+      "id": "custom-icons",
+      "displayName": "Setup custom icons",
+      "description": "Customize your site branding and visual identity",
+      "optional": true,
+      "status": "DEFERRED"
+    },
+    "custom-styling": {
+      "id": "custom-styling",
+      "displayName": "Setup custom CSS & styling",
+      "description": "Customize your site theme and appearance",
+      "optional": true,
+      "status": "DEFERRED"
+    },
+    "complete-transcriptions": {
+      "id": "complete-transcriptions",
+      "displayName": "Complete all episode transcriptions",
+      "description": "Process your full podcast archive",
+      "optional": false,
+      "status": "NOT_STARTED"
+    },
+    "aws-deployment": {
+      "id": "aws-deployment",
+      "displayName": "Setup AWS deployment",
+      "description": "Deploy your site to production (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    },
+    "local-automation": {
+      "id": "local-automation",
+      "displayName": "Setup local automation",
+      "description": "Automate future episode processing (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    }
+  },
+  "initial2EpisodesResults": {
+    "episodesSizeInMB": 108.92647933959961,
+    "episodesDurationInSeconds": 9513,
+    "episodesTranscriptionTimeInSeconds": 619,
+    "episodesAudioFileDownloadTimeInSeconds": 93
+  }
+}
