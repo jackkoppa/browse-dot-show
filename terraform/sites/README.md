@@ -1,61 +1,49 @@
-# Listen Fair Play - Terraform Configuration
+# Terraform Sites Configuration
 
-This directory contains the Terraform configuration for deploying the Listen Fair Play application to AWS.
+## ⚠️ Important: Terraform Files Have Moved
 
-## Architecture
+As of the site reorganization (Phase 2), **site-specific terraform configuration files have been moved** to individual site directories to better organize site-specific content.
 
-The infrastructure consists of the following components:
+## New File Locations
 
-1. **S3 Bucket**: Stores audio files, transcriptions, and hosts the static website
-2. **CloudFront**: CDN for delivering content
-3. **Lambda Functions**:
-   - RSS feed retrieval and audio download
-   - Whisper API transcription
-   - SRT to Search Entries conversion and indexing
-   - Search indexed transcripts
-4. **API Gateway**: Provides an HTTP endpoint for the search Lambda
-5. **EventBridge Scheduler**: Triggers the RSS Lambda function daily
+Site-specific terraform files are now located in each site's directory:
 
-## Search Lambda Warming
+```
+sites/origin-sites/{site-id}/terraform/
+├── prod.tfvars          # Previously: terraform/sites/environments/{site-id}-prod.tfvars
+└── backend.tfbackend    # Previously: terraform/sites/backend-configs/{site-id}.tfbackend
+```
 
-To improve user experience by reducing cold start delays, the search Lambda can be configured with an automated warming schedule.
+## Example Locations
 
-Set `enable_search_lambda_warming = true` in your `.tfvars` file, then re-deploy.
+- **hardfork**: `sites/origin-sites/hardfork/terraform/`
+- **claretandblue**: `sites/origin-sites/claretandblue/terraform/`
+- **listenfairplay**: `sites/origin-sites/listenfairplay/terraform/`
+- **lordsoflimited**: `sites/origin-sites/lordsoflimited/terraform/`
+- **myfavoritemurder**: `sites/origin-sites/myfavoritemurder/terraform/`
+- **naddpod**: `sites/origin-sites/naddpod/terraform/`
+- **searchengine**: `sites/origin-sites/searchengine/terraform/`
 
-Optionally adjust `search_lambda_warming_schedule` (e.g., `"rate(5 minutes)"` or `"cron(*/7 * * * ? *)"`)
+## Deployment Scripts
 
+Deployment scripts have been updated to look for terraform files in the new locations. The main terraform infrastructure definitions remain in this directory (`terraform/sites/`), but site-specific variable files and backend configurations are now co-located with each site.
 
-## Environment Strategy
+## Benefits of New Structure
 
-To minimize costs and match expected usage patterns:
-- **Production (`prod`)**: The main environment that runs continuously
-- **Development (`dev`)**: Temporary environment for testing changes before deploying to production
+1. **Site Isolation**: Each site's terraform configuration is self-contained
+2. **Easier Site Management**: All site-specific files (config, assets, terraform) are in one place
+3. **Better Organization**: Follows the principle of keeping site-specific content in site directories
+4. **Simplified Site Creation**: New sites can be created with all necessary files in one location
 
-## Directory Structure
+## For New Sites
 
-- `/terraform`: Main Terraform configuration
-  - `/modules`: Reusable Terraform modules
-    - `/s3`: S3 bucket configuration
-    - `/cloudfront`: CloudFront distribution
-    - `/lambda`: Lambda function setup
-    - `/eventbridge`: EventBridge scheduler
-  - `/environments`: Environment-specific variable files
-    - `dev.tfvars`: Development environment variables
-    - `prod.tfvars`: Production environment variables
+When creating a new site, create the terraform directory structure:
 
-## Prerequisites
+```bash
+mkdir -p sites/origin-sites/{new-site-id}/terraform/
+# Copy and modify template files from existing sites
+```
 
-1. Install Terraform (version 1.0.0 or later)
-2. Configure AWS CLI with appropriate credentials
-3. Build the Lambda functions:
-   ```
-   cd ../processing
-   pnpm build
-   cd ../search # Assuming search is at the same level as processing
-   pnpm build
-   cd ../ # Return to project root or scripts directory
-   ```
+## Migration Notes
 
-## Usage
-
-See [/scripts/deploy/README.md](../scripts/deploy/README.md) for usage instructions.
+This change was part of the site reorganization effort documented in `IMPROVING_GITIGNORE_AND_FILE_DEDUPING_FOR_SITES.md`. The old centralized files in `environments/` and `backend-configs/` have been removed.

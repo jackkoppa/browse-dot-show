@@ -11,6 +11,7 @@
 
 import { discoverSites, Site } from './utils/site-selector.js';
 import { loadAutomationCredentials } from './utils/automation-credentials.js';
+import { loadSiteAccountMappings, getSiteAccountMapping } from './utils/site-account-mappings.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, } from './utils/logging.js';
 import { 
@@ -21,34 +22,8 @@ import {
   TerraformOutputs 
 } from './utils/client-deployment.js';
 
-// CURSOR-TODO: `SITE_ACCOUNT_MAPPINGS` should be moved to a utils, so that it can be shared with `scripts/run-ingestion-pipeline.ts` - which currently defines the exact same mapping
-// Site account mappings - these match the terraform configurations
-const SITE_ACCOUNT_MAPPINGS: { [siteId: string]: { accountId: string; bucketName: string } } = {
-  'hardfork': {
-    accountId: '927984855345',
-    bucketName: 'hardfork-browse-dot-show'
-  },
-  'claretandblue': {
-    accountId: '152849157974',
-    bucketName: 'claretandblue-browse-dot-show'
-  },
-  'listenfairplay': {
-    accountId: '927984855345',
-    bucketName: 'listenfairplay-browse-dot-show'
-  },
-  'naddpod': {
-    accountId: '152849157974',
-    bucketName: 'naddpod-browse-dot-show'
-  },
-  'myfavoritemurder': {
-    accountId: '152849157974',
-    bucketName: 'myfavoritemurder-browse-dot-show'
-  },
-  'searchengine': {
-    accountId: '927984855345',
-    bucketName: 'searchengine-browse-dot-show'
-  }
-};
+// Site account mappings moved to centralized location
+// TODO: Add pickleballstudio mapping when it's deployed for the first time
 
 interface SiteDeployResult {
   siteId: string;
@@ -124,10 +99,7 @@ async function getTerraformOutputsForSite(
   siteId: string, 
   credentials: any
 ): Promise<TerraformOutputs> {
-  const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-  if (!siteConfig) {
-    throw new Error(`No account mapping found for site: ${siteId}`);
-  }
+  const siteConfig = getSiteAccountMapping(siteId);
 
   const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
   

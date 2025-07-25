@@ -35,6 +35,10 @@ aws-dist
 !.env
 .env.automation
 
+# Generated site configurations
+.site-account-mappings.json
+.deployed-sites.json
+
 # Terraform
 **/.terraform/*
 *.tfstate

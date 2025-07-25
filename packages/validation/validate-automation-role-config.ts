@@ -9,7 +9,7 @@
  * - Every site should have both aws_profile and create_automation_role defined
  */
 
-import { readdirSync, readFileSync } from 'fs';
+import { readdirSync, readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 interface SiteConfig {
@@ -79,25 +79,28 @@ function parseHCLFile(filePath: string): Record<string, any> {
 }
 
 function loadSiteConfigs(): SiteConfig[] {
-  const envDir = '../../terraform/sites/environments';
   const configs: SiteConfig[] = [];
   
   try {
-    const files = readdirSync(envDir);
-    const tfvarsFiles = files.filter(f => f.endsWith('.tfvars'));
+    // New location: sites/origin-sites/{site-id}/terraform/prod.tfvars
+    const sitesDir = '../../sites/origin-sites';
+    const siteDirectories = readdirSync(sitesDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory())
+      .map(dirent => dirent.name);
     
-    for (const file of tfvarsFiles) {
-      const filePath = join(envDir, file);
-      const siteName = file.replace('-prod.tfvars', '');
+    for (const siteName of siteDirectories) {
+      const tfvarsPath = join(sitesDir, siteName, 'terraform', 'prod.tfvars');
       
-      const variables = parseHCLFile(filePath);
-      
-      configs.push({
-        siteName,
-        filePath,
-        awsProfile: variables.aws_profile,
-        createAutomationRole: variables.create_automation_role
-      });
+      if (existsSync(tfvarsPath)) {
+        const variables = parseHCLFile(tfvarsPath);
+        
+        configs.push({
+          siteName,
+          filePath: tfvarsPath,
+          awsProfile: variables.aws_profile,
+          createAutomationRole: variables.create_automation_role
+        });
+      }
     }
   } catch (error) {
     console.error('Error loading site configs:', error);
@@ -234,7 +237,7 @@ function main(): void {
   const configs = loadSiteConfigs();
   
   if (configs.length === 0) {
-    console.error('❌ No site configuration files found in terraform/sites/environments/');
+    console.error('❌ No site configuration files found in sites/origin-sites/*/terraform/');
     process.exit(1);
   }
   

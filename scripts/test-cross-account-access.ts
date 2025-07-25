@@ -14,32 +14,18 @@
 
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
+import { loadSiteAccountMappings, getSiteAccountMapping } from './utils/site-account-mappings.js';
 
-// Site configuration mapping
-const SITE_CONFIGS = {
-  'hardfork': {
-    accountId: '927984855345',
-    bucketName: 'hardfork-browse-dot-show',
-    lambdaName: 'convert-srts-indexed-search-hardfork'
-  },
-  'claretandblue': {
-    accountId: '152849157974',
-    bucketName: 'claretandblue-browse-dot-show',
-    lambdaName: 'convert-srts-indexed-search-claretandblue'
-  },
-  'listenfairplay': {
-    accountId: '927984855345',
-    bucketName: 'listenfairplay-browse-dot-show',
-    lambdaName: 'convert-srts-indexed-search-listenfairplay'
-  },
-  'naddpod': {
-    accountId: '152849157974',
-    bucketName: 'naddpod-browse-dot-show',
-    lambdaName: 'convert-srts-indexed-search-naddpod'
-  }
+// Site configuration mapping - partial list for testing
+// TODO: Add pickleballstudio mapping when it's deployed for the first time
+const LAMBDA_CONFIGS = {
+  'hardfork': 'convert-srts-indexed-search-hardfork',
+  'claretandblue': 'convert-srts-indexed-search-claretandblue',
+  'listenfairplay': 'convert-srts-indexed-search-listenfairplay',
+  'naddpod': 'convert-srts-indexed-search-naddpod'
 } as const;
 
-type SiteId = keyof typeof SITE_CONFIGS;
+type SiteId = keyof typeof LAMBDA_CONFIGS;
 
 // Parse command line arguments
 function parseSiteFromArgs(): SiteId {
@@ -49,15 +35,15 @@ function parseSiteFromArgs(): SiteId {
   if (!siteArg) {
     console.error('❌ Missing required --site parameter');
     console.error('Usage: tsx scripts/test-cross-account-access.ts --site=<site_id>');
-    console.error('Available sites:', Object.keys(SITE_CONFIGS).join(', '));
+    console.error('Available sites:', Object.keys(LAMBDA_CONFIGS).join(', '));
     process.exit(1);
   }
   
   const siteId = siteArg.split('=')[1] as SiteId;
   
-  if (!SITE_CONFIGS[siteId]) {
+  if (!LAMBDA_CONFIGS[siteId]) {
     console.error(`❌ Unknown site: ${siteId}`);
-    console.error('Available sites:', Object.keys(SITE_CONFIGS).join(', '));
+    console.error('Available sites:', Object.keys(LAMBDA_CONFIGS).join(', '));
     process.exit(1);
   }
   
@@ -273,7 +259,8 @@ function testLambdaAccess(siteId: SiteId, roleArn: string, lambdaName: string): 
 
 function main(): void {
   const siteId = parseSiteFromArgs();
-  const siteConfig = SITE_CONFIGS[siteId];
+  const siteConfig = getSiteAccountMapping(siteId);
+  const lambdaName = LAMBDA_CONFIGS[siteId];
   const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
   
   console.log('🧪 Cross-Account Access Testing - Phase 2.5+');
@@ -282,7 +269,7 @@ function main(): void {
   console.log(`Target Account: ${siteConfig.accountId}`);
   console.log(`Role ARN: ${roleArn}`);
   console.log(`S3 Bucket: ${siteConfig.bucketName}`);
-  console.log(`Lambda Function: ${siteConfig.lambdaName}`);
+  console.log(`Lambda Function: ${lambdaName}`);
   console.log('');
   
   // Validate environment
@@ -296,7 +283,7 @@ function main(): void {
   // Run tests
   results.push(testRoleAssumption(siteId, roleArn));
   results.push(testS3Access(siteId, roleArn, siteConfig.bucketName));
-  results.push(testLambdaAccess(siteId, roleArn, siteConfig.lambdaName));
+  results.push(testLambdaAccess(siteId, roleArn, lambdaName));
   
   // Report results
   console.log('\n📊 Test Results:');

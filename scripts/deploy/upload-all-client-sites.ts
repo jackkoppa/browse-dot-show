@@ -11,6 +11,7 @@
 
 import { discoverSites, Site } from '../utils/site-selector.js';
 import { loadAutomationCredentials } from '../utils/automation-credentials.js';
+import { loadSiteAccountMappings, getSiteAccountMapping } from '../utils/site-account-mappings.js';
 import { execCommand } from '../utils/shell-exec.js';
 import { logSuccess, logError, logWarning, logProgress, logHeader } from '../utils/logging.js';
 import { 
@@ -19,38 +20,8 @@ import {
   uploadClientToS3WithCredentials
 } from '../utils/client-deployment.js';
 
-// Site account mappings - these match the terraform configurations
-// TODO: Move this to a shared utils file to avoid duplication with run-ingestion-pipeline.ts
-const SITE_ACCOUNT_MAPPINGS: { [siteId: string]: { accountId: string; bucketName: string } } = {
-  'hardfork': {
-    accountId: '927984855345',
-    bucketName: 'hardfork-browse-dot-show'
-  },
-  'claretandblue': {
-    accountId: '152849157974',
-    bucketName: 'claretandblue-browse-dot-show'
-  },
-  'listenfairplay': {
-    accountId: '927984855345',
-    bucketName: 'listenfairplay-browse-dot-show'
-  },
-  'naddpod': {
-    accountId: '152849157974',
-    bucketName: 'naddpod-browse-dot-show'
-  },
-  'myfavoritemurder': {
-    accountId: '152849157974',
-    bucketName: 'myfavoritemurder-browse-dot-show'
-  },
-  'searchengine': {
-    accountId: '927984855345',
-    bucketName: 'searchengine-browse-dot-show'
-  },
-  'lordsoflimited': {
-    accountId: '152849157974',
-    bucketName: 'lordsoflimited-browse-dot-show'
-  }
-};
+// Site account mappings moved to centralized location
+// TODO: Add pickleballstudio mapping when it's deployed for the first time
 
 interface SiteUploadResult {
   siteId: string;
@@ -123,10 +94,7 @@ async function uploadClientToS3(
   credentials: any,
   bucketName: string
 ): Promise<{ success: boolean; duration: number; error?: string }> {
-  const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
-  if (!siteConfig) {
-    throw new Error(`No account mapping found for site: ${siteId}`);
-  }
+  const siteConfig = getSiteAccountMapping(siteId);
 
   const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
   
@@ -185,10 +153,7 @@ async function uploadSite(
     logProgress(`🚀 Uploading ${site.title} (${site.id})`);
 
     // Check if site has account mapping
-    const siteConfig = SITE_ACCOUNT_MAPPINGS[site.id];
-    if (!siteConfig) {
-      throw new Error(`No account mapping found for site: ${site.id}`);
-    }
+    const siteConfig = getSiteAccountMapping(site.id);
 
     // Build the client
     logProgress(`  📦 Building client files...`);
@@ -271,8 +236,9 @@ async function main(): Promise<void> {
     }
 
     // Filter out sites that don't have account mappings
-    const sitesWithMappings = sitesToUpload.filter((site: Site) => SITE_ACCOUNT_MAPPINGS[site.id]);
-    const sitesWithoutMappings = sitesToUpload.filter((site: Site) => !SITE_ACCOUNT_MAPPINGS[site.id]);
+    const mappings = loadSiteAccountMappings();
+    const sitesWithMappings = sitesToUpload.filter((site: Site) => mappings[site.id]);
+    const sitesWithoutMappings = sitesToUpload.filter((site: Site) => !mappings[site.id]);
 
     if (sitesWithoutMappings.length > 0) {
       logWarning('Skipping sites without account mappings:');

@@ -67,8 +67,10 @@ async function confirmDestruction(env: string): Promise<void> {
 async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   printInfo(`Destroying ${env} environment...`);
   
+  const siteDir = path.resolve('sites', 'origin-sites', siteId);
+  const BACKEND_CONFIG_FILE = path.join(siteDir, 'terraform', 'backend.tfbackend');
+  const TFVARS_FILE = path.join(siteDir, 'terraform', 'prod.tfvars');
   const TF_DIR = 'terraform/sites';
-  const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
   
   // Change to terraform directory
   const originalCwd = process.cwd();
@@ -85,7 +87,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
     printInfo(`Command: terraform init -backend-config ${BACKEND_CONFIG_FILE} -reconfigure`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', `../../${BACKEND_CONFIG_FILE}`, '-reconfigure']);
     printSuccess('✅ Terraform initialization completed');
 
     // Validate Terraform configuration
@@ -97,7 +99,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     const planArgs = [
       'plan',
       '-destroy',
-      `-var-file=environments/${siteId}-prod.tfvars`,
+      `-var-file=../../${TFVARS_FILE}`,
       `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
       `-var=site_id=${siteId}`,
       '-out=destroy.tfplan'

@@ -294,8 +294,10 @@ async function applyTerraformWithProgress(): Promise<void> {
 }
 
 async function runTerraformDeployment(siteId: string): Promise<boolean> {
+  const siteDir = path.resolve('sites', 'origin-sites', siteId);
+  const BACKEND_CONFIG_FILE = path.join(siteDir, 'terraform', 'backend.tfbackend');
+  const TFVARS_FILE = path.join(siteDir, 'terraform', 'prod.tfvars');
   const TF_DIR = 'terraform/sites';
-  const BACKEND_CONFIG_FILE = `backend-configs/${siteId}.tfbackend`;
 
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
   
@@ -310,7 +312,7 @@ async function runTerraformDeployment(siteId: string): Promise<boolean> {
 
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', `../../${BACKEND_CONFIG_FILE}`, '-reconfigure']);
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
@@ -319,7 +321,7 @@ async function runTerraformDeployment(siteId: string): Promise<boolean> {
     // Set up Terraform plan arguments
     const terraformArgs = [
       'plan',
-      `-var-file=environments/${siteId}-prod.tfvars`,
+      `-var-file=../../${TFVARS_FILE}`,
       `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
       `-var=site_id=${siteId}`,
       '-out=tfplan'

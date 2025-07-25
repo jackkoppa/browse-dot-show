@@ -417,13 +417,22 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
  * Validates that corresponding terraform .tfvars file exists
  */
 function validateTerraformConfig(site: SiteConfig, result: ValidationResult): void {
-    // Find terraform directory - go up one level from sites directory to workspace root
-    const workspaceRoot = path.resolve(process.cwd(), '..');
-    const terraformDir = path.join(workspaceRoot, 'terraform', 'sites', 'environments');
-    const tfvarsPath = path.join(terraformDir, `${site.id}-prod.tfvars`);
+    // Check for terraform configuration in new location
+    const siteDir = getSiteDirectory(site.id);
+    if (!siteDir) {
+        result.errors.push(`Site directory not found for ${site.id}`);
+        return;
+    }
+    const tfvarsPath = path.join(siteDir, 'terraform', 'prod.tfvars');
+    const backendPath = path.join(siteDir, 'terraform', 'backend.tfbackend');
     
     if (!fs.existsSync(tfvarsPath)) {
-        result.errors.push(`Missing terraform configuration: ${site.id}-prod.tfvars not found in terraform/sites/environments/ (looked in: ${tfvarsPath})`);
+        result.errors.push(`Missing terraform configuration: prod.tfvars not found in ${site.id}/terraform/ (looked in: ${tfvarsPath})`);
+        return;
+    }
+    
+    if (!fs.existsSync(backendPath)) {
+        result.errors.push(`Missing terraform backend config: backend.tfbackend not found in ${site.id}/terraform/ (looked in: ${backendPath})`);
         return;
     }
     
