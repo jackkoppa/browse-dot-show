@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 
+import * as path from 'path';
 import { execCommandOrThrow, execCommand, execCommandLive } from '../utils/shell-exec.js';
 import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
@@ -67,9 +68,9 @@ async function confirmDestruction(env: string): Promise<void> {
 async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   printInfo(`Destroying ${env} environment...`);
   
-  const siteDir = path.resolve('sites', 'origin-sites', siteId);
-  const BACKEND_CONFIG_FILE = path.join(siteDir, 'terraform', 'backend.tfbackend');
-  const TFVARS_FILE = path.join(siteDir, 'terraform', 'prod.tfvars');
+  // Relative paths from terraform/sites directory
+  const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
+  const TFVARS_FILE = `../../sites/origin-sites/${siteId}/terraform/prod.tfvars`;
   const TF_DIR = 'terraform/sites';
   
   // Change to terraform directory
@@ -87,7 +88,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
     printInfo(`Command: terraform init -backend-config ${BACKEND_CONFIG_FILE} -reconfigure`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', `../../${BACKEND_CONFIG_FILE}`, '-reconfigure']);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
     printSuccess('✅ Terraform initialization completed');
 
     // Validate Terraform configuration
@@ -99,7 +100,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     const planArgs = [
       'plan',
       '-destroy',
-      `-var-file=../../${TFVARS_FILE}`,
+      `-var-file=${TFVARS_FILE}`,
       `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
       `-var=site_id=${siteId}`,
       '-out=destroy.tfplan'

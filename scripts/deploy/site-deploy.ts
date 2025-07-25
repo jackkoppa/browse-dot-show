@@ -2,6 +2,7 @@
 
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
+import * as path from 'path';
 import { execCommandOrThrow, execCommand, execCommandLiveOrThrow } from '../utils/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
@@ -294,9 +295,9 @@ async function applyTerraformWithProgress(): Promise<void> {
 }
 
 async function runTerraformDeployment(siteId: string): Promise<boolean> {
-  const siteDir = path.resolve('sites', 'origin-sites', siteId);
-  const BACKEND_CONFIG_FILE = path.join(siteDir, 'terraform', 'backend.tfbackend');
-  const TFVARS_FILE = path.join(siteDir, 'terraform', 'prod.tfvars');
+  // Relative paths from terraform/sites directory
+  const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
+  const TFVARS_FILE = `../../sites/origin-sites/${siteId}/terraform/prod.tfvars`;
   const TF_DIR = 'terraform/sites';
 
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
@@ -312,7 +313,7 @@ async function runTerraformDeployment(siteId: string): Promise<boolean> {
 
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', `../../${BACKEND_CONFIG_FILE}`, '-reconfigure']);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
@@ -321,7 +322,7 @@ async function runTerraformDeployment(siteId: string): Promise<boolean> {
     // Set up Terraform plan arguments
     const terraformArgs = [
       'plan',
-      `-var-file=../../${TFVARS_FILE}`,
+      `-var-file=${TFVARS_FILE}`,
       `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
       `-var=site_id=${siteId}`,
       '-out=tfplan'
