@@ -83,8 +83,8 @@
         // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
         "pickleballstudio": {
             "isOriginSite": true,
-            "siteName": "[browse.show] The Pickleball Studio",
-            "displayedPodcastName": "The Pickleball Studio",
+            "siteName": "[browse.show] Pickleball Studio",
+            "displayedPodcastName": "Pickleball Studio",
             "podcastTagline": "Whether it's how to improve, the latest gear, or news on the pro scene, we've got you covered with everything you want to know about the Pickleball world. With Chris Olson and Will Chaing.",
             "domain": "pickleballstudio.browse.show",
             "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
