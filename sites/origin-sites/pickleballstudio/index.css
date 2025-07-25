@@ -1,9 +1,9 @@
 /* 
-Styles copied directly from: https://tweakcn.com/themes/cmcg7hp3h000004js8gfb4hhw 
+Styles copied directly from: https://tweakcn.com/themes/cmdiaq608000b04ic0yj4cfri
 */
 
 /*
-Color palette: https://www.figma.com/color-palette-generator/?colors=734EE4-86DFC9-C2F230-98ADED-F0E6E7-2F6A9E
+Color palette: https://www.figma.com/color-palette-generator/?colors=F06D48-BB472E-FF89A6-B05187-53BDB1-4A484A-D5F0EC
 */
 
 :root {
@@ -13,32 +13,32 @@ Color palette: https://www.figma.com/color-palette-generator/?colors=734EE4-86DF
   --card-foreground: #000000;
   --popover: #ffffff;
   --popover-foreground: #000000;
-  --primary: #734ee4;
+  --primary: #bb472e;
   --primary-foreground: #ffffff;
-  --secondary: #c2f230;
+  --secondary: #ff89a6;
   --secondary-foreground: #000000;
-  --muted: #f0e6e7;
-  --muted-foreground: #333333;
-  --accent: #2f6a9e;
-  --accent-foreground: #ffffff;
+  --muted: #d5f0ec;
+  --muted-foreground: #4a484a;
+  --accent: #53bdb1;
+  --accent-foreground: #000000;
   --destructive: #000000;
   --destructive-foreground: #ffffff;
   --border: #000000;
   --input: #000000;
-  --ring: #86dfc9;
-  --chart-1: #734ee4;
-  --chart-2: #86dfc9;
-  --chart-3: #c2f230;
-  --chart-4: #8198de;
-  --chart-5: #2f6a9e;
-  --sidebar: #f0e6e7;
+  --ring: #ff89a6;
+  --chart-1: #f06d48;
+  --chart-2: #bb472e;
+  --chart-3: #ff89a6;
+  --chart-4: #b05187;
+  --chart-5: #53bdb1;
+  --sidebar: #d5f0ec;
   --sidebar-foreground: #000000;
-  --sidebar-primary: #2f6a9e;
+  --sidebar-primary: #bb472e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #734ee4;
+  --sidebar-accent: #b05187;
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #000000;
-  --sidebar-ring: #c2f230;
+  --sidebar-ring: #53bdb1;
   --font-sans: DM Sans, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Space Mono, monospace;
@@ -62,32 +62,32 @@ Color palette: https://www.figma.com/color-palette-generator/?colors=734EE4-86DF
   --card-foreground: #ffffff;
   --popover: #333333;
   --popover-foreground: #ffffff;
-  --primary: #ff6666;
+  --primary: #f06d48;
   --primary-foreground: #000000;
-  --secondary: #ffff33;
+  --secondary: #ff89a6;
   --secondary-foreground: #000000;
   --muted: #333333;
-  --muted-foreground: #cccccc;
-  --accent: #3399ff;
+  --muted-foreground: #f0e6e7;
+  --accent: #53bdb1;
   --accent-foreground: #000000;
   --destructive: #ffffff;
   --destructive-foreground: #000000;
   --border: #ffffff;
   --input: #ffffff;
-  --ring: #ff6666;
-  --chart-1: #ff6666;
-  --chart-2: #ffff33;
-  --chart-3: #3399ff;
-  --chart-4: #33cc33;
-  --chart-5: #cc33cc;
+  --ring: #ff89a6;
+  --chart-1: #f06d48;
+  --chart-2: #bb472e;
+  --chart-3: #ff89a6;
+  --chart-4: #b05187;
+  --chart-5: #53bdb1;
   --sidebar: #000000;
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #ff6666;
+  --sidebar-primary: #f06d48;
   --sidebar-primary-foreground: #000000;
-  --sidebar-accent: #3399ff;
+  --sidebar-accent: #ff89a6;
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #ffffff;
-  --sidebar-ring: #ff6666;
+  --sidebar-ring: #b05187;
   --font-sans: DM Sans, sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Space Mono, monospace;
