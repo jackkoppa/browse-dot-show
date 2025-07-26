@@ -2001,6 +2001,27 @@ async function copyTemplateAndAssets(siteId: string): Promise<void> {
     await writeTextFile(envLocalPath, envContent);
     printInfo('⚙️  Copied .env to .env.local for local configuration');
   }
+  
+  // Replace SITE_ID placeholder in terraform files
+  const terraformDir = join(targetDir, 'terraform');
+  if (await exists(terraformDir)) {
+    const backendFile = join(terraformDir, 'backend.tfbackend');
+    const prodVarsFile = join(terraformDir, 'prod.tfvars');
+    
+    if (await exists(backendFile)) {
+      const backendContent = await readTextFile(backendFile);
+      const updatedBackendContent = backendContent.replace(/SITE_ID/g, siteId);
+      await writeTextFile(backendFile, updatedBackendContent);
+    }
+    
+    if (await exists(prodVarsFile)) {
+      const prodVarsContent = await readTextFile(prodVarsFile);
+      const updatedProdVarsContent = prodVarsContent.replace(/SITE_ID/g, siteId);
+      await writeTextFile(prodVarsFile, updatedProdVarsContent);
+    }
+    
+    printInfo('🔧 Updated terraform files with site ID');
+  }
 }
 
 function generateSiteConfig(
@@ -2052,69 +2073,7 @@ function generateSiteConfig(
   };
 }
 
-async function generateTerraformFiles(siteId: string): Promise<void> {
-  printInfo('🏗️  Generating Terraform configuration files...');
-  
-  const terraformDir = join('terraform/sites', siteId);
-  await ensureDir(terraformDir);
-  
-  // Generate backend.tf
-  const backendContent = `terraform {
-  backend "s3" {
-    bucket = "browse-dot-show-terraform-state"
-    key    = "sites/${siteId}/terraform.tfstate"
-    region = "us-east-1"
-    
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
-  }
-}
-`;
-  
-  await writeTextFile(join(terraformDir, 'backend.tf'), backendContent);
-  
-  // Generate variables.tf
-  const variablesContent = `variable "site_id" {
-  description = "Unique identifier for the site"
-  type        = string
-  default     = "${siteId}"
-}
 
-variable "domain_name" {
-  description = "Domain name for the site"
-  type        = string
-  default     = "${siteId}.browse.show"
-}
-
-variable "aws_region" {
-  description = "AWS region for resources"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "environment" {
-  description = "Environment (dev, staging, prod)"
-  type        = string
-  default     = "prod"
-}
-`;
-  
-  await writeTextFile(join(terraformDir, 'variables.tf'), variablesContent);
-  
-  // Generate .env.example
-  const envContent = `# Environment variables for ${siteId}
-SITE_ID=${siteId}
-DOMAIN_NAME=${siteId}.browse.show
-AWS_REGION=us-east-1
-ENVIRONMENT=prod
-
-# Add your specific environment variables here
-`;
-  
-  await writeTextFile(join(terraformDir, '.env.example'), envContent);
-  
-  printSuccess(`📄 Generated Terraform files in terraform/sites/${siteId}/`);
-}
 
 async function runSiteValidation(_siteId: string): Promise<boolean> {
   try {
@@ -2497,8 +2456,7 @@ async function handleNewSiteCreation(): Promise<void> {
   await writeJsonFile(configPath, siteConfig, { spaces: 2 });
   printSuccess('📝 Generated site configuration');
   
-  // Step 7: Generate Terraform files
-  await generateTerraformFiles(siteId);
+  // Terraform files are now generated from template during copyTemplateAndAssets
   
   // Step 8: Run validation
   await runSiteValidation(siteId);

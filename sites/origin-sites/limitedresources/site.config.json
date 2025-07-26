@@ -1,0 +1,35 @@
+{
+  "id": "limitedresources",
+  "domain": "limitedresources.browse.show",
+  "appHeader": {
+    "primaryTitle": "Limited Resources",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Limited Resources",
+    "taglinePrimaryPodcastExternalURL": "http://limitedresources.libsyn.com",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Limited Resources",
+    "canonicalUrl": "https://limitedresources.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Limited Resources podcast",
+    "metaTitle": "[browse.show] Limited Resources"
+  },
+  "includedPodcasts": [
+    {
+      "id": "limited-resources",
+      "rssFeedFile": "limitedresources.xml",
+      "title": "Limited Resources",
+      "status": "active",
+      "url": "https://limitedresources.libsyn.com/rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Welcome to Limited Resources, a weekly podcast dedicated to improving your skill at Magic: The Gathering, with an emphasis on Limited play. Our hosts are Marshall Sutcliffe, Ryan Spain, Jon Loucks, Brian Wong, and Luis Scott-Vargas. We look for value in all situations and try to maximize our edge at all times, no matter how small. Let's jump in!",
+  "themeColor": "#fa2828",
+  "themeColorDark": "#9e1833",
+  "searchPlaceholderOptions": [
+    "archetype",
+    "recursion"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
