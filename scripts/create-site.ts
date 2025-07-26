@@ -628,6 +628,44 @@ async function executeCustomStylingStep(): Promise<StepStatus> {
   return confirmResponse.completed ? 'COMPLETED' : 'DEFERRED';
 }
 
+// Helper function to parse environment variables from .env.local
+async function parseEnvLocal(): Promise<Record<string, string>> {
+  const envLocalPath = '.env.local';
+  const envVars: Record<string, string> = {};
+  
+  if (!(await exists(envLocalPath))) {
+    return envVars;
+  }
+  
+  try {
+    const envContent = await readTextFile(envLocalPath);
+    const lines = envContent.split('\n');
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine && !trimmedLine.startsWith('#')) {
+        const equalIndex = trimmedLine.indexOf('=');
+        if (equalIndex > 0) {
+          const key = trimmedLine.substring(0, equalIndex).trim();
+          let value = trimmedLine.substring(equalIndex + 1).trim();
+          
+          // Remove quotes if present
+          if ((value.startsWith('"') && value.endsWith('"')) || 
+              (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+          
+          envVars[key] = value;
+        }
+      }
+    }
+  } catch (error) {
+    // If we can't read the file, just return empty object
+  }
+  
+  return envVars;
+}
+
 async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<StepStatus> {
   console.log('');
   printInfo('🎙️  Let\'s setup transcriptions for your first few episodes!');
@@ -636,103 +674,129 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
   console.log('and transcribe 2 episodes locally (this takes about 10-20 minutes).');
   console.log('');
   
-  // Step 1: Check existing Whisper setup
-  const hasWhisperResponse = await prompts({
-    type: 'confirm',
-    name: 'hasWhisper',
-    message: 'Do you already have whisper.cpp configured locally on your machine?',
-    initial: false
-  });
+  // Check if whisper configuration already exists in .env.local
+  const existingEnvVars = await parseEnvLocal();
+  const existingWhisperPath = existingEnvVars['WHISPER_CPP_PATH'];
+  const existingWhisperModel = existingEnvVars['WHISPER_CPP_MODEL'];
   
-  if (!hasWhisperResponse.hasWhisper) {
-    // User needs to setup whisper.cpp
+  let whisperPath: string;
+  let whisperModel: string;
+  
+  if (existingWhisperPath && existingWhisperModel) {
+    // Skip prompts if configuration already exists
+    printInfo('✅ Found existing Whisper configuration in .env.local');
+    console.log(`   • Whisper path: ${existingWhisperPath}`);
+    console.log(`   • Whisper model: ${existingWhisperModel}`);
     console.log('');
-    printInfo('📖 You\'ll need to setup whisper.cpp for local transcription.');
-    console.log('');
-    console.log('Please follow these steps:');
-    console.log('1. Visit: https://github.com/ggml-org/whisper.cpp?tab=readme-ov-file#quick-start');
-    console.log('2. Clone the whisper.cpp repository');
-    console.log('3. Follow the build instructions for your platform');
-    console.log('4. Download a model (we recommend large-v3-turbo)');
-    console.log('');
+    printInfo('Skipping Whisper setup prompts and using existing configuration...');
     
-    const setupResponse = await prompts({
+    whisperPath = existingWhisperPath;
+    whisperModel = existingWhisperModel;
+  } else {
+    // Proceed with normal prompts if configuration doesn't exist
+    // Step 1: Check existing Whisper setup
+    const hasWhisperResponse = await prompts({
       type: 'confirm',
-      name: 'setupComplete',
-      message: 'Have you completed the whisper.cpp setup?',
+      name: 'hasWhisper',
+      message: 'Do you already have whisper.cpp configured locally on your machine?',
       initial: false
     });
     
-    if (!setupResponse.setupComplete) {
-      printInfo('No problem! You can continue with this step when you\'re ready.');
-      return 'DEFERRED';
-    }
-  }
-  
-  // Step 2: Get whisper.cpp path
-  const pathResponse = await prompts({
-    type: 'text',
-    name: 'whisperPath',
-    message: 'Please enter the path to your whisper.cpp directory:',
-    validate: (value: string) => {
-      if (!value.trim()) return 'Path is required';
-      return true;
-    }
-  });
-  
-  if (!pathResponse.whisperPath) {
-    return 'DEFERRED';
-  }
-  
-  // Step 3: Get model preference
-  const modelResponse = await prompts({
-    type: 'text',
-    name: 'whisperModel',
-    message: 'Which whisper model would you like to use?',
-    initial: 'large-v3-turbo',
-    validate: (value: string) => {
-      if (!value.trim()) return 'Model name is required';
-      return true;
-    }
-  });
-  
-  if (!modelResponse.whisperModel) {
-    return 'DEFERRED';
-  }
-  
-  // Step 4: Update .env.local
-  try {
-    printInfo('⚙️  Updating .env.local with your configuration...');
-    
-    const envLocalPath = '.env.local';
-    let envContent = '';
-    
-    if (await exists(envLocalPath)) {
-      envContent = await readTextFile(envLocalPath);
-    }
-    
-    // Update or add the required environment variables
-    const updates = {
-      'FILE_STORAGE_ENV': 'local',
-      'WHISPER_API_PROVIDER': 'local-whisper.cpp',
-      'WHISPER_CPP_PATH': `"${pathResponse.whisperPath}"`,
-      'WHISPER_CPP_MODEL': `"${modelResponse.whisperModel}"`
-    };
-    
-    for (const [key, value] of Object.entries(updates)) {
-      const regex = new RegExp(`^${key}=.*$`, 'm');
-      if (regex.test(envContent)) {
-        envContent = envContent.replace(regex, `${key}=${value}`);
-      } else {
-        envContent += `\n${key}=${value}`;
+    if (!hasWhisperResponse.hasWhisper) {
+      // User needs to setup whisper.cpp
+      console.log('');
+      printInfo('📖 You\'ll need to setup whisper.cpp for local transcription.');
+      console.log('');
+      console.log('Please follow these steps:');
+      console.log('1. Visit: https://github.com/ggml-org/whisper.cpp?tab=readme-ov-file#quick-start');
+      console.log('2. Clone the whisper.cpp repository');
+      console.log('3. Follow the build instructions for your platform');
+      console.log('4. Download a model (we recommend large-v3-turbo)');
+      console.log('');
+      
+      const setupResponse = await prompts({
+        type: 'confirm',
+        name: 'setupComplete',
+        message: 'Have you completed the whisper.cpp setup?',
+        initial: false
+      });
+      
+      if (!setupResponse.setupComplete) {
+        printInfo('No problem! You can continue with this step when you\'re ready.');
+        return 'DEFERRED';
       }
     }
     
-    await writeTextFile(envLocalPath, envContent);
-    printSuccess('✅ Updated .env.local with your Whisper configuration');
-  } catch (error) {
-    printError(`Failed to update .env.local: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    return 'DEFERRED';
+    // Step 2: Get whisper.cpp path
+    const pathResponse = await prompts({
+      type: 'text',
+      name: 'whisperPath',
+      message: 'Please enter the path to your whisper.cpp directory:',
+      validate: (value: string) => {
+        if (!value.trim()) return 'Path is required';
+        return true;
+      }
+    });
+    
+    if (!pathResponse.whisperPath) {
+      return 'DEFERRED';
+    }
+    
+    // Step 3: Get model preference
+    const modelResponse = await prompts({
+      type: 'text',
+      name: 'whisperModel',
+      message: 'Which whisper model would you like to use?',
+      initial: 'large-v3-turbo',
+      validate: (value: string) => {
+        if (!value.trim()) return 'Model name is required';
+        return true;
+      }
+    });
+    
+    if (!modelResponse.whisperModel) {
+      return 'DEFERRED';
+    }
+    
+    whisperPath = pathResponse.whisperPath;
+    whisperModel = modelResponse.whisperModel;
+  }
+  
+  // Step 4: Update .env.local (only if configuration was prompted)
+  if (!existingWhisperPath || !existingWhisperModel) {
+    try {
+      printInfo('⚙️  Updating .env.local with your configuration...');
+      
+      const envLocalPath = '.env.local';
+      let envContent = '';
+      
+      if (await exists(envLocalPath)) {
+        envContent = await readTextFile(envLocalPath);
+      }
+      
+      // Update or add the required environment variables
+      const updates = {
+        'FILE_STORAGE_ENV': 'local',
+        'WHISPER_API_PROVIDER': 'local-whisper.cpp',
+        'WHISPER_CPP_PATH': `"${whisperPath}"`,
+        'WHISPER_CPP_MODEL': `"${whisperModel}"`
+      };
+      
+      for (const [key, value] of Object.entries(updates)) {
+        const regex = new RegExp(`^${key}=.*$`, 'm');
+        if (regex.test(envContent)) {
+          envContent = envContent.replace(regex, `${key}=${value}`);
+        } else {
+          envContent += `\n${key}=${value}`;
+        }
+      }
+      
+      await writeTextFile(envLocalPath, envContent);
+      printSuccess('✅ Updated .env.local with your Whisper configuration');
+    } catch (error) {
+      printError(`Failed to update .env.local: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return 'DEFERRED';
+    }
   }
   
   // Step 5: Test whisper installation
@@ -748,9 +812,9 @@ async function executeFirstTranscriptionsStep(progress: SetupProgress): Promise<
       printInfo('Proceeding with ingestion - if there are issues, they\'ll be caught during processing.');
     } else {
       // Build whisper command
-      const whisperCliBin = join(pathResponse.whisperPath, 'build/bin/whisper-cli');
-      const whisperModel = `ggml-${modelResponse.whisperModel}.bin`;
-      const modelPath = join(pathResponse.whisperPath, 'models', whisperModel);
+      const whisperCliBin = join(whisperPath, 'build/bin/whisper-cli');
+      const whisperModelFile = `ggml-${whisperModel}.bin`;
+      const modelPath = join(whisperPath, 'models', whisperModelFile);
       
       // Run simple whisper test command (output to stdout)
       const testCommand = `"${whisperCliBin}" -m "${modelPath}" -f "${testAudioFile}"`;

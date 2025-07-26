@@ -32,6 +32,7 @@ interface Config {
   sites?: string[];
   lambda?: string;
   env: 'local' | 'prod';
+  maxEpisodes?: number;
 }
 
 /**
@@ -43,7 +44,8 @@ function getDefaultConfig(): Config {
     help: false,
     sites: undefined,
     lambda: undefined,
-    env: 'local'
+    env: 'local',
+    maxEpisodes: undefined
   };
 }
 
@@ -63,6 +65,7 @@ OPTIONS:
   --sites=site1,site2      Comma-separated list of sites to process
   --lambda=LAMBDA_TYPE     Lambda function to trigger (rss-retrieval, process-audio, srt-indexing)
   --env=ENVIRONMENT        Environment: 'local' (default) or 'prod'
+  --max-episodes=N         Limit RSS processing to N episodes (only valid with --lambda=rss-retrieval)
 
 LAMBDA TYPES:
   rss-retrieval            RSS Feed Retrieval and Audio Download
@@ -123,6 +126,16 @@ function parseArguments(): Config {
       } else {
         console.error(`❌ Invalid environment: ${envArg}. Must be 'local' or 'prod'`);
         process.exit(1);
+      }
+    } else if (arg.startsWith('--max-episodes=')) {
+      const maxEpisodesArg = arg.split('=')[1];
+      if (maxEpisodesArg) {
+        const maxEpisodes = parseInt(maxEpisodesArg, 10);
+        if (isNaN(maxEpisodes) || maxEpisodes <= 0) {
+          console.error(`❌ Invalid max-episodes value: ${maxEpisodesArg}. Must be a positive integer.`);
+          process.exit(1);
+        }
+        config.maxEpisodes = maxEpisodes;
       }
     }
   }
@@ -192,6 +205,13 @@ function validateConfig(config: Config, allSites: Site[]): void {
   if (invalidSites.length > 0) {
     console.error(`❌ Invalid site(s): ${invalidSites.join(', ')}`);
     console.error(`   Available sites: ${allSites.map(site => site.id).join(', ')}`);
+    process.exit(1);
+  }
+
+  // Validate max-episodes is only used with rss-retrieval
+  if (config.maxEpisodes && config.lambda !== 'rss-retrieval') {
+    console.error(`❌ --max-episodes flag is only valid with --lambda=rss-retrieval`);
+    console.error(`   You specified --lambda=${config.lambda} which does not support episode limits`);
     process.exit(1);
   }
 }
@@ -291,7 +311,8 @@ async function configureInteractively(config: Config, allSites: Site[]): Promise
  */
 async function runLambdaLocally(
   lambdaFunction: LambdaFunction,
-  siteId: string
+  siteId: string,
+  maxEpisodes?: number
 ): Promise<{ success: boolean; duration: number; error?: string }> {
   const startTime = Date.now();
   
@@ -310,7 +331,13 @@ async function runLambdaLocally(
         FILE_STORAGE_ENV: 'local'
       };
 
-      const child = spawn('tsx', [lambdaFunction.localScriptPath], {
+      // Build args array, potentially including max-episodes for RSS retrieval
+      const args = [lambdaFunction.localScriptPath];
+      if (maxEpisodes && lambdaFunction.value === 'rss-retrieval') {
+        args.push('--max-episodes', maxEpisodes.toString());
+      }
+
+      const child = spawn('tsx', args, {
         stdio: ['inherit', 'pipe', 'pipe'],
         env: envVars,
         cwd: process.cwd()
@@ -592,7 +619,7 @@ async function main(): Promise<void> {
     let result: { success: boolean; duration: number; error?: string };
 
     if (config.env === 'local') {
-      result = await runLambdaLocally(selectedLambda, site.id);
+      result = await runLambdaLocally(selectedLambda, site.id, config.maxEpisodes);
     } else {
       result = await invokeLambdaInProduction(selectedLambda, site.id);
     }

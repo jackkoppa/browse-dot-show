@@ -52,7 +52,6 @@ interface WorkflowConfig {
   interactive: boolean;
   help: boolean;
   dryRun: boolean;
-  maxEpisodes?: number;
   forceLocalIndexing: boolean;
   phases: {
     preSync: boolean;
@@ -182,16 +181,6 @@ function parseArguments(): WorkflowConfig {
           process.exit(1);
         }
         config.syncOptions.foldersToSync = validFolders;
-      }
-    } else if (arg.startsWith('--max-episodes=')) {
-      const maxEpisodesArg = arg.split('=')[1];
-      if (maxEpisodesArg) {
-        const maxEpisodes = parseInt(maxEpisodesArg, 10);
-        if (isNaN(maxEpisodes) || maxEpisodes <= 0) {
-          console.error(`❌ Invalid max-episodes value: ${maxEpisodesArg}. Must be a positive integer.`);
-          process.exit(1);
-        }
-        config.maxEpisodes = maxEpisodes;
       }
     }
   }
@@ -1482,9 +1471,6 @@ async function main(): Promise<void> {
     } else {
       for (const site of sites) {
         const rssArgs = ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'];
-        if (config.maxEpisodes) {
-          rssArgs.push('--', '--max-episodes', config.maxEpisodes.toString());
-        }
         
         const rssResult = await runCommandWithSiteContext(
           site.id,
@@ -1524,9 +1510,6 @@ async function main(): Promise<void> {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
         const audioArgs = ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'];
-        if (config.maxEpisodes) {
-          audioArgs.push('--', '--max-episodes', config.maxEpisodes.toString());
-        }
         
         const audioResult = await runCommandWithSiteContext(
           site.id,

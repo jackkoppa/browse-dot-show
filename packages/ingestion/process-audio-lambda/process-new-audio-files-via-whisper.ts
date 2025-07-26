@@ -642,7 +642,7 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
  * 
  * When running, we'll scan S3 for all audio files in the `audio/` directory, and process any new ones.
  */
-export async function handler(maxEpisodes?: number): Promise<void> {
+export async function handler(): Promise<void> {
   log.info(`🟢 Starting process-new-audio-files-via-whisper > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
   log.info('⏱️ Starting at', new Date().toISOString());
@@ -760,21 +760,13 @@ export async function handler(maxEpisodes?: number): Promise<void> {
   }
   log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
-  // Limit episodes if maxEpisodes is specified
-  if (maxEpisodes && filesToProcess.length > maxEpisodes) {
-    log.info(`📊 Limiting audio files from ${filesToProcess.length} to ${maxEpisodes} files for processing`);
-    filesToProcess = filesToProcess.slice(0, maxEpisodes);
-    stats.totalFiles = filesToProcess.length;
-    
-    // Update podcast stats to reflect the limited files
-    stats.podcastStats.clear();
-    for (const fileKey of filesToProcess) {
-      const podcastName = path.basename(path.dirname(fileKey));
-      if (!stats.podcastStats.has(podcastName)) {
-        stats.podcastStats.set(podcastName, { total: 0, skipped: 0, processed: 0, sizeBytes: 0 });
-      }
-      stats.podcastStats.get(podcastName)!.total++;
+  // Update podcast stats
+  for (const fileKey of filesToProcess) {
+    const podcastName = path.basename(path.dirname(fileKey));
+    if (!stats.podcastStats.has(podcastName)) {
+      stats.podcastStats.set(podcastName, { total: 0, skipped: 0, processed: 0, sizeBytes: 0 });
     }
+    stats.podcastStats.get(podcastName)!.total++;
   }
 
   // Debug feature: only process specific file if DEBUG_SINGLE_FILE is set
@@ -952,36 +944,13 @@ export async function handler(maxEpisodes?: number): Promise<void> {
   }
 }
 
-// Parse command line arguments
-function parseCommandLineArgs(): { maxEpisodes?: number } {
-  const args = process.argv.slice(2);
-  let maxEpisodes: number | undefined;
-  
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--max-episodes' && args[i + 1]) {
-      maxEpisodes = parseInt(args[i + 1], 10);
-      if (isNaN(maxEpisodes) || maxEpisodes <= 0) {
-        log.error(`Invalid max-episodes value: ${args[i + 1]}. Must be a positive integer.`);
-        process.exit(1);
-      }
-      log.info(`📊 Max episodes limit set to: ${maxEpisodes}`);
-      break;
-    }
-  }
-  
-  return { maxEpisodes };
-}
-
 // Run the handler if this file is executed directly
 // In ES modules, this is the standard way to detect if a file is being run directly
 const scriptPath = path.resolve(process.argv[1]);
 if (import.meta.url === `file://${scriptPath}`) {
   log.info('Starting audio processing via Whisper directly...');
   
-  // Parse command line arguments
-  const { maxEpisodes } = parseCommandLineArgs();
-  
-  handler(maxEpisodes)
+  handler()
     .then(() => {
       log.info('Processing completed successfully (direct run)');
       process.exit(0);
