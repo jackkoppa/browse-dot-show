@@ -7,6 +7,7 @@ import { printInfo, printSuccess, logInColor } from '../utils/logging.js';
 import prompts from 'prompts';
 import { 
   loadProgress, 
+  saveProgress,
   createInitialProgress, 
   updateStepStatus, 
   calculateProgress, 
@@ -290,6 +291,7 @@ async function handleNewSiteCreation(): Promise<void> {
   
   // Step 9: Create initial progress and mark first step complete
   const progress = createInitialProgress(siteId, podcastName);
+  await saveProgress(progress); // Save the initial progress before updating
   await updateStepStatus(siteId, 'generate-site-files', 'COMPLETED');
   
   // Step 10: Continue with progressive setup
