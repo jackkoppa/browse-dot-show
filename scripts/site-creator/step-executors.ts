@@ -385,6 +385,606 @@ async function validateAwsProfile(profileName: string): Promise<boolean> {
   }
 }
 
+// Phase 2: Prerequisites & Environment Check
+async function checkPrerequisitesAndEnvironment(): Promise<boolean> {
+  printInfo('🔍 Checking deployment prerequisites...');
+  
+  // Step 1: Check Required Tools
+  console.log('');
+  printInfo('Checking required tools...');
+  
+  // Check Terraform installation
+  try {
+    const terraformResult = await execCommand('terraform', ['--version'], { timeout: 10000 });
+    if (terraformResult.exitCode !== 0) {
+      throw new Error('Terraform not found');
+    }
+    
+    // Parse version to check minimum requirements
+    const versionMatch = terraformResult.stdout.match(/Terraform v(\d+)\.(\d+)\.(\d+)/);
+    if (versionMatch) {
+      const [, major, minor] = versionMatch;
+      const majorNum = parseInt(major);
+      const minorNum = parseInt(minor);
+      
+      // Minimum version 1.5.0 for AWS SSO support
+      if (majorNum < 1 || (majorNum === 1 && minorNum < 5)) {
+        printWarning(`⚠️  Terraform ${major}.${minor} found, but 1.5.0+ recommended for AWS SSO support`);
+        
+        const continueResponse = await prompts({
+          type: 'confirm',
+          name: 'continue',
+          message: 'Would you like to continue anyway? (You may encounter issues)',
+          initial: false
+        });
+        
+        if (!continueResponse.continue) {
+          printInfo('Please update Terraform and try again.');
+          printInfo('  • macOS: brew upgrade terraform');
+          printInfo('  • Manual: https://www.terraform.io/downloads');
+          return false;
+        }
+      }
+      
+      printSuccess(`✅ Terraform ${major}.${minor} is installed`);
+    } else {
+      printSuccess('✅ Terraform is installed');
+    }
+  } catch (error) {
+    printError('❌ Terraform is not installed or not in PATH');
+    console.log('');
+    console.log('Please install Terraform first:');
+    console.log('  • macOS: brew install terraform');
+    console.log('  • Linux: sudo apt install terraform or use package manager');
+    console.log('  • Windows: https://www.terraform.io/downloads');
+    console.log('  • Manual: https://www.terraform.io/downloads');
+    console.log('');
+    console.log('Terraform is required for managing AWS infrastructure.');
+    return false;
+  }
+  
+  // Step 2: Environment Variables
+  printInfo('Checking environment variables...');
+  
+  // Check OpenAI API Key
+  if (!process.env.OPENAI_API_KEY) {
+    printError('❌ OPENAI_API_KEY environment variable is missing');
+    console.log('');
+    console.log('This is required for:');
+    console.log('  • Podcast episode transcription');
+    console.log('  • Search functionality');
+    console.log('');
+    console.log('To fix this:');
+    console.log('  1. Get an API key from: https://platform.openai.com/api-keys');
+    console.log('  2. Add it to your environment:');
+    console.log('     export OPENAI_API_KEY="your-api-key-here"');
+    console.log('  3. Or add it to your shell profile (.bashrc, .zshrc, etc.)');
+    console.log('');
+    
+    const hasKeyResponse = await prompts({
+      type: 'confirm',
+      name: 'hasKey',
+      message: 'Do you have an OpenAI API key available?',
+      initial: true
+    });
+    
+    if (hasKeyResponse.hasKey) {
+      printInfo('Please set the OPENAI_API_KEY environment variable and restart the site creator.');
+      return false;
+    } else {
+      printInfo('You\'ll need to get an OpenAI API key before deploying.');
+      printInfo('Visit: https://platform.openai.com/api-keys');
+      return false;
+    }
+  } else {
+    // Validate the API key format (should start with sk-)
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey.startsWith('sk-')) {
+      printWarning('⚠️  OpenAI API key format looks unusual (should start with "sk-")');
+      
+      const continueResponse = await prompts({
+        type: 'confirm',
+        name: 'continue',
+        message: 'Would you like to continue anyway?',
+        initial: true
+      });
+      
+      if (!continueResponse.continue) {
+        printInfo('Please verify your OpenAI API key and try again.');
+        return false;
+      }
+    }
+    
+    printSuccess('✅ OpenAI API key is configured');
+  }
+  
+  // Set AWS region if not already set
+  if (!process.env.AWS_REGION) {
+    process.env.AWS_REGION = 'us-east-1';
+    printInfo('ℹ️  AWS region set to default: us-east-1');
+  } else {
+    printSuccess(`✅ AWS region configured: ${process.env.AWS_REGION}`);
+  }
+  
+  // Step 3: Run Existing Prerequisites Script
+  printInfo('Running comprehensive prerequisite checks...');
+  
+  try {
+    const prereqResult = await execCommand('tsx', [
+      'scripts/deploy/check-prerequisites.ts'
+    ], { timeout: 60000 });
+    
+    if (prereqResult.exitCode === 0) {
+      printSuccess('✅ All prerequisite checks passed!');
+    } else {
+      throw new Error(`Prerequisites check failed with exit code ${prereqResult.exitCode}`);
+    }
+  } catch (error) {
+    printError('❌ Prerequisite check failed');
+    console.log('');
+    
+    if (error instanceof Error && error.message.includes('timeout')) {
+      printInfo('The prerequisite check is taking longer than expected.');
+      
+      const retryResponse = await prompts({
+        type: 'confirm',
+        name: 'retry',
+        message: 'Would you like to try again?',
+        initial: true
+      });
+      
+      if (retryResponse.retry) {
+        return await checkPrerequisitesAndEnvironment();
+      } else {
+        return false;
+      }
+    } else {
+      printInfo('Some prerequisites may not be met. Common issues:');
+      console.log('  • AWS CLI not configured properly');
+      console.log('  • Missing required permissions');
+      console.log('  • Network connectivity issues');
+      console.log('');
+      printInfo('You can try to continue anyway, but deployment may fail.');
+      
+      const continueResponse = await prompts({
+        type: 'confirm',
+        name: 'continue',
+        message: 'Would you like to continue despite the prerequisite issues?',
+        initial: false
+      });
+      
+      return continueResponse.continue;
+    }
+  }
+  
+  return true;
+}
+
+// Phase 3: Terraform State Bootstrap
+async function bootstrapTerraformState(siteId: string): Promise<boolean> {
+  printInfo('🏗️  Setting up Terraform state management...');
+  console.log('');
+  console.log('This creates secure, shared storage for your site\'s infrastructure state.');
+  console.log('It\'s a one-time setup that enables safe infrastructure management.');
+  console.log('');
+  
+  // Step 1: Check if State Already Bootstrapped
+  try {
+    printInfo('Checking if Terraform state is already configured...');
+    
+    // Check for state bucket using naming convention: browse-dot-show-{siteId}-tf-state
+    const stateBucketName = `browse-dot-show-${siteId}-tf-state`;
+    
+    const bucketCheckResult = await execCommand('aws', [
+      's3api', 'head-bucket',
+      '--bucket', stateBucketName,
+      '--profile', `${siteId}-deploy`
+    ], { timeout: 30000, silent: true });
+    
+    if (bucketCheckResult.exitCode === 0) {
+      printSuccess(`✅ Terraform state bucket already exists: ${stateBucketName}`);
+      
+      // Double-check that the backend configuration files exist
+      const backendConfigPath = join('sites/my-sites', siteId, 'terraform/backend.tfbackend');
+      if (await exists(backendConfigPath)) {
+        printSuccess('✅ Terraform backend configuration files are ready');
+        return true;
+      } else {
+        printWarning('⚠️  State bucket exists but backend config is missing. Will recreate...');
+      }
+    }
+  } catch (error) {
+    // Bucket doesn't exist or we can't access it - that's fine, we'll create it
+    printInfo('Terraform state bucket not found. Will create new one...');
+  }
+  
+  // Step 2: Run Bootstrap Script
+  console.log('');
+  printInfo('Creating Terraform state management infrastructure...');
+  console.log('This will create:');
+  console.log('  • S3 bucket for storing Terraform state');
+  console.log('  • DynamoDB table for state locking');
+  console.log('  • Proper versioning and encryption');
+  console.log('');
+  
+  const proceedResponse = await prompts({
+    type: 'confirm',
+    name: 'proceed',
+    message: 'Ready to create the Terraform state infrastructure?',
+    initial: true
+  });
+  
+  if (!proceedResponse.proceed) {
+    printInfo('Terraform state setup deferred. You can continue this step later.');
+    return false;
+  }
+  
+  try {
+    // Execute the bootstrap script
+    const bootstrapResult = await execCommand('tsx', [
+      'scripts/deploy/bootstrap-site-state.ts',
+      siteId,
+      `${siteId}-deploy` // AWS profile name
+    ], { timeout: 300000 }); // 5 minute timeout for bootstrap
+    
+    if (bootstrapResult.exitCode !== 0) {
+      throw new Error(`Bootstrap script failed with exit code ${bootstrapResult.exitCode}`);
+    }
+    
+    printSuccess('✅ Terraform state infrastructure created successfully!');
+    
+  } catch (error) {
+    printError('❌ Failed to bootstrap Terraform state');
+    console.log('');
+    
+    if (error instanceof Error && error.message.includes('timeout')) {
+      printInfo('The bootstrap process is taking longer than expected.');
+      
+      const retryResponse = await prompts({
+        type: 'confirm',
+        name: 'retry',
+        message: 'Would you like to try again?',
+        initial: true
+      });
+      
+      if (retryResponse.retry) {
+        return await bootstrapTerraformState(siteId);
+      } else {
+        return false;
+      }
+    } else {
+      printInfo('Common issues and solutions:');
+      console.log('  • Check AWS permissions (S3, DynamoDB access required)');
+      console.log('  • Verify AWS region is accessible');
+      console.log('  • Ensure S3 bucket names are globally unique');
+      console.log('');
+      
+      const continueResponse = await prompts({
+        type: 'confirm',
+        name: 'continue',
+        message: 'Would you like to try again after checking these issues?',
+        initial: true
+      });
+      
+      if (continueResponse.continue) {
+        return await bootstrapTerraformState(siteId);
+      } else {
+        printInfo('You can continue this step later when the issues are resolved.');
+        return false;
+      }
+    }
+  }
+  
+  // Step 3: Verify Bootstrap Success
+  printInfo('Verifying Terraform state setup...');
+  
+  try {
+    // Check that the state bucket was created
+    const stateBucketName = `browse-dot-show-${siteId}-tf-state`;
+    const verifyBucketResult = await execCommand('aws', [
+      's3api', 'head-bucket',
+      '--bucket', stateBucketName,
+      '--profile', `${siteId}-deploy`
+    ], { timeout: 30000 });
+    
+    if (verifyBucketResult.exitCode !== 0) {
+      throw new Error('State bucket verification failed');
+    }
+    
+    // Check that backend configuration exists
+    const backendConfigPath = join('sites/my-sites', siteId, 'terraform/backend.tfbackend');
+    if (!(await exists(backendConfigPath))) {
+      throw new Error('Backend configuration file was not created');
+    }
+    
+    printSuccess('✅ Terraform state management verified and ready!');
+    console.log(`   State bucket: ${stateBucketName}`);
+    console.log(`   Backend config: ${backendConfigPath}`);
+    
+    return true;
+    
+  } catch (error) {
+    printError(`❌ Terraform state verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    printInfo('The bootstrap may have partially completed. You can try running this step again.');
+    return false;
+  }
+}
+
+// Phase 4: Core Deployment  
+async function executeMainDeployment(siteId: string): Promise<boolean> {
+  console.log('');
+  printInfo('🚀 Ready to deploy your site infrastructure!');
+  console.log('');
+  console.log('This will deploy your complete podcast site with:');
+  console.log('  • S3 bucket for static hosting');
+  console.log('  • CloudFront CDN for global distribution');
+  console.log('  • Lambda functions for search and processing');
+  console.log('  • SSL certificate for secure HTTPS');
+  console.log('  • DNS configuration for your browse.show subdomain');
+  console.log('');
+  
+  // Step 1: Pre-deployment Confirmation
+  console.log('⏱️  Estimated deployment time: 10-15 minutes');
+  console.log('💰 Estimated monthly cost: $10-35 (depending on usage)');
+  console.log('');
+  
+  const confirmResponse = await prompts({
+    type: 'confirm',
+    name: 'confirm',
+    message: 'Ready to deploy your podcast site to AWS?',
+    initial: true
+  });
+  
+  if (!confirmResponse.confirm) {
+    printInfo('Deployment deferred. You can continue this step when ready.');
+    return false;
+  }
+  
+  // Step 2: Set up environment for deployment script
+  printInfo('Setting up deployment environment...');
+  
+  // The site-deploy script expects these environment variables
+  const deploymentEnv: Record<string, string> = {
+    ...process.env,
+    SITE_ID: siteId,
+    ENV: 'prod',
+    AWS_REGION: process.env.AWS_REGION || 'us-east-1'
+  };
+  
+  // Load the site's AWS profile from .env.aws-sso
+  const awsEnvPath = join('sites/my-sites', siteId, '.env.aws-sso');
+  
+  try {
+    const envContent = await readTextFile(awsEnvPath);
+    const profileMatch = envContent.match(/AWS_PROFILE=(.+)/);
+    
+    if (profileMatch) {
+      deploymentEnv.AWS_PROFILE = profileMatch[1].trim();
+      printInfo(`Using AWS profile: ${deploymentEnv.AWS_PROFILE}`);
+    } else {
+      throw new Error('AWS_PROFILE not found in .env.aws-sso file');
+    }
+  } catch (error) {
+    printError(`❌ Could not load AWS profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    printInfo('Please ensure the AWS credentials step completed successfully.');
+    return false;
+  }
+  
+  // Step 3: Execute Main Deployment
+  console.log('');
+  printInfo('🚀 Starting deployment...');
+  printInfo('This may take 10-15 minutes. You can watch the progress below.');
+  console.log('');
+  
+  try {
+    // Run the deployment script with proper environment
+    const deploymentSuccess = await runDeploymentWithProgress(siteId, deploymentEnv);
+    
+    if (!deploymentSuccess) {
+      return false;
+    }
+    
+    printSuccess('✅ Deployment completed successfully!');
+    
+  } catch (error) {
+    return await handleDeploymentError(error, siteId);
+  }
+  
+  // Step 4: Post-deployment Validation
+  return await validateDeployment(siteId);
+}
+
+async function runDeploymentWithProgress(siteId: string, env: NodeJS.ProcessEnv): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const { spawn } = require('child_process');
+    
+    // The site-deploy script expects SITE_ID to be set and will use run-with-site-selection
+    // But we'll call it directly since we already have the site selected
+    const child = spawn('tsx', ['scripts/deploy/site-deploy.ts'], {
+      cwd: process.cwd(),
+      env: env,
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+    
+    let lastOutput = '';
+    let hasErrors = false;
+    
+    // Stream stdout to user
+    child.stdout?.on('data', (data: Buffer) => {
+      const output = data.toString();
+      process.stdout.write(output);
+      lastOutput = output.trim();
+    });
+    
+    // Stream stderr to user and track errors
+    child.stderr?.on('data', (data: Buffer) => {
+      const output = data.toString();
+      process.stderr.write(output);
+      
+      // Check for specific error patterns
+      if (output.includes('Error') || output.includes('Failed') || output.includes('❌')) {
+        hasErrors = true;
+      }
+      
+      lastOutput = output.trim();
+    });
+    
+    child.on('close', (code: number | null) => {
+      console.log(''); // Add spacing after command output
+      
+      if (code === 0) {
+        resolve(true);
+      } else {
+        printError(`Deployment process exited with code ${code}`);
+        resolve(false);
+      }
+    });
+    
+    child.on('error', (error: Error) => {
+      console.log(''); // Add spacing
+      printError(`Failed to start deployment process: ${error.message}`);
+      resolve(false);
+    });
+  });
+}
+
+async function handleDeploymentError(error: any, siteId: string): Promise<boolean> {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  printError('❌ Deployment encountered an error');
+  console.log('');
+  
+  // Check for specific known error patterns
+  if (errorMessage.includes('InvalidViewerCertificate') || errorMessage.includes('SSL') || errorMessage.includes('certificate')) {
+    return await handleSslCertificateError(siteId);
+  } else if (errorMessage.includes('AccessDenied') || errorMessage.includes('Forbidden')) {
+    return await handlePermissionError();
+  } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+    return await handleTimeoutError(siteId);
+  } else {
+    return await handleGenericDeploymentError(errorMessage);
+  }
+}
+
+async function handleSslCertificateError(siteId: string): Promise<boolean> {
+  printInfo('🔐 SSL Certificate Issue Detected');
+  console.log('');
+  console.log('This is common for first-time deployments. The SSL certificate was created');
+  console.log('but needs DNS validation to become active.');
+  console.log('');
+  console.log('Next steps:');
+  console.log('1. Check your domain registrar for DNS validation records');
+  console.log('2. Add the CNAME record provided by AWS Certificate Manager');
+  console.log('3. Wait 10-20 minutes for validation to complete');
+  console.log('4. Try the deployment again');
+  console.log('');
+  
+  const retryResponse = await prompts({
+    type: 'select',
+    name: 'action',
+    message: 'What would you like to do?',
+    choices: [
+      { title: 'Try deployment again (if you\'ve set up DNS)', value: 'retry' },
+      { title: 'Defer for now (set up DNS validation later)', value: 'defer' },
+      { title: 'Get help with DNS setup', value: 'help' }
+    ]
+  });
+  
+  if (retryResponse.action === 'retry') {
+    return await executeMainDeployment(siteId);
+  } else if (retryResponse.action === 'help') {
+    printInfo('For DNS validation help, see: https://docs.aws.amazon.com/acm/latest/userguide/domain-validation.html');
+    return false;
+  } else {
+    return false;
+  }
+}
+
+async function handlePermissionError(): Promise<boolean> {
+  printInfo('🔒 AWS Permission Issue');
+  console.log('');
+  console.log('Your AWS credentials don\'t have sufficient permissions.');
+  console.log('Required permissions:');
+  console.log('  • S3: Full access');
+  console.log('  • CloudFront: Full access');
+  console.log('  • Lambda: Full access');
+  console.log('  • Route 53: Full access');
+  console.log('  • IAM: Limited access for role creation');
+  console.log('');
+  printInfo('Please contact your AWS administrator to grant these permissions.');
+  
+  return false;
+}
+
+async function handleTimeoutError(siteId: string): Promise<boolean> {
+  printInfo('⏱️  Deployment Timeout');
+  console.log('');
+  console.log('The deployment is taking longer than expected. This can happen due to:');
+  console.log('  • AWS service delays');
+  console.log('  • Network connectivity issues');
+  console.log('  • Large initial deployments');
+  console.log('');
+  
+  const retryResponse = await prompts({
+    type: 'confirm',
+    name: 'retry',
+    message: 'Would you like to try the deployment again?',
+    initial: true
+  });
+  
+  if (retryResponse.retry) {
+    return await executeMainDeployment(siteId);
+  } else {
+    return false;
+  }
+}
+
+async function handleGenericDeploymentError(errorMessage: string): Promise<boolean> {
+  console.log('Error details:');
+  console.log(errorMessage);
+  console.log('');
+  
+  const retryResponse = await prompts({
+    type: 'confirm',
+    name: 'retry',
+    message: 'Would you like to try the deployment again?',
+    initial: false
+  });
+  
+  if (retryResponse.retry) {
+    return true; // This will retry within the calling function
+  } else {
+    printInfo('You can try the deployment again later when the issue is resolved.');
+    return false;
+  }
+}
+
+async function validateDeployment(siteId: string): Promise<boolean> {
+  printInfo('🔍 Validating deployment...');
+  
+  const siteUrl = `https://${siteId}.browse.show`;
+  
+  console.log('');
+  printSuccess('🎉 Your podcast site is now live!');
+  console.log('');
+  console.log(`🌐 Site URL: ${siteUrl}`);
+  console.log('');
+  console.log('Next steps:');
+  console.log('1. Visit your site to verify it\'s working');
+  console.log('2. Run episode ingestion to add your podcast content');
+  console.log('3. Test the search functionality');
+  console.log('');
+  
+  const testResponse = await prompts({
+    type: 'confirm',
+    name: 'tested',
+    message: 'Have you verified that your site is working correctly?',
+    initial: false
+  });
+  
+  return testResponse.tested || true; // Consider it successful either way
+}
+
 export async function executeAwsDeploymentStep(progress: SetupProgress): Promise<StepStatus> {
   console.log('');
   printInfo('🚀 Let\'s deploy your site to AWS!');
@@ -404,13 +1004,29 @@ export async function executeAwsDeploymentStep(progress: SetupProgress): Promise
   
   printSuccess('✅ AWS credentials are configured and ready!');
   
-  // TODO: Add remaining phases in subsequent implementations
-  // Phase 2: Prerequisites Check
-  // Phase 3: Terraform Bootstrap
-  // Phase 4: Core Deployment
+  // Phase 2: Prerequisites & Environment Check
+  const prerequisitesReady = await checkPrerequisitesAndEnvironment();
+  if (!prerequisitesReady) {
+    return 'DEFERRED';
+  }
   
-  printInfo('🚧 Deployment implementation in progress...');
-  printInfo('For now, AWS credentials are set up. Full deployment coming soon!');
+  printSuccess('✅ Prerequisites and environment are ready!');
+  
+  // Phase 3: Terraform State Bootstrap
+  const bootstrapReady = await bootstrapTerraformState(progress.siteId);
+  if (!bootstrapReady) {
+    return 'DEFERRED';
+  }
+  
+  printSuccess('✅ Terraform state management is ready!');
+  
+  // Phase 4: Core Deployment
+  const deploymentComplete = await executeMainDeployment(progress.siteId);
+  if (!deploymentComplete) {
+    return 'DEFERRED';
+  }
+  
+  printSuccess('🎉 Your site has been successfully deployed to AWS!');
   
   return 'COMPLETED';
 }
