@@ -9,7 +9,7 @@ create_automation_role = false  # Role already exists from hardfork in same acco
 # Custom domain configuration
 custom_domain_name = "limitedresources.browse.show"
 root_domain_name = "limitedresources.browse.show"
-enable_custom_domain_on_cloudfront = false
+enable_custom_domain_on_cloudfront = true
 
 # SRT indexing Lambda configuration
 srt_indexing_lambda_memory_size = 4096 # Max observed memory as of 2025-07-26: _____ MB
