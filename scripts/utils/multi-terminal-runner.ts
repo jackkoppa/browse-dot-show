@@ -46,7 +46,7 @@ interface ProgressUpdate {
 
 class MultiTerminalRunner {
   private processes: ProcessConfig[] = [];
-  private logDir: string;
+  protected logDir: string;
   private monitoringInterval: number;
   private isMonitoring = false;
   private startTime: number;
@@ -56,6 +56,23 @@ class MultiTerminalRunner {
   private readonly spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   private spinnerInterval?: NodeJS.Timeout;
   private lastProgressData: any = null;
+  
+  // Duration display configuration
+  private static readonly MIN_HOURS_TO_DISPLAY_AS_HOURS = 5;
+
+  /**
+   * Format duration for display - show as hours if >= 5 hours, otherwise minutes
+   */
+  private formatDuration(minutes: number): string {
+    const minHoursThreshold = MultiTerminalRunner.MIN_HOURS_TO_DISPLAY_AS_HOURS * 60; // Convert to minutes
+    
+    if (minutes >= minHoursThreshold) {
+      const hours = minutes / 60;
+      return `${hours.toFixed(2)} hours`;
+    } else {
+      return `${minutes.toFixed(1)} min`;
+    }
+  }
 
   constructor(
     private numProcesses: number,
@@ -101,10 +118,12 @@ class MultiTerminalRunner {
     const envExports = config.env ? 
       Object.entries(config.env).map(([key, value]) => `export ${key}="${value}"`).join('; ') + '; ' : '';
     
-    // Create the command - much simpler now that we're using script files
+    // Create the command - include cd to project directory first
+    const projectDir = process.cwd();
+    const cdCommand = `cd "${projectDir}"`;
     const baseCommand = `${config.command} ${config.args.join(' ')}`;
     const commandWithTee = `${baseCommand} 2>&1 | tee "${config.logFile}"`;
-    const fullCommand = `${envExports}${commandWithTee}`;
+    const fullCommand = `${cdCommand}; ${envExports}${commandWithTee}`;
     
     // Escape the command for AppleScript (only need to escape quotes and backslashes)
     const escapedCommand = fullCommand.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -136,7 +155,7 @@ end tell
   /**
    * Create process configurations for the POC
    */
-  private createProcessConfigs(): ProcessConfig[] {
+  protected createProcessConfigs(): ProcessConfig[] {
     const configs: ProcessConfig[] = [];
     
     for (let i = 1; i <= this.numProcesses; i++) {
@@ -341,7 +360,7 @@ process.on('SIGINT', () => {
     
     // Reuse cached overall progress
     this.writeLine('='.repeat(80));
-    this.writeLine(`🎯 OVERALL PROGRESS: ${this.lastProgressData.overallPercent}% (${this.lastProgressData.completedMinutes}/${this.lastProgressData.totalMinutes} total minutes)`);
+    this.writeLine(`🎯 OVERALL PROGRESS: ${this.lastProgressData.overallPercent}% (${this.formatDuration(this.lastProgressData.completedMinutes)}/${this.formatDuration(this.lastProgressData.totalMinutes)} total)`);
     this.writeLine(`📈 Status: ${this.lastProgressData.completedProcesses} completed, ${this.lastProgressData.activeProcesses} active, ${this.lastProgressData.pendingProcesses} pending`);
     this.writeLine(`📊 [${this.lastProgressData.progressBar}] ${this.lastProgressData.overallPercent}%`);
   }
@@ -411,7 +430,7 @@ process.on('SIGINT', () => {
           }
 
           const processPercent = processTotal > 0 ? (processCompleted / processTotal) * 100 : 0;
-          const displayText = `${processPercent.toFixed(1)}% (${processCompleted}/${processTotal}min) - ${lastMessage}`;
+          const displayText = `${processPercent.toFixed(1)}% (${this.formatDuration(processCompleted)}/${this.formatDuration(processTotal)}) - ${lastMessage}`;
           this.writeLine(`  ${config.id}: ${displayText}`);
           processDisplayData.push({ id: config.id, display: displayText });
         } else {
@@ -436,7 +455,7 @@ process.on('SIGINT', () => {
     const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
     
     this.writeLine('='.repeat(80));
-    this.writeLine(`🎯 OVERALL PROGRESS: ${overallPercent.toFixed(1)}% (${completedMinutes}/${totalMinutes} total minutes)`);
+    this.writeLine(`🎯 OVERALL PROGRESS: ${overallPercent.toFixed(1)}% (${this.formatDuration(completedMinutes)}/${this.formatDuration(totalMinutes)} total)`);
     this.writeLine(`📈 Status: ${completedProcesses} completed, ${activeProcesses} active, ${pendingProcesses} pending`);
     this.writeLine(`📊 [${bar}] ${overallPercent.toFixed(1)}%`);
 

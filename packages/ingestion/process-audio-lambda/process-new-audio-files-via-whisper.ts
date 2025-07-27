@@ -41,6 +41,52 @@ function isRunningInLambda(): boolean {
   return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 }
 
+// ====== STRUCTURED LOGGING FOR MULTI-TERMINAL PROGRESS TRACKING ======
+interface ProgressLogEntry {
+  processId: string;
+  timestamp: string;
+  type: 'START' | 'PROGRESS' | 'COMPLETE' | 'ERROR';
+  message: string;
+  data?: {
+    totalMinutes?: number;
+    completedMinutes?: number;
+    percentComplete?: number;
+    currentFile?: string;
+    siteId?: string;
+    totalFiles?: number;
+    completedFiles?: number;
+  };
+}
+
+/**
+ * Log structured progress information for multi-terminal monitoring
+ */
+function logProgress(type: string, message: string, data: any = {}) {
+  const entry: ProgressLogEntry = {
+    processId: process.env.PROCESS_ID || 'unknown',
+    timestamp: new Date().toISOString(),
+    type: type as any,
+    message,
+    data: {
+      siteId: process.env.SITE_ID,
+      ...data
+    }
+  };
+  
+  // Write structured log to both stdout and file (if LOG_FILE is set)
+  const logLine = JSON.stringify(entry);
+  console.log(logLine);
+  
+  if (process.env.LOG_FILE) {
+    try {
+      const fs = require('fs');
+      fs.appendFileSync(process.env.LOG_FILE, logLine + '\n');
+    } catch (error) {
+      // Silently ignore file write errors to avoid breaking transcription
+    }
+  }
+}
+
 // Types
 interface SrtEntry {
   id: string;
@@ -760,6 +806,36 @@ export async function handler(): Promise<void> {
   }
   log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
+  // Calculate total duration of untranscribed files for progress tracking
+  let totalMinutesToProcess = 0;
+  const processIdFromEnv = process.env.PROCESS_ID;
+  
+  // If this is part of a multi-terminal session, get the total from environment
+  if (process.env.TERMINAL_TOTAL_MINUTES) {
+    totalMinutesToProcess = parseFloat(process.env.TERMINAL_TOTAL_MINUTES);
+  } else {
+    // Calculate total duration for files that need transcription
+    for (const fileKey of filesToProcess) {
+      if (!(await transcriptExists(fileKey))) {
+        try {
+          const durationMinutes = await getAudioDurationMinutes(fileKey);
+          totalMinutesToProcess += durationMinutes;
+        } catch (error) {
+          log.warn(`Could not get duration for ${fileKey}: ${error}`);
+        }
+      }
+    }
+  }
+
+  // Log structured START event for multi-terminal progress tracking
+  logProgress('START', `Starting transcription of ${filesToProcess.length} files`, {
+    totalFiles: filesToProcess.length,
+    completedFiles: 0,
+    totalMinutes: totalMinutesToProcess,
+    completedMinutes: 0,
+    percentComplete: 0
+  });
+
   // Update podcast stats
   for (const fileKey of filesToProcess) {
     const podcastName = path.basename(path.dirname(fileKey));
@@ -850,6 +926,31 @@ export async function handler(): Promise<void> {
       // Decrement incomplete transcripts counter after successful processing
       incompletedTranscripts--;
       
+      // Calculate completed duration for progress tracking
+      let completedMinutes = 0;
+      try {
+        const currentFileDuration = await getAudioDurationMinutes(fileKey);
+        completedMinutes = currentFileDuration;
+        
+        // If we have access to all processed files, calculate total completed duration
+        // For now, we'll use an approximation based on completed file count
+        const avgDurationPerFile = totalMinutesToProcess / filesToProcess.length;
+        const totalCompletedMinutes = stats.processedFiles * avgDurationPerFile;
+        const percentComplete = totalMinutesToProcess > 0 ? (totalCompletedMinutes / totalMinutesToProcess) * 100 : 0;
+        
+        // Log structured PROGRESS event
+        logProgress('PROGRESS', `Completed transcription of ${path.basename(fileKey)}`, {
+          totalFiles: filesToProcess.length,
+          completedFiles: stats.processedFiles,
+          totalMinutes: totalMinutesToProcess,
+          completedMinutes: totalCompletedMinutes,
+          percentComplete,
+          currentFile: path.basename(fileKey)
+        });
+      } catch (error) {
+        log.warn(`Could not calculate progress for ${fileKey}: ${error}`);
+      }
+      
       // Collect spelling correction results
       if (correctionResult) {
         spellingCorrectionResults.push(correctionResult);
@@ -914,6 +1015,15 @@ export async function handler(): Promise<void> {
   }
 
   log.info('\n✨ Transcription process finished.');
+
+  // Log structured COMPLETE event for multi-terminal progress tracking
+  logProgress('COMPLETE', `Transcription completed: ${stats.processedFiles} files processed`, {
+    totalFiles: filesToProcess.length,
+    completedFiles: stats.processedFiles,
+    totalMinutes: totalMinutesToProcess,
+    completedMinutes: totalMinutesToProcess, // All processing is complete
+    percentComplete: 100
+  });
 
   // Clean up any remaining process-specific temporary files
   const processSpecificTempDir = path.join('/tmp', PROCESS_ID);

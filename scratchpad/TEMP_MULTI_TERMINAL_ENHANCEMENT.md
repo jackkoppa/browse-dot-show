@@ -3,6 +3,108 @@
 ## Overview
 Successfully implemented POC for running parallel processes in separate Terminal windows with centralized progress monitoring. Ready for adaptation to real use cases.
 
+## 🚧 CURRENT IMPLEMENTATION STATUS
+
+### ✅ Phase 1: POC Complete
+- [x] Terminal window spawning (macOS)
+- [x] Progress monitoring with dual intervals (0.5s spinner, 10s data)
+- [x] In-place terminal updates with progress bars
+- [x] Structured logging interface design
+- [x] Resource cleanup and error handling
+
+### ✅ Phase 2: Real Transcription Integration (COMPLETE)
+- [x] **Site Selection Prompt** - Interactive site picker with single-site focus
+- [x] **Terminal Count Configuration** - User prompt with default of 3 terminals  
+- [x] **Untranscribed Duration Calculation** - Calculate initial total from audio files missing transcripts
+- [x] **Progress Tracking Enhancement** - Track against untranscribed total, not all audio
+- [x] **Structured Logging Integration** - Add progress logging to process-new-audio-files-via-whisper.ts
+- [x] **Package.json Script** - Replace CURSOR-TODO with working command
+- [ ] **ETA Calculation** - Estimate completion time based on transcription speed (TODO: Future enhancement)
+
+### 📋 Phase 2 Implementation Plan
+
+1. **Create Real Runner Script** (`scripts/run-local-transcriptions-multi-terminal.ts`)
+   - Site selection with existing `discoverSites()` utility
+   - Terminal count prompt (default: 3)
+   - Calculate untranscribed audio duration upfront
+   - Launch multi-terminal runner with real transcription commands
+
+2. **Enhance Progress Calculation**
+   - Initial scan: Count audio files without corresponding transcripts
+   - Duration calculation: Sum durations of untranscribed files only
+   - Progress tracking: Monitor transcription completion against this baseline
+   - ETA estimation: Track transcription speed and project completion time
+
+3. **Add Structured Logging to Transcription**
+   - Modify `trigger-individual-ingestion-lambda.ts` to emit progress logs
+   - Log format: JSON entries with processId, progress data, file info
+   - Integration points: File start, chunk completion, file completion
+
+4. **Terminal Distribution Strategy**
+   - Single site distributed across N terminals
+   - Round-robin file assignment or chunk-based distribution
+   - TODO: Future multi-site support framework
+
+### 🚀 Phase 2 IMPLEMENTATION COMPLETE!
+
+**Ready to Use:** 
+```bash
+pnpm run ingestion:run-local-transcriptions:multi-terminal
+```
+
+**What it does:**
+1. **Interactive Setup**: Prompts for site selection and terminal count
+2. **Smart Analysis**: Calculates untranscribed audio duration using ffprobe
+3. **Multi-Terminal Launch**: Opens N Terminal.app windows with real transcription commands
+4. **Progress Monitoring**: Live updates every 0.5s (spinner) and 10s (data)
+5. **Structured Logging**: JSON progress logs from transcription process
+6. **Resource Management**: Automatic cleanup on completion/interruption
+
+**Example Session:**
+```
+🔧 Multi-Terminal Local Transcription Setup
+==================================================
+? Which site do you want to transcribe? › limitedresources (Limited Resources)
+? How many terminal windows? › 3
+
+🔍 Scanning for audio files and existing transcripts...
+📊 Calculating duration for: episode-123.mp3
+📊 Calculating duration for: episode-124.mp3
+...
+
+📈 Transcription Analysis:
+   Total audio files: 820
+   Already transcribed: 480  
+   Needs transcription: 340
+   Untranscribed duration: 1247 minutes (20.8 hours)
+
+📋 Session Configuration:
+   Site: Limited Resources (limitedresources)
+   Files to transcribe: 340
+   Total duration: 1247 minutes
+   Terminal windows: 3
+   Avg per terminal: ~416 minutes
+
+? Start multi-terminal transcription? › Yes
+
+🚀 Starting multi-terminal transcription...
+✅ Launched terminal window for transcription-1
+✅ Launched terminal window for transcription-2  
+✅ Launched terminal window for transcription-3
+✅ All 3 terminal windows launched!
+
+⠋ Progress Update - 2:15:23 PM
+⏱️  Total runtime: 45s
+================================================================================
+  transcription-1: 12.3% (51/416min) - Completed transcription of episode-125.mp3
+  transcription-2: 8.7% (36/416min) - Completed transcription of episode-126.mp3
+  transcription-3: 15.2% (63/416min) - Completed transcription of episode-127.mp3
+================================================================================
+🎯 OVERALL PROGRESS: 12.0% (150/1247 total minutes)
+📈 Status: 0 completed, 3 active, 0 pending
+📊 [██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 12.0%
+```
+
 ## Adapting for Real Ingestion Lambda
 
 ### 1. Modify Process Configuration
