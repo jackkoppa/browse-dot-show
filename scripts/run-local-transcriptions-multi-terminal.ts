@@ -86,8 +86,10 @@ class TranscriptionMultiTerminalRunner extends MultiTerminalRunner {
           SITE_ID: this.session.siteId,
           LOG_FILE: logFile,
           TERMINAL_TOTAL_MINUTES: terminalDuration.toString(),
-          // TODO: Add file filtering when we implement per-terminal file assignment
-          // TERMINAL_FILE_LIST: terminalFiles.map(f => f.filename).join(',')
+          // Pass specific files for this terminal to process
+          TERMINAL_FILE_LIST: terminalFiles.map(f => f.filename).join(','),
+          TERMINAL_INDEX: i.toString(),
+          TOTAL_TERMINALS: this.session.terminalCount.toString()
         }
       });
     }

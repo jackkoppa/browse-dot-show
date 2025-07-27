@@ -59,6 +59,48 @@ class MultiTerminalRunner {
   
   // Duration display configuration
   private static readonly MIN_HOURS_TO_DISPLAY_AS_HOURS = 5;
+  
+  /**
+   * Format runtime duration for display
+   */
+  private formatRuntime(seconds: number): string {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes} min ${remainingSeconds}s`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainingSeconds = seconds % 60;
+      return `${hours} hours, ${minutes} min ${remainingSeconds}s`;
+    }
+  }
+  
+  /**
+   * Calculate estimated completion time based on current progress
+   */
+  private calculateETA(completedMinutes: number, totalMinutes: number, runtimeSeconds: number): string {
+    if (completedMinutes <= 0 || runtimeSeconds <= 0) {
+      return 'Calculating...';
+    }
+    
+    const progressRate = completedMinutes / (runtimeSeconds / 60); // minutes completed per minute of runtime
+    const remainingMinutes = totalMinutes - completedMinutes;
+    const etaMinutes = remainingMinutes / progressRate;
+    
+    if (!isFinite(etaMinutes) || etaMinutes <= 0) {
+      return 'Calculating...';
+    }
+    
+    const etaDate = new Date(Date.now() + etaMinutes * 60 * 1000);
+    return etaDate.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
 
   /**
    * Format duration for display - show as hours if >= 5 hours, otherwise minutes
@@ -350,7 +392,11 @@ process.on('SIGINT', () => {
     // Redraw the display with updated spinner and time, but same progress data
     this.writeLine('='.repeat(80));
     this.writeLine(`${spinner} Progress Update - ${new Date().toLocaleTimeString()}`);
-    this.writeLine(`⏱️  Total runtime: ${Math.floor((Date.now() - this.startTime) / 1000)}s`);
+    const currentRuntimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+    this.writeLine(`⏱️  Total runtime: ${this.formatRuntime(currentRuntimeSeconds)}`);
+    if (this.lastProgressData && this.lastProgressData.eta) {
+      this.writeLine(`🕒 Estimated completion: ${this.lastProgressData.eta}`);
+    }
     this.writeLine('='.repeat(80));
     
     // Reuse cached process data
@@ -361,7 +407,7 @@ process.on('SIGINT', () => {
     // Reuse cached overall progress
     this.writeLine('='.repeat(80));
     this.writeLine(`🎯 OVERALL PROGRESS: ${this.lastProgressData.overallPercent}% (${this.formatDuration(this.lastProgressData.completedMinutes)}/${this.formatDuration(this.lastProgressData.totalMinutes)} total)`);
-    this.writeLine(`📈 Status: ${this.lastProgressData.completedProcesses} completed, ${this.lastProgressData.activeProcesses} active, ${this.lastProgressData.pendingProcesses} pending`);
+    this.writeLine(`📈 Status of Terminal Windows: ${this.lastProgressData.completedProcesses} completed, ${this.lastProgressData.activeProcesses} active, ${this.lastProgressData.pendingProcesses} pending`);
     this.writeLine(`📊 [${this.lastProgressData.progressBar}] ${this.lastProgressData.overallPercent}%`);
   }
 
@@ -391,7 +437,10 @@ process.on('SIGINT', () => {
     
     this.writeLine('='.repeat(80));
     this.writeLine(`${spinner} Progress Update - ${new Date().toLocaleTimeString()}`);
-    this.writeLine(`⏱️  Total runtime: ${Math.floor((Date.now() - this.startTime) / 1000)}s`);
+    const progressRuntimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+    this.writeLine(`⏱️  Total runtime: ${this.formatRuntime(progressRuntimeSeconds)}`);
+    const progressEta = this.calculateETA(completedMinutes, totalMinutes, progressRuntimeSeconds);
+    this.writeLine(`🕒 Estimated completion: ${progressEta}`);
     this.writeLine('='.repeat(80));
 
     for (const config of this.processes) {
@@ -456,8 +505,12 @@ process.on('SIGINT', () => {
     
     this.writeLine('='.repeat(80));
     this.writeLine(`🎯 OVERALL PROGRESS: ${overallPercent.toFixed(1)}% (${this.formatDuration(completedMinutes)}/${this.formatDuration(totalMinutes)} total)`);
-    this.writeLine(`📈 Status: ${completedProcesses} completed, ${activeProcesses} active, ${pendingProcesses} pending`);
+    this.writeLine(`📈 Status of Terminal Windows: ${completedProcesses} completed, ${activeProcesses} active, ${pendingProcesses} pending`);
     this.writeLine(`📊 [${bar}] ${overallPercent.toFixed(1)}%`);
+
+    // Calculate ETA for this update
+    const etaRuntimeSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+    const calculatedEta = this.calculateETA(completedMinutes, totalMinutes, etaRuntimeSeconds);
 
     // Cache progress data for lightweight spinner updates
     this.lastProgressData = {
@@ -468,7 +521,8 @@ process.on('SIGINT', () => {
       completedProcesses,
       activeProcesses,
       pendingProcesses,
-      progressBar: bar
+      progressBar: bar,
+      eta: calculatedEta
     };
 
     // Mark that we've completed the first update

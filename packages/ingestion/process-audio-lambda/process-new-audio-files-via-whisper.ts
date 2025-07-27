@@ -806,6 +806,36 @@ export async function handler(): Promise<void> {
   }
   log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
+  // Filter files for multi-terminal processing
+  if (process.env.TERMINAL_FILE_LIST) {
+    const terminalFiles = process.env.TERMINAL_FILE_LIST.split(',').map(f => f.trim());
+    const terminalIndex = process.env.TERMINAL_INDEX ? parseInt(process.env.TERMINAL_INDEX) : 0;
+    const totalTerminals = process.env.TOTAL_TERMINALS ? parseInt(process.env.TOTAL_TERMINALS) : 1;
+    
+    log.info(`🖥️  Multi-terminal mode: Terminal ${terminalIndex + 1}/${totalTerminals}`);
+    log.info(`📂 Assigned ${terminalFiles.length} specific files to process`);
+    
+    // Filter to only process files assigned to this terminal
+    const originalCount = filesToProcess.length;
+    filesToProcess = filesToProcess.filter(filePath => {
+      const fileName = path.basename(filePath);
+      return terminalFiles.includes(fileName);
+    });
+    
+    log.info(`🎯 Filtered from ${originalCount} to ${filesToProcess.length} files for this terminal`);
+    
+    // Update stats to reflect filtered files
+    stats.totalFiles = filesToProcess.length;
+    stats.podcastStats.clear();
+    for (const fileKey of filesToProcess) {
+      const podcastName = path.basename(path.dirname(fileKey));
+      if (!stats.podcastStats.has(podcastName)) {
+        stats.podcastStats.set(podcastName, { total: 0, skipped: 0, processed: 0, sizeBytes: 0 });
+      }
+      stats.podcastStats.get(podcastName)!.total++;
+    }
+  }
+
   // Calculate total duration of untranscribed files for progress tracking
   let totalMinutesToProcess = 0;
   const processIdFromEnv = process.env.PROCESS_ID;

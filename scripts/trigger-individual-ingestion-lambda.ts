@@ -323,12 +323,16 @@ async function runLambdaLocally(
       // Load site-specific environment variables
       const siteEnvVars = loadSiteEnvVars(siteId, 'local');
       
-      // Merge with current environment, giving priority to site-specific vars
+      // Merge with current environment, preserving multi-terminal vars
       const envVars = {
         ...process.env,
         ...siteEnvVars,
         SITE_ID: siteId,
-        FILE_STORAGE_ENV: 'local'
+        FILE_STORAGE_ENV: 'local',
+        // Preserve multi-terminal runner environment variables
+        ...(process.env.PROCESS_ID && { PROCESS_ID: process.env.PROCESS_ID }),
+        ...(process.env.LOG_FILE && { LOG_FILE: process.env.LOG_FILE }),
+        ...(process.env.TERMINAL_TOTAL_MINUTES && { TERMINAL_TOTAL_MINUTES: process.env.TERMINAL_TOTAL_MINUTES })
       };
 
       // Build args array, potentially including max-episodes for RSS retrieval
