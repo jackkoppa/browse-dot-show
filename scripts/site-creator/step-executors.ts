@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { exists, writeTextFile, readTextFile, readJsonFile } from '../utils/file-operations.js';
 import { execCommand } from '../utils/shell-exec.js';
 import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
+import { checkAwsCredentials, checkAwsSsoLogin } from '../utils/aws-utils.js';
 import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
@@ -35,7 +36,7 @@ export async function executeStep(progress: SetupProgress, stepId: string): Prom
       return await executeCompleteTranscriptionsStep(progress);
       
     case 'aws-deployment':
-      return await executeAwsDeploymentStep();
+      return await executeAwsDeploymentStep(progress);
       
     case 'local-automation':
       printInfo('🚧 Local automation setup coming soon! For now, we\'ll mark this as complete.');
@@ -117,24 +118,301 @@ export async function executeCustomStylingStep(): Promise<StepStatus> {
   return confirmResponse.completed ? 'COMPLETED' : 'DEFERRED';
 }
 
-export async function executeAwsDeploymentStep(): Promise<StepStatus> {
+// Phase 1: AWS Credential Setup & Validation
+async function setupAwsCredentials(siteId: string): Promise<boolean> {
+  // Step 1: Check AWS CLI Installation
+  printInfo('🔍 Checking AWS CLI installation...');
+  
+  try {
+    const awsVersionResult = await execCommand('aws', ['--version'], { timeout: 10000 });
+    if (awsVersionResult.exitCode !== 0) {
+      throw new Error('AWS CLI not found');
+    }
+    printSuccess('✅ AWS CLI is installed');
+  } catch (error) {
+    printError('❌ AWS CLI is not installed or not in PATH');
+    console.log('');
+    console.log('Please install AWS CLI first:');
+    console.log('  • macOS: brew install awscli');
+    console.log('  • Linux: sudo apt install awscli or sudo yum install awscli');
+    console.log('  • Windows: https://aws.amazon.com/cli/');
+    console.log('  • Manual: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html');
+    console.log('');
+    return false;
+  }
+  
+  // Step 2: Check Existing Configuration
+  const awsEnvPath = join('sites/my-sites', siteId, '.env.aws-sso');
+  
+  if (await exists(awsEnvPath)) {
+    printInfo('📋 Found existing AWS configuration file...');
+    
+    try {
+      const envContent = await readTextFile(awsEnvPath);
+      const profileMatch = envContent.match(/AWS_PROFILE=(.+)/);
+      
+      if (profileMatch) {
+        const profileName = profileMatch[1].trim();
+        printInfo(`Testing existing profile: ${profileName}`);
+        
+        // Test if the profile works
+        if (await checkAwsCredentials(profileName)) {
+          printSuccess(`✅ Existing AWS profile "${profileName}" is working!`);
+          return true;
+        } else {
+          printWarning(`⚠️  Profile "${profileName}" exists but credentials are invalid or expired`);
+          
+          const retryResponse = await prompts({
+            type: 'confirm',
+            name: 'retry',
+            message: 'Would you like to refresh your AWS credentials and try again?',
+            initial: true
+          });
+          
+          if (retryResponse.retry) {
+            if (await checkAwsSsoLogin(profileName)) {
+              printSuccess(`✅ AWS profile "${profileName}" is now working!`);
+              return true;
+            } else {
+              printWarning(`Still having issues with profile "${profileName}"`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      printWarning('⚠️  Could not read existing AWS configuration file');
+    }
+  }
+  
+  // Step 3: AWS Authentication Setup
+  printInfo('🔐 Let\'s set up your AWS credentials...');
   console.log('');
-  printInfo('🚀 Ready to deploy your site to AWS!');
-  console.log('');
-  console.log('AWS deployment is the recommended way to host your podcast site.');
-  console.log('It provides reliable hosting, search functionality, and automatic scaling.');
+  console.log('You have two options for AWS authentication:');
+  console.log('  1. AWS SSO (recommended if available)');
+  console.log('  2. AWS Access Keys (fallback option)');
   console.log('');
   
-  await openGuide('docs/deployment-guide.md');
+  const authChoice = await prompts({
+    type: 'select',
+    name: 'method',
+    message: 'Which authentication method would you like to use?',
+    choices: [
+      {
+        title: 'AWS SSO (recommended)',
+        description: 'More secure, temporary credentials',
+        value: 'sso'
+      },
+      {
+        title: 'AWS Access Keys',
+        description: 'Traditional access key + secret key',
+        value: 'keys'
+      }
+    ],
+    initial: 0
+  });
   
-  const confirmResponse = await prompts({
+  if (!authChoice.method) {
+    return false;
+  }
+  
+  let profileName: string;
+  
+  if (authChoice.method === 'sso') {
+    profileName = await setupAwsSso(siteId);
+  } else {
+    profileName = await setupAwsAccessKeys(siteId);
+  }
+  
+  if (!profileName) {
+    return false;
+  }
+  
+  // Step 4: Create .env.aws-sso File
+  await createAwsEnvFile(siteId, profileName);
+  
+  // Step 5: Final Validation
+  return await validateAwsProfile(profileName);
+}
+
+async function setupAwsSso(siteId: string): Promise<string> {
+  console.log('');
+  printInfo('🔧 Setting up AWS SSO...');
+  console.log('');
+  console.log('To set up AWS SSO, you\'ll need:');
+  console.log('  • Your organization\'s SSO start URL');
+  console.log('  • Access to your SSO portal');
+  console.log('  • Permission to create AWS profiles');
+  console.log('');
+  
+  const hasInfoResponse = await prompts({
     type: 'confirm',
-    name: 'completed',
-    message: 'Have you successfully deployed your site to AWS?',
+    name: 'hasInfo',
+    message: 'Do you have your SSO start URL and access to your organization\'s AWS SSO?',
+    initial: true
+  });
+  
+  if (!hasInfoResponse.hasInfo) {
+    printInfo('You\'ll need to get this information from your AWS administrator.');
+    printInfo('For now, let\'s try the access keys option instead.');
+    return await setupAwsAccessKeys(siteId);
+  }
+  
+  const profileName = `${siteId}-deploy`;
+  
+  console.log('');
+  printInfo('Please run this command in a separate terminal:');
+  console.log('');
+  logInColor('green', `aws configure sso --profile ${profileName}`);
+  console.log('');
+  console.log('During the setup, when prompted for:');
+  console.log('  • Region: choose your preferred region (e.g., us-east-1)');
+  console.log('  • Output format: json');
+  console.log('');
+  
+  const setupCompleteResponse = await prompts({
+    type: 'confirm',
+    name: 'complete',
+    message: 'Have you completed the AWS SSO configuration?',
     initial: false
   });
   
-  return confirmResponse.completed ? 'COMPLETED' : 'DEFERRED';
+  if (!setupCompleteResponse.complete) {
+    return '';
+  }
+  
+  // Test the profile
+  if (await checkAwsSsoLogin(profileName)) {
+    printSuccess(`✅ AWS SSO profile "${profileName}" is working!`);
+    return profileName;
+  } else {
+    printError('❌ Could not verify the AWS SSO profile. Please try again.');
+    return '';
+  }
+}
+
+async function setupAwsAccessKeys(siteId: string): Promise<string> {
+  console.log('');
+  printInfo('🔧 Setting up AWS Access Keys...');
+  console.log('');
+  console.log('You\'ll need:');
+  console.log('  • AWS Access Key ID');
+  console.log('  • AWS Secret Access Key');
+  console.log('  • Your preferred AWS region');
+  console.log('');
+  console.log('⚠️  Important: Make sure these credentials have permissions for:');
+  console.log('  • S3 (full access)');
+  console.log('  • CloudFront (full access)');
+  console.log('  • Lambda (full access)');
+  console.log('  • Route 53 (full access or at least browse.show domain)');
+  console.log('  • IAM (limited access for role creation)');
+  console.log('');
+  
+  const hasKeysResponse = await prompts({
+    type: 'confirm',
+    name: 'hasKeys',
+    message: 'Do you have your AWS access keys ready?',
+    initial: true
+  });
+  
+  if (!hasKeysResponse.hasKeys) {
+    printInfo('Please get your AWS access keys from the AWS console:');
+    printInfo('https://console.aws.amazon.com/iam/home#/security_credentials');
+    return '';
+  }
+  
+  const profileName = `${siteId}-deploy`;
+  
+  console.log('');
+  printInfo('Please run this command in a separate terminal:');
+  console.log('');
+  logInColor('green', `aws configure --profile ${profileName}`);
+  console.log('');
+  console.log('Enter your credentials when prompted.');
+  console.log('');
+  
+  const setupCompleteResponse = await prompts({
+    type: 'confirm',
+    name: 'complete',
+    message: 'Have you completed the AWS access key configuration?',
+    initial: false
+  });
+  
+  if (!setupCompleteResponse.complete) {
+    return '';
+  }
+  
+  // Test the profile
+  if (await checkAwsCredentials(profileName)) {
+    printSuccess(`✅ AWS access key profile "${profileName}" is working!`);
+    return profileName;
+  } else {
+    printError('❌ Could not verify the AWS access key profile. Please try again.');
+    return '';
+  }
+}
+
+async function createAwsEnvFile(siteId: string, profileName: string): Promise<void> {
+  const awsEnvPath = join('sites/my-sites', siteId, '.env.aws-sso');
+  const envContent = `AWS_PROFILE=${profileName}\n`;
+  
+  await writeTextFile(awsEnvPath, envContent);
+  printSuccess(`✅ Created AWS configuration file: ${awsEnvPath}`);
+}
+
+async function validateAwsProfile(profileName: string): Promise<boolean> {
+  printInfo('🧪 Final validation of AWS credentials...');
+  
+  try {
+    const identityResult = await execCommand('aws', [
+      'sts', 'get-caller-identity',
+      '--profile', profileName,
+      '--output', 'json'
+    ], { timeout: 30000 });
+    
+    if (identityResult.exitCode === 0) {
+      const identity = JSON.parse(identityResult.stdout);
+      printSuccess('✅ AWS credentials validated successfully!');
+      console.log(`   Account: ${identity.Account}`);
+      console.log(`   User/Role: ${identity.Arn}`);
+      return true;
+    } else {
+      throw new Error('Failed to get caller identity');
+    }
+  } catch (error) {
+    printError(`❌ AWS credential validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    printInfo('Please check your AWS configuration and try again.');
+    return false;
+  }
+}
+
+export async function executeAwsDeploymentStep(progress: SetupProgress): Promise<StepStatus> {
+  console.log('');
+  printInfo('🚀 Let\'s deploy your site to AWS!');
+  console.log('');
+  console.log('This will set up your podcast site with:');
+  console.log('  • S3 static hosting with global CDN');
+  console.log('  • Lambda functions for search and processing');
+  console.log('  • Automatic SSL certificate');
+  console.log('  • Your custom browse.show subdomain');
+  console.log('');
+  
+  // Phase 1: AWS Credential Setup & Validation
+  const credentialsReady = await setupAwsCredentials(progress.siteId);
+  if (!credentialsReady) {
+    return 'DEFERRED';
+  }
+  
+  printSuccess('✅ AWS credentials are configured and ready!');
+  
+  // TODO: Add remaining phases in subsequent implementations
+  // Phase 2: Prerequisites Check
+  // Phase 3: Terraform Bootstrap
+  // Phase 4: Core Deployment
+  
+  printInfo('🚧 Deployment implementation in progress...');
+  printInfo('For now, AWS credentials are set up. Full deployment coming soon!');
+  
+  return 'COMPLETED';
 }
 
 // Helper function to parse environment variables from .env.local
