@@ -454,12 +454,6 @@ async function checkPrerequisitesAndEnvironment(): Promise<boolean> {
     console.log('  • Podcast episode transcription');
     console.log('  • Search functionality');
     console.log('');
-    console.log('To fix this:');
-    console.log('  1. Get an API key from: https://platform.openai.com/api-keys');
-    console.log('  2. Add it to your environment:');
-    console.log('     export OPENAI_API_KEY="your-api-key-here"');
-    console.log('  3. Or add it to your shell profile (.bashrc, .zshrc, etc.)');
-    console.log('');
     
     const hasKeyResponse = await prompts({
       type: 'confirm',
@@ -468,14 +462,58 @@ async function checkPrerequisitesAndEnvironment(): Promise<boolean> {
       initial: true
     });
     
-    if (hasKeyResponse.hasKey) {
-      printInfo('Please set the OPENAI_API_KEY environment variable and restart the site creator.');
-      return false;
-    } else {
+    if (!hasKeyResponse.hasKey) {
       printInfo('You\'ll need to get an OpenAI API key before deploying.');
       printInfo('Visit: https://platform.openai.com/api-keys');
       return false;
     }
+    
+    // Guide user to add API key to .env files
+    const keyResponse = await prompts({
+      type: 'password',
+      name: 'apiKey',
+      message: 'Please enter your OpenAI API key:',
+      validate: (value: string) => {
+        if (!value.trim()) return 'API key is required';
+        if (!value.startsWith('sk-')) return 'OpenAI API keys should start with "sk-"';
+        return true;
+      }
+    });
+    
+    if (!keyResponse.apiKey) {
+      printInfo('API key setup cancelled.');
+      return false;
+    }
+    
+    const apiKey = keyResponse.apiKey.trim();
+    
+    console.log('');
+    printInfo('🔧 Adding API key to your .env files...');
+    console.log('');
+    console.log('Please add this line to the following files:');
+    console.log(`OPENAI_API_KEY="${apiKey}"`);
+    console.log('');
+    console.log('Files to update:');
+    console.log('  1. .env.local (for local development)');
+    console.log('  2. .env.lambda-prod-build (for production deployment)');
+    console.log('');
+    
+    const addKeyResponse = await prompts({
+      type: 'confirm',
+      name: 'added',
+      message: 'Have you added the OPENAI_API_KEY to both .env files?',
+      initial: false
+    });
+    
+    if (!addKeyResponse.added) {
+      printInfo('Please add the API key to the .env files and restart the site creator.');
+      return false;
+    }
+    
+    // Set it in the current process for this session
+    process.env.OPENAI_API_KEY = apiKey;
+    printSuccess('✅ OpenAI API key configured for this session');
+    
   } else {
     // Validate the API key format (should start with sk-)
     const apiKey = process.env.OPENAI_API_KEY;

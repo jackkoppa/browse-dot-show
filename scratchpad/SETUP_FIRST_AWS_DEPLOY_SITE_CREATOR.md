@@ -210,7 +210,8 @@ async function validateAwsProfile(profileName: string): Promise<boolean>
 **✅ Implementation Complete:**
 - Added `checkPrerequisitesAndEnvironment()` function with comprehensive validation
 - Terraform installation check with version validation (1.5.0+ for AWS SSO support)
-- OpenAI API key validation with format checking and helpful setup guidance
+- Interactive OpenAI API key setup with direct entry and `.env` file guidance
+- Automatic configuration for both `.env.local` and `.env.lambda-prod-build` files
 - AWS region configuration with sensible defaults
 - Integration with existing `scripts/deploy/check-prerequisites.ts` for thorough validation
 - Graceful error handling with retry options and "continue anyway" choices
