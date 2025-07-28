@@ -77,11 +77,26 @@ export async function copyTemplateAndAssets(siteId: string): Promise<void> {
   // Copy .env to .env.local if it doesn't exist
   const envSourcePath = '.env';
   const envLocalPath = '.env.local';
+  const envProdBuildPath = '.env.lambda-prod-build';
   
   if (await exists(envSourcePath) && !(await exists(envLocalPath))) {
     const envContent = await readTextFile(envSourcePath);
     await writeTextFile(envLocalPath, envContent);
     printInfo('⚙️  Copied .env to .env.local for local configuration');
+  }
+  
+  // Also create .env.lambda-prod-build if it doesn't exist
+  if (await exists(envSourcePath) && !(await exists(envProdBuildPath))) {
+    const envContent = await readTextFile(envSourcePath);
+    
+    // Modify FILE_STORAGE_ENV for production build
+    const prodEnvContent = envContent.replace(
+      /FILE_STORAGE_ENV=local/g,
+      'FILE_STORAGE_ENV=prod-s3'
+    );
+    
+    await writeTextFile(envProdBuildPath, prodEnvContent);
+    printInfo('⚙️  Created .env.lambda-prod-build for production deployment');
   }
   
   // Replace SITE_ID placeholder in terraform files
