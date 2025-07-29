@@ -10,6 +10,7 @@
     "dependencies": {
         "@browse-dot-show/constants": "workspace:*",
         "@browse-dot-show/s3": "workspace:*",
+        "@browse-dot-show/spelling": "workspace:*",
         "@aws-sdk/client-s3": "^3.0.0"
     },
     "devDependencies": {

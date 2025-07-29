@@ -1,3 +1,3 @@
-# template-site
+# fromtherookeryend
 
-Used by `scripts/create-site.ts` - follow [Getting Started guide](../../docs/GETTING_STARTED.md) to use!
+https://fromtherookeryend.browse.show/

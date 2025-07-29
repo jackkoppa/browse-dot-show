@@ -8,6 +8,7 @@ packages:
   - packages/validation
   - packages/logging
   - packages/database
+  - packages/spelling
   - packages/s3
   - packages/types
   - packages/ui

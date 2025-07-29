@@ -1,5 +1,4 @@
 import { log } from '@browse-dot-show/logging';
-import spellingCorrectionsConfig from './spelling-corrections.json' assert { type: 'json' };
 import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -26,18 +25,40 @@ export interface ApplyCorrectionsResult {
 }
 
 /**
- * Loads the spelling corrections configuration from imported JSON and optional custom config
+ * Loads the spelling corrections configuration for a specific site
+ * Combines site-specific corrections with custom corrections
  */
-async function loadSpellingCorrections(): Promise<SpellingCorrection[]> {
-  // Start with the base config
-  let allCorrections = [...spellingCorrectionsConfig.correctionsToApply];
+async function loadSpellingCorrections(siteId: string): Promise<SpellingCorrection[]> {
+  let allCorrections: SpellingCorrection[] = [];
   
   // Get the directory of the current file
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
+  
+  // Load site-specific corrections first
+  try {
+    // Navigate up to the repo root and then to the site directory
+    const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+    const siteConfigPath = path.join(repoRoot, 'sites', 'origin-sites', siteId, 'spelling-corrections.json');
+    
+    if (await fs.pathExists(siteConfigPath)) {
+      const siteConfigContent = await fs.readFile(siteConfigPath, 'utf-8');
+      const siteConfig = JSON.parse(siteConfigContent) as SpellingCorrectionsConfig;
+      
+      if (siteConfig && siteConfig.correctionsToApply) {
+        log.debug(`Loaded ${siteConfig.correctionsToApply.length} site-specific spelling corrections for ${siteId}`);
+        allCorrections.push(...siteConfig.correctionsToApply);
+      }
+    } else {
+      log.debug(`No site-specific spelling corrections file found for ${siteId} at ${siteConfigPath}`);
+    }
+  } catch (error) {
+    log.warn(`Error loading site-specific spelling corrections for ${siteId}:`, error);
+  }
+  
+  // Then load custom corrections if they exist
   const customConfigPath = path.join(__dirname, '_custom-spelling-corrections.json');
   
-  // Try to load custom config if it exists
   try {
     if (await fs.pathExists(customConfigPath)) {
       const customConfigContent = await fs.readFile(customConfigPath, 'utf-8');
@@ -48,14 +69,13 @@ async function loadSpellingCorrections(): Promise<SpellingCorrection[]> {
         allCorrections.push(...customConfig.correctionsToApply);
       }
     } else {
-      log.debug('No custom spelling corrections file found, using base config only');
+      log.debug('No custom spelling corrections file found, using site-specific config only');
     }
   } catch (error) {
-    // Other error - this is unexpected and should be logged
-    log.error('Error loading custom spelling corrections:', error);
+    log.warn('Error loading custom spelling corrections:', error);
   }
   
-  log.debug(`Total spelling corrections loaded: ${allCorrections.length}`);
+  log.debug(`Total spelling corrections loaded for ${siteId}: ${allCorrections.length}`);
   return allCorrections;
 }
 
@@ -73,9 +93,10 @@ function createMisspellingPattern(misspelling: string): RegExp {
  * Applies spelling corrections to SRT content
  * 
  * @param srtContent - The raw SRT file content as a string
+ * @param siteId - The site ID to load corrections for
  * @returns Object containing corrected content and statistics
  */
-export async function applySpellingCorrections(srtContent: string): Promise<ApplyCorrectionsResult> {
+export async function applySpellingCorrections(srtContent: string, siteId: string): Promise<ApplyCorrectionsResult> {
   if (!srtContent || !srtContent.trim()) {
     return {
       correctedContent: srtContent,
@@ -84,7 +105,7 @@ export async function applySpellingCorrections(srtContent: string): Promise<Appl
     };
   }
 
-  const corrections = await loadSpellingCorrections();
+  const corrections = await loadSpellingCorrections(siteId);
   let correctedContent = srtContent;
   const correctionResults: CorrectionResult[] = [];
   let totalCorrections = 0;
@@ -128,34 +149,36 @@ export async function applySpellingCorrections(srtContent: string): Promise<Appl
  * Applies spelling corrections to a single SRT file and saves the corrected version
  * 
  * @param filePath - Path to the SRT file (can be local or S3 key)
+ * @param siteId - The site ID to load corrections for
  * @param getFileContent - Function to read file content (for S3 compatibility)
  * @param saveFileContent - Function to save file content (for S3 compatibility)
  * @returns Correction results for this file
  */
 export async function applyCorrectionToFile(
   filePath: string,
+  siteId: string,
   getFileContent: (path: string) => Promise<string>,
   saveFileContent: (path: string, content: string) => Promise<void>
 ): Promise<ApplyCorrectionsResult> {
   
-  log.debug(`Applying spelling corrections to: ${filePath}`);
+  log.debug(`Applying spelling corrections to: ${filePath} for site: ${siteId}`);
   
   try {
     // Read the SRT content
     const originalContent = await getFileContent(filePath);
     
     // Apply corrections
-    const result = await applySpellingCorrections(originalContent);
+    const result = await applySpellingCorrections(originalContent, siteId);
     
     // Only save if corrections were made
     if (result.totalCorrections > 0) {
       await saveFileContent(filePath, result.correctedContent);
-      log.debug(`Applied ${result.totalCorrections} corrections to ${filePath}`);
+      log.debug(`Applied ${result.totalCorrections} corrections to ${filePath} for site ${siteId}`);
     }
     
     return result;
   } catch (error) {
-    log.error(`Error applying corrections to ${filePath}:`, error);
+    log.error(`Error applying corrections to ${filePath} for site ${siteId}:`, error);
     throw error;
   }
 }

@@ -42,6 +42,7 @@ import { loadAutomationCredentials, AutomationCredentials } from './utils/automa
 import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
 import { invalidateCloudFrontWithCredentials } from './utils/client-deployment.js';
 import { getSiteCloudFrontId } from './utils/site-account-mappings.js';
+import { reapplySpellingCorrectionsToAllTranscripts as reapplySpellingCorrectionsFunction } from './utils/reapply-spelling-corrections-to-all-transcripts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +56,7 @@ interface WorkflowConfig {
   help: boolean;
   dryRun: boolean;
   forceLocalIndexing: boolean;
+  reapplySpellingCorrections: boolean;
   phases: {
     preSync: boolean;
     rssRetrieval: boolean;
@@ -77,6 +79,7 @@ function getDefaultConfig(): WorkflowConfig {
     help: false,
     dryRun: false,
     forceLocalIndexing: false,
+    reapplySpellingCorrections: false,
     phases: {
       preSync: true,
       rssRetrieval: true,
@@ -113,6 +116,7 @@ OPTIONS:
   --skip-s3-sync           Skip local-to-S3 upload phase
   --skip-cloudfront-invalidation  Skip CloudFront cache invalidation phase
   --force-local-indexing   Force local indexing to run even if no new files detected
+  --reapply-spelling-corrections  Apply site-specific spelling corrections to all existing transcripts
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss,search-entries,search-index)
 
 EXAMPLES:
@@ -172,6 +176,8 @@ function parseArguments(): WorkflowConfig {
       config.phases.cloudfrontInvalidation = false;
     } else if (arg === '--force-local-indexing') {
       config.forceLocalIndexing = true;
+    } else if (arg === '--reapply-spelling-corrections') {
+      config.reapplySpellingCorrections = true;
     } else if (arg.startsWith('--sites=')) {
       const sitesArg = arg.split('=')[1];
       if (sitesArg) {
@@ -325,7 +331,19 @@ async function configureInteractively(config: WorkflowConfig, allSites: Site[]):
     }
   }
 
-  // No additional configuration needed for the new streamlined phases
+  // Spelling corrections options
+  const spellingCorrectionsResponse = await prompts({
+    type: 'select',
+    name: 'spellingCorrections',
+    message: 'Apply spelling corrections to existing transcripts?',
+    choices: [
+      { title: 'Only new transcripts (default)', value: 'new-only' },
+      { title: 'All existing transcripts (reapply corrections)', value: 'all-transcripts' }
+    ],
+    initial: 0
+  });
+
+  config.reapplySpellingCorrections = spellingCorrectionsResponse.spellingCorrections === 'all-transcripts';
 
   return config;
 }
@@ -347,6 +365,10 @@ interface SiteProcessingResult {
   newEpisodesTranscribed: number;
   hasNewFiles: boolean; // Track if ANY new files were created during ingestion
   hasNewSrtFiles: boolean;
+  spellingCorrectionsReapplicationSuccess?: boolean;
+  spellingCorrectionsReapplicationDuration?: number;
+  spellingCorrectionsFilesProcessed?: number;
+  spellingCorrectionsTotalCorrections?: number;
   localIndexingSuccess?: boolean;
   localIndexingDuration?: number;
   localIndexingEntriesProcessed?: number;
@@ -1349,6 +1371,74 @@ async function invalidateCloudFrontForSite(
 }
 
 /**
+ * Reapply spelling corrections to all existing transcripts for a site
+ */
+async function reapplySpellingCorrectionsToAllTranscripts(
+  siteId: string
+): Promise<{ success: boolean; duration: number; error?: string; filesProcessed?: number; totalCorrections?: number }> {
+  const startTime = Date.now();
+  
+  logProgress(`Reapplying spelling corrections to all existing transcripts for ${siteId}`);
+  
+  try {
+    // Load site-specific environment variables
+    const siteEnvVars = loadSiteEnvVars(siteId, 'local');
+    
+    // Set environment variables for the function
+    const originalSiteId = process.env.SITE_ID;
+    const originalFileStorageEnv = process.env.FILE_STORAGE_ENV;
+    
+    // Set environment variables
+    process.env.SITE_ID = siteId;
+    process.env.FILE_STORAGE_ENV = 'local';
+    
+    // Apply other site-specific env vars
+    Object.entries(siteEnvVars).forEach(([key, value]) => {
+      process.env[key] = value;
+    });
+    
+    try {
+      // Call the function directly
+      const result = await reapplySpellingCorrectionsFunction();
+      
+      const duration = Date.now() - startTime;
+      
+      if (result.success) {
+        logSuccess(`Spelling corrections reapplied for ${siteId}: ${result.totalFilesProcessed} files, ${result.totalCorrectionsApplied} corrections (${(duration / 1000).toFixed(1)}s)`);
+        return { 
+          success: true, 
+          duration, 
+          filesProcessed: result.totalFilesProcessed, 
+          totalCorrections: result.totalCorrectionsApplied 
+        };
+      } else {
+        logError(`Failed to reapply spelling corrections for ${siteId}: ${result.error}`);
+        return { success: false, duration, error: result.error };
+      }
+      
+    } finally {
+      // Restore original environment variables
+      if (originalSiteId !== undefined) {
+        process.env.SITE_ID = originalSiteId;
+      } else {
+        delete process.env.SITE_ID;
+      }
+      
+      if (originalFileStorageEnv !== undefined) {
+        process.env.FILE_STORAGE_ENV = originalFileStorageEnv;
+      } else {
+        delete process.env.FILE_STORAGE_ENV;
+      }
+    }
+    
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    logError(`Error reapplying spelling corrections for ${siteId}: ${error.message}`);
+    return { success: false, duration, error: error.message };
+  }
+}
+
+/**
  * Main function
  */
 async function main(): Promise<void> {
@@ -1415,6 +1505,7 @@ async function main(): Promise<void> {
   if (config.phases.preSync) console.log(`     ✅ Phase 1: Pre-sync check`);
   if (config.phases.rssRetrieval) console.log(`     ✅ Phase 2: RSS retrieval`);
   if (config.phases.audioProcessing) console.log(`     ✅ Phase 3: Audio processing`);
+  if (config.reapplySpellingCorrections) console.log(`     ✅ Phase 3.5: Spelling corrections reapplication`);
   if (config.phases.localIndexing) console.log(`     ✅ Phase 4: Local indexing`);
   if (config.phases.s3Sync) console.log(`     ✅ Phase 5: S3 sync`);
   if (config.phases.cloudfrontInvalidation) console.log(`     ✅ Phase 6: CloudFront invalidation`);
@@ -1605,6 +1696,36 @@ async function main(): Promise<void> {
     }
   } else {
     console.log('\n⏭️  Skipping Phase 3: Audio Processing (disabled)');
+  }
+  
+  // Phase 3.5: Spelling Corrections Reapplication (optional)
+  if (config.reapplySpellingCorrections) {
+    console.log('\n' + '='.repeat(60));
+    console.log('🔤 Phase 3.5: Spelling Corrections Reapplication for all sites');
+    console.log('='.repeat(60));
+    
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would reapply spelling corrections to all existing transcripts');
+    } else {
+      console.log('📝 Reapplying spelling corrections to all existing transcripts for all sites');
+      
+      for (let i = 0; i < sites.length; i++) {
+        const site = sites[i];
+        
+        const spellingCorrectionsResult = await reapplySpellingCorrectionsToAllTranscripts(site.id);
+        
+        results[i].spellingCorrectionsReapplicationSuccess = spellingCorrectionsResult.success;
+        results[i].spellingCorrectionsReapplicationDuration = spellingCorrectionsResult.duration;
+        results[i].spellingCorrectionsFilesProcessed = spellingCorrectionsResult.filesProcessed || 0;
+        results[i].spellingCorrectionsTotalCorrections = spellingCorrectionsResult.totalCorrections || 0;
+        
+        if (spellingCorrectionsResult.error) {
+          results[i].errors.push(`Spelling corrections reapplication error: ${spellingCorrectionsResult.error}`);
+        }
+      }
+    }
+  } else {
+    console.log('\n⏭️  Skipping Phase 3.5: Spelling Corrections Reapplication (disabled)');
   }
   
   // Phase 4: Local Indexing for sites with new files
@@ -1828,6 +1949,9 @@ async function main(): Promise<void> {
     const preSyncStatus = !config.phases.preSync ? '⏭️' : (result.preConsistencyCheckSuccess ? '✅' : '❌');
     const rssStatus = !config.phases.rssRetrieval ? '⏭️' : (result.rssRetrievalSuccess ? '✅' : '❌');
     const audioStatus = !config.phases.audioProcessing ? '⏭️' : (result.audioProcessingSuccess ? '✅' : '❌');
+    const spellingCorrectionsStatus = !config.reapplySpellingCorrections ? '⏭️' : 
+      (result.spellingCorrectionsReapplicationSuccess === true ? '✅' : 
+       result.spellingCorrectionsReapplicationSuccess === false ? '❌' : '⏸️');
     const localIndexingStatus = !config.phases.localIndexing ? '⏭️' : 
       (result.hasNewFiles
         ? (result.localIndexingSuccess === true ? '✅' : 
@@ -1851,6 +1975,7 @@ async function main(): Promise<void> {
     
     const totalDuration = (result.preConsistencyCheckDuration || 0) + (result.s3PreSyncDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
+                         (result.spellingCorrectionsReapplicationDuration || 0) +
                          (result.localIndexingDuration || 0) + (result.postConsistencyCheckDuration || 0) +
                          (result.s3SyncDuration || 0) + (result.searchApiRefreshDuration || 0) +
                          (result.cloudfrontInvalidationDuration || 0);
@@ -1859,6 +1984,7 @@ async function main(): Promise<void> {
     console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} ${!config.phases.preSync ? '(skipped)' : `(${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`}`);
     console.log(`      Phase 2 - RSS: ${rssStatus} ${!config.phases.rssRetrieval ? '(skipped)' : `(${(result.rssRetrievalDuration / 1000).toFixed(1)}s) - ${result.newAudioFilesDownloaded} new audio files`}`);
     console.log(`      Phase 3 - Audio: ${audioStatus} ${!config.phases.audioProcessing ? '(skipped)' : `(${(result.audioProcessingDuration / 1000).toFixed(1)}s) - ${result.newEpisodesTranscribed} episodes transcribed`}`);
+    console.log(`      Phase 3.5 - Spelling: ${spellingCorrectionsStatus} ${!config.reapplySpellingCorrections ? '(skipped)' : `(${((result.spellingCorrectionsReapplicationDuration || 0) / 1000).toFixed(1)}s) - ${result.spellingCorrectionsFilesProcessed || 0} files, ${result.spellingCorrectionsTotalCorrections || 0} corrections`}`);
     console.log(`      Phase 4 - Local Index: ${localIndexingStatus} ${!config.phases.localIndexing ? '(skipped)' : (result.hasNewFiles ? `(${((result.localIndexingDuration || 0) / 1000).toFixed(1)}s) - ${result.localIndexingEntriesProcessed || 0} entries` : '(not needed - no new files)')}`);
     console.log(`      Phase 5 - Final Sync: ${postSyncStatus} ${!config.phases.s3Sync ? '(skipped)' : `(${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`}`);
     console.log(`      S3 Upload: ${s3SyncStatus} ${!config.phases.s3Sync ? '(skipped)' : ((result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)')}`);

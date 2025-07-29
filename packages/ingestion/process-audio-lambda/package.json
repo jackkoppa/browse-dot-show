@@ -19,6 +19,7 @@
     "@aws-sdk/client-lambda": "catalog:",
     "@browse-dot-show/logging": "workspace:*",
     "@browse-dot-show/s3": "workspace:*",
+    "@browse-dot-show/spelling": "workspace:*",
     "fs-extra": "catalog:",
     "openai": "^4.28.0",
     "srt-parser-2": "catalog:",

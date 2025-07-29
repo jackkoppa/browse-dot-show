@@ -3,6 +3,11 @@ import SrtParser from 'srt-parser-2';
 import fs from 'fs-extra'; // Still needed for stream operations with ffmpeg
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { log } from '@browse-dot-show/logging';
+import { 
+  applyCorrectionToFile,
+  aggregateCorrectionResults,
+  type ApplyCorrectionsResult
+} from '@browse-dot-show/spelling';
 import { getSiteById } from '../../../sites/index.js';
 import { hasDownloadedAtTimestamp, parseFileKey } from '../rss-retrieval-lambda/utils/get-episode-file-key.js';
 import {
@@ -17,11 +22,7 @@ import {
 } from '@browse-dot-show/s3'
 import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
-import { 
-  applyCorrectionToFile,
-  aggregateCorrectionResults,
-  type ApplyCorrectionsResult
-} from './utils/apply-spelling-corrections.js';
+
 
 log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
 
@@ -546,7 +547,7 @@ async function cleanupOlderTranscriptVersions(currentAudioFileKey: string): Prom
 }
 
 // Helper function to process a single audio file
-async function processAudioFile(fileKey: string, whisperPrompt: string): Promise<ApplyCorrectionsResult | null> {
+async function processAudioFile(fileKey: string, whisperPrompt: string, siteId: string): Promise<ApplyCorrectionsResult | null> {
   const podcastName = path.basename(path.dirname(fileKey));
   const transcriptDirKey = path.join(TRANSCRIPTS_DIR_PREFIX, podcastName);
   const audioFileName = path.basename(fileKey, '.mp3');
@@ -664,6 +665,7 @@ async function processAudioFile(fileKey: string, whisperPrompt: string): Promise
 
     const correctionResult = await applyCorrectionToFile(
       transcriptKey,
+      siteId,
       s3FileOperations.getFileContent,
       s3FileOperations.saveFileContent
     );
@@ -951,7 +953,7 @@ export async function handler(): Promise<void> {
       // Increment incomplete transcripts counter before processing
       incompletedTranscripts++;
       
-      const correctionResult = await processAudioFile(fileKey, whisperPrompt);
+      const correctionResult = await processAudioFile(fileKey, whisperPrompt, siteId);
       
       // Calculate processing time for this file
       const fileProcessingTime = (Date.now() - fileStartTime) / 1000;

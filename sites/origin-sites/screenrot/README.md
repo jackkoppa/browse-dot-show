@@ -1,3 +1,3 @@
-# template-site
+# screenrot
 
-Used by `scripts/create-site.ts` - follow [Getting Started guide](../../docs/GETTING_STARTED.md) to use!
+https://screenrot.browse.show/

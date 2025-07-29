@@ -12,14 +12,14 @@ root_domain_name = "limitedresources.browse.show"
 enable_custom_domain_on_cloudfront = true
 
 # SRT indexing Lambda configuration
-srt_indexing_lambda_memory_size = 4096 # Max observed memory as of 2025-07-26: _____ MB
+srt_indexing_lambda_memory_size = 10239 # Max observed memory as of 2025-07-29: _____ MB
 
 # Lambda warming
 enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
-search_lambda_memory_size = 4096 # Max observed memory as of 2025-07-26: _____ MB
+search_lambda_memory_size = 10239 # Max observed memory as of 2025-07-29: _____ MB
 
 # Logging
 log_level = "info" 

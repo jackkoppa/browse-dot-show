@@ -363,7 +363,7 @@ export async function saveFile(key: string, content: Buffer | string): Promise<v
     parallelUpload.on('httpUploadProgress', (progress) => {
       if (progress.total && progress.loaded && progress.part) {
         const percentage = (progress.loaded / progress.total) * 100;
-        log.info(`Upload progress: ${percentage.toFixed(2)}%, for part ${progress.part}`);
+        log.debug(`Upload progress: ${percentage.toFixed(2)}%, for part ${progress.part}`);
       }
     });
 

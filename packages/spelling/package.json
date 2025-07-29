@@ -1,0 +1,25 @@
+{
+    "name": "@browse-dot-show/spelling",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Spelling correction utilities, to apply corrections to transcripts for any site",
+    "main": "./dist/index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@browse-dot-show/logging": "workspace:*",
+        "fs-extra": "catalog:"
+    },
+    "devDependencies": {
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+        "@types/fs-extra": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+}
