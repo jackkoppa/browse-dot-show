@@ -416,7 +416,7 @@ async function assumeAwsRole(
   const assumeRoleResult = await execCommand('aws', [
     'sts', 'assume-role',
     '--role-arn', roleArn,
-    '--role-session-name', `automation-${sessionNameSuffix}-${siteId}-${Date.now()}`
+    '--role-session-name', `auto-${sessionNameSuffix}-${siteId}-${Date.now()}`
   ], {
     silent: true,
     env: {
@@ -1314,7 +1314,7 @@ async function invalidateCloudFrontForSite(
     const cloudfrontId = getSiteCloudFrontId(siteId);
     
     // Get temporary credentials for the site account
-    const { tempCredentials } = await assumeAwsRole(siteId, 'cloudfront-invalidation', credentials);
+    const { tempCredentials } = await assumeAwsRole(siteId, 'cf', credentials);
     
     // Invalidate CloudFront cache (map AWS STS credentials to expected format)
     const mappedCredentials = {
