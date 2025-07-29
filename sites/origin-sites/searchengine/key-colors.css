@@ -1,4 +1,7 @@
 /* Custom colors for the app, can reference if something should stay the same regardless of light/dark mode */
+
+/* run `pnpm validate:sites` to confirm that theme colors match across this file, index.css, and site.config.json */
+
 :root {
     --browse-dot-show-theme-light: #ff7e63;
     --browse-dot-show-theme-dark: #bf4631;

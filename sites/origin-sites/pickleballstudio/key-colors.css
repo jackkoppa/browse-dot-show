@@ -1,5 +1,7 @@
 /* Custom colors for the app, can reference if something should stay the same regardless of light/dark mode */
-/* https://www.figma.com/color-palette-generator/?colors=734EE4-86DFC9-B7E42F-8198DE-F0E6E7-355973 */
+
+/* run `pnpm validate:sites` to confirm that theme colors match across this file, index.css, and site.config.json */
+
 :root {
     --browse-dot-show-theme-light: #53bdb1;
     --browse-dot-show-theme-dark: #bb472e;
