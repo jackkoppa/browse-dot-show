@@ -1,94 +1,106 @@
 {
     "sites": {
-        // sites/origin-sites/listenfairplay
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        // First site created (Football Clichés being the original use case that inspired the project),
-        // prior to the multi-site architecture that browse-dot-show now supports 
-        "listenfairplay": {
-            "isOriginSite": true,
-            "siteName": "Listen, Fair Play",
-            "displayedPodcastName": "Football Clichés",
-            "podcastTagline": "Deconstructing the gloriously unique language of football – the words, the phrases and the tiny things you didn't think you cared about – with Adam Hurrey, Charlie Eccleshare & David Walker.",
-            "domain": "listenfairplay.com",
-            "imageUrl": "https://listenfairplay.com/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "come what February"
+        // Sites hosted
+        "externalSites": {
+            /* "yoursitehere": {
+                
+            } */
         },
-        // sites/origin-sites/hardfork
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "hardfork": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] Hard Fork",
-            "displayedPodcastName": "Hard Fork",
-            "podcastTagline": "Each week, journalists Kevin Roose and Casey Newton explore and make sense of the rapidly changing world of tech.",
-            "domain": "hardfork.browse.show",
-            "imageUrl": "https://hardfork.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "Bing Sydney"
-        },
-        // sites/origin-sites/naddpod
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "naddpod": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] NADDPOD",
-            "displayedPodcastName": "Not Another D&D Podcast",
-            "podcastTagline": "An actual-play TTRPG podcast hosted by Brian Murphy, Emily Axford, Jake Hurwitz and Caldwell Tanner.",
-            "domain": "naddpod.browse.show",
-            "imageUrl": "https://naddpod.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "olaf dies"
-        },
-        // sites/origin-sites/claretandblue
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "claretandblue": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] Claret & Blue",
-            "displayedPodcastName": "Claret & Blue",
-            "podcastTagline": "An Aston Villa Podcast. Hosted by Dan Rolinson, Mat Kendrick & John Townley. UTV!",
-            "domain": "claretandblue.browse.show",
-            "imageUrl": "https://claretandblue.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "absolute scenes"
-        },
-        // sites/origin-sites/searchengine
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "searchengine": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] Search Engine",
-            "displayedPodcastName": "Search Engine",
-            "podcastTagline": "The podcast that tries to answer the questions that keep you up at night. A podcast made by humans that provides the answers that neither artificial intelligence nor actual search engines really can.",
-            "domain": "searchengine.browse.show",
-            "imageUrl": "https://searchengine.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "coffee on airplanes"
-        },
-        // sites/origin-sites/myfavoritemurder
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "myfavoritemurder": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] My Favorite Murder",
-            "displayedPodcastName": "My Favorite Murder",
-            "podcastTagline": "A true crime comedy podcast hosted by Karen Kilgariff and Georgia Hardstark. Each week, Karen and Georgia share compelling true crimes & hometown stories from friends & listeners.",
-            "domain": "myfavoritemurder.browse.show",
-            "imageUrl": "https://myfavoritemurder.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "10 foot skeletons"
-        },
-        // sites/origin-sites/lordsoflimited
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "lordsoflimited": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] Lords of Limited",
-            "displayedPodcastName": "Lords of Limited",
-            "podcastTagline": "A podcast dedicated to making you better at limited Magic. Hosted by Ethan Saks & Ben Werne.",
-            "domain": "lordsoflimited.browse.show",
-            "imageUrl": "https://lordsoflimited.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "magicians against data"
-        },
-        // sites/origin-sites/pickleballstudio
-        // One of 8 sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
-        "pickleballstudio": {
-            "isOriginSite": true,
-            "siteName": "[browse.show] Pickleball Studio",
-            "displayedPodcastName": "Pickleball Studio",
-            "podcastTagline": "Whether it's how to improve, the latest gear, or news on the pro scene, we've got you covered with everything you want to know about the Pickleball world. With Chris Olson and Will Chaing.",
-            "domain": "pickleballstudio.browse.show",
-            "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
-            "searchInputPlaceholder": "3.5 at best"
+        // sites/origin-sites
+        // These are the sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        "originSites": {
+            // sites/origin-sites/listenfairplay
+            // First site created (Football Clichés being the original use case that inspired the project),
+            // prior to the multi-site architecture that browse-dot-show now supports 
+            "listenfairplay": {
+                "siteName": "Listen, Fair Play",
+                "displayedPodcastName": "Football Clichés",
+                "podcastTagline": "Deconstructing the gloriously unique language of football – the words, the phrases and the tiny things you didn't think you cared about – with Adam Hurrey, Charlie Eccleshare & David Walker.",
+                "domain": "listenfairplay.com",
+                "imageUrl": "https://listenfairplay.com/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "come what February"
+            },
+            // sites/origin-sites/hardfork
+            "hardfork": {
+                "siteName": "[browse.show] Hard Fork",
+                "displayedPodcastName": "Hard Fork",
+                "podcastTagline": "Each week, journalists Kevin Roose and Casey Newton explore and make sense of the rapidly changing world of tech.",
+                "domain": "hardfork.browse.show",
+                "imageUrl": "https://hardfork.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Bing Sydney"
+            },
+            // sites/origin-sites/naddpod
+            "naddpod": {
+                "siteName": "[browse.show] NADDPOD",
+                "displayedPodcastName": "Not Another D&D Podcast",
+                "podcastTagline": "An actual-play TTRPG podcast hosted by Brian Murphy, Emily Axford, Jake Hurwitz and Caldwell Tanner.",
+                "domain": "naddpod.browse.show",
+                "imageUrl": "https://naddpod.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "olaf dies"
+            },
+            // sites/origin-sites/claretandblue
+            "claretandblue": {
+                "siteName": "[browse.show] Claret & Blue",
+                "displayedPodcastName": "Claret & Blue",
+                "podcastTagline": "An Aston Villa Podcast. Hosted by Dan Rolinson, Mat Kendrick & John Townley. UTV!",
+                "domain": "claretandblue.browse.show",
+                "imageUrl": "https://claretandblue.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "absolute scenes"
+            },
+            // sites/origin-sites/searchengine
+            "searchengine": {
+                "siteName": "[browse.show] Search Engine",
+                "displayedPodcastName": "Search Engine",
+                "podcastTagline": "The podcast that tries to answer the questions that keep you up at night. A podcast made by humans that provides the answers that neither artificial intelligence nor actual search engines really can.",
+                "domain": "searchengine.browse.show",
+                "imageUrl": "https://searchengine.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "coffee on airplanes"
+            },
+            // sites/origin-sites/hiddenbrain
+            "hiddenbrain": {
+                "siteName": "[browse.show] Hidden Brain",
+                "displayedPodcastName": "Hidden Brain",
+                "podcastTagline": "On Hidden Brain, we help you understand your own mind — and the minds of the people around you (we're routinely rated the #1 science podcast in the United States). Hosted by veteran science journalist Shankar Vedantam.",
+                "domain": "hiddenbrain.browse.show",
+                "imageUrl": "https://hiddenbrain.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "gratitude"
+            },
+            // sites/origin-sites/myfavoritemurder
+            "myfavoritemurder": {
+                "siteName": "[browse.show] My Favorite Murder",
+                "displayedPodcastName": "My Favorite Murder",
+                "podcastTagline": "A true crime comedy podcast hosted by Karen Kilgariff and Georgia Hardstark. Each week, Karen and Georgia share compelling true crimes & hometown stories from friends & listeners.",
+                "domain": "myfavoritemurder.browse.show",
+                "imageUrl": "https://myfavoritemurder.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "10 foot skeletons"
+            },
+            // sites/origin-sites/lordsoflimited
+            "lordsoflimited": {
+                "siteName": "[browse.show] Lords of Limited",
+                "displayedPodcastName": "Lords of Limited",
+                "podcastTagline": "A podcast dedicated to making you better at limited Magic. Hosted by Ethan Saks & Ben Werne.",
+                "domain": "lordsoflimited.browse.show",
+                "imageUrl": "https://lordsoflimited.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "magicians against data"
+            },
+            // sites/origin-sites/limitedresources
+            "limitedresources": {
+                "siteName": "[browse.show] Limited Resources",
+                "displayedPodcastName": "Limited Resources",
+                "podcastTagline": "A weekly podcast dedicated to improving your skill at Magic: The Gathering, with an emphasis on Limited play. Started in 2009, and now hosted by Marshall Sutcliffe & Luis Scott-Vargas",
+                "domain": "limitedresources.browse.show",
+                "imageUrl": "https://limitedresources.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Elmer the elk"
+            },
+            // sites/origin-sites/pickleballstudio
+            "pickleballstudio": {
+                "siteName": "[browse.show] Pickleball Studio",
+                "displayedPodcastName": "Pickleball Studio",
+                "podcastTagline": "Whether it's how to improve, the latest gear, or news on the pro scene, we've got you covered with everything you want to know about the Pickleball world. With Chris Olson and Will Chaing.",
+                "domain": "pickleballstudio.browse.show",
+                "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "3.5 at best"
+            }
         }
     }
 }

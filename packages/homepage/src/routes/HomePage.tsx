@@ -11,7 +11,13 @@ import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 import '../App.css'
 
 // Transform the deployed sites config into an array format with all needed fields
-const deployedSites = Object.entries(deployedSitesConfig.sites).map(([id, site]) => ({
+const { externalSites, originSites } = deployedSitesConfig.sites
+// We list any external sites first, then origin sites
+const allSites = { 
+  ...externalSites, 
+  ...originSites 
+}
+const deployedSites = Object.entries(allSites).map(([id, site]) => ({
   id,
   displayName: site.displayedPodcastName,
   domain: site.domain,
