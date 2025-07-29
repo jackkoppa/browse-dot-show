@@ -401,6 +401,14 @@ resource "aws_iam_role_policy" "automation_permissions" {
         Effect = "Allow"
         Action = "lambda:InvokeFunction"
         Resource = module.search_lambda.lambda_function_arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cloudfront:CreateInvalidation",
+          "cloudfront:GetInvalidation"
+        ]
+        Resource = "*"
       }
     ]
   })

@@ -40,6 +40,7 @@ import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from
 import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
 import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
+import { invalidateCloudFrontWithCredentials, getTerraformOutputsWithCredentials } from './utils/client-deployment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,6 +60,7 @@ interface WorkflowConfig {
     audioProcessing: boolean;
     localIndexing: boolean;
     s3Sync: boolean;
+    cloudfrontInvalidation: boolean;
   };
   syncOptions: {
     foldersToSync: string[];
@@ -79,7 +81,8 @@ function getDefaultConfig(): WorkflowConfig {
       rssRetrieval: true,
       audioProcessing: true,
       localIndexing: true,
-      s3Sync: true
+      s3Sync: true,
+      cloudfrontInvalidation: true
     },
     syncOptions: {
       foldersToSync: ALL_SYNC_FOLDERS
@@ -107,6 +110,7 @@ OPTIONS:
   --skip-audio-processing  Skip audio processing phase
   --skip-local-indexing    Skip local search index update phase
   --skip-s3-sync           Skip local-to-S3 upload phase
+  --skip-cloudfront-invalidation  Skip CloudFront cache invalidation phase
   --force-local-indexing   Force local indexing to run even if no new files detected
   --sync-folders=a,b,c     Specific folders to sync (audio,transcripts,episode-manifest,rss,search-entries,search-index)
 
@@ -132,6 +136,7 @@ PHASES:
   Phase 3: Audio processing (transcribes audio files)
   Phase 4: Local indexing (updates search indices for sites with new files)
   Phase 5: S3 upload (uploads new files to S3, including search indices)
+  Phase 6: CloudFront cache invalidation (invalidates caches for updated sites)
 
 For automation/cron jobs, use without --interactive flag.
 For manual runs, --interactive provides a guided configuration experience.
@@ -162,6 +167,8 @@ function parseArguments(): WorkflowConfig {
       config.phases.localIndexing = false;
     } else if (arg === '--skip-s3-sync') {
       config.phases.s3Sync = false;
+    } else if (arg === '--skip-cloudfront-invalidation') {
+      config.phases.cloudfrontInvalidation = false;
     } else if (arg === '--force-local-indexing') {
       config.forceLocalIndexing = true;
     } else if (arg.startsWith('--sites=')) {
@@ -260,7 +267,8 @@ async function configureInteractively(config: WorkflowConfig, allSites: Site[]):
       { title: 'Phase 2: RSS retrieval', value: 'rssRetrieval', selected: config.phases.rssRetrieval },
       { title: 'Phase 3: Audio processing', value: 'audioProcessing', selected: config.phases.audioProcessing },
       { title: 'Phase 4: Local indexing', value: 'localIndexing', selected: config.phases.localIndexing },
-      { title: 'Phase 5: S3 sync', value: 's3Sync', selected: config.phases.s3Sync }
+      { title: 'Phase 5: S3 sync', value: 's3Sync', selected: config.phases.s3Sync },
+      { title: 'Phase 6: CloudFront invalidation', value: 'cloudfrontInvalidation', selected: config.phases.cloudfrontInvalidation }
     ];
 
     const selectedPhasesResponse = await prompts({
@@ -350,6 +358,8 @@ interface SiteProcessingResult {
   s3SyncTotalFilesUploaded?: number;
   searchApiRefreshSuccess?: boolean;
   searchApiRefreshDuration?: number;
+  cloudfrontInvalidationSuccess?: boolean;
+  cloudfrontInvalidationDuration?: number;
   errors: string[];
 }
 
@@ -1288,6 +1298,47 @@ async function runLocalIndexingForSite(
 }
 
 /**
+ * Invalidate CloudFront cache for a site using automation credentials
+ */
+async function invalidateCloudFrontForSite(
+  siteId: string,
+  credentials: AutomationCredentials
+): Promise<{ success: boolean; duration: number; error?: string }> {
+  const startTime = Date.now();
+  
+  logProgress(`Invalidating CloudFront cache for ${siteId}`);
+  
+  try {
+    // Get terraform outputs to retrieve CloudFront distribution ID
+    const { tempCredentials } = await assumeAwsRole(siteId, 'cloudfront-invalidation', credentials);
+    const terraformOutputs = await getTerraformOutputsWithCredentials(tempCredentials, { silent: true });
+    
+    // Invalidate CloudFront cache
+    const invalidationResult = await invalidateCloudFrontWithCredentials(
+      terraformOutputs.cloudfrontId,
+      tempCredentials,
+      { silent: true }
+    );
+    
+    const duration = Date.now() - startTime;
+    
+    if (invalidationResult.success) {
+      logSuccess(`CloudFront cache invalidated for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
+      return { success: true, duration };
+    } else {
+      const error = invalidationResult.error || 'Unknown CloudFront invalidation error';
+      logError(`Failed to invalidate CloudFront cache for ${siteId}: ${error}`);
+      return { success: false, duration, error };
+    }
+    
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    logError(`Error invalidating CloudFront cache for ${siteId}: ${error.message}`);
+    return { success: false, duration, error: error.message };
+  }
+}
+
+/**
  * Main function
  */
 async function main(): Promise<void> {
@@ -1356,6 +1407,7 @@ async function main(): Promise<void> {
   if (config.phases.audioProcessing) console.log(`     ✅ Phase 3: Audio processing`);
   if (config.phases.localIndexing) console.log(`     ✅ Phase 4: Local indexing`);
   if (config.phases.s3Sync) console.log(`     ✅ Phase 5: S3 sync`);
+  if (config.phases.cloudfrontInvalidation) console.log(`     ✅ Phase 6: CloudFront invalidation`);
   console.log(`   Sync folders: ${config.syncOptions.foldersToSync.join(', ')}`);
   
   if (config.dryRun) {
@@ -1711,6 +1763,43 @@ async function main(): Promise<void> {
     console.log('\n⏭️  Skipping Phase 5: S3 sync (disabled)');
   }
   
+  // Phase 6: CloudFront Cache Invalidation for sites with successful uploads
+  if (config.phases.cloudfrontInvalidation) {
+    console.log('\n' + '='.repeat(60));
+    console.log('🔄 Phase 6: CloudFront Cache Invalidation');
+    console.log('='.repeat(60));
+    
+    if (config.dryRun) {
+      console.log('🔍 DRY RUN: Would invalidate CloudFront caches for sites with successful uploads');
+    } else {
+      const sitesWithUploads = results.filter(r => 
+        (r.s3SyncTotalFilesUploaded || 0) > 0 && r.s3SyncSuccess
+      );
+      
+      if (sitesWithUploads.length === 0) {
+        console.log('ℹ️  No sites had successful uploads. Skipping CloudFront invalidation phase.');
+      } else {
+        console.log(`🔄 Found ${sitesWithUploads.length} site(s) with successful uploads:${sitesWithUploads.map(r => ` ${r.siteId}`).join(',')}`);
+        
+        for (let i = 0; i < sitesWithUploads.length; i++) {
+          const result = sitesWithUploads[i];
+          const resultIndex = results.findIndex(r => r.siteId === result.siteId);
+          
+          const invalidationResult = await invalidateCloudFrontForSite(result.siteId, credentials);
+          
+          results[resultIndex].cloudfrontInvalidationSuccess = invalidationResult.success;
+          results[resultIndex].cloudfrontInvalidationDuration = invalidationResult.duration;
+          
+          if (invalidationResult.error) {
+            results[resultIndex].errors.push(`CloudFront invalidation error: ${invalidationResult.error}`);
+          }
+        }
+      }
+    }
+  } else {
+    console.log('\n⏭️  Skipping Phase 6: CloudFront invalidation (disabled)');
+  }
+  
   // All phases complete - no more cloud indexing needed as we run indexing locally
   
   // Generate final summary
@@ -1744,11 +1833,17 @@ async function main(): Promise<void> {
         ? (result.searchApiRefreshSuccess === true ? '✅' : 
            result.searchApiRefreshSuccess === false ? '❌' : '⏸️')
         : '⚪'); // Not needed
+    const cloudfrontInvalidationStatus = !config.phases.cloudfrontInvalidation ? '⏭️' :
+      ((result.s3SyncTotalFilesUploaded || 0) > 0 && result.s3SyncSuccess
+        ? (result.cloudfrontInvalidationSuccess === true ? '✅' : 
+           result.cloudfrontInvalidationSuccess === false ? '❌' : '⏸️')
+        : '⚪'); // Not needed
     
     const totalDuration = (result.preConsistencyCheckDuration || 0) + (result.s3PreSyncDuration || 0) + 
                          result.rssRetrievalDuration + result.audioProcessingDuration + 
                          (result.localIndexingDuration || 0) + (result.postConsistencyCheckDuration || 0) +
-                         (result.s3SyncDuration || 0) + (result.searchApiRefreshDuration || 0);
+                         (result.s3SyncDuration || 0) + (result.searchApiRefreshDuration || 0) +
+                         (result.cloudfrontInvalidationDuration || 0);
     
     console.log(`\n   ${result.siteId} (${result.siteTitle}):`);
     console.log(`      Phase 1 - Pre-sync: ${preSyncStatus} ${!config.phases.preSync ? '(skipped)' : `(${((result.preConsistencyCheckDuration || 0) / 1000).toFixed(1)}s) - ${result.s3PreSyncFilesDownloaded || 0} files downloaded`}`);
@@ -1758,6 +1853,7 @@ async function main(): Promise<void> {
     console.log(`      Phase 5 - Final Sync: ${postSyncStatus} ${!config.phases.s3Sync ? '(skipped)' : `(${((result.postConsistencyCheckDuration || 0) / 1000).toFixed(1)}s)`}`);
     console.log(`      S3 Upload: ${s3SyncStatus} ${!config.phases.s3Sync ? '(skipped)' : ((result.filesToUpload || 0) > 0 ? `(${((result.s3SyncDuration || 0) / 1000).toFixed(1)}s) - ${result.s3SyncTotalFilesUploaded || 0} files uploaded` : '(no files to upload)')}`);
     console.log(`      Search-API Refresh: ${searchApiRefreshStatus} ${!config.phases.s3Sync ? '(skipped)' : ((result.s3SyncTotalFilesUploaded || 0) > 0 ? `(${((result.searchApiRefreshDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)')}`);
+    console.log(`      CloudFront Invalidation: ${cloudfrontInvalidationStatus} ${!config.phases.cloudfrontInvalidation ? '(skipped)' : ((result.s3SyncTotalFilesUploaded || 0) > 0 && result.s3SyncSuccess ? `(${((result.cloudfrontInvalidationDuration || 0) / 1000).toFixed(1)}s)` : '(not needed)')}`);
     console.log(`      📂 Has new files: ${result.hasNewFiles ? '✅' : '❌'}`);
     console.log(`      📁 Files in sync: ${result.filesInSync || 0}`);
     console.log(`      Total: ${(totalDuration / 1000).toFixed(1)}s`);
@@ -1779,6 +1875,8 @@ async function main(): Promise<void> {
   const successfulS3SyncCount = results.filter(r => (r.filesToUpload || 0) > 0 && r.s3SyncSuccess).length;
   const sitesWithUploads = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0).length;
   const successfulSearchApiRefreshCount = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.searchApiRefreshSuccess === true).length;
+  const sitesWithCloudFrontInvalidation = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.s3SyncSuccess).length;
+  const successfulCloudFrontInvalidationCount = results.filter(r => (r.s3SyncTotalFilesUploaded || 0) > 0 && r.s3SyncSuccess && r.cloudfrontInvalidationSuccess === true).length;
   const totalPreSyncFilesDownloaded = results.reduce((sum, r) => sum + (r.s3PreSyncFilesDownloaded || 0), 0);
   const totalFilesUploaded = results.reduce((sum, r) => sum + (r.s3SyncTotalFilesUploaded || 0), 0);
   const totalAudioFilesDownloaded = results.reduce((sum, r) => sum + r.newAudioFilesDownloaded, 0);
@@ -1797,6 +1895,7 @@ async function main(): Promise<void> {
   console.log(`   S3 Upload success rate: ${successfulS3SyncCount}/${sitesWithFilesToUpload} (${sitesWithFilesToUpload > 0 ? ((successfulS3SyncCount / sitesWithFilesToUpload) * 100).toFixed(1) : 'N/A'}%)`);
   console.log(`   Sites with successful uploads: ${sitesWithUploads}/${results.length}`);
   console.log(`   Search-API refresh success rate: ${successfulSearchApiRefreshCount}/${sitesWithUploads} (${sitesWithUploads > 0 ? ((successfulSearchApiRefreshCount / sitesWithUploads) * 100).toFixed(1) : 'N/A'}%)`);
+  console.log(`   CloudFront invalidation success rate: ${successfulCloudFrontInvalidationCount}/${sitesWithCloudFrontInvalidation} (${sitesWithCloudFrontInvalidation > 0 ? ((successfulCloudFrontInvalidationCount / sitesWithCloudFrontInvalidation) * 100).toFixed(1) : 'N/A'}%)`);
   console.log(`   📥 Total Files Downloaded from S3: ${totalPreSyncFilesDownloaded}`);
   console.log(`   📤 Total Files Uploaded to S3: ${totalFilesUploaded}`);
   console.log(`   📥 Total Audio Files Downloaded: ${totalAudioFilesDownloaded}`);

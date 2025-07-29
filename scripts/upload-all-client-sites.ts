@@ -136,7 +136,7 @@ async function uploadClientToS3(
   credentials: any,
   terraformOutputs: TerraformOutputs
 ): Promise<{ success: boolean; duration: number; error?: string }> {
-  const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
+  const siteConfig = getSiteAccountMapping(siteId);
   if (!siteConfig) {
     throw new Error(`No account mapping found for site: ${siteId}`);
   }
@@ -176,7 +176,7 @@ async function invalidateCloudFront(
   credentials: any,
   cloudfrontId: string
 ): Promise<{ success: boolean; duration: number; error?: string }> {
-  const siteConfig = SITE_ACCOUNT_MAPPINGS[siteId];
+  const siteConfig = getSiteAccountMapping(siteId);
   if (!siteConfig) {
     throw new Error(`No account mapping found for site: ${siteId}`);
   }
