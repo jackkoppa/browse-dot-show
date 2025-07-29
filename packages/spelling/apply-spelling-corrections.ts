@@ -38,7 +38,7 @@ async function loadSpellingCorrections(siteId: string): Promise<SpellingCorrecti
   // Load site-specific corrections first
   try {
     // Navigate up to the repo root and then to the site directory
-    const repoRoot = path.resolve(__dirname, '..', '..', '..', '..');
+    const repoRoot = path.resolve(__dirname, '..', '..', '..');
     const siteConfigPath = path.join(repoRoot, 'sites', 'origin-sites', siteId, 'spelling-corrections.json');
     
     if (await fs.pathExists(siteConfigPath)) {
@@ -57,6 +57,7 @@ async function loadSpellingCorrections(siteId: string): Promise<SpellingCorrecti
   }
   
   // Then load custom corrections if they exist
+
   const customConfigPath = path.join(__dirname, '_custom-spelling-corrections.json');
   
   try {

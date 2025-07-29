@@ -13,6 +13,7 @@ import { logInfo, logError, logDebug, logProgress, logSuccess } from './logging.
 import { discoverSites } from './site-selector.js';
 import {
   listFiles,
+  listDirectories,
   getFile,
   saveFile,
 } from '@browse-dot-show/s3';
@@ -25,6 +26,40 @@ import {
 logInfo(`▶️ Starting reapply-spelling-corrections-to-all-transcripts`);
 
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
+
+/**
+ * Recursively find all SRT files in the transcripts directory and its subdirectories
+ */
+async function findAllSrtFiles(basePrefix: string): Promise<string[]> {
+  const allSrtFiles: string[] = [];
+  
+  // First, check for SRT files directly in the base directory
+  const directFiles = await listFiles(basePrefix);
+  const directSrtFiles = directFiles.filter(file => file.endsWith('.srt'));
+  allSrtFiles.push(...directSrtFiles);
+  
+  // Then, get all subdirectories and search them too
+  const subdirectories = await listDirectories(basePrefix);
+  logDebug(`Found ${subdirectories.length} subdirectories in ${basePrefix}: ${subdirectories.join(', ')}`);
+  
+  for (const subdir of subdirectories) {
+    try {
+      const subdirFiles = await listFiles(subdir);
+      const subdirSrtFiles = subdirFiles.filter(file => file.endsWith('.srt'));
+      logDebug(`Found ${subdirSrtFiles.length} SRT files in ${subdir}`);
+      allSrtFiles.push(...subdirSrtFiles);
+      
+      // Recursively search deeper subdirectories if needed
+      const deeperSrtFiles = await findAllSrtFiles(subdir);
+      allSrtFiles.push(...deeperSrtFiles);
+    } catch (error) {
+      logError(`Error searching subdirectory ${subdir}:`, error);
+      // Continue with other subdirectories
+    }
+  }
+  
+  return allSrtFiles;
+}
 
 /**
  * Main function to reapply spelling corrections to all transcripts
@@ -53,11 +88,14 @@ export async function reapplySpellingCorrectionsToAllTranscripts(): Promise<{
   logInfo(`🎯 Processing all transcripts for site: ${siteId} (${siteTitle})`);
 
   try {
-    // Get all transcript files
-    const transcriptFiles = await listFiles(TRANSCRIPTS_DIR_PREFIX);
-    const srtFiles = transcriptFiles.filter(file => file.endsWith('.srt'));
+    // Get all transcript files recursively
+    logInfo(`🔍 Searching for SRT files in ${TRANSCRIPTS_DIR_PREFIX} and its subdirectories...`);
+    const srtFiles = await findAllSrtFiles(TRANSCRIPTS_DIR_PREFIX);
     
     logInfo(`📄 Found ${srtFiles.length} SRT transcript files to process`);
+    if (srtFiles.length > 0) {
+      logDebug(`SRT files found: ${srtFiles.slice(0, 5).join(', ')}${srtFiles.length > 5 ? ` (and ${srtFiles.length - 5} more)` : ''}`);
+    }
     
     if (srtFiles.length === 0) {
       logInfo('✅ No transcript files found. Nothing to process.');
@@ -88,9 +126,7 @@ export async function reapplySpellingCorrectionsToAllTranscripts(): Promise<{
       const transcriptKey = srtFiles[i];
       
       try {
-        // Show progress
-        const progress = Math.floor((i / srtFiles.length) * 100);
-        logProgress(`Progress: ${progress}% - Processing file ${i + 1}/${srtFiles.length}: ${transcriptKey}`);
+        
         
         // Apply corrections to this file
         const correctionResult = await applyCorrectionToFile(
@@ -109,7 +145,13 @@ export async function reapplySpellingCorrectionsToAllTranscripts(): Promise<{
         }
         
         // Log periodic progress updates
-        if ((i + 1) % 10 === 0 || i === srtFiles.length - 1) {
+        const progress = Math.ceil((i / srtFiles.length) * 100);
+        const milestone20 = Math.ceil(srtFiles.length * 0.2);
+        const milestone40 = Math.ceil(srtFiles.length * 0.4);
+        const milestone60 = Math.ceil(srtFiles.length * 0.6);
+        const milestone80 = Math.ceil(srtFiles.length * 0.8);
+        
+        if ((i + 1) === milestone20 || (i + 1) === milestone40 || (i + 1) === milestone60 || (i + 1) === milestone80 || i === srtFiles.length - 1) {
           logInfo(`Progress: ${progress}% - ${i + 1}/${srtFiles.length} files processed, ${totalCorrectionsApplied} corrections applied`);
         }
         
