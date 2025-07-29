@@ -40,7 +40,8 @@ import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from
 import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
 import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
-import { invalidateCloudFrontWithCredentials, getTerraformOutputsWithCredentials } from './utils/client-deployment.js';
+import { invalidateCloudFrontWithCredentials } from './utils/client-deployment.js';
+import { getSiteCloudFrontId } from './utils/site-account-mappings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1309,13 +1310,15 @@ async function invalidateCloudFrontForSite(
   logProgress(`Invalidating CloudFront cache for ${siteId}`);
   
   try {
-    // Get terraform outputs to retrieve CloudFront distribution ID
+    // Get CloudFront distribution ID from site account mappings
+    const cloudfrontId = getSiteCloudFrontId(siteId);
+    
+    // Get temporary credentials for the site account
     const { tempCredentials } = await assumeAwsRole(siteId, 'cloudfront-invalidation', credentials);
-    const terraformOutputs = await getTerraformOutputsWithCredentials(tempCredentials, { silent: true });
     
     // Invalidate CloudFront cache
     const invalidationResult = await invalidateCloudFrontWithCredentials(
-      terraformOutputs.cloudfrontId,
+      cloudfrontId,
       tempCredentials,
       { silent: true }
     );

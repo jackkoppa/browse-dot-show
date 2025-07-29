@@ -6,6 +6,8 @@ import * as path from 'path';
 import { execCommandOrThrow, execCommand, execCommandLiveOrThrow } from '../utils/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
 import { checkAwsCredentials } from '../utils/aws-utils.js';
+import { readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 
 interface DeploymentOptions {
   test: boolean;
@@ -294,6 +296,78 @@ async function applyTerraformWithProgress(): Promise<void> {
   });
 }
 
+/**
+ * Update site account mappings with terraform outputs
+ */
+async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<void> {
+  try {
+    printInfo('Updating site account mappings with terraform outputs...');
+    
+    // Get terraform outputs
+    const outputs = {
+      cloudfrontId: '',
+      cloudfrontDomain: '',
+      searchApiUrl: ''
+    };
+    
+    // Get CloudFront distribution ID
+    const cloudfrontIdResult = await execCommand('terraform', ['output', '-raw', 'cloudfront_distribution_id']);
+    if (cloudfrontIdResult.exitCode !== 0) {
+      printError(`Failed to get CloudFront distribution ID: ${cloudfrontIdResult.stderr}`);
+      return;
+    }
+    outputs.cloudfrontId = cloudfrontIdResult.stdout.trim();
+    
+    // Get CloudFront domain
+    const cloudfrontDomainResult = await execCommand('terraform', ['output', '-raw', 'cloudfront_distribution_domain_name']);
+    if (cloudfrontDomainResult.exitCode !== 0) {
+      printError(`Failed to get CloudFront domain: ${cloudfrontDomainResult.stderr}`);
+      return;
+    }
+    outputs.cloudfrontDomain = cloudfrontDomainResult.stdout.trim();
+    
+    // Get search API URL
+    const searchApiUrlResult = await execCommand('terraform', ['output', '-raw', 'search_api_invoke_url']);
+    if (searchApiUrlResult.exitCode !== 0) {
+      printError(`Failed to get search API URL: ${searchApiUrlResult.stderr}`);
+      return;
+    }
+    outputs.searchApiUrl = searchApiUrlResult.stdout.trim();
+    
+    // Validate outputs
+    if (!outputs.cloudfrontId || !outputs.cloudfrontDomain || !outputs.searchApiUrl) {
+      printError('One or more terraform outputs are empty');
+      return;
+    }
+    
+    // Load current site account mappings
+    const mappingsPath = resolve(process.cwd(), '.site-account-mappings.json');
+    const mappingsContent = readFileSync(mappingsPath, 'utf8');
+    const mappings = JSON.parse(mappingsContent);
+    
+    // Update the specific site's mapping
+    if (!mappings[siteId]) {
+      printError(`Site ${siteId} not found in site account mappings`);
+      return;
+    }
+    
+    mappings[siteId].cloudfrontId = outputs.cloudfrontId;
+    mappings[siteId].cloudfrontDomain = outputs.cloudfrontDomain;
+    mappings[siteId].searchApiUrl = outputs.searchApiUrl;
+    
+    // Write updated mappings back to file
+    writeFileSync(mappingsPath, JSON.stringify(mappings, null, 2) + '\n');
+    
+    printSuccess(`✅ Updated site account mappings with terraform outputs:`);
+    printInfo(`   CloudFront ID: ${outputs.cloudfrontId}`);
+    printInfo(`   CloudFront Domain: ${outputs.cloudfrontDomain}`);
+    printInfo(`   Search API URL: ${outputs.searchApiUrl}`);
+    
+  } catch (error: any) {
+    printError(`Failed to update site account mappings: ${error.message}`);
+  }
+}
+
 async function runTerraformDeployment(siteId: string): Promise<boolean> {
   // Relative paths from terraform/sites directory
   const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
@@ -395,6 +469,9 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
       
       printSuccess('✅ Terraform apply completed successfully!');
       printInfo('State is automatically managed by S3 backend.');
+
+      // Update site account mappings with CloudFront distribution ID
+      await updateSiteAccountMappingsWithOutputs(siteId);
 
       // Display outputs
       printSuccess('======= Deployment Complete =======');

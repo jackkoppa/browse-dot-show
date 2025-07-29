@@ -5,6 +5,9 @@ export interface SiteAccountMapping {
   [siteId: string]: {
     accountId: string;
     bucketName: string;
+    cloudfrontId?: string;
+    cloudfrontDomain?: string;
+    searchApiUrl?: string;
   };
 }
 
@@ -35,7 +38,7 @@ export function loadSiteAccountMappings(): SiteAccountMapping {
 /**
  * Gets account mapping for a specific site
  */
-export function getSiteAccountMapping(siteId: string): { accountId: string; bucketName: string } {
+export function getSiteAccountMapping(siteId: string): { accountId: string; bucketName: string; cloudfrontId?: string; cloudfrontDomain?: string; searchApiUrl?: string } {
   const mappings = loadSiteAccountMappings();
   const mapping = mappings[siteId];
   
@@ -45,4 +48,43 @@ export function getSiteAccountMapping(siteId: string): { accountId: string; buck
   }
   
   return mapping;
+}
+
+/**
+ * Gets CloudFront distribution ID for a specific site
+ */
+export function getSiteCloudFrontId(siteId: string): string {
+  const mapping = getSiteAccountMapping(siteId);
+  
+  if (!mapping.cloudfrontId) {
+    throw new Error(`CloudFront distribution ID not found for site: ${siteId}. Please deploy the site first to populate this value.`);
+  }
+  
+  return mapping.cloudfrontId;
+}
+
+/**
+ * Gets CloudFront domain for a specific site
+ */
+export function getSiteCloudFrontDomain(siteId: string): string {
+  const mapping = getSiteAccountMapping(siteId);
+  
+  if (!mapping.cloudfrontDomain) {
+    throw new Error(`CloudFront domain not found for site: ${siteId}. Please deploy the site first to populate this value.`);
+  }
+  
+  return mapping.cloudfrontDomain;
+}
+
+/**
+ * Gets search API URL for a specific site
+ */
+export function getSiteSearchApiUrl(siteId: string): string {
+  const mapping = getSiteAccountMapping(siteId);
+  
+  if (!mapping.searchApiUrl) {
+    throw new Error(`Search API URL not found for site: ${siteId}. Please deploy the site first to populate this value.`);
+  }
+  
+  return mapping.searchApiUrl;
 } 

@@ -130,20 +130,25 @@ if (config.phases.cloudfrontInvalidation) {
 - Added `cloudfront:CreateInvalidation` and `cloudfront:GetInvalidation` permissions
 - Permissions apply to all CloudFront distributions (`Resource = "*"`)
 
-#### 3. Added CloudFront Invalidation to Ingestion Pipeline
+#### 3. Enhanced Site Account Mappings
+- ✅ Added `cloudfrontId`, `cloudfrontDomain`, and `searchApiUrl` to SiteAccountMapping interface
+- ✅ Created helper functions: `getSiteCloudFrontId()`, `getSiteCloudFrontDomain()`, `getSiteSearchApiUrl()`
+- ✅ Updated site deployment to capture and save all terraform outputs to `.site-account-mappings.json`
+- ✅ This eliminates the need for automation role to access terraform state
+
+#### 4. Added CloudFront Invalidation to Ingestion Pipeline
 - ✅ Added `cloudfrontInvalidation: boolean` to phases config (default: true)
 - ✅ Added `--skip-cloudfront-invalidation` CLI flag
 - ✅ Added to interactive configuration options
 - ✅ Added Phase 6 description in help text
 - ✅ Added `cloudfrontInvalidationSuccess` and `cloudfrontInvalidationDuration` to `SiteProcessingResult` interface
-- ✅ Imported required functions: `invalidateCloudFrontWithCredentials`, `getTerraformOutputsWithCredentials`
-- ✅ Created `invalidateCloudFrontForSite()` function using automation role pattern
+- ✅ Created `invalidateCloudFrontForSite()` function that reads CloudFront ID from mappings file
 - ✅ Added Phase 6 execution logic after search API refresh
 - ✅ Added CloudFront invalidation results to per-site summary
 - ✅ Added CloudFront invalidation statistics to overall summary
 - ✅ Integrated with dry-run mode
 
-#### 4. Implementation Details
+#### 5. Implementation Details
 **Location:** Added as Phase 6 at the end of the pipeline  
 **Trigger:** Only runs for sites with successful S3 uploads (`s3SyncTotalFilesUploaded > 0` && `s3SyncSuccess`)  
 **Pattern:** Reuses automation role assumption pattern from existing code  
@@ -162,12 +167,19 @@ terraform apply -var-file=../../sites/origin-sites/SITE_ID/terraform/prod.tfvars
 ```
 
 #### 2. Testing Strategy
-1. **Test upload-all-client-sites fix:** Run for one site to verify the bug fix works
-2. **Deploy CloudFront permissions:** Apply Terraform changes to add CloudFront permissions to automation role
-3. **Test CloudFront invalidation:** Run ingestion pipeline for one site and verify CloudFront invalidation works
+1. **Re-deploy site:** Run `pnpm site:deploy` for hardfork to populate terraform outputs in mappings file
+2. **Test CloudFront invalidation:** Run ingestion pipeline for hardfork and verify CloudFront invalidation works
+3. **Test upload-all-client-sites fix:** Verify the bug fix works in upload-all-client-sites script  
 4. **Verify cache behavior:** Check that content updates are immediately visible
 
 ## Ready for Testing
-The implementation is complete and ready for testing. The next step is to:
-1. Deploy the CloudFront permissions via Terraform
-2. Test with a single site to verify functionality
+The implementation is complete! The error you encountered was caused by the automation role trying to access terraform state, which has been fixed by:
+
+1. ✅ **Architecture improved**: Site deployment now saves terraform outputs to `.site-account-mappings.json`
+2. ✅ **CloudFront invalidation fixed**: Now reads CloudFront ID from mappings file instead of terraform
+3. ✅ **No terraform access needed**: Automation role no longer needs terraform state permissions
+
+### Next Steps for Testing:
+1. **Re-deploy hardfork**: Run `pnpm site:deploy` for hardfork to populate the CloudFront ID in mappings file
+2. **Test ingestion pipeline**: Run the ingestion pipeline again to verify CloudFront invalidation works
+3. **Verify cache behavior**: Check that content updates are immediately visible
