@@ -32,12 +32,12 @@ srt_indexing_lambda_memory_size = 500 # Unfortunately, even the max of 10240 is 
 #########
 
 # Lambda warming
-enable_search_lambda_warming = false # see above, for what it would take to re-enable
+enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
-search_lambda_memory_size = 10239 # Max observed memory as of 2025-07-29: _____ MB # TODO: Determine new value based on above
-search_lambda_timeout = 70 # 45 seconds is the default. Update in future w/ re-architecture plans above
+search_lambda_memory_size = 9216 # Max observed memory as of 2025-07-29: 8267 MB # TODO: Determine new value based on above
+search_lambda_timeout = 75 # 45 seconds is the default. 64 seconds is the observed max as of 2025-07-29. Update in future w/ re-architecture plans above
 
 # Logging
 log_level = "info" 
