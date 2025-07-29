@@ -340,8 +340,8 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
       return;
     }
     
-    // Load current site account mappings
-    const mappingsPath = resolve(process.cwd(), '.site-account-mappings.json');
+    // Load current site account mappings (go up two directories from terraform/sites to repository root)
+    const mappingsPath = resolve(process.cwd(), '../../.site-account-mappings.json');
     const mappingsContent = readFileSync(mappingsPath, 'utf8');
     const mappings = JSON.parse(mappingsContent);
     
