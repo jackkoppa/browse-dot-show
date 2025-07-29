@@ -24,14 +24,12 @@
       "url": "https://feeds.megaphone.fm/APL3838395585"
     }
   ],
-  "whisperTranscriptionPrompt": "Hi, welcome to Screen Rot. Let's jump in!",
+  "whisperTranscriptionPrompt": "Hi, welcome to The Screen Rot Podcast with Jacob and Jake. It's the show where we discuss the weirdest and worst content that’s been rotting our screens, and indeed our minds. It's Monday Night Football for internet rubbish. Let's jump in!",
   "themeColor": "#734ee4",
   "themeColorDark": "#2f6a9e",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "men are class",
+    "the Rotties"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }
