@@ -1316,10 +1316,17 @@ async function invalidateCloudFrontForSite(
     // Get temporary credentials for the site account
     const { tempCredentials } = await assumeAwsRole(siteId, 'cloudfront-invalidation', credentials);
     
-    // Invalidate CloudFront cache
+    // Invalidate CloudFront cache (map AWS STS credentials to expected format)
+    const mappedCredentials = {
+      AWS_ACCESS_KEY_ID: tempCredentials.AccessKeyId,
+      AWS_SECRET_ACCESS_KEY: tempCredentials.SecretAccessKey,
+      AWS_SESSION_TOKEN: tempCredentials.SessionToken,
+      AWS_REGION: credentials.AWS_REGION
+    };
+    
     const invalidationResult = await invalidateCloudFrontWithCredentials(
       cloudfrontId,
-      tempCredentials,
+      mappedCredentials,
       { silent: true }
     );
     
