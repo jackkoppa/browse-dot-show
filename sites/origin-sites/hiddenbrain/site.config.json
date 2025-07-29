@@ -28,10 +28,9 @@
   "themeColor": "#3DC9E0",
   "themeColorDark": "#1E3161",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "unsung hero",
+    "gratitude",
+    "self-control"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }

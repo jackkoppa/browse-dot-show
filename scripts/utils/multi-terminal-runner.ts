@@ -95,11 +95,16 @@ class MultiTerminalRunner {
     }
     
     const etaDate = new Date(Date.now() + etaMinutes * 60 * 1000);
-    return etaDate.toLocaleTimeString('en-US', { 
+    const completionTime = etaDate.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
     });
+    
+    // Format remaining time as hours and minutes
+    const remainingTimeFormatted = this.formatRemainingTime(etaMinutes);
+    
+    return `${completionTime} (${remainingTimeFormatted} remaining)`;
   }
 
   /**
@@ -113,6 +118,24 @@ class MultiTerminalRunner {
       return `${hours.toFixed(2)} hours`;
     } else {
       return `${minutes.toFixed(1)} min`;
+    }
+  }
+
+  /**
+   * Format remaining time for ETA display - always show hours and minutes
+   */
+  private formatRemainingTime(minutes: number): string {
+    if (minutes < 60) {
+      return `${Math.round(minutes)} minutes`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = Math.round(minutes % 60);
+      
+      if (remainingMinutes === 0) {
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+      } else {
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'}, ${remainingMinutes} minutes`;
+      }
     }
   }
 
