@@ -37,6 +37,7 @@ search_lambda_warming_schedule = "rate(5 minutes)"
 
 # Search lambda configuration
 search_lambda_memory_size = 10239 # Max observed memory as of 2025-07-29: _____ MB # TODO: Determine new value based on above
+search_lambda_timeout = 70 # 45 seconds is the default. Update in future w/ re-architecture plans above
 
 # Logging
 log_level = "info" 
