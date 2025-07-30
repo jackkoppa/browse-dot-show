@@ -28,10 +28,10 @@
   "themeColor": "#fde428",
   "themeColorDark": "#c52622",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "head a wobble",
+    "cheeky",
+    "donny darko",
+    "Vicarage Road"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }
