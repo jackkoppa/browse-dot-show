@@ -305,10 +305,28 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
     
     // Get terraform outputs
     const outputs = {
+      accountId: '',
+      bucketName: '',
       cloudfrontId: '',
       cloudfrontDomain: '',
       searchApiUrl: ''
     };
+    
+    // Get account ID
+    const accountIdResult = await execCommand('terraform', ['output', '-raw', 'account_id']);
+    if (accountIdResult.exitCode !== 0) {
+      printError(`Failed to get account ID: ${accountIdResult.stderr}`);
+      return;
+    }
+    outputs.accountId = accountIdResult.stdout.trim();
+    
+    // Get S3 bucket name
+    const bucketNameResult = await execCommand('terraform', ['output', '-raw', 's3_bucket_name']);
+    if (bucketNameResult.exitCode !== 0) {
+      printError(`Failed to get S3 bucket name: ${bucketNameResult.stderr}`);
+      return;
+    }
+    outputs.bucketName = bucketNameResult.stdout.trim();
     
     // Get CloudFront distribution ID
     const cloudfrontIdResult = await execCommand('terraform', ['output', '-raw', 'cloudfront_distribution_id']);
@@ -335,7 +353,7 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
     outputs.searchApiUrl = searchApiUrlResult.stdout.trim();
     
     // Validate outputs
-    if (!outputs.cloudfrontId || !outputs.cloudfrontDomain || !outputs.searchApiUrl) {
+    if (!outputs.accountId || !outputs.bucketName || !outputs.cloudfrontId || !outputs.cloudfrontDomain || !outputs.searchApiUrl) {
       printError('One or more terraform outputs are empty');
       return;
     }
@@ -345,20 +363,31 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
     const mappingsContent = readFileSync(mappingsPath, 'utf8');
     const mappings = JSON.parse(mappingsContent);
     
-    // Update the specific site's mapping
+    // Update or create the site's mapping
     if (!mappings[siteId]) {
-      printError(`Site ${siteId} not found in site account mappings`);
-      return;
+      printInfo(`Site ${siteId} not found in mappings, creating new entry...`);
+      mappings[siteId] = {
+        accountId: outputs.accountId,
+        bucketName: outputs.bucketName,
+        cloudfrontId: outputs.cloudfrontId,
+        cloudfrontDomain: outputs.cloudfrontDomain,
+        searchApiUrl: outputs.searchApiUrl
+      };
+    } else {
+      printInfo(`Updating existing mapping for site ${siteId}...`);
+      mappings[siteId].accountId = outputs.accountId;
+      mappings[siteId].bucketName = outputs.bucketName;
+      mappings[siteId].cloudfrontId = outputs.cloudfrontId;
+      mappings[siteId].cloudfrontDomain = outputs.cloudfrontDomain;
+      mappings[siteId].searchApiUrl = outputs.searchApiUrl;
     }
-    
-    mappings[siteId].cloudfrontId = outputs.cloudfrontId;
-    mappings[siteId].cloudfrontDomain = outputs.cloudfrontDomain;
-    mappings[siteId].searchApiUrl = outputs.searchApiUrl;
     
     // Write updated mappings back to file
     writeFileSync(mappingsPath, JSON.stringify(mappings, null, 2) + '\n');
     
     printSuccess(`✅ Updated site account mappings with terraform outputs:`);
+    printInfo(`   Account ID: ${outputs.accountId}`);
+    printInfo(`   Bucket Name: ${outputs.bucketName}`);
     printInfo(`   CloudFront ID: ${outputs.cloudfrontId}`);
     printInfo(`   CloudFront Domain: ${outputs.cloudfrontDomain}`);
     printInfo(`   Search API URL: ${outputs.searchApiUrl}`);
