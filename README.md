@@ -4,9 +4,7 @@
   </a>
 </p>
 
-# [browse.show](https://browse.show)
-
-### transcribe & search any podcast
+# [browse.show](https://browse.show) - transcribe & search any podcast
 
 Search already-processed podcasts at [browse.show](https://browse.show)
 
