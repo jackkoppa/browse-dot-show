@@ -5,14 +5,14 @@
     "primaryTitle": "From The Rookery End",
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "From The Rookery End",
-    "taglinePrimaryPodcastExternalURL": "http://www.fromtherookeryend.com",
+    "taglinePrimaryPodcastExternalURL": "http://fromtherookeryend.com",
     "taglineSuffix": "podcast archives"
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] From The Rookery End",
     "canonicalUrl": "https://fromtherookeryend.browse.show",
-    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
-    "metaDescription": "Search all episodes of the From The Rookery End podcast",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
+    "metaDescription": "Search all episodes of From The Rookery End, a Watford FC podcast",
     "metaTitle": "[browse.show] From The Rookery End"
   },
   "includedPodcasts": [
@@ -25,8 +25,8 @@
     }
   ],
   "whisperTranscriptionPrompt": "Hi, welcome to From The Rookery End (FTRE). This is a monthly podcast about Watford Football Club. It’s presented by Jon Moonie, Jason Bailey and Mike Parkin, three lifelong Watford fans and season ticket holders in the Rookery End at Vicarage Road. The podcast and blog is their take on life as fans of Watford. Let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "themeColor": "#fde428",
+  "themeColorDark": "#c52622",
   "searchPlaceholderOptions": [
     "Episode topic",
     "Guest name",
