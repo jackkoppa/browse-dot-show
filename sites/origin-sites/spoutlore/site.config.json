@@ -1,0 +1,37 @@
+{
+  "id": "spoutlore",
+  "domain": "spoutlore.browse.show",
+  "appHeader": {
+    "primaryTitle": "Spout Lore",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Spout Lore",
+    "taglinePrimaryPodcastExternalURL": "http://spoutlore.com",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Spout Lore",
+    "canonicalUrl": "https://spoutlore.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Spout Lore podcast",
+    "metaTitle": "[browse.show] Spout Lore"
+  },
+  "includedPodcasts": [
+    {
+      "id": "spout-lore",
+      "rssFeedFile": "spoutlore.xml",
+      "title": "Spout Lore",
+      "status": "active",
+      "url": "https://feeds.megaphone.fm/spoutlore"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to Spout Lore. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
