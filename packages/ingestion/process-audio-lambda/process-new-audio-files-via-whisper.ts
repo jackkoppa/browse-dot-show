@@ -919,16 +919,31 @@ export async function handler(): Promise<void> {
     return;
   }
 
+  // Initialize progress tracking for 10% interval logging
+  const totalFiles = filesToProcess.length;
+  let processedCount = 0;
+  const progressIntervals = Array.from({length: 10}, (_, i) => Math.floor((totalFiles * (i + 1)) / 10));
+  let nextProgressIndex = 0;
+
   for (const fileKey of filesToProcess) {
     try {
-      log.info(`🔍 Processing file: ${fileKey}`);
+      processedCount++;
+      log.debug(`🔍 Processing file: ${fileKey}`);
+      
+      // Log progress at 10% intervals
+      if (nextProgressIndex < progressIntervals.length && processedCount >= progressIntervals[nextProgressIndex]) {
+        const progressPercent = ((nextProgressIndex + 1) * 10);
+        log.info(`📈 Progress: ${progressPercent}% complete (${processedCount}/${totalFiles} files processed)`);
+        nextProgressIndex++;
+      }
+      
       const podcastName = path.basename(path.dirname(fileKey));
 
       // Check if transcription exists
       if (await transcriptExists(fileKey)) {
         stats.skippedFiles++;
         stats.podcastStats.get(podcastName)!.skipped++;
-        log.info(`⏭️  Transcript already exists for ${fileKey}, skipping`);
+        log.debug(`⏭️  Transcript already exists for ${fileKey}, skipping`);
         continue;
       }
       log.info(`✅ No existing transcript found for ${path.basename(fileKey)}`);

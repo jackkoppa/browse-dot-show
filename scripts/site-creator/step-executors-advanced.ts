@@ -201,7 +201,7 @@ async function runSpawnCommand(command: string, args: string[]): Promise<boolean
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=8192'
+        NODE_OPTIONS: '--max-old-space-size=9728'
       }
     });
     
@@ -387,7 +387,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
       console.log('2. In each terminal, navigate to this project directory');
       console.log('3. Run this command in each terminal:');
       console.log('');
-      console.log(`NODE_OPTIONS=--max-old-space-size=8192 pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=process-audio --env=local`);
+      console.log(`NODE_OPTIONS=--max-old-space-size=9728 pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=process-audio --env=local`);
       console.log('');
 
       const continueResponse = await prompts({

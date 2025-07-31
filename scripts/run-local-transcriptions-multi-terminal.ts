@@ -87,7 +87,7 @@ class TranscriptionMultiTerminalRunner extends MultiTerminalRunner {
         ],
         logFile,
         env: {
-          NODE_OPTIONS: '--max-old-space-size=8192',
+          NODE_OPTIONS: '--max-old-space-size=9728',
           PROCESS_ID: processId,
           SITE_ID: this.session.siteId,
           LOG_FILE: logFile,

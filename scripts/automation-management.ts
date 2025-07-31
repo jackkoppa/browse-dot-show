@@ -579,7 +579,7 @@ ADVANTAGES:
       const child = spawn('pnpm', ['run', 'ingestion:run-pipeline:triggered-by-schedule'], {
         stdio: 'inherit',
         cwd: process.cwd(),
-        env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' }
+        env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=9728' }
       });
 
       child.on('close', (code) => {
@@ -697,7 +697,7 @@ ADVANTAGES:
         <key>PATH</key>
         <string>/Users/jackkoppa/.nvm/versions/node/v22.14.0/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
         <key>NODE_OPTIONS</key>
-        <string>--max-old-space-size=8192</string>
+        <string>--max-old-space-size=9728</string>
         <key>HOME</key>
         <string>/Users/jackkoppa</string>
     </dict>

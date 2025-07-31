@@ -128,7 +128,7 @@ configs.push({
   ],
   logFile,
   env: {
-    NODE_OPTIONS: '--max-old-space-size=8192',
+    NODE_OPTIONS: '--max-old-space-size=9728',
     PROCESS_ID: processId,
     SITE_ID: this.session.siteId,
     LOG_FILE: logFile,
@@ -268,7 +268,7 @@ const PARALLEL_COMMANDS: Record<string, ParallelCommand> = {
     name: 'Audio Processing',
     command: 'pnpm',
     args: (siteId, opts) => ['tsx', 'scripts/trigger-individual-ingestion-lambda.ts', `--sites=${siteId}`, '--lambda=process-audio', `--env=${opts.env}`],
-    env: (siteId) => ({ NODE_OPTIONS: '--max-old-space-size=8192', ...loadSiteEnvVars(siteId, 'local') })
+    env: (siteId) => ({ NODE_OPTIONS: '--max-old-space-size=9728', ...loadSiteEnvVars(siteId, 'local') })
   },
   // Add more commands...
 };

@@ -607,7 +607,7 @@ async function main(): Promise<void> {
 
   // Display equivalent CLI command
   const sitesArg = selectedSites.map(s => s.id).join(',');
-  const cliPrefix = 'NODE_OPTIONS=--max-old-space-size=8192 pnpm';
+  const cliPrefix = 'NODE_OPTIONS=--max-old-space-size=9728 pnpm';
   const cliCommand = `${cliPrefix} tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${sitesArg} --lambda=${config.lambda} --env=${config.env}`;
   console.log('\n💡 Equivalent CLI command:');
   console.log(`   ${cliCommand}`);

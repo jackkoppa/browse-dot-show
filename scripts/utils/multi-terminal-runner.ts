@@ -240,7 +240,7 @@ end tell
         env: {
           PROCESS_ID: processId,
           LOG_FILE: logFile,
-          NODE_OPTIONS: '--max-old-space-size=8192'
+          NODE_OPTIONS: '--max-old-space-size=9728'
         }
       });
     }
