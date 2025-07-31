@@ -25,8 +25,8 @@
     }
   ],
   "whisperTranscriptionPrompt": "Hi, welcome to Spout Lore. Let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "themeColor": "#a6b8ba",
+  "themeColorDark": "#162640",
   "searchPlaceholderOptions": [
     "Episode topic",
     "Guest name",
