@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { ApiSearchResultHit, EpisodeManifest } from '@browse-dot-show/types'
 import SearchResult from './SearchResult'
-import SearchTimeAndResultCount from './SearchTimeAndResultCount'
 import SearchResultsPagination from './SearchResultsPagination'
 import { useRenderTracker } from '../hooks/useRenderTracker'
 import {
@@ -146,11 +145,7 @@ export default function SearchResults({
     );
   }
 
-  // round to nearest 0.001 seconds, and always show at least 0.001 seconds
-  const processingTimeSeconds = Math.max(Number((processingTimeMs / 1000).toFixed(3)), 0.001);
 
-  // Only show this banner area once we've had a successful search
-  const showResultsInfo = Boolean(mostRecentSuccessfulSearchQuery);
 
   return (
     <div className="mb-10">

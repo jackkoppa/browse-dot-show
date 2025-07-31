@@ -133,53 +133,6 @@ function HomePage() {
     performLambdaHealthCheck();
   }, []);
 
-    /**
-   * Perform search when explicitly triggered by user (Enter key or button click) - memoized
-   */
-  const handleSearch = useCallback(async () => {
-    const trimmedQuery = localSearchQuery.trim();
-
-    // Clear results if query is too short
-    if (trimmedQuery.length < 2) {
-      setSearchResults([]);
-      setError(null);
-      setTotalHits(0);
-      setProcessingTimeMs(0);
-      setMostRecentSuccessfulSearchQuery(null);
-      setShowColdStartLoader(false);
-      
-      // Update URL to clear search
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        newParams.delete('q');
-        return newParams;
-      });
-      return;
-    }
-
-    // Update URL with the search query
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      newParams.set('q', trimmedQuery);
-      // Reset to page 1 for new searches
-      newParams.delete('page');
-      return newParams;
-    });
-
-    // Check if we should show cold start loader
-    const timeSincePageLoad = Date.now() - pageLoadTime.current;
-    const shouldShowColdStart = !isLambdaWarm && timeSincePageLoad < ESTIMATED_TIME_FOR_LAMBDA_COLD_START;
-    
-    if (shouldShowColdStart) {
-      setShowColdStartLoader(true);
-      // Don't proceed with search until Lambda is warm
-      return;
-    }
-
-    // Perform the search
-    await performSearchRequest(trimmedQuery);
-  }, [localSearchQuery, setSearchParams, pageLoadTime, isLambdaWarm, performSearchRequest]);
-
   /**
    * Perform the actual search API request - memoized to prevent recreation
    */
@@ -245,6 +198,53 @@ function HomePage() {
       setIsLoading(false);
     }
   }, [sortOption, currentPage]); // Dependencies for the memoized function
+
+  /**
+   * Perform search when explicitly triggered by user (Enter key or button click) - memoized
+   */
+  const handleSearch = useCallback(async () => {
+    const trimmedQuery = localSearchQuery.trim();
+
+    // Clear results if query is too short
+    if (trimmedQuery.length < 2) {
+      setSearchResults([]);
+      setError(null);
+      setTotalHits(0);
+      setProcessingTimeMs(0);
+      setMostRecentSuccessfulSearchQuery(null);
+      setShowColdStartLoader(false);
+      
+      // Update URL to clear search
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('q');
+        return newParams;
+      });
+      return;
+    }
+
+    // Update URL with the search query
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      newParams.set('q', trimmedQuery);
+      // Reset to page 1 for new searches
+      newParams.delete('page');
+      return newParams;
+    });
+
+    // Check if we should show cold start loader
+    const timeSincePageLoad = Date.now() - pageLoadTime.current;
+    const shouldShowColdStart = !isLambdaWarm && timeSincePageLoad < ESTIMATED_TIME_FOR_LAMBDA_COLD_START;
+    
+    if (shouldShowColdStart) {
+      setShowColdStartLoader(true);
+      // Don't proceed with search until Lambda is warm
+      return;
+    }
+
+    // Perform the search
+    await performSearchRequest(trimmedQuery);
+  }, [localSearchQuery, setSearchParams, pageLoadTime, isLambdaWarm, performSearchRequest]);
 
   /**
    * Trigger search when Lambda becomes warm and user has a pending search

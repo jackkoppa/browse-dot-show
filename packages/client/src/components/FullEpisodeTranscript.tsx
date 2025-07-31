@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { EpisodeInManifest, SearchEntry } from '@browse-dot-show/types'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatMillisecondsToMMSS } from '@/utils/time'
@@ -95,15 +95,16 @@ export default function FullEpisodeTranscript({
         }
     }, [isLoading, searchEntries, currentPlayingEntryId, urlBasedTargetEntryId]);
 
-    function isUrlBasedTarget(entry: SearchEntry) {
+    // Memoize utility functions to prevent recreation on every render
+    const isUrlBasedTarget = useCallback((entry: SearchEntry) => {
         return urlBasedTargetEntryId === entry.id;
-    }
+    }, [urlBasedTargetEntryId]);
 
-    function isCurrentlyPlaying(entry: SearchEntry) {
+    const isCurrentlyPlaying = useCallback((entry: SearchEntry) => {
         return currentPlayingEntryId === entry.id;
-    }
+    }, [currentPlayingEntryId]);
 
-    function getEntryClassName(entry: SearchEntry) {
+    const getEntryClassName = useCallback((entry: SearchEntry) => {
         const baseClass = 'py-2 px-4';
 
         if (isUrlBasedTarget(entry)) {
@@ -113,25 +114,47 @@ export default function FullEpisodeTranscript({
         } else {
             return baseClass + ' text-muted-foreground hover:bg-muted cursor-pointer';
         }
-    }
+    }, [isUrlBasedTarget, isCurrentlyPlaying]);
 
-    function getBadgeClassName(entry: SearchEntry) {
+    const getBadgeClassName = useCallback((entry: SearchEntry) => {
         const baseClass = 'my-1';
         if (isUrlBasedTarget(entry) || isCurrentlyPlaying(entry)) {
             return baseClass + ' dark:text-background';
         }
         return baseClass;
-    }
+    }, [isUrlBasedTarget, isCurrentlyPlaying]);
 
-
-    function getEntryRef(entry: SearchEntry) {
+    const getEntryRef = useCallback((entry: SearchEntry) => {
         if (isCurrentlyPlaying(entry)) {
             return currentPlayingEntryRef;
         } else if (isUrlBasedTarget(entry)) {
             return urlBasedEntryRef;
         }
         return null;
-    }
+    }, [isCurrentlyPlaying, isUrlBasedTarget]);
+
+    // Memoize the click handler
+    const handleEntryClick = useCallback((entry: SearchEntry) => {
+        onEntryClick(entry);
+    }, [onEntryClick]);
+
+    // Memoize the entire entries list to prevent unnecessary re-renders
+    const memoizedEntries = useMemo(() => 
+        searchEntries.map((entry) => (
+            <div
+                key={entry.id}
+                ref={getEntryRef(entry)}
+                className={getEntryClassName(entry)}
+                onClick={() => handleEntryClick(entry)}
+            >
+                <Badge variant="outline" className={getBadgeClassName(entry)}>
+                    <em>{formatMillisecondsToMMSS(entry.startTimeMs)} - {formatMillisecondsToMMSS(entry.endTimeMs)}</em>
+                </Badge>
+                <p className="text-sm">{entry.text}</p>
+            </div>
+        )),
+        [searchEntries, getEntryRef, getEntryClassName, getBadgeClassName, handleEntryClick]
+    );
 
     return (
         <div>
@@ -139,17 +162,7 @@ export default function FullEpisodeTranscript({
             {!isLoading && searchEntries.length === 0 && <div className="p-4">Episode transcript not available. Please try refreshing the page.</div>}
             {!isLoading && searchEntries.length > 0 && (
                 <div>
-                    {searchEntries.map((entry) => (
-                        <div
-                            key={entry.id}
-                            ref={getEntryRef(entry)}
-                            className={getEntryClassName(entry)}
-                            onClick={() => onEntryClick(entry)}
-                        >
-                            <Badge variant="outline" className={getBadgeClassName(entry)}><em>{formatMillisecondsToMMSS(entry.startTimeMs)} - {formatMillisecondsToMMSS(entry.endTimeMs)}</em></Badge>
-                            <p className="text-sm">{entry.text}</p>
-                        </div>
-                    ))}
+                    {memoizedEntries}
                 </div>
             )}
         </div>
