@@ -134,6 +134,8 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
     } else {
         if (!site.appHeader.primaryTitle) {
             result.errors.push('Missing required field: appHeader.primaryTitle');
+        } else if (site.appHeader.primaryTitle.length > 22) {
+            result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds 22 character limit for proper mobile header display (current length: ${site.appHeader.primaryTitle.length})`);
         }
         
         if (typeof site.appHeader.includeTitlePrefix !== 'boolean') {

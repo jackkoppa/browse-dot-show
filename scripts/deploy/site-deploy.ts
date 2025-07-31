@@ -134,7 +134,12 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
   printSuccess('✅ Once DNS validation is complete, run the deployment again and it should succeed!');
 }
 
-async function askConfirmation(message: string): Promise<boolean> {
+async function askConfirmation(message: string, skipPrompts: boolean = false): Promise<boolean> {
+  if (skipPrompts) {
+    printInfo('🚀 Running in non-interactive mode - auto-approving');
+    return true;
+  }
+
   const response = await prompts({
     type: 'confirm',
     name: 'confirmed',
@@ -199,7 +204,16 @@ async function checkAwsAuthentication(): Promise<void> {
   }
 }
 
-async function askDeploymentOptions(): Promise<DeploymentOptions> {
+async function askDeploymentOptions(skipPrompts: boolean = false): Promise<DeploymentOptions> {
+  if (skipPrompts) {
+    printInfo('🚀 Running in non-interactive mode - using defaults (all options enabled)');
+    return {
+      test: true,
+      lint: true,
+      client: true
+    };
+  }
+
   const choices = [
     { title: 'Run tests (pnpm all:test)', value: 'test', selected: true },
     { title: 'Run linting (pnpm all:lint)', value: 'lint', selected: true },
@@ -397,7 +411,7 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
   }
 }
 
-async function runTerraformDeployment(siteId: string): Promise<boolean> {
+async function runTerraformDeployment(siteId: string, skipPrompts: boolean = false): Promise<boolean> {
   // Relative paths from terraform/sites directory
   const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
   const TFVARS_FILE = `../../sites/origin-sites/${siteId}/terraform/prod.tfvars`;
@@ -488,7 +502,7 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
     console.log('');
 
     // Ask for confirmation before applying
-    const applyConfirmed = await askConfirmation('Do you want to apply this Terraform plan?');
+    const applyConfirmed = await askConfirmation('Do you want to apply this Terraform plan?', skipPrompts);
     
     if (applyConfirmed) {
       printInfo('Applying Terraform plan...');
@@ -558,6 +572,10 @@ async function main(): Promise<void> {
   // Get selected site from environment (set by site selection wrapper)
   const siteId = process.env.SITE_ID;
   
+  // Check for --interactive flag (default is non-interactive)
+  const isInteractive = process.argv.includes('--interactive');
+  const skipAllPrompts = !isInteractive;
+  
   try {
     logHeader('Deploy Infrastructure and Applications');
 
@@ -581,7 +599,7 @@ async function main(): Promise<void> {
     await checkPrerequisites();
 
     // Ask user about optional pre-deployment steps
-    const deploymentOptions = await askDeploymentOptions();
+    const deploymentOptions = await askDeploymentOptions(skipAllPrompts);
 
     // Load and validate environment
     await validateEnvironment();
@@ -593,7 +611,7 @@ async function main(): Promise<void> {
     await runPreDeploymentSteps(deploymentOptions, env);
 
     // Run Terraform deployment
-    const terraformSuccess = await runTerraformDeployment(siteId);
+    const terraformSuccess = await runTerraformDeployment(siteId, skipAllPrompts);
 
     // Only upload client files if Terraform deployment was successful
     if (terraformSuccess) {

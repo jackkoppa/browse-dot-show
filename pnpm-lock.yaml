@@ -103,6 +103,12 @@ importers:
         specifier: ^19.1.0
         version: 19.1.0
     devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.1.8
+      '@types/react-dom':
+        specifier: ^19.1.0
+        version: 19.1.6(@types/react@19.1.8)
       typescript:
         specifier: 'catalog:'
         version: 5.8.3

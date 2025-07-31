@@ -31,7 +31,7 @@
             },
             // sites/origin-sites/naddpod
             "naddpod": {
-                "siteName": "[browse.show] NADDPOD",
+                "siteName": "[browse.show] NaddPod",
                 "displayedPodcastName": "Not Another D&D Podcast",
                 "podcastTagline": "An actual-play TTRPG podcast hosted by Brian Murphy, Emily Axford, Jake Hurwitz and Caldwell Tanner.",
                 "domain": "naddpod.browse.show",

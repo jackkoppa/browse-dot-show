@@ -25,6 +25,7 @@
     "ingestion:trigger-individual-lambda:interactive": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/trigger-individual-ingestion-lambda.ts --interactive",
     "search-lambda:dev:health-check": "NODE_OPTIONS=--max-old-space-size=8192 tsx scripts/run-with-site-selection.ts \"search lambda (local health check)\" \"pnpm --filter @browse-dot-show/search-lambda dev:health-check\"",
     "site:deploy": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/site-deploy.ts\"",
+    "site:deploy:interactive": "tsx scripts/run-with-site-selection.ts \"deployment\" \"tsx scripts/deploy/site-deploy.ts --interactive\"",
     "site:destroy": "tsx scripts/run-with-site-selection.ts \"infrastructure destruction\" \"tsx scripts/deploy/site-destroy.ts\"",
     "site:create": "tsx scripts/create-site.ts",
     "site:setup-directories": "tsx scripts/site-setup-directories.ts",

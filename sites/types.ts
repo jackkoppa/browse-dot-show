@@ -13,7 +13,7 @@ export interface SocialAndMetadata {
      * title that appears in the browser tab
      * @example `Listen, Fair Play | Search Football Clichés`
      * @example `[browse.show] | Hard Fork`
-     * @example `[browse.show] | NADDPOD`
+     * @example `[browse.show] | NaddPod`
      */
     pageTitle: string;
     /** 
