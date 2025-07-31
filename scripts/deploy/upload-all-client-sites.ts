@@ -11,7 +11,7 @@
 
 import { discoverSites, Site } from '../utils/site-selector.js';
 import { loadAutomationCredentials } from '../utils/automation-credentials.js';
-import { loadSiteAccountMappings, getSiteAccountMapping } from '../utils/site-account-mappings.js';
+import { loadSiteAccountMappings, getSiteAccountMapping, getSiteSearchApiUrl } from '../utils/site-account-mappings.js';
 import { execCommand } from '../utils/shell-exec.js';
 import { logSuccess, logError, logWarning, logProgress, logHeader } from '../utils/logging.js';
 import { 
@@ -159,9 +159,8 @@ async function uploadSite(
     logProgress(`  📦 Building client files...`);
     const buildStartTime = Date.now();
     
-    // For now, we'll use a placeholder search API URL since we're not getting it from Terraform
-    // TODO: Consider if we need the actual search API URL for the build
-    const searchApiUrl = `https://${site.id}-search.browse.show`;
+    // Get the correct search API URL from site account mappings
+    const searchApiUrl = getSiteSearchApiUrl(site.id);
     
     const buildResult = await buildClientForSite(site.id, searchApiUrl);
     result.buildDuration = Date.now() - buildStartTime;
@@ -204,9 +203,6 @@ async function uploadSite(
  * Main function
  */
 async function main(): Promise<void> {
-
-  throw new Error('TODO: This script is not deploying with the correct search URLs - those likely need to be retrieved from Terraform output. Need to fix.')
-  
   const startTime = Date.now();
   const config = parseArguments();
 
