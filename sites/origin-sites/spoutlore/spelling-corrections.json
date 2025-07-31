@@ -2,10 +2,48 @@
     "correctionsToApply": [
         {
             "misspellings": [
-                "WORD_1_EXAMPLE_MISSPELLING_A",
-                "WORD_1_EXAMPLE_MISSPELLING_B"
+                "Billy"
             ],
-            "correctedSpelling": "WORD_1_EXAMPLE_CORRECTED_SPELLING"
+            "correctedSpelling": "Billie"
+        },
+        {
+            "misspellings": [
+                "Fat Billy"
+            ],
+            "correctedSpelling": "Fat Billie"
+        },
+        {
+            "misspellings": [
+                "Takoma",
+                "Tacoma"
+            ],
+            "correctedSpelling": "Tachoma"
+        },
+        {
+            "misspellings": [
+                "Takoma Dome",
+                "Tacoma Dome",
+                "Tachoma Dome"
+            ],
+            "correctedSpelling": "Tachoma Dhaume"
+        },
+        {
+            "misspellings": [
+                "Ving"
+            ],
+            "correctedSpelling": "Vyng"
+        },
+        {
+            "misspellings": [
+                "Ving Vang Zumba"
+            ],
+            "correctedSpelling": "Vyng Vang Zoombah"
+        },
+        {
+            "misspellings": [
+                "Sean O'Hara"
+            ],
+            "correctedSpelling": "Shawn O'Hara"
         }
     ]
 }
