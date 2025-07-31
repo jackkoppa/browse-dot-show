@@ -1,0 +1,37 @@
+{
+  "id": "drivetowork",
+  "domain": "drivetowork.browse.show",
+  "appHeader": {
+    "primaryTitle": "Drive to Work",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Drive to Work",
+    "taglinePrimaryPodcastExternalURL": "https://magic.wizards.com/",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Drive to Work",
+    "canonicalUrl": "https://drivetowork.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Drive to Work podcast",
+    "metaTitle": "[browse.show] Drive to Work"
+  },
+  "includedPodcasts": [
+    {
+      "id": "drive-to-work",
+      "rssFeedFile": "drivetowork.xml",
+      "title": "Drive to Work",
+      "status": "active",
+      "url": "https://feeds.transistor.fm/magic-the-gathering-drive-to-work-podcast"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to Drive to Work. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
