@@ -1,6 +1,7 @@
-import { forwardRef } from 'react'
+import { forwardRef, useCallback, useMemo } from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button, Input } from "@browse-dot-show/ui"
+import { useRenderTracker } from '../hooks/useRenderTracker'
 
 interface SimpleSearchInputProps {
   value: string
@@ -19,23 +20,33 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
   placeholder = "Search for topics, quotes, or moments...",
   disabled = false
 }, ref) => {
-  const handleChange = (newValue: string) => {
-    onChange(newValue);
-  };
+  useRenderTracker('SimpleSearchInput')
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Memoize handlers to prevent recreation on every render
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue)
+  }, [onChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !disabled) {
-      onSearch();
+      onSearch()
     }
-  };
+  }, [onSearch, disabled])
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     if (!disabled) {
-      onSearch();
+      onSearch()
     }
-  };
+  }, [onSearch, disabled])
 
-  const canSearch = value.trim().length >= 1 && !isLoading && !disabled;
+  // Memoize computed values
+  const canSearch = useMemo(() => {
+    return value.trim().length >= 1 && !isLoading && !disabled
+  }, [value, isLoading, disabled])
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e.target.value)
+  }, [handleChange])
 
   return (
     <div className="relative flex gap-2 text-foreground">
@@ -44,7 +55,7 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
         type="text"
         placeholder={placeholder}
         value={value}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
+        onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         className="text-sm h-14 sm:h-16 pr-4 bg-background border-input"

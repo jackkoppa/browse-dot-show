@@ -1,18 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { AppHeader } from '@browse-dot-show/blocks'
 import { Button, Card, CardContent } from '@browse-dot-show/ui'
 import SimpleSearchInput from '../components/SimpleSearchInput'
 import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { PerformanceProfiler } from '../components/PerformanceProfiler'
+import { useOptimizedScroll } from '../hooks/useOptimizedScroll'
+import { useRenderTracker } from '../hooks/useRenderTracker'
 import { log } from '../utils/logging'
 import { trackEvent } from '../utils/goatcounter'
+
 import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 
 import '../App.css'
 
 // Transform the deployed sites config into an array format with all needed fields
 const { externalSites, originSites } = deployedSitesConfig.sites
-// We list any external sites first, then origin sites
 const allSites = { 
   ...externalSites, 
   ...originSites 
@@ -32,25 +35,14 @@ const deployedSites = Object.entries(allSites).map(([id, site]) => ({
  * and provides universal search across all deployed podcast sites.
  */
 function HomePage() {
-  const [scrolled, setScrolled] = useState(false)
+  useRenderTracker('HomePage')
+  
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  /**
-   * Handle scroll detection for header visual effects
-   */
-  useEffect(() => {
-    const handleScroll = () => {
-      const isScrolled = window.scrollY > 10
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [scrolled])
+  // Use optimized scroll detection
+  const scrolled = useOptimizedScroll(10, 16) // 10px threshold, 16ms throttle (~60fps)
 
   /**
    * Auto-focus search input when a site is selected and clear search query
@@ -66,16 +58,20 @@ function HomePage() {
     }
   }, [selectedSite])
 
+  // Memoize selected site config to avoid recalculation on every render
+  const selectedSiteConfig = useMemo(() => {
+    return deployedSites.find(site => site.id === selectedSite)
+  }, [selectedSite])
+
   /**
    * Handle universal search - redirect to selected site with query
    */
-  const handleUniversalSearch = () => {
+  const handleUniversalSearch = useCallback(() => {
     if (!selectedSite || !searchQuery.trim()) {
       return
     }
 
     const trimmedQuery = searchQuery.trim()
-    const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
 
     if (!selectedSiteConfig) {
       log.error('[HomePage.tsx] Selected site not found in config:', selectedSite)
@@ -91,37 +87,38 @@ function HomePage() {
     // Redirect to the selected site with the search query
     const targetUrl = `https://${selectedSiteConfig.domain}/?q=${encodeURIComponent(trimmedQuery)}`
     window.open(targetUrl, '_self')
-  }
-
-  const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
+  }, [selectedSite, searchQuery, selectedSiteConfig])
 
   /**
-   * Handle CTA clicks
+   * Handle CTA clicks - memoized to prevent recreation on every render
    */
-  const handleRequestPodcastClick = () => {
+  const handleRequestPodcastClick = useCallback(() => {
     trackEvent({
       eventType: 'Request Podcast Button Clicked',
     })
     window.open('https://docs.google.com/document/d/11p38njNdKeJF49XHPtYN-Gb6fotPCkoQIW8V4UDC9hA/edit?usp=sharing', '_blank')
-  }
+  }, [])
 
-  const handleSelfHostClick = () => {
+  const handleSelfHostClick = useCallback(() => {
     trackEvent({
       eventType: 'Self-Host Guide Button Clicked',
     })
     window.open('https://github.com/jackkoppa/browse-dot-show/blob/main/docs/GETTING_STARTED.md', '_blank')
-  }
+  }, [])
 
   return (
-    <div className="bg-background min-h-screen">
-      <AppHeader
-        scrolled={scrolled}
-        config={{
-          title: {
-            main: '[browse.show]'
-          }
-        }}
-      />
+    <PerformanceProfiler id="HomePage">
+      <div className="bg-background min-h-screen">
+        <PerformanceProfiler id="AppHeader">
+          <AppHeader
+            scrolled={scrolled}
+            config={{
+              title: {
+                main: '[browse.show]'
+              }
+            }}
+          />
+        </PerformanceProfiler>
 
       <div className="max-w-3xl mx-auto p-4 pt-24 sm:pt-32 transition-all">
         {/* Hero Section */}
@@ -159,24 +156,28 @@ function HomePage() {
 
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Site Selection */}
-            <SiteSelector
-              sites={deployedSites}
-              selectedSite={selectedSite}
-              onSiteSelect={setSelectedSite}
-            />
+            <PerformanceProfiler id="SiteSelector">
+              <SiteSelector
+                sites={deployedSites}
+                selectedSite={selectedSite}
+                onSiteSelect={setSelectedSite}
+              />
+            </PerformanceProfiler>
 
             {/* Search Input */}
-            <div>
-              <SimpleSearchInput
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={setSearchQuery}
-                onSearch={handleUniversalSearch}
-                isLoading={false}
-                placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
-                disabled={!selectedSite}
-              />
-            </div>
+            <PerformanceProfiler id="SimpleSearchInput">
+              <div>
+                <SimpleSearchInput
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSearch={handleUniversalSearch}
+                  isLoading={false}
+                  placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
+                  disabled={!selectedSite}
+                />
+              </div>
+            </PerformanceProfiler>
             {/* Show tagline when a site is selected */}
             {selectedSiteConfig && (
               <div className="mt-2">
@@ -259,11 +260,14 @@ function HomePage() {
         </div>
       </div>
 
-      {/* Theme Toggle - positioned absolutely */}
-      <div className="fixed bottom-6 right-6">
-        <ThemeToggle />
+        {/* Theme Toggle - positioned absolutely */}
+        <PerformanceProfiler id="ThemeToggle">
+          <div className="fixed bottom-6 right-6">
+            <ThemeToggle />
+          </div>
+        </PerformanceProfiler>
       </div>
-    </div>
+    </PerformanceProfiler>
   )
 }
 

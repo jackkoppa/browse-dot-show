@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { Button } from '@browse-dot-show/ui'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@browse-dot-show/ui'
 import { cn } from '@browse-dot-show/ui'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useRenderTracker } from '../hooks/useRenderTracker'
 
 interface Site {
   id: string
@@ -32,10 +33,22 @@ interface SiteSelectorProps {
 }
 
 export default function SiteSelector({ sites, selectedSite, onSiteSelect }: SiteSelectorProps) {
+  useRenderTracker('SiteSelector')
+  
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
   
-  const selectedSiteData = sites.find(site => site.id === selectedSite)
+  // Memoize selected site data lookup
+  const selectedSiteData = useMemo(() => {
+    return sites.find(site => site.id === selectedSite)
+  }, [sites, selectedSite])
+
+  // Memoize the site selection callback
+  const handleSiteSelect = useCallback((currentValue: string) => {
+    const newValue = currentValue === selectedSite ? "" : currentValue
+    onSiteSelect(newValue)
+    setOpen(false)
+  }, [selectedSite, onSiteSelect])
 
   return (
     <div className="space-y-4">
@@ -83,10 +96,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                     <CommandItem
                       key={site.id}
                       value={site.id}
-                      onSelect={(currentValue: string) => {
-                        onSiteSelect(currentValue === selectedSite ? "" : currentValue)
-                        setOpen(false)
-                      }}
+                      onSelect={handleSiteSelect}
                       className="[&[data-selected=true]_.domain-text]:text-background"
                     >
                       <div className="flex items-center gap-3 w-full">

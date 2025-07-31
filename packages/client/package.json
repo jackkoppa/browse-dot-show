@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "_vite-dev": "vite",
-    "_serve-s3-assets": "tsx ../../scripts/serve-site-assets.ts"
+    "_serve-s3-assets": "tsx ../../scripts/serve-site-assets.ts",
+    "dev:with-profiling": "VITE_ENABLE_PROFILING=true vite"
   },
   "dependencies": {
     "@browse-dot-show/blocks": "workspace:*",

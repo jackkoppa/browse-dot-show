@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite dev"
+    "dev": "vite dev",
+    "dev:with-profiling": "VITE_ENABLE_PROFILING=true vite dev"
   },
   "dependencies": {
     "@browse-dot-show/types": "workspace:*",

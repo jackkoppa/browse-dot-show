@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '../utils/logging';
@@ -9,6 +9,9 @@ import '../App.css'
 import AppHeader from '../components/AppHeader'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
+import { PerformanceProfiler } from '../components/PerformanceProfiler'
+import { useOptimizedScroll } from '../hooks/useOptimizedScroll'
+import { useRenderTracker } from '../hooks/useRenderTracker'
 import { performSearch, performHealthCheck } from '../utils/search'
 import { SortOption } from '../types/search'
 import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
@@ -34,6 +37,8 @@ const ESTIMATED_TIME_FOR_LAMBDA_COLD_START = 10000; // 10 seconds
  * - Renders Outlet for child routes (episode sheet overlay)
  */
 function HomePage() {
+  useRenderTracker('HomePage')
+  
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-driven state - read from search params
@@ -45,7 +50,8 @@ function HomePage() {
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scrolled, setScrolled] = useState(false);
+  // Use optimized scroll detection
+  const scrolled = useOptimizedScroll(10, 16) // 10px threshold, 16ms throttle (~60fps)
   const [totalHits, setTotalHits] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState<number>(0);
   const [isLambdaWarm, setIsLambdaWarm] = useState(false);
@@ -70,12 +76,12 @@ function HomePage() {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
 
-  // URL update functions
-  const updateSearchQuery = (query: string) => {
+  // Memoized URL update functions
+  const updateSearchQuery = useCallback((query: string) => {
     setLocalSearchQuery(query);
-  };
+  }, []);
 
-  const updateSortOption = (sort: SortOption) => {
+  const updateSortOption = useCallback((sort: SortOption) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       if (sort !== 'relevance') {
@@ -87,9 +93,9 @@ function HomePage() {
       newParams.delete('page');
       return newParams;
     });
-  };
+  }, [setSearchParams]);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
       if (page > 1) {
@@ -99,22 +105,9 @@ function HomePage() {
       }
       return newParams;
     });
-  };
+  }, [setSearchParams]);
 
-  /**
-   * Handle scroll detection for header visual effects
-   */
-  useEffect(() => {
-    const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [scrolled]);
+  // Scroll handling moved to useOptimizedScroll hook
 
   /**
    * Perform health check on app initialization to warm up the Lambda
@@ -140,10 +133,10 @@ function HomePage() {
     performLambdaHealthCheck();
   }, []);
 
-  /**
-   * Perform search when explicitly triggered by user (Enter key or button click)
+    /**
+   * Perform search when explicitly triggered by user (Enter key or button click) - memoized
    */
-  const handleSearch = async () => {
+  const handleSearch = useCallback(async () => {
     const trimmedQuery = localSearchQuery.trim();
 
     // Clear results if query is too short
@@ -185,12 +178,12 @@ function HomePage() {
 
     // Perform the search
     await performSearchRequest(trimmedQuery);
-  };
+  }, [localSearchQuery, setSearchParams, pageLoadTime, isLambdaWarm, performSearchRequest]);
 
   /**
-   * Perform the actual search API request
+   * Perform the actual search API request - memoized to prevent recreation
    */
-  const performSearchRequest = async (query: string) => {
+  const performSearchRequest = useCallback(async (query: string) => {
     // Check if we're about to perform the same search as last time
     const currentSearchParams = { query, sort: sortOption, page: currentPage };
     const lastParams = lastSearchParams.current;
@@ -251,7 +244,7 @@ function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [sortOption, currentPage]); // Dependencies for the memoized function
 
   /**
    * Trigger search when Lambda becomes warm and user has a pending search
@@ -288,47 +281,55 @@ function HomePage() {
   }, [sortOption, currentPage]);
 
   return (
-    <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 sm:pt-28 min-h-screen">
-      <AppHeader scrolled={scrolled} />
+    <PerformanceProfiler id="HomePage">
+      <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 sm:pt-28 min-h-screen">
+        <PerformanceProfiler id="AppHeader">
+          <AppHeader scrolled={scrolled} />
+        </PerformanceProfiler>
 
-      <SearchInput
-        value={localSearchQuery}
-        onChange={updateSearchQuery}
-        onSearch={handleSearch}
-        isLoading={isLoading}
-        mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
-      />
+        <PerformanceProfiler id="SearchInput">
+          <SearchInput
+            value={localSearchQuery}
+            onChange={updateSearchQuery}
+            onSearch={handleSearch}
+            isLoading={isLoading}
+            mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
+          />
+        </PerformanceProfiler>
 
-      {/* Conditionally render ColdStartLoader or SearchResults */}
-      {showColdStartLoader ? (
-        <div className="p-4 bg-gray-100 animate-pulse rounded text-center">
-          <p>Initializing search...</p>
-          <br/>
-          <p>Subsequent searches will be much faster</p>
-        </div>
-      ) : (
-        <SearchResults
-          results={searchResults}
-          isLoading={isLoading}
-          error={error}
-          searchQuery={searchQuery}
-          mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
-          totalHits={totalHits}
-          processingTimeMs={processingTimeMs}
-          episodeManifest={episodeManifest}
-          isManifestLoading={isManifestLoading}
-          manifestError={manifestError}
-          sortOption={sortOption}
-          onSortChange={updateSortOption}
-          currentPage={currentPage}
-          itemsPerPage={SEARCH_LIMIT}
-          onPageChange={handlePageChange}
-        />
-      )}
+        {/* Conditionally render ColdStartLoader or SearchResults */}
+        {showColdStartLoader ? (
+          <div className="p-4 bg-gray-100 animate-pulse rounded text-center">
+            <p>Initializing search...</p>
+            <br/>
+            <p>Subsequent searches will be much faster</p>
+          </div>
+        ) : (
+          <PerformanceProfiler id="SearchResults">
+            <SearchResults
+              results={searchResults}
+              isLoading={isLoading}
+              error={error}
+              searchQuery={searchQuery}
+              mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
+              totalHits={totalHits}
+              processingTimeMs={processingTimeMs}
+              episodeManifest={episodeManifest}
+              isManifestLoading={isManifestLoading}
+              manifestError={manifestError}
+              sortOption={sortOption}
+              onSortChange={updateSortOption}
+              currentPage={currentPage}
+              itemsPerPage={SEARCH_LIMIT}
+              onPageChange={handlePageChange}
+            />
+          </PerformanceProfiler>
+        )}
 
-      {/* Outlet for child routes - episode sheet overlay */}
-      <Outlet />
-    </div>
+        {/* Outlet for child routes - episode sheet overlay */}
+        <Outlet />
+      </div>
+    </PerformanceProfiler>
   )
 }
 

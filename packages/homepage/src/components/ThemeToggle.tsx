@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
-import { useTheme } from "../hooks/useTheme";
+import { useOptimizedTheme } from "../hooks/useOptimizedTheme";
+import { useRenderTracker } from "../hooks/useRenderTracker";
 import {
   SwitchPrimitive,
   Tooltip,
@@ -8,17 +9,19 @@ import {
 } from "@browse-dot-show/ui";
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  useRenderTracker('ThemeToggle')
+  
+  const { theme, toggleTheme } = useOptimizedTheme()
 
   const handleThemeToggle = () => {
-    toggleTheme();
-  };
+    toggleTheme()
+  }
 
   // https://github.com/jnsahaj/tweakcn/blob/3ede03913eb68b65d264716c448dea50f8408dfb/components/editor/action-bar/components/theme-toggle.tsx#L19
   return (
     <div className="px-2">
       <Tooltip defaultOpen={false}>
-        <TooltipTrigger>
+        <TooltipTrigger asChild>
           <SwitchPrimitive.Root
             checked={theme === "dark"}
             onClick={handleThemeToggle}

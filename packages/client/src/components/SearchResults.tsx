@@ -1,6 +1,9 @@
+import { useMemo } from 'react'
 import { ApiSearchResultHit, EpisodeManifest } from '@browse-dot-show/types'
 import SearchResult from './SearchResult'
+import SearchTimeAndResultCount from './SearchTimeAndResultCount'
 import SearchResultsPagination from './SearchResultsPagination'
+import { useRenderTracker } from '../hooks/useRenderTracker'
 import {
   Select,
   SelectContent,
@@ -106,6 +109,33 @@ export default function SearchResults({
   itemsPerPage,
   onPageChange,
 }: SearchResultsProps) {
+  useRenderTracker('SearchResults')
+
+  // Memoize expensive computations
+  const processingTimeSeconds = useMemo(() => 
+    Math.round(processingTimeMs) / 1000,
+    [processingTimeMs]
+  );
+
+  const showResultsInfo = useMemo(() => 
+    Boolean(mostRecentSuccessfulSearchQuery),
+    [mostRecentSuccessfulSearchQuery]
+  );
+
+  // Memoize the results list to prevent unnecessary re-renders
+  const memoizedResults = useMemo(() => 
+    results.map((result) => (
+      <SearchResult
+        key={result.id}
+        result={result}
+        episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
+        isManifestLoading={isManifestLoading}
+        showManifestError={Boolean(manifestError)}
+      />
+    )),
+    [results, episodeManifest?.episodes, isManifestLoading, manifestError]
+  );
+
   // Show error message if there's an error
   if (error) {
     return (
@@ -188,15 +218,7 @@ export default function SearchResults({
       ) : results.length > 0 ? (
         <>
           <ul className="results-list space-y-6">
-            {results.map((result) => (
-              <SearchResult
-                key={result.id}
-                result={result}
-                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
-                isManifestLoading={isManifestLoading}
-                showManifestError={Boolean(manifestError)}
-              />
-            ))}
+            {memoizedResults}
           </ul>
           <SearchResultsPagination
             currentPage={currentPage}

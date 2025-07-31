@@ -1,6 +1,8 @@
+import { useCallback, useMemo } from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Button } from "@browse-dot-show/ui"
 import { Input } from "@browse-dot-show/ui"
+import { useRenderTracker } from '../hooks/useRenderTracker'
 import siteConfig from '@/config/site-config'
 
 interface SearchInputProps {
@@ -24,28 +26,44 @@ export default function SearchInput({
   isLoading,
   mostRecentSuccessfulSearchQuery,
 }: SearchInputProps) {
-  const handleChange = (newValue: string) => {
-    onChange(newValue);
-  };
+  useRenderTracker('SearchInput')
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Memoize handlers to prevent recreation on every render
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue);
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onSearch();
     }
-  };
+  }, [onSearch]);
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     onSearch();
-  };
+  }, [onSearch]);
 
-  
-  const showInteractiveButton = mostRecentSuccessfulSearchQuery !== value && value.trim().length >= 2 && !isLoading;
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e.target.value);
+  }, [handleChange]);
+
+  // Memoize computed values
+  const showInteractiveButton = useMemo(() => 
+    mostRecentSuccessfulSearchQuery !== value && value.trim().length >= 2 && !isLoading,
+    [mostRecentSuccessfulSearchQuery, value, isLoading]
+  );
   
   // Show a more centered, larger search input on the first search, or when the user has cleared the search input
-  const showBigSearchInput = Boolean(!mostRecentSuccessfulSearchQuery);
-  const containerClassName = showBigSearchInput ? 'pt-30' : 'pt-4';
-  const inputClassName = showBigSearchInput ? 'h-16' : 'h-12';
-  const buttonClassName = showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12';
+  const showBigSearchInput = useMemo(() => 
+    Boolean(!mostRecentSuccessfulSearchQuery),
+    [mostRecentSuccessfulSearchQuery]
+  );
+  
+  const { containerClassName, inputClassName, buttonClassName } = useMemo(() => ({
+    containerClassName: showBigSearchInput ? 'pt-30' : 'pt-4',
+    inputClassName: showBigSearchInput ? 'h-16' : 'h-12',
+    buttonClassName: showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12'
+  }), [showBigSearchInput]);
 
   return (
     <div className={`mx-[-16px] text-card-foreground pb-8 px-[16px] sticky top-16 xs:top-19 sm:top-13 flex flex-col items-center bg-gradient-to-b from-background from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
@@ -54,7 +72,7 @@ export default function SearchInput({
           type="text"
           placeholder={placeholder}
           value={value}
-          onChange={(e) => handleChange(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           className={`text-md shadow-sm ${inputClassName}`}
         />
