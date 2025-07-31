@@ -28,10 +28,9 @@
   "themeColor": "#a6b8ba",
   "themeColorDark": "#162640",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "Tachoma Dhaume",
+    "Vyng Vang Zoombah",
+    "Exodus"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }

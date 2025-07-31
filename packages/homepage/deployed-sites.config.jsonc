@@ -47,6 +47,15 @@
                 "imageUrl": "https://claretandblue.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "absolute scenes"
             },
+            // sites/origin-sites/fromtherookeryend
+            "fromtherookeryend": {
+                "siteName": "[browse.show] From the Rookery End",
+                "displayedPodcastName": "From the Rookery End",
+                "podcastTagline": "FTRE is a monthly podcast about Watford Football Club. Presented by Jon Moonie, Jason Bailey and Mike Parkin, three lifelong Watford fans and season ticket holders in the Rookery End at Vicarage Road.",
+                "domain": "fromtherookeryend.browse.show",
+                "imageUrl": "https://fromtherookeryend.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Vicarage Road"
+            },
             // sites/origin-sites/searchengine
             "searchengine": {
                 "siteName": "[browse.show] Search Engine",
@@ -100,6 +109,15 @@
                 "domain": "pickleballstudio.browse.show",
                 "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "3.5 at best"
+            },
+            // sites/origin-sites/spoutlore
+            "spoutlore": {
+                "siteName": "[browse.show] Spout Lore",
+                "displayedPodcastName": "Spout Lore",
+                "podcastTagline": "Welcome to Spout Lore! Join three \"mighty\" \"heroes\" as they bumble their way through a post-magic world that gets made up as we go.",
+                "domain": "spoutlore.browse.show",
+                "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Exodus"
             }
         }
     }
