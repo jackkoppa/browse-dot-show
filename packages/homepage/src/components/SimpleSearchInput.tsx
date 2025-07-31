@@ -58,7 +58,7 @@ const SimpleSearchInput = forwardRef<HTMLInputElement, SimpleSearchInputProps>((
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className="text-sm h-14 sm:h-16 pr-4 bg-background border-input"
+        className="text-md h-14 sm:h-16 pr-4 bg-background border-input"
       />
       <Button
         onClick={handleSearchClick}
