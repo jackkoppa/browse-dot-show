@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { GitHubLogoIcon, EnvelopeClosedIcon } from '@radix-ui/react-icons'
 import { AppHeader } from '@browse-dot-show/blocks'
 import { Button, Card, CardContent } from '@browse-dot-show/ui'
 import SimpleSearchInput from '../components/SimpleSearchInput'
 import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { PerformanceProfiler } from '../components/PerformanceProfiler'
+import { BlueskyIcon } from '../icons/BlueskyIcon'
 import { useOptimizedScroll } from '../hooks/useOptimizedScroll'
 import { useRenderTracker } from '../hooks/useRenderTracker'
 import { log } from '../utils/logging'
@@ -40,6 +42,7 @@ function HomePage() {
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const contactSectionRef = useRef<HTMLDivElement>(null)
 
   // Use optimized scroll detection
   const scrolled = useOptimizedScroll(10, 16) // 10px threshold, 16ms throttle (~60fps)
@@ -57,6 +60,28 @@ function HomePage() {
       }, 100)
     }
   }, [selectedSite])
+
+  /**
+   * Handle URL-based scrolling to contact section
+   */
+  useEffect(() => {
+    const checkForContactRoute = () => {
+      if (window.location.pathname === '/contact' && contactSectionRef.current) {
+        contactSectionRef.current.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        })
+      }
+    }
+
+    // Check on initial load
+    checkForContactRoute()
+
+    // Also check when the component mounts in case of direct navigation
+    const timer = setTimeout(checkForContactRoute, 100)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Memoize selected site config to avoid recalculation on every render
   const selectedSiteConfig = useMemo(() => {
@@ -106,6 +131,30 @@ function HomePage() {
     window.open('https://github.com/jackkoppa/browse-dot-show/blob/main/docs/GETTING_STARTED.md', '_blank')
   }, [])
 
+  /**
+   * Handle contact link clicks with tracking
+   */
+  const handleEmailClick = useCallback(() => {
+    trackEvent({
+      eventType: 'Contact Email Clicked',
+    })
+    window.open('mailto:contact@browse.show', '_self')
+  }, [])
+
+  const handleGitHubClick = useCallback(() => {
+    trackEvent({
+      eventType: 'Contact GitHub Clicked',
+    })
+    window.open('https://github.com/jackkoppa/browse-dot-show', '_blank')
+  }, [])
+
+  const handleBlueskyClick = useCallback(() => {
+    trackEvent({
+      eventType: 'Contact Bluesky Clicked',
+    })
+    window.open('http://bsky.app/jackkoppa.dev', '_blank')
+  }, [])
+
   return (
     <PerformanceProfiler id="HomePage">
       <div className="bg-background min-h-screen">
@@ -115,6 +164,9 @@ function HomePage() {
             config={{
               title: {
                 main: '[browse.show]'
+              },
+              tagline: {
+                text: 'transcribe & search any podcast'
               }
             }}
           />
@@ -256,6 +308,60 @@ function HomePage() {
                 </p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Contact Section */}
+        <div ref={contactSectionRef} className="mb-16">
+          <h2 className="text-xl md:text-2xl font-bold mb-8 text-center">
+            Contact
+          </h2>
+          
+          <div className="max-w-2xl mx-auto text-left">
+            <div className="mb-8 space-y-4">
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Want to <button
+                  onClick={handleRequestPodcastClick}
+                  className="text-primary hover:underline font-medium"
+                >
+                  request a podcast
+                </button> or <button
+                  onClick={handleSelfHostClick}
+                  className="text-primary hover:underline font-medium"
+                >
+                  self-host your own
+                </button>? Please do!
+              </p>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Or, get in touch another way:
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-6 justify-start items-start">
+              <button
+                onClick={handleEmailClick}
+                className="flex items-center gap-3 text-foreground hover:text-primary transition-colors group"
+              >
+                <EnvelopeClosedIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-lg">contact@browse.show</span>
+              </button>
+
+              <button
+                onClick={handleGitHubClick}
+                className="flex items-center gap-3 text-foreground hover:text-primary transition-colors group"
+              >
+                <GitHubLogoIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-lg">GitHub</span>
+              </button>
+
+              <button
+                onClick={handleBlueskyClick}
+                className="flex items-center gap-3 text-foreground hover:text-primary transition-colors group"
+              >
+                <BlueskyIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="text-lg">Bluesky</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

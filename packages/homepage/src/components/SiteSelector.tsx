@@ -95,7 +95,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                   {sites.map((site) => (
                     <CommandItem
                       key={site.id}
-                      value={site.id}
+                      value={site.id + " " + site.displayName + " " + site.domain}
                       onSelect={handleSiteSelect}
                       className="[&[data-selected=true]_.domain-text]:text-background"
                     >
