@@ -1,5 +1,12 @@
 # sites
 
+> [!TIP]
+> Follow the [Getting Started guide](../docs/GETTING_STARTED.md) to create your first site, using the interactive site creator.
+
+
+
+---
+
 Here, we configure the different sites (typically one site per transcribed podcast) managed by the repo. 
 
 Each site defines a few things, including its:
