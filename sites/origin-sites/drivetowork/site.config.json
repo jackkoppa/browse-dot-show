@@ -24,14 +24,11 @@
       "url": "https://feeds.transistor.fm/magic-the-gathering-drive-to-work-podcast"
     }
   ],
-  "whisperTranscriptionPrompt": "Hi, welcome to Drive to Work. Let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "whisperTranscriptionPrompt": "Join me - Magic: The Gathering Head Designer Mark Rosewater - as I share stories, insights, and more about MTG, while driving to work. Listen and learn more about how Magic is made - let's jump in!",
+  "themeColor": "#3fcbe9",
+  "themeColorDark": "#134979",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "illustration"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }

@@ -3,6 +3,6 @@
 /* run `pnpm validate:sites` to confirm that theme colors match across this file, index.css, and site.config.json */
 
 :root {
-    --browse-dot-show-theme-light: #B7E42F;
-    --browse-dot-show-theme-dark: #734EE4;
+    --browse-dot-show-theme-light: #3fcbe9;
+    --browse-dot-show-theme-dark: #134979;
 }
