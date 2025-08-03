@@ -81,7 +81,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
   try {
     // Bootstrap terraform state bucket if needed (ensures backend exists)
     printInfo('Ensuring Terraform state bucket exists...');
-    printInfo(`Expected bucket name: ${siteId}-terraform-state`);
+    printInfo(`Expected bucket name: browse-dot-show-${siteId}-tf-state`);
     await execCommandOrThrow('tsx', ['../../scripts/deploy/bootstrap-site-state.ts', siteId, process.env.AWS_PROFILE || '']);
     printSuccess('✅ Terraform state bucket bootstrap completed');
 
