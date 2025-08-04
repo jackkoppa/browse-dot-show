@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon-96x96.png">
+    <link rel="manifest" href="/assets/site.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>browse.show - transcribe & search any podcast (v2)</title>
+    <meta name="description" content="Find exact moments in your favorite podcasts. Jump to that point & start listening. Currently available for select shows, with more added by request.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://browse.show/">
+    <meta property="og:title" content="browse.show - transcribe & search any podcast">
+    <meta property="og:description" content="Find exact moments in your favorite podcasts. Jump to that point & start listening. Currently available for select shows, with more added by request.">
+    <meta property="og:image" content="https://browse.show/assets/social-cards/browse-dot-show-social-card.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://browse.show/">
+    <meta property="twitter:title" content="browse.show - transcribe & search any podcast">
+    <meta property="twitter:description" content="Find exact moments in your favorite podcasts. Jump to that point & start listening. Currently available for select shows, with more added by request.">
+    <meta property="twitter:image" content="https://browse.show/assets/social-cards/browse-dot-show-social-card.png">
+
+    <!-- Prevent FOUC with a basic dark mode fallback -->
+    <style>
+      body {
+        background-color: #0a0a0a;
+        color: #fafafa;
+        margin: 0;
+        padding: 0;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      
+      @media (prefers-color-scheme: light) {
+        body {
+          background-color: #ffffff;
+          color: #0a0a0a;
+        }
+      }
+    </style>
+
+    <!-- GoatCounter Analytics -->
+    <script data-goatcounter="https://browse-dot-show.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main-v2.tsx"></script>
+  </body>
+</html>

@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite dev"
+    "dev": "vite dev",
+    "dev:v2": "vite dev --config vite.config.v2.ts",
+    "dev:v3": "vite dev --config vite.config.v3.ts",
+    "build:v2": "vite build --config vite.config.v2.ts",
+    "build:v3": "vite build --config vite.config.v3.ts"
   },
   "dependencies": {
     "@browse-dot-show/types": "workspace:*",
