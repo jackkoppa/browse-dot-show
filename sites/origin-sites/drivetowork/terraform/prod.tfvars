@@ -18,10 +18,14 @@ search_lambda_warming_schedule = "rate(5 minutes)"
 # Logging
 log_level = "info"
 
+#########
+# IMPORTANT TODO - See /sites/limitedresources - same issue for this site, re: max size
+
 ## OPTIONAL
 
 ## Search lambda configuration
-# search_lambda_memory_size = 3008  # Adjust based on your podcast size / max observed memory usage
+# Search lambda configuration
+search_lambda_memory_size = 5632  # Max observed memory as of 2025-08-03: 4548 MB
 
-## SRT indexing Lambda configuration
-# srt_indexing_lambda_memory_size = 3008 # Adjust based on your podcast size / max observed memory usage
+# SRT indexing Lambda configuration
+srt_indexing_lambda_memory_size = 500 # Unfortunately, even the max of 10240 is not enough, so this just will not work. See above for future work.
