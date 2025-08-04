@@ -137,6 +137,8 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         } else if (site.appHeader.primaryTitle.length > 22) {
             if (site.appHeader.primaryTitle.length > 40) {
                 result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds maximum 40 character limit for proper header display (current length: ${site.appHeader.primaryTitle.length})`);
+            } else if (!site.appHeader.includeTitlePrefix) {
+                result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds 22 character limit for proper mobile header display, when there is no title prefix.\n\nWe would need to adjust support in SearchInput.tsx / HomePage.tsx to cover this case. To resolve simply, either shorten the title, OR set appHeader.includeTitlePrefix + appHeader.extraHeightForLongTitle to true.`);
             } else if (!site.appHeader.extraHeightForLongTitle) {
                 result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds 22 character limit for proper mobile header display (current length: ${site.appHeader.primaryTitle.length}). Set appHeader.extraHeightForLongTitle to true to accommodate the extra height.`);
             }

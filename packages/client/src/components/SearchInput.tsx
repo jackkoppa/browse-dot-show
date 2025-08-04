@@ -11,6 +11,7 @@ interface SearchInputProps {
   mostRecentSuccessfulSearchQuery: string | null
   headerConfig: {
     extraHeightForLongTitle: boolean
+    includeTitlePrefix: boolean
   }
 }
 
@@ -57,9 +58,10 @@ export default function SearchInput({
   }
   const inputClassName = showBigSearchInput ? 'h-16' : 'h-12';
   const buttonClassName = showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12';
+  const inputTopPosition = headerConfig.includeTitlePrefix ? 'top-16 xs:top-19 sm:top-13' : 'top-10 xs:top-14 sm:top-13';
 
   return (
-    <div className={`mx-[-16px] text-card-foreground pb-8 px-[16px] sticky top-16 xs:top-19 sm:top-13 flex flex-col items-center bg-gradient-to-b from-background from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
+    <div className={`mx-[-16px] text-card-foreground pb-8 px-[16px] sticky ${inputTopPosition} flex flex-col items-center bg-gradient-to-b from-background from-85% to-transparent z-10 transition-[padding] duration-500 ${containerClassName}`}>
       <div className="relative w-full flex gap-2">
         <Input
           type="text"

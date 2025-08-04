@@ -43,7 +43,8 @@ function HomePage() {
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   const headerConfig = { 
-    extraHeightForLongTitle: siteConfig.appHeader.extraHeightForLongTitle
+    extraHeightForLongTitle: siteConfig.appHeader.extraHeightForLongTitle,
+    includeTitlePrefix: siteConfig.appHeader.includeTitlePrefix
   }
 
   // Local component state
