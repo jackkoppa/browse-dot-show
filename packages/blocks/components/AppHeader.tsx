@@ -48,7 +48,7 @@ export default function AppHeader({ scrolled, config }: AppHeaderProps) {
           </div>}
 
           {/* Title Section - Main title always, prefix on desktop only */}
-          <div className={`flex-1 sm:order-1 ${hasPrefix ? 'content-center' : ''}`}>
+          <div className={`flex-1 sm:order-1 ${!hasPrefix ? 'content-center' : ''}`}>
             <h1 className={`font-bold transition-all duration-200 leading-tight ${scrolled ? 'text-xl xs:text-2xl mb-0' : 'text-2xl xs:text-3xl mb-1'}`}>
               {/* Desktop: Show prefix inline with title */}
               {config.title.prefix && (
