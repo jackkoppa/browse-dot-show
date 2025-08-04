@@ -2,24 +2,24 @@
   "id": "drivetowork",
   "domain": "drivetowork.browse.show",
   "appHeader": {
-    "primaryTitle": "Drive to Work",
+    "primaryTitle": "Magic: The Gathering - Drive to Work",
     "includeTitlePrefix": true,
-    "taglinePrimaryPodcastName": "Drive to Work",
+    "taglinePrimaryPodcastName": "Magic: The Gathering - Drive to Work",
     "taglinePrimaryPodcastExternalURL": "https://magic.wizards.com/",
     "taglineSuffix": "podcast archives"
   },
   "socialAndMetadata": {
-    "pageTitle": "[browse.show] Drive to Work",
+    "pageTitle": "[browse.show] Magic: The Gathering - Drive to Work",
     "canonicalUrl": "https://drivetowork.browse.show",
     "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
-    "metaDescription": "Search all episodes of the Drive to Work podcast",
-    "metaTitle": "[browse.show] Drive to Work"
+    "metaDescription": "Search all episodes of the Magic: The Gathering - Drive to Work podcast",
+    "metaTitle": "[browse.show] Magic: The Gathering - Drive to Work"
   },
   "includedPodcasts": [
     {
       "id": "drive-to-work",
       "rssFeedFile": "drivetowork.xml",
-      "title": "Drive to Work",
+      "title": "Magic: The Gathering - Drive to Work",
       "status": "active",
       "url": "https://feeds.transistor.fm/magic-the-gathering-drive-to-work-podcast"
     }
