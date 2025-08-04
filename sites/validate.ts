@@ -135,7 +135,11 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         if (!site.appHeader.primaryTitle) {
             result.errors.push('Missing required field: appHeader.primaryTitle');
         } else if (site.appHeader.primaryTitle.length > 22) {
-            result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds 22 character limit for proper mobile header display (current length: ${site.appHeader.primaryTitle.length})`);
+            if (site.appHeader.primaryTitle.length > 40) {
+                result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds maximum 40 character limit for proper header display (current length: ${site.appHeader.primaryTitle.length})`);
+            } else if (!site.appHeader.extraHeightForLongTitle) {
+                result.errors.push(`appHeader.primaryTitle "${site.appHeader.primaryTitle}" exceeds 22 character limit for proper mobile header display (current length: ${site.appHeader.primaryTitle.length}). Set appHeader.extraHeightForLongTitle to true to accommodate the extra height.`);
+            }
         }
         
         if (typeof site.appHeader.includeTitlePrefix !== 'boolean') {

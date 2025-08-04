@@ -13,6 +13,7 @@ import { performSearch, performHealthCheck } from '../utils/search'
 import { SortOption } from '../types/search'
 import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
 import { trackEvent } from '@/utils/goatcounter';
+import siteConfig from '../config/site-config'
 
 // Get the search API URL from environment variable, fallback to localhost for development
 const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
@@ -40,6 +41,10 @@ function HomePage() {
   const searchQuery = searchParams.get('q') || '';
   const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+  const headerConfig = { 
+    extraHeightForLongTitle: siteConfig.appHeader.extraHeightForLongTitle
+  }
 
   // Local component state
   const [searchResults, setSearchResults] = useState<ApiSearchResultHit[]>([]);
@@ -297,6 +302,7 @@ function HomePage() {
         onSearch={handleSearch}
         isLoading={isLoading}
         mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
+        headerConfig={headerConfig}
       />
 
       {/* Conditionally render ColdStartLoader or SearchResults */}

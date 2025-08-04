@@ -9,6 +9,9 @@ interface SearchInputProps {
   onSearch: () => void
   isLoading: boolean
   mostRecentSuccessfulSearchQuery: string | null
+  headerConfig: {
+    extraHeightForLongTitle: boolean
+  }
 }
 
 const { searchPlaceholderOptions } = siteConfig
@@ -23,6 +26,7 @@ export default function SearchInput({
   onSearch,
   isLoading,
   mostRecentSuccessfulSearchQuery,
+  headerConfig,
 }: SearchInputProps) {
   const handleChange = (newValue: string) => {
     onChange(newValue);
@@ -43,7 +47,14 @@ export default function SearchInput({
   
   // Show a more centered, larger search input on the first search, or when the user has cleared the search input
   const showBigSearchInput = Boolean(!mostRecentSuccessfulSearchQuery);
-  const containerClassName = showBigSearchInput ? 'pt-30' : 'pt-4';
+  let containerClassName = '';
+  if (showBigSearchInput) {
+    containerClassName = 'pt-30';
+  } else if (headerConfig.extraHeightForLongTitle) {
+    containerClassName = 'pt-12';
+  } else {
+    containerClassName = 'pt-4';
+  }
   const inputClassName = showBigSearchInput ? 'h-16' : 'h-12';
   const buttonClassName = showBigSearchInput ? 'h-16 w-16' : 'h-12 w-12';
 

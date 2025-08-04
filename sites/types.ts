@@ -70,6 +70,11 @@ export interface AppHeader {
      * @example `record books`
      */
     taglineSuffix: string;
+
+    /**
+     * whether to add extra height to the app header to accommodate a long title
+     */
+    extraHeightForLongTitle: boolean;
 }
 
 export interface SiteConfig {

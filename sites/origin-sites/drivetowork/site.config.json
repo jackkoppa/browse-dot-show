@@ -4,9 +4,10 @@
   "appHeader": {
     "primaryTitle": "Magic: The Gathering - Drive to Work",
     "includeTitlePrefix": true,
-    "taglinePrimaryPodcastName": "Magic: The Gathering - Drive to Work",
+    "taglinePrimaryPodcastName": "MTG - Drive to Work",
     "taglinePrimaryPodcastExternalURL": "https://magic.wizards.com/",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "extraHeightForLongTitle": true
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Magic: The Gathering - Drive to Work",
