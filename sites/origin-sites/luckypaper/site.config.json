@@ -1,0 +1,37 @@
+{
+  "id": "luckypaper",
+  "domain": "luckypaper.browse.show",
+  "appHeader": {
+    "primaryTitle": "Lucky Paper",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Lucky Paper",
+    "taglinePrimaryPodcastExternalURL": "https://luckypaper.co",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Lucky Paper",
+    "canonicalUrl": "https://luckypaper.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Lucky Paper podcast",
+    "metaTitle": "[browse.show] Lucky Paper"
+  },
+  "includedPodcasts": [
+    {
+      "id": "lucky-paper",
+      "rssFeedFile": "luckypaper.xml",
+      "title": "Lucky Paper",
+      "status": "active",
+      "url": "https://anchor.fm/s/29f49e0c/podcast/rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to Lucky Paper. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
