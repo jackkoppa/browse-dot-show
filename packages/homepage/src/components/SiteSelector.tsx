@@ -16,26 +16,46 @@ import {
 } from '@browse-dot-show/ui'
 import { cn } from '@browse-dot-show/ui'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { Site } from '../types/search'
 
-interface Site {
-  id: string
-  displayName: string
-  domain: string
-  podcastTagline: string
-  imageUrl: string
-}
 
 interface SiteSelectorProps {
   sites: Site[]
-  selectedSite: string
-  onSiteSelect: (siteId: string) => void
+  selectedSite: Site | null
+  onSiteSelect: (site: Site) => void
+}
+
+
+/** So that both title & domain can be searchable via SiteSelector */
+const getSearchableSiteValue = (site: Site) => {
+  return `${site.displayName} ${site.domain}`
 }
 
 export default function SiteSelector({ sites, selectedSite, onSiteSelect }: SiteSelectorProps) {
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
-  
-  const selectedSiteData = sites.find(site => site.id === selectedSite)
+
+
+  const handleSiteSelect = (updatedSearchSelection: string) => {
+    const site = sites.find(site => getSearchableSiteValue(site) === updatedSearchSelection)
+    if (!site) {
+      console.error(`Site not found for search selection: ${updatedSearchSelection}`)
+      return
+    }
+
+    if (!selectedSite) {
+      onSiteSelect(site)
+      setOpen(false)
+      return
+    }
+    if (getSearchableSiteValue(site) === getSearchableSiteValue(selectedSite)) {
+      setOpen(false)
+      return
+    }
+
+    onSiteSelect(site)
+    setOpen(false)
+  }
 
   return (
     <div className="space-y-4">
@@ -51,16 +71,16 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
               aria-expanded={open}
               className="w-full justify-between h-auto min-h-[48px] sm:min-h-[64px] p-3 group text-foreground"
             >
-              {selectedSiteData ? (
+              {selectedSite ? (
                 <div className="flex items-center gap-3">
                   <img
-                    src={selectedSiteData.imageUrl}
-                    alt={selectedSiteData.displayName}
+                    src={selectedSite.imageUrl}
+                    alt={selectedSite.displayName}
                     className="w-8 h-8 sm:w-14 sm:h-14 rounded-full object-cover"
                   />
                   <div className="flex flex-col items-start">
-                    <span className="font-bold text-sm sm:text-lg">{selectedSiteData.displayName}</span>
-                    <span className="text-xs text-muted-foreground group-hover:text-background">{selectedSiteData.domain}</span>
+                    <span className="font-bold text-sm sm:text-lg">{selectedSite.displayName}</span>
+                    <span className="text-xs text-muted-foreground group-hover:text-background">{selectedSite.domain}</span>
                   </div>
                 </div>
               ) : (
@@ -82,9 +102,9 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                   {sites.map((site) => (
                     <CommandItem
                       key={site.id}
-                      value={site.id}
-                      onSelect={(currentValue: string) => {
-                        onSiteSelect(currentValue === selectedSite ? "" : currentValue)
+                      value={getSearchableSiteValue(site)}
+                      onSelect={(updatedSearchSelection: string) => {
+                        handleSiteSelect(updatedSearchSelection)
                         setOpen(false)
                       }}
                       className="[&[data-selected=true]_.domain-text]:text-background"
@@ -102,7 +122,7 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
                         <Check
                           className={cn(
                             "ml-auto h-4 w-4 flex-shrink-0",
-                            selectedSite === site.id ? "opacity-100" : "opacity-0"
+                            selectedSite?.id === site.id ? "opacity-100" : "opacity-0"
                           )}
                         />
                       </div>

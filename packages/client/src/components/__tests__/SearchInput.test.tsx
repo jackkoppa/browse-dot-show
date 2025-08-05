@@ -11,6 +11,7 @@ describe('SearchInput', () => {
     onSearch: vi.fn(),
     isLoading: false,
     mostRecentSuccessfulSearchQuery: null,
+    headerConfig: {}
   };
 
   beforeEach(() => {

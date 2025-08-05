@@ -56,6 +56,15 @@
                 "imageUrl": "https://fromtherookeryend.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Vicarage Road"
             },
+            // sites/origin-sites/screenrot
+            "screenrot": {
+                "siteName": "[browse.show] Screen Rot",
+                "displayedPodcastName": "Screen Rot",
+                "podcastTagline": "The Screen Rot Podcast with Jacob Hawley & Jake Farrell, the show discussing the weirdest and worst content that’s been rotting our screens and minds.",
+                "domain": "screenrot.browse.show",
+                "imageUrl": "https://screenrot.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "men are class"
+            },
             // sites/origin-sites/searchengine
             "searchengine": {
                 "siteName": "[browse.show] Search Engine",
@@ -82,6 +91,15 @@
                 "domain": "myfavoritemurder.browse.show",
                 "imageUrl": "https://myfavoritemurder.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "10 foot skeletons"
+            },
+            // sites/origin-sites/drivetowork
+            "drivetowork": {
+                "siteName": "[browse.show] Magic: The Gathering - Drive to Work",
+                "displayedPodcastName": "Magic: The Gathering - Drive to Work",
+                "podcastTagline": "Join Magic: The Gathering Head Designer Mark Rosewater as he shares stories, insights, and more while driving to work. Listen and learn more about how Magic is made!",
+                "domain": "drivetowork.browse.show",
+                "imageUrl": "https://drivetowork.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "tabula rasa"
             },
             // sites/origin-sites/lordsoflimited
             "lordsoflimited": {

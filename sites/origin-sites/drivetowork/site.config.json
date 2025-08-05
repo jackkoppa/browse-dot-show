@@ -5,7 +5,7 @@
     "primaryTitle": "Magic: The Gathering - Drive to Work",
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "MTG - Drive to Work",
-    "taglinePrimaryPodcastExternalURL": "https://magic.wizards.com/",
+    "taglinePrimaryPodcastExternalURL": "https://mtg.fandom.com/wiki/Drive_to_Work",
     "taglineSuffix": "podcast archives",
     "extraHeightForLongTitle": true
   },
@@ -29,7 +29,8 @@
   "themeColor": "#3fcbe9",
   "themeColorDark": "#134979",
   "searchPlaceholderOptions": [
-    "illustration"
+    "illustration",
+    "Bridge Club"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }

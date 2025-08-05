@@ -5,9 +5,9 @@ import { GitHubLogoIcon, EnvelopeClosedIcon } from '@radix-ui/react-icons'
 import SimpleSearchInput from '../components/SimpleSearchInput'
 import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
-import { log } from '../utils/logging'
 import { trackEvent } from '../utils/goatcounter'
 import deployedSitesConfig from '../../deployed-sites.config.jsonc'
+import { Site } from '../types/search'
 
 import '../App.css'
 
@@ -91,7 +91,7 @@ const deployedSites = Object.entries(allSites).map(([id, site]) => ({
  * and provides universal search across all deployed podcast sites.
  */
 function HomePage() {
-  const [selectedSite, setSelectedSite] = useState<string>('')
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -136,12 +136,7 @@ function HomePage() {
     }
 
     const trimmedQuery = searchQuery.trim()
-    const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
 
-    if (!selectedSiteConfig) {
-      log.error('[HomePage.tsx] Selected site not found in config:', selectedSite)
-      return
-    }
 
     // Track the search event
     trackEvent({
@@ -150,11 +145,9 @@ function HomePage() {
     })
 
     // Redirect to the selected site with the search query
-    const targetUrl = `https://${selectedSiteConfig.domain}/?q=${encodeURIComponent(trimmedQuery)}`
+    const targetUrl = `https://${selectedSite.domain}/?q=${encodeURIComponent(trimmedQuery)}`
     window.open(targetUrl, '_self')
   }
-
-  const selectedSiteConfig = deployedSites.find(site => site.id === selectedSite)
 
   /**
    * Handle CTA clicks
@@ -229,15 +222,15 @@ function HomePage() {
                 onChange={setSearchQuery}
                 onSearch={handleUniversalSearch}
                 isLoading={false}
-                placeholder={selectedSiteConfig ? `e.g. "${selectedSiteConfig.searchInputPlaceholder}"` : "Select podcast above"}
+                placeholder={selectedSite ? `e.g. "${selectedSite.searchInputPlaceholder}"` : "Select podcast above"}
                 disabled={!selectedSite}
               />
             </div>
             {/* Show tagline when a site is selected */}
-            {selectedSiteConfig && (
+            {selectedSite && (
               <div className="mt-2">
                 <p className="text-xs text-muted-foreground italic">
-                  {selectedSiteConfig.podcastTagline}
+                  {selectedSite.podcastTagline}
                 </p>
               </div>
             )}

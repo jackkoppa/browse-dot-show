@@ -10,8 +10,8 @@ interface SearchInputProps {
   isLoading: boolean
   mostRecentSuccessfulSearchQuery: string | null
   headerConfig: {
-    extraHeightForLongTitle: boolean
-    includeTitlePrefix: boolean
+    extraHeightForLongTitle?: boolean
+    includeTitlePrefix?: boolean
   }
 }
 
@@ -67,7 +67,7 @@ export default function SearchInput({
           type="text"
           placeholder={placeholder}
           value={value}
-          onChange={(e) => handleChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
           className={`text-md shadow-sm ${inputClassName}`}
         />
