@@ -154,7 +154,8 @@ export async function createAudioChunk(
       '-i', inputPath,
       '-ss', startTime.toString(),
       '-t', duration.toString(),
-      '-c', 'copy', // Copy without re-encoding for speed
+      '-map', '0:0', // Map only the first audio stream (ignore video/cover art)
+      '-c:a', 'copy', // Copy audio without re-encoding for speed
       '-avoid_negative_ts', 'make_zero',
       '-fflags', '+discardcorrupt', // Handle corrupted packets gracefully
       '-err_detect', 'ignore_err', // Ignore minor errors that might cause hangs
