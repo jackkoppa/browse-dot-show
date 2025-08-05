@@ -206,7 +206,8 @@ describe('ffmpeg-utils', () => {
         '-i', '/input.mp3',
         '-ss', '30',
         '-t', '60',
-        '-c', 'copy',
+        '-map', '0:0', // Map only the first audio stream (ignore video/cover art)
+        '-c:a', 'copy', // Copy audio without re-encoding for speed
         '-avoid_negative_ts', 'make_zero',
         '-fflags', '+discardcorrupt',
         '-err_detect', 'ignore_err',
