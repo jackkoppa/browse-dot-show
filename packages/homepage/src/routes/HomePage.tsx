@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { AppHeader } from '@browse-dot-show/blocks'
 import { Button, Card, CardContent } from '@browse-dot-show/ui'
+import { GitHubLogoIcon, EnvelopeClosedIcon } from '@radix-ui/react-icons'
 import SimpleSearchInput from '../components/SimpleSearchInput'
 import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
@@ -10,12 +11,70 @@ import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 
 import '../App.css'
 
+// Bluesky Logo Component
+const BlueskyIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="15"
+    height="15"
+    viewBox="0 0 600 530"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="m135.72 44.03c66.496 49.921 138.02 151.14 164.28 205.46 26.262-54.316 97.782-155.54 164.28-205.46 47.98-36.021 125.72-63.892 125.72 24.795 0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.3797-3.6904-10.832-3.7077-7.8964-0.0174-2.9357-1.1937 0.51669-3.7077 7.8964-13.714 40.255-67.233 197.36-189.63 71.766-64.444-66.128-34.605-132.26 82.697-152.22-67.108 11.421-142.55-7.4491-163.25-81.433-5.9562-21.282-16.111-152.36-16.111-170.07 0-88.687 77.742-60.816 125.72-24.795z" />
+  </svg>
+)
+
+// Contact Link Component
+type IconType = 'github' | 'bluesky' | 'email'
+
+interface ContactLinkProps {
+  href: string
+  iconType: IconType
+  title: string
+  subtitle: string
+  target?: string
+  rel?: string
+}
+
+const ContactLink = ({ href, iconType, title, subtitle, target, rel }: ContactLinkProps) => {
+  const iconClassName = "w-6 h-6 text-muted-foreground group-hover:text-background transition-colors"
+
+  const renderIcon = () => {
+    switch (iconType) {
+      case 'github':
+        return <GitHubLogoIcon className={iconClassName} />
+      case 'bluesky':
+        return <BlueskyIcon className={iconClassName} />
+      case 'email':
+        return <EnvelopeClosedIcon className={iconClassName} />
+      default:
+        return null
+    }
+  }
+
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="flex flex-col items-center gap-3 px-6 py-2 xs:py-4 sm:py-6 rounded-lg border border-border bg-card hover:bg-accent transition-colors duration-200 group"
+    >
+      {renderIcon()}
+      <div className="text-center">
+        <div className="font-medium text-foreground group-hover:text-secondary transition-colors">{title}</div>
+        <div className="text-xs text-muted-foreground mt-1 group-hover:text-background">{subtitle}</div>
+      </div>
+    </a>
+  )
+}
+
 // Transform the deployed sites config into an array format with all needed fields
 const { externalSites, originSites } = deployedSitesConfig.sites
 // We list any external sites first, then origin sites
-const allSites = { 
-  ...externalSites, 
-  ...originSites 
+const allSites = {
+  ...externalSites,
+  ...originSites
 }
 const deployedSites = Object.entries(allSites).map(([id, site]) => ({
   id,
@@ -32,25 +91,27 @@ const deployedSites = Object.entries(allSites).map(([id, site]) => ({
  * and provides universal search across all deployed podcast sites.
  */
 function HomePage() {
-  const [scrolled, setScrolled] = useState(false)
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  /**
-   * Handle scroll detection for header visual effects
-   */
-  useEffect(() => {
-    const handleScroll = () => {
-      const isScrolled = window.scrollY > 10
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled)
-      }
-    }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [scrolled])
+  // TODO: Consider re-enabling scroll resizing if needed - for now, it just risks causing frequent re-renders
+  // /**
+  //  * Handle scroll detection for header visual effects
+  //  */
+  // const [scrolled, setScrolled] = useState(false)
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     const isScrolled = window.scrollY > 10
+  //     if (isScrolled !== scrolled) {
+  //       setScrolled(isScrolled)
+  //     }
+  //   }
+
+  //   window.addEventListener('scroll', handleScroll)
+  //   return () => window.removeEventListener('scroll', handleScroll)
+  // }, [scrolled])
 
   /**
    * Auto-focus search input when a site is selected and clear search query
@@ -115,40 +176,35 @@ function HomePage() {
   return (
     <div className="bg-background min-h-screen">
       <AppHeader
-        scrolled={scrolled}
+        // scrolled={scrolled}
+        scrolled={false} // Can consider re-enabling scroll resizing if needed - for now, it just risks causing frequent re-renders
         config={{
           title: {
             main: '[browse.show]'
+          },
+          tagline: {
+            text: 'transcribe & search any podcast'
+          },
+          rightImageAndThemeToggle: {
+            themeToggle: <ThemeToggle />,
+            image: {
+              lowRes: '/assets/favicon-96x96.png',
+              highRes: '/assets/web-app-manifest-512x512.png',
+              altText: 'Browse.show logo'
+            }
           }
         }}
       />
 
-      <div className="max-w-3xl mx-auto p-4 pt-24 sm:pt-32 transition-all">
+      <div className="max-w-3xl mx-auto p-4 pt-22 xs:pt-28 sm:pt-34 transition-all">
         {/* Hero Section */}
-        <div className="mb-8 sm:mb-16">
-          <div className="flex items-center sm:items-start justify-center sm:justify-start gap-4 sm:gap-8">
-            <div className="flex-shrink-0">
-              <img
-                src="/assets/favicon.svg"
-                alt="Browse.show logo"
-                className="w-16 h-16 xs:w-25 xs:h-25 sm:w-40 sm:h-40"
-              />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl min-[430px]:text-2xl sm:text-3xl lg:text-4xl font-bold homepage-gradient-text mb-2 sm:mb-4">
-                transcribe & search<br className="sm:hidden" /> any podcast
-              </h1>
-              <p className="text-sm sm:text-lg text-muted-foreground leading-relaxed hidden sm:block">
-                Find exact moments in your favorite podcasts. Jump to that point & start listening.<br /><br />
-                Currently available for select shows, with more added by request.
-              </p>
-            </div>
+        <div className="mb-8 max-w-2xl mx-auto">
+          <div className="text-center sm:text-right">
+            <p className="text-md sm:text-lg text-muted-foreground leading-relaxed block">
+              Find exact moments in your favorite podcasts. <br className="hidden sm:block" />Jump to that point & start listening.<br /><br />
+              Currently available for select shows, <br className="hidden sm:block" />with more added by request.
+            </p>
           </div>
-          {/* Mobile description */}
-          <p className="text-sm text-muted-foreground leading-relaxed text-center mt-6 sm:hidden">
-            Find exact moments in your favorite podcasts. Jump to that point & start listening.<br /><br />
-            Currently available for select shows, with more added by request.
-          </p>
         </div>
 
         {/* Universal Search Section */}
@@ -190,9 +246,17 @@ function HomePage() {
         {/* CTA Section */}
         <div className="text-center mb-20">
           <div className="mb-10">
-            <h2 className="text-xl md:text-2xl font-bold mb-4">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 text-foreground">
               Want your favorite podcast searchable?
             </h2>
+            {/* Mobile CTA on XS only - to make sure CTA is above the fold */}
+            <Button
+              onClick={handleRequestPodcastClick}
+              size="lg"
+              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 mx-auto text-lg font-bold flex xs:hidden justify-center mt-6 mb-8"
+            >
+              🗳️ Request a podcast
+            </Button>
             <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
               Vote for podcasts you'd like to see added, or set up your own instance
               to search any podcast you want.
@@ -200,10 +264,11 @@ function HomePage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {/* Desktop CTA on SM+ only */}
             <Button
               onClick={handleRequestPodcastClick}
               size="lg"
-              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 text-lg font-bold"
+              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 text-lg font-bold hidden xs:flex"
             >
               🗳️ Request a podcast
             </Button>
@@ -219,9 +284,10 @@ function HomePage() {
           </div>
         </div>
 
+
         {/* Features Section */}
-        <div className="mb-16">
-          <h2 className="text-xl md:text-2xl font-bold mb-8 text-center">
+        <div className="mb-16 max-w-2xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold mb-8 text-center text-foreground">
             How it works
           </h2>
 
@@ -259,10 +325,47 @@ function HomePage() {
         </div>
       </div>
 
-      {/* Theme Toggle - positioned absolutely */}
-      <div className="fixed bottom-6 right-6">
-        <ThemeToggle />
+
+      {/* Contact Section */}
+      <div className="mb-16 p-4">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center text-foreground">
+            Contact
+          </h2>
+          <p className="text-center text-muted-foreground mb-8 leading-relaxed">
+            Reach out with any questions or feedback!
+          </p>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <ContactLink
+              href="https://github.com/jackkoppa/browse-dot-show"
+              target="_blank"
+              rel="noopener noreferrer"
+              iconType="github"
+              title="GitHub"
+              subtitle="jackkoppa/browse-dot-show"
+            />
+
+            <ContactLink
+              href="https://bsky.app/profile/jackkoppa.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              iconType="bluesky"
+              title="Bluesky"
+              subtitle="@jackkoppa.dev"
+            />
+
+            <ContactLink
+              href="mailto:contact@browse.show"
+              iconType="email"
+              title="Email"
+              subtitle="contact@browse.show"
+            />
+          </div>
+        </div>
       </div>
+
+
     </div>
   )
 }

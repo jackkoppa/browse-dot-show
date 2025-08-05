@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 // Configuration interface for the AppHeader
 export interface AppHeaderConfig {
@@ -16,6 +16,16 @@ export interface AppHeaderConfig {
 
   // Custom action buttons/content in header
   actions?: React.ReactNode;
+
+  // Right-side content: theme toggle and/or image (mutually exclusive with actions)
+  rightImageAndThemeToggle?: {
+    themeToggle?: React.ReactNode;
+    image?: {
+      lowRes: string;
+      highRes: string;
+      altText: string;
+    };
+  };
 }
 
 export interface AppHeaderProps {
@@ -23,7 +33,44 @@ export interface AppHeaderProps {
   config: AppHeaderConfig;
 }
 
+// Progressive image loading component
+function ProgressiveImage({ config, scrolled }: { config: NonNullable<AppHeaderConfig['rightImageAndThemeToggle']>['image'], scrolled: boolean }) {
+  const [highResLoaded, setHighResLoaded] = useState(false);
+
+  if (!config) return null;
+
+  return (
+    <span className={`relative block transition-all duration-200 ${scrolled ? 'w-8 h-8 xs:w-10 xs:h-10' : 'w-12 h-12 xs:w-16 xs:h-16'}`}>
+      <img
+        src={config.lowRes}
+        alt={`${config.altText} (low-res)`}
+        className="absolute inset-0 w-full h-full object-cover rounded-full"
+        style={{
+          opacity: highResLoaded ? 0 : 1,
+          filter: "blur(2px)"
+        }}
+        draggable={false}
+      />
+      <img
+        src={config.highRes}
+        alt={config.altText}
+        className="absolute inset-0 w-full h-full object-cover rounded-full"
+        style={{
+          opacity: highResLoaded ? 1 : 0,
+        }}
+        onLoad={() => setHighResLoaded(true)}
+        draggable={false}
+      />
+    </span>
+  );
+}
+
 export default function AppHeader({ scrolled, config }: AppHeaderProps) {
+  // Validation: cannot have both actions and rightImageAndThemeToggle
+  if (config.actions && config.rightImageAndThemeToggle) {
+    throw new Error('AppHeader: Cannot provide both actions and rightImageAndThemeToggle. Please provide only one.');
+  }
+
   /** Determines certain display ordering - whether the header has the `[browse.show]` prefix */
   const hasPrefix = config.title.prefix;
 
@@ -33,7 +80,7 @@ export default function AppHeader({ scrolled, config }: AppHeaderProps) {
         {/* Mobile: Multi-row layout, Desktop: Side-by-side */}
         <div className={`flex sm:justify-between sm:items-start gap-1 sm:gap-2 ${hasPrefix ? 'flex-col sm:flex-row' : 'flex-row'}`}>
 
-          {/* Top Row on Mobile, if prefix is set: [browse.show] + Actions */}
+          {/* Top Row on Mobile, if prefix is set: [browse.show] + Actions/Image */}
           {hasPrefix && <div className="flex justify-between items-center sm:hidden">
             {config.title.prefix && (
               <span className={`font-bold ${scrolled ? 'text-[12px]' : 'text-[18px]'}`}>
@@ -43,6 +90,14 @@ export default function AppHeader({ scrolled, config }: AppHeaderProps) {
             {config.actions && (
               <div className={`flex flex-row items-center gap-1 ${scrolled ? 'hidden' : ''}`}>
                 {config.actions}
+              </div>
+            )}
+            {config.rightImageAndThemeToggle && (
+              <div className={`flex flex-row items-center gap-2 ${scrolled ? 'hidden' : ''}`}>
+                {config.rightImageAndThemeToggle.themeToggle}
+                {config.rightImageAndThemeToggle.image && (
+                  <ProgressiveImage config={config.rightImageAndThemeToggle.image} scrolled={scrolled} />
+                )}
               </div>
             )}
           </div>}
@@ -75,16 +130,25 @@ export default function AppHeader({ scrolled, config }: AppHeaderProps) {
 
 
 
-          {/* Actions - Desktop only (mobile handled above) */}
+          {/* Actions/Image - Desktop only (mobile handled above) */}
           {config.actions && (
             <div className={`hidden sm:flex flex-row items-center gap-3 sm:order-2 ${scrolled ? 'hidden sm:flex' : ''}`}>
               {config.actions}
             </div>
           )}
-          {/* Actions - Mobile, when no prefix is set */}
+
+          {/* Actions/Image - Mobile, when no prefix is set */}
           {!hasPrefix && config.actions && (
             <div className={`flex flex-0 sm:hidden flex-col items-center gap-1 order-2 ${scrolled ? 'hidden' : ''}`}>
               {config.actions}
+            </div>
+          )}
+          {!hasPrefix && config.rightImageAndThemeToggle && (
+            <div className={`flex flex-0 flex-row items-center gap-2 order-2 ${scrolled ? 'hidden' : ''}`}>
+              {config.rightImageAndThemeToggle.themeToggle}
+              {config.rightImageAndThemeToggle.image && (
+                <ProgressiveImage config={config.rightImageAndThemeToggle.image} scrolled={scrolled} />
+              )}
             </div>
           )}
         </div>
