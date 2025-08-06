@@ -25,13 +25,10 @@
     }
   ],
   "whisperTranscriptionPrompt": "Welcome to Eggplant: The Secret Lives of Games! Candid conversations with game creators that dive deep into the art, craft, and process of making games. Hosted by Nick Suttner, Andy Nealen, Zach Gage, Douglas Wilson, Sarah Elmaleh, Laura E. Hall, and Rob Dubbin. Thanks for joining us, let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "themeColor": "#C4E3D9",
+  "themeColorDark": "#65408D",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "UFO 50"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }
