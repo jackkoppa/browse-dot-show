@@ -1,0 +1,37 @@
+{
+  "id": "eggplant",
+  "domain": "eggplant.browse.show",
+  "appHeader": {
+    "primaryTitle": "Eggplant: The Secret Lives of Games",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Eggplant: The Secret Lives of Games",
+    "taglinePrimaryPodcastExternalURL": "http://eggplant.show",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Eggplant: The Secret Lives of Games",
+    "canonicalUrl": "https://eggplant.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Eggplant: The Secret Lives of Games podcast",
+    "metaTitle": "[browse.show] Eggplant: The Secret Lives of Games"
+  },
+  "includedPodcasts": [
+    {
+      "id": "eggplant-the-secret-lives-of-games",
+      "rssFeedFile": "eggplant.xml",
+      "title": "Eggplant: The Secret Lives of Games",
+      "status": "active",
+      "url": "https://thespelunkyshowlike.libsyn.com/rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Welcome to Eggplant: The Secret Lives of Games! Candid conversations with game creators that dive deep into the art, craft, and process of making games. Hosted by Nick Suttner, Andy Nealen, Zach Gage, Douglas Wilson, Sarah Elmaleh, Laura E. Hall, and Rob Dubbin. Thanks for joining us, let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
