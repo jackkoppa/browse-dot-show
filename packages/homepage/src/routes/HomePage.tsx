@@ -156,7 +156,7 @@ function HomePage() {
     trackEvent({
       eventType: 'Request Podcast Button Clicked',
     })
-    window.open('https://docs.google.com/document/d/11p38njNdKeJF49XHPtYN-Gb6fotPCkoQIW8V4UDC9hA/edit?usp=sharing', '_blank')
+    window.open('https://forms.gle/A3PoU2PSBQVgb5K96', '_blank')
   }
 
   const handleSelfHostClick = () => {
