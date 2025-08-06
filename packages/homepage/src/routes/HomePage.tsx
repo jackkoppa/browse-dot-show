@@ -192,10 +192,9 @@ function HomePage() {
       <div className="max-w-3xl mx-auto p-4 pt-22 xs:pt-28 sm:pt-34 transition-all">
         {/* Hero Section */}
         <div className="mb-8 max-w-2xl mx-auto">
-          <div className="text-center sm:text-right">
+          <div className="text-right">
             <p className="text-md sm:text-lg text-muted-foreground leading-relaxed block">
-              Find exact moments in your favorite podcasts. <br className="hidden sm:block" />Jump to that point & start listening.<br /><br />
-              Currently available for select shows, <br className="hidden sm:block" />with more added by request.
+              Find exact moments in your favorite podcasts. <br className="hidden sm:block" />Jump to that point & start listening.<br />
             </p>
           </div>
         </div>
@@ -315,6 +314,13 @@ function HomePage() {
               </CardContent>
             </Card>
           </div>
+          <p className="text-md text-muted-foreground text-center mt-6">
+            Find full architecture diagrams in the open source repo,<br/>
+            <a href="https://github.com/jackkoppa/browse-dot-show" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-accent transition-colors duration-300">
+              <GitHubLogoIcon className="w-4 h-4 inline-block mr-1" />
+              jackkoppa/browse-dot-show
+            </a>
+          </p>
         </div>
       </div>
 
@@ -325,7 +331,7 @@ function HomePage() {
           <h2 className="text-xl md:text-2xl font-bold mb-6 text-center text-foreground">
             Contact
           </h2>
-          <p className="text-center text-muted-foreground mb-8 leading-relaxed">
+          <p className="text-center text-muted-foreground mb-6 leading-relaxed">
             Reach out with any questions or feedback!
           </p>
 
