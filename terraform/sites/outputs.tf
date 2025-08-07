@@ -29,7 +29,7 @@ output "search_api_invoke_url" {
 }
 
 # Note: Terraform state bucket is managed by bootstrap script, not terraform
-# Bucket name follows pattern: {site_id}-terraform-state
+# Bucket name follows pattern: {site_id}-browse-dot-show-tf-state
 
 output "search_lambda_function_name" {
   description = "Name of the Search Lambda function"

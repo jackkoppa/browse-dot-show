@@ -1,3 +1,3 @@
-bucket = "drivetowork-terraform-state"
+bucket = "drivetowork-browse-dot-show-tf-state"
 key    = "terraform.tfstate"
 region = "us-east-1" 

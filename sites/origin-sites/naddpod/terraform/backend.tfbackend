@@ -1,3 +1,3 @@
-bucket = "naddpod-terraform-state"
+bucket = "naddpod-browse-dot-show-tf-state"
 key    = "terraform.tfstate"
 region = "us-east-1" 
