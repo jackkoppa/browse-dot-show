@@ -5,6 +5,9 @@
  * From: {siteId}-terraform-state
  * To: {siteId}-browse-dot-show-tf-state
  * 
+ * This script is only needed for repositories that created Terraform state buckets before 2025-01-08.
+ * If you're working with a fresh clone or fork, you likely don't need this script.
+ * 
  * This script:
  * 1. Creates new buckets with the new naming pattern
  * 2. Copies all state files and versions from old buckets to new buckets
@@ -14,15 +17,15 @@
  * 
  * IMPORTANT: Run this script after ensuring you have active AWS SSO sessions for both accounts:
  * - aws sso login --profile browse.show-2_admin-permissions-927984855345
- * - aws sso login --profile browse.show_admin-permissions-152849157974
+ * - aws sso login --profile browse.show-1_admin-permissions-152849157974
  */
 
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
-import { execCommand, execCommandOrThrow } from '../utils/shell-exec.js';
-import { printInfo, printError, printSuccess, printWarning, logHeader } from '../utils/logging.js';
+import { execCommand, execCommandOrThrow } from '../scripts/utils/shell-exec.js';
+import { printInfo, printError, printSuccess, printWarning, logHeader } from '../scripts/utils/logging.js';
 
 interface SiteInfo {
   siteId: string;
@@ -59,6 +62,27 @@ function loadSiteAccountMappings(): Record<string, { accountId: string }> {
   
   const mappingsContent = readFileSync(mappingsPath, 'utf8');
   return JSON.parse(mappingsContent);
+}
+
+/**
+ * Check if migration is needed by looking for old bucket naming pattern in backend configs
+ */
+function isMigrationNeeded(): boolean {
+  const mappings = loadSiteAccountMappings();
+  
+  for (const siteId of Object.keys(mappings)) {
+    const backendConfigPath = join('sites/origin-sites', siteId, 'terraform/backend.tfbackend');
+    
+    if (existsSync(backendConfigPath)) {
+      const content = readFileSync(backendConfigPath, 'utf8');
+      // Check if using old naming pattern
+      if (content.includes(`${siteId}-terraform-state`)) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -424,6 +448,15 @@ async function main(): Promise<void> {
     logHeader('Terraform State Bucket Migration');
     printInfo('Migrating from: {siteId}-terraform-state');
     printInfo('Migrating to:   {siteId}-browse-dot-show-tf-state');
+    
+    // Check if migration is needed
+    if (!isMigrationNeeded()) {
+      printSuccess('✅ No migration needed!');
+      printInfo('All backend configurations are already using the new bucket naming pattern.');
+      printInfo('This migration script is only needed for repositories that created');
+      printInfo('Terraform state buckets before 2025-01-08.');
+      return;
+    }
     
     // Generate site information
     const siteInfos = generateSiteInfo();
