@@ -1349,7 +1349,7 @@ async function invalidateCloudFrontForSite(
     const invalidationResult = await invalidateCloudFrontWithCredentials(
       cloudfrontId,
       mappedCredentials,
-      { silent: true }
+      { silent: true, invalidateEpisodeManifest: true } // invalidate episode manifest, since we're updating it
     );
     
     const duration = Date.now() - startTime;

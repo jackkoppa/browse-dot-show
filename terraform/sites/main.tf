@@ -8,7 +8,7 @@ terraform {
   
   # Site-specific S3 backend for terraform state
   # The bucket name and key will be configured dynamically via terraform init
-  # Each site will use: bucket = "{site_id}-terraform-state", key = "terraform.tfstate"
+  # Each site will use: bucket = "{site_id}-browse-dot-show-tf-state", key = "terraform.tfstate"
   backend "s3" {
     # These values will be provided via terraform init -backend-config
     # or via .tfbackend files for each site

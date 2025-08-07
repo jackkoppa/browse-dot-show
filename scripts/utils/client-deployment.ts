@@ -340,20 +340,25 @@ export async function invalidateCloudFrontWithCredentials(
     AWS_SESSION_TOKEN: string;
     AWS_REGION: string;
   },
-  options: { silent?: boolean } = {}
+  options: { silent?: boolean, invalidateEpisodeManifest?: boolean } = {}
 ): Promise<CloudFrontInvalidationResult> {
   const startTime = Date.now();
-  const { silent = false } = options;
+  const { silent = false, invalidateEpisodeManifest = false } = options;
   
   if (!silent) {
     logProgress('Invalidating CloudFront cache...');
   }
   
   try {
+    const paths = ['/index.html', '/assets/*'];
+    if (invalidateEpisodeManifest) {
+      paths.push('/episode-manifest/*');
+    }
+
     const invalidationResult = await execCommand('aws', [
       'cloudfront', 'create-invalidation',
       '--distribution-id', cloudfrontId,
-      '--paths', '/index.html', '/assets/*',
+      '--paths', ...paths,
       '--no-cli-pager'
     ], {
       silent: true,

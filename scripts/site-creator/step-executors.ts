@@ -610,8 +610,8 @@ async function bootstrapTerraformState(siteId: string): Promise<boolean> {
   try {
     printInfo('Checking if Terraform state is already configured...');
     
-    // Check for state bucket using naming convention: browse-dot-show-{siteId}-tf-state
-    const stateBucketName = `browse-dot-show-${siteId}-tf-state`;
+    // Check for state bucket using naming convention: {siteId}-browse-dot-show-tf-state
+    const stateBucketName = `${siteId}-browse-dot-show-tf-state`;
     
     const bucketCheckResult = await execCommand('aws', [
       's3api', 'head-bucket',
@@ -718,7 +718,7 @@ async function bootstrapTerraformState(siteId: string): Promise<boolean> {
   
   try {
     // Check that the state bucket was created
-    const stateBucketName = `browse-dot-show-${siteId}-tf-state`;
+    const stateBucketName = `${siteId}-browse-dot-show-tf-state`;
     const verifyBucketResult = await execCommand('aws', [
       's3api', 'head-bucket',
       '--bucket', stateBucketName,

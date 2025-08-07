@@ -1,6 +1,6 @@
 # TODO: Update these values when deploying pickleballstudio for the first time
 # The bucket should be created as part of the terraform deployment process
 
-bucket = "pickleballstudio-terraform-state"
+bucket = "pickleballstudio-browse-dot-show-tf-state"
 key    = "terraform.tfstate"
 region = "us-east-1" 

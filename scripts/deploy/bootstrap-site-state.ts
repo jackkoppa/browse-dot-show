@@ -28,7 +28,7 @@ async function main(): Promise<void> {
   const siteId = args[0];
   const awsProfile = args[1] || process.env.AWS_PROFILE;
   const awsRegion = process.env.AWS_REGION || 'us-east-1';
-  const bucketName = `browse-dot-show-${siteId}-tf-state`;
+  const bucketName = `${siteId}-browse-dot-show-tf-state`;
 
   try {
     logProgress(`🚀 Bootstrapping Terraform state bucket for site: ${siteId}`);
