@@ -2,12 +2,14 @@
 
 ## Overview
 
-This document outlines the migration process from the old Terraform state bucket naming pattern to the new one to avoid naming conflicts and improve consistency.
+⚠️ **This migration is only needed if you created Terraform state buckets before 2025-01-08.**
+
+If you're working with a fresh clone or fork of this repository, you likely don't need this migration.
 
 **Migration Details:**
 - **From:** `{siteId}-terraform-state`
 - **To:** `{siteId}-browse-dot-show-tf-state`
-- **Reason:** The old pattern was too generic and caused conflicts (e.g., "eggplant-terraform-state" already exists globally)
+- **Reason:** The old pattern was too generic and caused conflicts
 
 ## Pre-Migration Checklist
 
@@ -30,17 +32,28 @@ Verify all sites are in a stable state before migration. Avoid running the migra
 
 ## Migration Process
 
-### Step 1: Run the Migration Script
+### Step 1: Check if Migration is Needed
+
+First, check if you actually need this migration:
 
 ```bash
 # Navigate to the project root
 cd /path/to/browse-dot-show
 
-# Run the migration script (interactive mode)
-tsx scripts/deploy/migrate-terraform-state-buckets.ts
+# Run the migration script (it will exit early if not needed)
+tsx scratchpad/migrate-terraform-state-buckets.ts
+```
+
+If the script says "No migration needed!", you can stop here.
+
+### Step 2: Run the Migration (if needed)
+
+```bash
+# Run in interactive mode
+tsx scratchpad/migrate-terraform-state-buckets.ts
 
 # Or run in non-interactive mode (auto-approve)
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --yes
+tsx scratchpad/migrate-terraform-state-buckets.ts --yes
 ```
 
 The script will:
@@ -81,10 +94,10 @@ After confirming everything works correctly, you can clean up the old buckets:
 
 ```bash
 # This will prompt for confirmation before deleting old buckets
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --cleanup
+tsx scratchpad/migrate-terraform-state-buckets.ts --cleanup
 
 # Or auto-approve the cleanup
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --cleanup --yes
+tsx scratchpad/migrate-terraform-state-buckets.ts --cleanup --yes
 ```
 
 ## Rollback Procedure
@@ -192,15 +205,15 @@ cat sites/origin-sites/{siteId}/terraform/backend.tfbackend
 ## Migration Script Usage
 
 ```bash
-# Show migration plan and migrate
-tsx scripts/deploy/migrate-terraform-state-buckets.ts
+# Check if migration is needed and run if required
+tsx scratchpad/migrate-terraform-state-buckets.ts
 
 # Auto-approve migration
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --yes
+tsx scratchpad/migrate-terraform-state-buckets.ts --yes
 
 # Clean up old buckets after successful migration
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --cleanup
+tsx scratchpad/migrate-terraform-state-buckets.ts --cleanup
 
 # Auto-approve cleanup
-tsx scripts/deploy/migrate-terraform-state-buckets.ts --cleanup --yes
+tsx scratchpad/migrate-terraform-state-buckets.ts --cleanup --yes
 ```
