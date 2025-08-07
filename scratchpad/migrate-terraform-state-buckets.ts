@@ -365,15 +365,80 @@ async function cleanupOldBuckets(results: MigrationResult[], skipPrompts: boolea
     try {
       printInfo(`Deleting old bucket: ${siteInfo.oldBucketName}`);
       
-      // First empty the bucket
-      await execCommandOrThrow('aws', [
+      // Step 1: Check what's in the bucket
+      printInfo(`  Checking bucket contents...`);
+      const listResult = await execCommand('aws', [
+        's3api', 'list-object-versions',
+        '--bucket', siteInfo.oldBucketName,
+        '--profile', siteInfo.awsProfile
+      ]);
+      
+      if (listResult.exitCode === 0) {
+        const versionData = JSON.parse(listResult.stdout || '{}');
+        const versions = versionData.Versions || [];
+        const deleteMarkers = versionData.DeleteMarkers || [];
+        printInfo(`  Found ${versions.length} object versions and ${deleteMarkers.length} delete markers`);
+        
+        if (versions.length > 0 || deleteMarkers.length > 0) {
+          // Step 2: Delete all object versions
+          if (versions.length > 0) {
+            printInfo(`  Deleting ${versions.length} object versions...`);
+            const deleteObjects = versions.map((v: any) => ({ Key: v.Key, VersionId: v.VersionId }));
+            const deletePayload = JSON.stringify({ Objects: deleteObjects });
+            
+            const { writeFile, mkdtemp } = await import('fs/promises');
+            const { join } = await import('path');
+            const { tmpdir } = await import('os');
+            
+            const tempDir = await mkdtemp(join(tmpdir(), 'aws-delete-'));
+            const deleteFile = join(tempDir, 'delete.json');
+            await writeFile(deleteFile, deletePayload);
+            
+            await execCommandOrThrow('aws', [
+              's3api', 'delete-objects',
+              '--bucket', siteInfo.oldBucketName,
+              '--delete', `file://${deleteFile}`,
+              '--profile', siteInfo.awsProfile
+            ]);
+          }
+          
+          // Step 3: Delete all delete markers
+          if (deleteMarkers.length > 0) {
+            printInfo(`  Deleting ${deleteMarkers.length} delete markers...`);
+            const deleteMarkerObjects = deleteMarkers.map((dm: any) => ({ Key: dm.Key, VersionId: dm.VersionId }));
+            const deleteMarkerPayload = JSON.stringify({ Objects: deleteMarkerObjects });
+            
+            const { writeFile, mkdtemp } = await import('fs/promises');
+            const { join } = await import('path');
+            const { tmpdir } = await import('os');
+            
+            const tempDir = await mkdtemp(join(tmpdir(), 'aws-delete-markers-'));
+            const deleteMarkersFile = join(tempDir, 'delete-markers.json');
+            await writeFile(deleteMarkersFile, deleteMarkerPayload);
+            
+            await execCommandOrThrow('aws', [
+              's3api', 'delete-objects',
+              '--bucket', siteInfo.oldBucketName,
+              '--delete', `file://${deleteMarkersFile}`,
+              '--profile', siteInfo.awsProfile
+            ]);
+          }
+        }
+      } else {
+        printWarning(`  Could not list bucket contents, trying direct deletion...`);
+      }
+      
+      // Step 4: Delete any remaining current objects
+      printInfo(`  Deleting any remaining current objects...`);
+      await execCommand('aws', [
         's3', 'rm',
         `s3://${siteInfo.oldBucketName}`,
         '--recursive',
         '--profile', siteInfo.awsProfile
       ]);
       
-      // Then delete the bucket
+      // Step 5: Finally delete the bucket
+      printInfo(`  Deleting empty bucket...`);
       await execCommandOrThrow('aws', [
         's3api', 'delete-bucket',
         '--bucket', siteInfo.oldBucketName,
