@@ -57,6 +57,15 @@
                 "Keyes and Grey"
             ],
             "correctedSpelling": "Keys and Gray"
+        },
+        {
+            "misspellings": [
+                "Conor Cody",
+                "Connor Cody",
+                "Connor Coady",
+                "Conner Cody"
+            ],
+            "correctedSpelling": "Conor Coady"
         }
     ]
 }
