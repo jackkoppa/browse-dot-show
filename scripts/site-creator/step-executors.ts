@@ -1248,7 +1248,7 @@ async function testWhisperInstallation(whisperPath: string, whisperModel: string
   console.log('This may take a moment...');
   
   try {
-    const testAudioFile = '/Users/jackkoppa/Personal_Development/browse-dot-show/docs/welcome-to-browse-dot-show.wav';
+    const testAudioFile = join('docs', 'welcome-to-browse-dot-show.wav');
     
     if (!(await exists(testAudioFile))) {
       printWarning('⚠️  Test audio file not found. Skipping whisper test...');
