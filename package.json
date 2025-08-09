@@ -10,7 +10,7 @@
     "all:lint": "oxlint",
     "automation:bootstrap-state": "pnpm tsx scripts/deploy/bootstrap-automation-state.ts",
     "automation:deploy": "pnpm tsx scripts/deploy/deploy-automation.ts",
-    "client:dev": "NODE_OPTIONS=--max-old-space-size=9728 tsx scripts/run-with-site-selection.ts \"client development\" \"concurrently\" \"\\\"pnpm --filter @browse-dot-show/client _vite-dev\\\"\" \"\\\"pnpm --filter @browse-dot-show/client _serve-s3-assets\\\"\" \"\\\"pnpm --filter @browse-dot-show/search-lambda dev:local\\\"\"",
+    "client:dev": "tsx scripts/client-dev.ts",
     "client:build:all-sites": "pnpm --filter client build:all-sites",
     "client:build:specific-site": "pnpm --filter client build:specific-site",
     "client:upload-all-sites": "tsx scripts/deploy/upload-all-client-sites.ts",
