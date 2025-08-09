@@ -2,7 +2,7 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { readJsonFile } from '../utils/file-operations.js';
 import { execCommand } from '../utils/shell-exec.js';
-import { printInfo, printSuccess, printWarning, printError } from '../utils/logging.js';
+import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
 import { loadProgress } from './setup-steps.js';
@@ -477,7 +477,11 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
       printSuccess('🎉 Complete transcription workflow finished successfully!');
       console.log('');
       console.log('✨ Your entire podcast archive is now searchable!');
-      console.log(`🔍 Test it by running: pnpm client:dev --filter ${progress.siteId}`);
+      console.log('');
+      console.log(`🔍 Test it by running this command in a new terminal window:`);
+      console.log('');
+      logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
+      console.log('');
       console.log('');
       return 'COMPLETED';
     } else {

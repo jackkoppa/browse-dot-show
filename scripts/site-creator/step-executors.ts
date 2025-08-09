@@ -54,7 +54,7 @@ export async function executeRunLocallyStep(progress: SetupProgress): Promise<St
   console.log('');
   console.log('To run your site locally, use this command in a new terminal window:');
   console.log('');
-  logInColor('green', `pnpm client:dev --filter ${progress.siteId}`);
+  logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
   console.log('');
   console.log('This will start your React development server. You should see your');
   console.log(`podcast site running at http://localhost:${CLIENT_PORT_NUMBER}`);
@@ -1403,7 +1403,11 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
   // Test the result
   console.log('');
   printInfo('🎉 Your first episodes are now transcribed and searchable!');
-  console.log(`To test: run \`pnpm client:dev --filter ${progress.siteId}\` and try searching.`);
+  console.log('');
+  console.log(`🔍 Test it by running this command in a new terminal window, and searching for any text from those episodes:`);
+  console.log('');
+  logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
+  console.log('');
   
   const testResponse = await prompts({
     type: 'confirm',
