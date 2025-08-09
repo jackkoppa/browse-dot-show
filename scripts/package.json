@@ -5,7 +5,8 @@
     "type": "module",
     "description": "Scripts used during development & deployment",
     "scripts": {
-        "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'"
+        "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'",
+        "test": "vitest run"
     },
     "dependencies": {
         "@browse-dot-show/constants": "workspace:*",
@@ -16,6 +17,7 @@
     "devDependencies": {
         "typescript": "catalog:",
         "prompts": "^2.4.2",
-        "@types/prompts": "^2.4.9"
+        "@types/prompts": "^2.4.9",
+        "vitest": "catalog:"
     }
 }
