@@ -35,21 +35,26 @@ export async function searchPodcastRSSFeed(podcastName: string): Promise<Podcast
 }
 
 export function createSiteId(podcastName: string): string {
-  return podcastName
+  const cleanedName = podcastName
     .toLowerCase()
-    .replace(/[^a-z\s-]/g, '') // Remove numbers and special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z\s]/g, '') // Remove numbers and special characters except spaces
+    .trim(); // Remove leading/trailing whitespace
+  
+  // Count words by splitting on whitespace and filter out empty strings
+  const words = cleanedName.split(/\s+/).filter(word => word.length > 0);
+  
+  if (words.length <= 4) {
+    // For 4 or fewer words, join without hyphens
+    return words.join('');
+  } else {
+    // For more than 4 words, use hyphens
+    return words.join('-');
+  }
 }
 
 export function createPodcastId(podcastName: string, siteId: string): string {
-  let podcastId = podcastName
-    .toLowerCase()
-    .replace(/[^a-z\s-]/g, '') // Remove numbers and special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  // Use the same logic as createSiteId
+  let podcastId = createSiteId(podcastName);
   
   // If podcast ID matches site ID, add -podcast suffix to differentiate
   if (podcastId === siteId) {
