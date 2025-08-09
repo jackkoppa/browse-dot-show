@@ -1260,10 +1260,10 @@ async function testWhisperInstallation(whisperPath: string, whisperModel: string
     const whisperModelFile = `ggml-${whisperModel}.bin`;
     const modelPath = join(whisperPath, 'models', whisperModelFile);
     
-    printInfo('🎧 Transcribing welcome message - this might take up to a minute, but likely less...');
+    printInfo('🎧 Transcribing welcome message - this might take up to 2 minutes on first run...');
     
     const result = await execCommand(whisperCliBin, ['-m', modelPath, '-f', testAudioFile], {
-      timeout: 60000
+      timeout: 120000 // 2 minutes - first run can be slow due to Core ML model loading
     });
     
     if (result.exitCode !== 0 || !result.stdout) {
