@@ -6,7 +6,8 @@
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "Eggplant: The Secret Lives of Games",
     "taglinePrimaryPodcastExternalURL": "http://eggplant.show",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "extraHeightForLongTitle": true
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Eggplant: The Secret Lives of Games",
