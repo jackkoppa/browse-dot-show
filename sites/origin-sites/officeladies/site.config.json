@@ -1,0 +1,42 @@
+{
+  "id": "officeladies",
+  "domain": "officeladies.browse.show",
+  "appHeader": {
+    "primaryTitle": "Office Ladies",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Office Ladies",
+    "taglinePrimaryPodcastExternalURL": "https://officeladies.com",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Office Ladies",
+    "canonicalUrl": "https://officeladies.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Office Ladies podcast",
+    "metaTitle": "[browse.show] Office Ladies"
+  },
+  "includedPodcasts": [
+    {
+      "id": "officeladies-podcast",
+      "rssFeedFile": "officeladies.xml",
+      "title": "Office Ladies",
+      "status": "active",
+      "url": "https://feeds.megaphone.fm/office-ladies"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to Office Ladies, about the show The Office. Hosted by Angela Kinsey - who played Angela Martin - and Jenna Fischer - who played Pam Beesly. We cover everything you want to know about The Office, and interview the cast and crew. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Steve",
+    "Michael",
+    "Dwight",
+    "Jim",
+    "Pam",
+    "Angela",
+    "Andy",
+    "Ryan",
+    "Toby"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
