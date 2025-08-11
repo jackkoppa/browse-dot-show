@@ -56,6 +56,15 @@
                 "imageUrl": "https://fromtherookeryend.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Vicarage Road"
             },
+            // sites/origin-sites/officeladies
+            "officeladies": {
+                "siteName": "[browse.show] Office Ladies",
+                "displayedPodcastName": "Office Ladies",
+                "podcastTagline": "The Office co-stars and best friends, Jenna Fischer and Angela Kinsey, break down an episode of The Office each week, giving exclusive behind the scene stories that only two people who were there, can tell you.",
+                "domain": "officeladies.browse.show",
+                "imageUrl": "https://officeladies.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Michael Scott"
+            },
             // sites/origin-sites/screenrot
             "screenrot": {
                 "siteName": "[browse.show] Screen Rot",
@@ -101,6 +110,15 @@
                 "imageUrl": "https://drivetowork.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "tabula rasa"
             },
+            // sites/origin-sites/luckypaper
+            "luckypaper": {
+                "siteName": "[browse.show] Lucky Paper Radio",
+                "displayedPodcastName": "Lucky Paper Radio",
+                "podcastTagline": "A podcast about Magic: the Gathering hosted by lifelong friends Andy Mangold and Anthony Mattox. Focused primarily on sandbox formats like Cube.",
+                "domain": "luckypaper.browse.show",
+                "imageUrl": "https://luckypaper.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "cube will outlive"
+            },
             // sites/origin-sites/lordsoflimited
             "lordsoflimited": {
                 "siteName": "[browse.show] Lords of Limited",
@@ -136,6 +154,15 @@
                 "domain": "spoutlore.browse.show",
                 "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Exodus"
+            },
+            // sites/origin-sites/eggplant
+            "eggplant": {
+                "siteName": "[browse.show] Eggplant: The Secret Lives of Games",
+                "displayedPodcastName": "Eggplant: The Secret Lives of Games",
+                "podcastTagline": "Candid conversations with game creators that dive deep into the art, craft, and process of making games.",
+                "domain": "eggplant.browse.show",
+                "imageUrl": "https://eggplant.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "UFO 50"
             }
         }
     }
