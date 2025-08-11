@@ -49,26 +49,6 @@
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15); /* Reduced shadow */
 }
 
-/* Updated CTA button */
-.homepage-cta-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-    border: none;
-    border-radius: 0.5rem; /* Reduced from 1rem */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Reduced shadow */
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.homepage-cta-primary:hover {
-    transform: translateY(-1px); /* Reduced from -2px */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); /* Reduced shadow */
-}
-
-.homepage-cta-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 /* Updated select styling */
 .homepage-select {
     border-radius: 0.5rem; /* Reduced from 1rem */

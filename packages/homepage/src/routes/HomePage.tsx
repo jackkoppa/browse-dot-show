@@ -5,6 +5,7 @@ import { GitHubLogoIcon, EnvelopeClosedIcon } from '@radix-ui/react-icons'
 import SimpleSearchInput from '../components/SimpleSearchInput'
 import SiteSelector from '../components/SiteSelector'
 import { ThemeToggle } from '../components/ThemeToggle'
+import RequestPodcastButton from '../components/RequestPodcastButton'
 import { trackEvent } from '../utils/goatcounter'
 import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 import { Site } from '../types/search'
@@ -152,12 +153,7 @@ function HomePage() {
   /**
    * Handle CTA clicks
    */
-  const handleRequestPodcastClick = () => {
-    trackEvent({
-      eventType: 'Request Podcast Button Clicked',
-    })
-    window.open('https://forms.gle/A3PoU2PSBQVgb5K96', '_blank')
-  }
+  // Note: handleRequestPodcastClick moved to RequestPodcastButton component
 
   const handleSelfHostClick = () => {
     trackEvent({
@@ -242,13 +238,11 @@ function HomePage() {
               Want your favorite podcast searchable?
             </h2>
             {/* Mobile CTA on XS only - to make sure CTA is above the fold */}
-            <Button
-              onClick={handleRequestPodcastClick}
+            <RequestPodcastButton
               size="lg"
-              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 mx-auto text-lg font-bold flex xs:hidden justify-center mt-6 mb-8"
-            >
-              🗳️ Request a podcast
-            </Button>
+              className="xs:hidden mt-6 mb-8"
+              usageType="homepage"
+            />
             <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
               Vote for podcasts you'd like to see added, or set up your own instance
               to search any podcast you want.
@@ -257,13 +251,11 @@ function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             {/* Desktop CTA on SM+ only */}
-            <Button
-              onClick={handleRequestPodcastClick}
+            <RequestPodcastButton
               size="lg"
-              className="homepage-cta-primary w-full sm:w-auto px-8 py-3 text-lg font-bold hidden xs:flex"
-            >
-              🗳️ Request a podcast
-            </Button>
+              className="hidden xs:flex"
+              usageType="homepage"
+            />
 
             <Button
               onClick={handleSelfHostClick}
