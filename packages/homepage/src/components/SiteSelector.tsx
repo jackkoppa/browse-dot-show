@@ -17,6 +17,7 @@ import {
 import { cn } from '@browse-dot-show/ui'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { Site } from '../types/search'
+import RequestPodcastButton from './RequestPodcastButton'
 
 
 interface SiteSelectorProps {
@@ -97,7 +98,18 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
             <Command>
               <CommandInput placeholder="Search podcasts..." />
               <CommandList>
-                <CommandEmpty>No podcasts found.</CommandEmpty>
+                <CommandEmpty>
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Don't see your favorite podcast?
+                    </p>
+                    <RequestPodcastButton
+                      size="default"
+                      className="mx-auto w-[85%]"
+                      usageType="site-selector"
+                    />
+                  </div>
+                </CommandEmpty>
                 <CommandGroup>
                   {sites.map((site) => (
                     <CommandItem
