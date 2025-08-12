@@ -141,7 +141,7 @@ function HomePage() {
 
     // Track the search event
     trackEvent({
-      eventType: `Universal Search: '${trimmedQuery}' on [${selectedSite}]`,
+      eventType: `Universal Search: '${trimmedQuery}' on [${selectedSite.id}]`,
       eventName: `Universal Search Performed`,
     })
 
