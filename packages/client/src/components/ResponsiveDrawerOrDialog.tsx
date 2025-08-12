@@ -66,7 +66,8 @@ export default function ResponsiveDrawerOrDialog({ childTrigger, title, descript
             {description}
           </DrawerDescription>
         </DrawerHeader>
-        <div className="p-4">
+        {/* scroll necessary, primarily when AI use disclosure is enabled */}
+        <div className="p-4 overflow-y-scroll">
           {children}
         </div>
         <DrawerFooter className="pt-2">

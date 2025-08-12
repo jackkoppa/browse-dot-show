@@ -159,6 +159,10 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         if (!site.appHeader.taglineSuffix) {
             result.errors.push('Missing required field: appHeader.taglineSuffix');
         }
+
+        if (typeof site.appHeader.includeAIUseDisclosure !== 'boolean') {
+            result.errors.push('Missing or invalid field: appHeader.includeAIUseDisclosure (must be boolean)');
+        }
     }
     
     // Validate socialAndMetadata object
