@@ -75,6 +75,11 @@ export interface AppHeader {
      * whether to add extra height to the app header to accommodate a long title
      */
     extraHeightForLongTitle: boolean;
+
+    /**
+     * whether to include the AI use disclosure in the app header
+     */
+    includeAIUseDisclosure: boolean;
 }
 
 export interface SiteConfig {

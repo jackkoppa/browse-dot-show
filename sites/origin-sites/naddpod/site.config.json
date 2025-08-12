@@ -6,7 +6,8 @@
         "includeTitlePrefix": true,
         "taglinePrimaryPodcastName": "Not Another D&D Podcast",
         "taglinePrimaryPodcastExternalURL": "https://naddpod.com/episodes",
-        "taglineSuffix": "archives"
+        "taglineSuffix": "archives",
+        "includeAIUseDisclosure": true
     },
     "socialAndMetadata": {
         "pageTitle": "[browse.show] NaddPod",
