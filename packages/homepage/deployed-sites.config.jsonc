@@ -20,15 +20,6 @@
                 "imageUrl": "https://listenfairplay.com/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "come what February"
             },
-            // sites/origin-sites/hardfork
-            "hardfork": {
-                "siteName": "[browse.show] Hard Fork",
-                "displayedPodcastName": "Hard Fork",
-                "podcastTagline": "Each week, journalists Kevin Roose and Casey Newton explore and make sense of the rapidly changing world of tech.",
-                "domain": "hardfork.browse.show",
-                "imageUrl": "https://hardfork.browse.show/assets/web-app-manifest-192x192.png",
-                "searchInputPlaceholder": "Bing Sydney"
-            },
             // sites/origin-sites/naddpod
             "naddpod": {
                 "siteName": "[browse.show] NaddPod",
@@ -37,6 +28,15 @@
                 "domain": "naddpod.browse.show",
                 "imageUrl": "https://naddpod.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "olaf dies"
+            },
+            // sites/origin-sites/spoutlore
+            "spoutlore": {
+                "siteName": "[browse.show] Spout Lore",
+                "displayedPodcastName": "Spout Lore",
+                "podcastTagline": "Welcome to Spout Lore! Join three \"mighty\" \"heroes\" as they bumble their way through a post-magic world that gets made up as we go.",
+                "domain": "spoutlore.browse.show",
+                "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Exodus"
             },
             // sites/origin-sites/claretandblue
             "claretandblue": {
@@ -92,6 +92,24 @@
                 "imageUrl": "https://hiddenbrain.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "gratitude"
             },
+            // sites/origin-sites/celebritymemoirbookclub
+            "celebritymemoirbookclub": {
+                "siteName": "[browse.show] Celebrity Memoir Book Club",
+                "displayedPodcastName": "Celebrity Memoir Book Club",
+                "podcastTagline": "We read celebrity memoirs so you don't have to. Hosted by Claire Parker and Ashley Hamilton - best friends and stand up comedians based in Brooklyn, NY.",
+                "domain": "celebritymemoirbookclub.browse.show",
+                "imageUrl": "https://celebritymemoirbookclub.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "narcissist"
+            },
+            // sites/origin-sites/hardfork
+            "hardfork": {
+                "siteName": "[browse.show] Hard Fork",
+                "displayedPodcastName": "Hard Fork",
+                "podcastTagline": "Each week, journalists Kevin Roose and Casey Newton explore and make sense of the rapidly changing world of tech.",
+                "domain": "hardfork.browse.show",
+                "imageUrl": "https://hardfork.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Bing Sydney"
+            },
             // sites/origin-sites/myfavoritemurder
             "myfavoritemurder": {
                 "siteName": "[browse.show] My Favorite Murder",
@@ -145,15 +163,6 @@
                 "domain": "pickleballstudio.browse.show",
                 "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "3.5 at best"
-            },
-            // sites/origin-sites/spoutlore
-            "spoutlore": {
-                "siteName": "[browse.show] Spout Lore",
-                "displayedPodcastName": "Spout Lore",
-                "podcastTagline": "Welcome to Spout Lore! Join three \"mighty\" \"heroes\" as they bumble their way through a post-magic world that gets made up as we go.",
-                "domain": "spoutlore.browse.show",
-                "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
-                "searchInputPlaceholder": "Exodus"
             },
             // sites/origin-sites/eggplant
             "eggplant": {
