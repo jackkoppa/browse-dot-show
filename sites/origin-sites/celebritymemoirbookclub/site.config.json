@@ -1,0 +1,34 @@
+{
+  "id": "celebritymemoirbookclub",
+  "domain": "celebritymemoirbookclub.browse.show",
+  "appHeader": {
+    "primaryTitle": "Celebrity Memoir Book Club",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Celebrity Memoir Book Club",
+    "taglinePrimaryPodcastExternalURL": "https://www.celebritymemoirbookclub.biz/",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Celebrity Memoir Book Club",
+    "canonicalUrl": "https://celebritymemoirbookclub.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Celebrity Memoir Book Club podcast",
+    "metaTitle": "[browse.show] Celebrity Memoir Book Club"
+  },
+  "includedPodcasts": [
+    {
+      "id": "celebritymemoirbookclub-podcast",
+      "rssFeedFile": "celebritymemoirbookclub.xml",
+      "title": "Celebrity Memoir Book Club",
+      "status": "active",
+      "url": "https://feeds.megaphone.fm/HOOSWTABSGLOBALLLC7896801906"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hello hello, and welcome to Celebrity Memoir Book Club, the podcast where we read celebrity memoirs so you don't have to. We are Claire Parker and Ashley Hamilton - best friends and stand up comedians based in Brooklyn, NY. Let's jump in!",
+  "themeColor": "#a7b9d1",
+  "themeColorDark": "#70213e",
+  "searchPlaceholderOptions": [
+    "narcissist"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}

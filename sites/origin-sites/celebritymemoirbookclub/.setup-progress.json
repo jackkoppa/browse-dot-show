@@ -1,0 +1,73 @@
+{
+  "siteId": "celebritymemoirbookclub",
+  "podcastName": "Celebrity Memoir Book Club",
+  "createdAt": "2025-08-11T11:12:08.235Z",
+  "lastUpdated": "2025-08-11T12:15:22.947Z",
+  "steps": {
+    "generate-site-files": {
+      "id": "generate-site-files",
+      "displayName": "Generate initial site files",
+      "description": "Create the core site structure and configuration",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-08-11T11:12:08.236Z"
+    },
+    "run-locally": {
+      "id": "run-locally",
+      "displayName": "Run React site locally",
+      "description": "Verify your local development environment works",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-08-11T11:12:10.690Z"
+    },
+    "first-transcriptions": {
+      "id": "first-transcriptions",
+      "displayName": "Generate first episode transcriptions",
+      "description": "Process a few episodes locally to test the workflow",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-08-11T11:30:56.953Z"
+    },
+    "custom-icons": {
+      "id": "custom-icons",
+      "displayName": "Setup custom icons",
+      "description": "Customize your site branding and visual identity",
+      "optional": true,
+      "status": "DEFERRED"
+    },
+    "custom-styling": {
+      "id": "custom-styling",
+      "displayName": "Setup custom CSS & styling",
+      "description": "Customize your site theme and appearance",
+      "optional": true,
+      "status": "DEFERRED"
+    },
+    "complete-transcriptions": {
+      "id": "complete-transcriptions",
+      "displayName": "Complete all episode transcriptions",
+      "description": "Process your full podcast archive",
+      "optional": false,
+      "status": "DEFERRED"
+    },
+    "aws-deployment": {
+      "id": "aws-deployment",
+      "displayName": "Setup AWS deployment",
+      "description": "Deploy your site to production (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    },
+    "local-automation": {
+      "id": "local-automation",
+      "displayName": "Setup local automation",
+      "description": "Automate future episode processing (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    }
+  },
+  "initial2EpisodesResults": {
+    "episodesSizeInMB": 179.5396490097046,
+    "episodesDurationInSeconds": 7835,
+    "episodesTranscriptionTimeInSeconds": 514,
+    "episodesAudioFileDownloadTimeInSeconds": 20
+  }
+}
