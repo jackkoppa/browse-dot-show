@@ -71,7 +71,16 @@ function isMigrationNeeded(): boolean {
   const mappings = loadSiteAccountMappings();
   
   for (const siteId of Object.keys(mappings)) {
-    const backendConfigPath = join('sites/origin-sites', siteId, 'terraform/backend.tfbackend');
+    // Import site discovery to get the correct site directory
+    const { getSiteDirectory } = require('../sites/index.js');
+    const siteDir = getSiteDirectory(siteId);
+    
+    if (!siteDir) {
+      console.warn(`Site directory not found for ${siteId}, skipping migration check...`);
+      continue;
+    }
+    
+    const backendConfigPath = join(siteDir, 'terraform/backend.tfbackend');
     
     if (existsSync(backendConfigPath)) {
       const content = readFileSync(backendConfigPath, 'utf8');
@@ -103,7 +112,17 @@ function generateSiteInfo(): SiteInfo[] {
     
     const oldBucketName = `${siteId}-terraform-state`;
     const newBucketName = `${siteId}-browse-dot-show-tf-state`;
-    const backendConfigPath = join('sites/origin-sites', siteId, 'terraform/backend.tfbackend');
+    
+    // Import site discovery to get the correct site directory
+    const { getSiteDirectory } = require('../sites/index.js');
+    const siteDir = getSiteDirectory(siteId);
+    
+    if (!siteDir) {
+      printWarning(`⚠️  Site directory not found for ${siteId}. Skipping.`);
+      continue;
+    }
+    
+    const backendConfigPath = join(siteDir, 'terraform/backend.tfbackend');
     
     sites.push({
       siteId,

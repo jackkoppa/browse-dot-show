@@ -26,7 +26,7 @@ export async function getExistingSites(): Promise<string[]> {
     }
     
     return sites;
-  } catch (_error) {
+  } catch {
     // Directory might not be readable, return empty array
     return [];
   }
@@ -135,7 +135,7 @@ export async function runSiteValidation(_siteId: string): Promise<boolean> {
     
     printSuccess('✅ Site validation passed');
     return true;
-  } catch (_error) {
+  } catch {
     printWarning('⚠️  Site validation found issues (this is normal for new sites)');
     printInfo('You can address these after completing the setup.');
     return false;
@@ -198,7 +198,7 @@ export async function collectInitial2EpisodesMetrics(siteId: string, downloadTim
             } else {
               throw new Error('ffprobe failed');
             }
-          } catch (ffprobeError) {
+          } catch {
             // If ffprobe fails, estimate duration based on file size (rough estimate: ~1MB per minute for MP3)
             const estimatedDuration = (stats.size / 1024 / 1024) * 60; // MB * 60 seconds
             totalDurationInSeconds += estimatedDuration;
@@ -243,7 +243,7 @@ export async function openGuide(guidePath: string): Promise<void> {
       await execCommand('xdg-open', [guidePath]);
     }
     printSuccess(`📖 Opened ${guidePath}`);
-  } catch (_error) {
+  } catch {
     printInfo(`📖 Please open: ${guidePath}`);
   }
 } 

@@ -5,7 +5,7 @@ import { execCommand } from '../utils/shell-exec.js';
 import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
 // @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { loadProgress } from './setup-steps.js';
+
 import type { SetupProgress, StepStatus, SiteConfig } from './types.js';
 
 // Helper functions for complete transcriptions step
@@ -85,7 +85,7 @@ async function calculateTotalAudioDuration(siteId: string): Promise<number> {
           } else {
             throw new Error('ffprobe failed');
           }
-        } catch (ffprobeError) {
+        } catch {
           // If ffprobe fails, estimate duration based on file size (rough estimate: ~1MB per minute for MP3)
           const stats = fs.statSync(filePath);
           const estimatedDuration = (stats.size / 1024 / 1024) * 60; // MB * 60 seconds
@@ -145,7 +145,7 @@ async function validateTranscriptionCompletion(siteId: string): Promise<{ isComp
     const isComplete = audioCount === transcriptCount && audioCount === rssCount && audioCount > 0;
     return { isComplete, audioCount, transcriptCount, rssCount };
     
-  } catch (error) {
+  } catch {
     return { isComplete: false, audioCount: 0, transcriptCount: 0, rssCount: 0 };
   }
 }
@@ -189,7 +189,7 @@ async function validateFinalIndexing(siteId: string): Promise<{ isComplete: bool
     const isComplete = hasSearchIndex && searchEntriesCount === expectedCount && expectedCount > 0;
     return { isComplete, hasSearchIndex, searchEntriesCount, expectedCount };
     
-  } catch (error) {
+  } catch {
     return { isComplete: false, hasSearchIndex: false, searchEntriesCount: 0, expectedCount: 0 };
   }
 }

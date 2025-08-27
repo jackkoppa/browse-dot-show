@@ -137,7 +137,7 @@ class IngestionAutomationManager {
     try {
       const data = readFileSync(this.TIMESTAMP_FILE, 'utf8');
       return JSON.parse(data);
-    } catch (e) {
+    } catch {
       return { consecutiveFailures: 0 };
     }
   }
@@ -253,7 +253,7 @@ REQUIREMENTS:
       if (!powerStatus.isOnAC && powerStatus.batteryLevel < this.MIN_BATTERY_LEVEL) {
         console.log(`   ⚠️  Battery below minimum threshold (${this.MIN_BATTERY_LEVEL}%) - pipeline would be skipped`);
       }
-    } catch (e) {
+    } catch {
       console.log('   ❓ Could not determine current power status');
     }
     console.log();
@@ -271,7 +271,7 @@ REQUIREMENTS:
       } else {
         console.log('   No pipeline runs logged yet.');
       }
-    } catch (e) {
+    } catch {
       console.log('   ❌ Could not read pipeline run history');
     }
     console.log();
@@ -472,7 +472,7 @@ REQUIREMENTS:
         const logger = new PipelineResultLogger();
         this.executeCommand(`open "${logger.getLogFilePath()}"`, false);
         console.log('📖 Opening log file in default application...');
-      } catch (e) {
+      } catch {
         console.log('❌ Could not open log file automatically.');
         console.log(`   Please open manually: ${new PipelineResultLogger().getLogFilePath()}`);
       }
@@ -549,7 +549,7 @@ ADVANTAGES:
         enabled: config.enabled || false,
         timestamp: config.timestamp || new Date().toISOString()
       };
-    } catch (e) {
+    } catch {
       return { enabled: false, timestamp: new Date().toISOString() };
     }
   }
@@ -566,7 +566,7 @@ ADVANTAGES:
       const batteryLevel = batteryMatch ? parseInt(batteryMatch[1], 10) : 100;
 
       return { isOnAC, batteryLevel };
-    } catch (error) {
+    } catch {
       return { isOnAC: true, batteryLevel: 100 };
     }
   }
@@ -628,7 +628,7 @@ ADVANTAGES:
     try {
       // Unload the LaunchAgent if it's loaded
       this.executeCommand(`launchctl unload ${launchAgentPath}`, false);
-    } catch (e) {
+    } catch {
       // Ignore errors - agent might not be loaded
     }
     
@@ -637,7 +637,7 @@ ADVANTAGES:
       if (existsSync(launchAgentPath)) {
         unlinkSync(launchAgentPath);
       }
-    } catch (e) {
+    } catch {
       // Ignore errors
     }
   }
@@ -661,7 +661,7 @@ ADVANTAGES:
     if (!existsSync(logDir)) {
       try {
         mkdirSync(logDir, { recursive: true });
-      } catch (e) {
+      } catch {
         // Ignore errors - will be handled at runtime
       }
     }

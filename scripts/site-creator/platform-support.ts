@@ -89,7 +89,7 @@ export async function executeRepoForkCheck(): Promise<void> {
       'git@github.com:jackkoppa/browse-dot-show.git'
     ];
     
-    const isOriginalRepo = originalRepoUrls.some(url => cleanUrl.includes('jackkoppa/browse-dot-show'));
+    const isOriginalRepo = originalRepoUrls.some(_url => cleanUrl.includes('jackkoppa/browse-dot-show'));
     
     if (!isOriginalRepo) {
       // This appears to be a fork - good!
@@ -142,7 +142,7 @@ export async function executeRepoForkCheck(): Promise<void> {
     printWarning('⚠️  Proceeding with original repo clone. Remember to fork later if you want to version control your changes.');
     console.log('');
     
-  } catch (error) {
+  } catch {
     // If we can't check git remote (maybe not a git repo?), just log a warning and continue
     printWarning('Could not check git repository setup. Proceeding anyway...');
     printInfo('💡 If you haven\'t already, consider forking https://github.com/jackkoppa/browse-dot-show');
@@ -185,7 +185,7 @@ export async function executePlatformSupportStep(): Promise<StepStatus> {
       printInfo('Setup cancelled. You can restart anytime with `pnpm run site:create`.');
       process.exit(0);
     }
-  } catch (error) {
+  } catch {
     printWarning('Could not load platform support configuration. Proceeding anyway...');
     return 'COMPLETED';
   }

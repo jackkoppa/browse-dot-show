@@ -25,9 +25,9 @@ export function validateAllSites(): {
     const mySites = loadSitesFromDirectory(mySitesDir);
     
     if (mySites.length > 0) {
-        console.log(`Found ${sites.length} site(s) in my-sites/, ignoring origin-sites/`);
+        console.log(`Found ${sites.length} site(s) in my-sites/`);
     } else {
-        console.log(`No sites in my-sites/, using ${sites.length} site(s) from origin-sites/`);
+        console.log(`No sites in my-sites/, checking origin-sites/ for ${sites.length} site(s)`);
     }
     
     const results: ValidationResult[] = [];

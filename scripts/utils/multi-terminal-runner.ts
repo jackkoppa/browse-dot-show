@@ -15,7 +15,7 @@
  * Usage: tsx scripts/utils/multi-terminal-runner.ts --processes=3 --interval=10
  */
 
-import { spawn, exec } from 'child_process';
+import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -487,7 +487,7 @@ process.on('SIGINT', () => {
               if (entry.data?.completedMinutes) processCompleted = entry.data.completedMinutes;
               processStatus = entry.type;
               lastMessage = entry.message;
-            } catch (e) {
+            } catch {
               // Skip invalid JSON lines
             }
           }
@@ -510,7 +510,7 @@ process.on('SIGINT', () => {
           this.writeLine(`  ${config.id}: ${displayText}`);
           processDisplayData.push({ id: config.id, display: displayText });
         }
-      } catch (error) {
+      } catch {
         const displayText = '❌ Error reading logs';
         this.writeLine(`  ${config.id}: ${displayText}`);
         processDisplayData.push({ id: config.id, display: displayText });

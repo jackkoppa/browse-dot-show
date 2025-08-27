@@ -20,7 +20,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import prompts from 'prompts';
-import { discoverSites, Site } from './utils/site-selector.js';
+import { discoverSites, } from './utils/site-selector.js';
 import { MultiTerminalRunner, ProcessConfig } from './utils/multi-terminal-runner.js';
 
 interface AudioFileInfo {
@@ -141,7 +141,7 @@ function getAudioDuration(filePath: string): number {
 /**
  * Check if transcript exists for an audio file
  */
-function hasExistingTranscript(audioPath: string, siteId: string): boolean {
+function hasExistingTranscript(audioPath: string, _siteId: string): boolean {
   // Convert audio path to transcript path
   const audioDir = path.dirname(audioPath);
   const basename = path.basename(audioPath, path.extname(audioPath));

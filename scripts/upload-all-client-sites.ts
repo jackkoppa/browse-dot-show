@@ -11,7 +11,7 @@
 
 import { discoverSites, Site } from './utils/site-selector.js';
 import { loadAutomationCredentials } from './utils/automation-credentials.js';
-import { loadSiteAccountMappings, getSiteAccountMapping } from './utils/site-account-mappings.js';
+import { getSiteAccountMapping } from './utils/site-account-mappings.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, } from './utils/logging.js';
 import { 
@@ -295,7 +295,7 @@ async function main(): Promise<void> {
   const allSites = discoverSites();
   
   if (allSites.length === 0) {
-    console.error('❌ No sites found! Please create a site in /sites/my-sites/ or /sites/origin-sites/');
+    console.error('❌ No sites found! Please create a site in /sites/my-sites/');
     process.exit(1);
   }
   

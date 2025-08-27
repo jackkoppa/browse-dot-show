@@ -7,15 +7,9 @@ import {
   validateBuildOutput, 
   uploadClientToS3WithProfile, 
   invalidateCloudFrontWithProfile, 
-  getTerraformOutputsWithProfile,
-  TerraformOutputs 
+  getTerraformOutputsWithProfile
 } from '../utils/client-deployment.js';
 
-interface UploadConfig {
-  siteId: string;
-  awsProfile: string;
-  terraformOutputs: TerraformOutputs;
-}
 
 async function validateInputs(siteId: string): Promise<void> {
   if (!siteId) {

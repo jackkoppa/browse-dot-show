@@ -68,7 +68,7 @@ export async function loadProgress(siteId: string): Promise<SetupProgress | null
   
   try {
     return await readJsonFile<SetupProgress>(progressPath);
-  } catch (error) {
+  } catch {
     printWarning(`Could not load progress file for ${siteId}`);
     return null;
   }

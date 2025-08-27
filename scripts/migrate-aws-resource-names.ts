@@ -251,7 +251,7 @@ async function updateLambdaPermissions(oldFunctionName: string, newFunctionName:
 /**
  * Updates API Gateway integration for search function
  */
-async function updateApiGatewayIntegration(oldFunctionName: string, newFunctionName: string, awsProfile: string): Promise<void> {
+async function updateApiGatewayIntegration(oldFunctionName: string, newFunctionName: string, _awsProfile: string): Promise<void> {
     logInfo(`Updating API Gateway integration for: ${newFunctionName}`);
     
     try {

@@ -34,7 +34,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import prompts from 'prompts';
 import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
-import { loadSiteAccountMappings, getSiteAccountMapping, type SiteAccountMapping } from './utils/site-account-mappings.js';
+import { getSiteAccountMapping, } from './utils/site-account-mappings.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
 import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
@@ -699,12 +699,12 @@ function getExistingLocalFiles(localPath: string): string[] {
         try {
           const subFiles = getExistingLocalFilesRecursive(subPath, relativePath);
           existingFiles.push(...subFiles);
-        } catch (error) {
+        } catch {
           // Skip subdirectories that can't be read
         }
       }
     }
-  } catch (error) {
+  } catch {
     // If we can't read the directory, return empty array
   }
   
@@ -732,7 +732,7 @@ function getExistingLocalFilesRecursive(dirPath: string, relativePath: string): 
         files.push(...subFiles);
       }
     }
-  } catch (error) {
+  } catch {
     // Skip directories that can't be read
   }
   
@@ -865,63 +865,7 @@ async function performS3ToLocalPreSync(
   }
 }
 
-/**
- * Sync transcripts folder to S3 for a site with new SRT files (original function)
- */
-async function syncTranscriptsToS3(
-  siteId: string,
-  credentials: AutomationCredentials
-): Promise<{ success: boolean; duration: number; error?: string }> {
-  const startTime = Date.now();
-  
-  logProgress(`Syncing new transcripts to S3 for ${siteId}`);
-  
-  try {
-    // Assume AWS role and get temporary credentials
-    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 's3-sync', credentials);
-    
-    // Set up paths
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
-    const localTranscriptsPath = path.join(localBasePath, 'transcripts');
-    const s3TranscriptsPath = `s3://${siteConfig.bucketName}/transcripts`;
-    
-    // Ensure local directory exists
-    if (!fs.existsSync(localTranscriptsPath)) {
-      logWarning(`No transcripts directory found for ${siteId}: ${localTranscriptsPath}`);
-      return { success: true, duration: Date.now() - startTime }; // Not an error - just no files to sync
-    }
-    
-    // Set up sync options
-    const syncOptions = createSyncOptions(
-      siteId,
-      'local-to-s3',
-      'overwrite-if-newer',
-      siteConfig,
-      tempCredentials
-    );
-    
-    // Sync transcripts folder
-    const result = await executeS3Sync(
-      localTranscriptsPath + '/',
-      s3TranscriptsPath + '/',
-      syncOptions,
-      'transcripts'
-    );
-    
-    if (!result.success) {
-      throw new Error(`S3 sync failed: ${result.output}`);
-    }
-    
-    const duration = Date.now() - startTime;
-    logSuccess(`Transcripts synced to S3 for ${siteId} in ${duration}ms`);
-    return { success: true, duration };
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logError(`Failed to sync transcripts to S3 for ${siteId}: ${error.message}`);
-    return { success: false, duration, error: error.message };
-  }
-}
+
 
 /**
  * Sync episode-manifest folder to S3 for a site (always runs regardless of other files)
@@ -1466,7 +1410,7 @@ async function main(): Promise<void> {
   const allSites = discoverSites();
   
   if (allSites.length === 0) {
-    console.error('❌ No sites found! Please create a site in /sites/my-sites/ or /sites/origin-sites/');
+    console.error('❌ No sites found! Please create a site in /sites/my-sites/');
     process.exit(1);
   }
   

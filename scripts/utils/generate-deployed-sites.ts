@@ -15,7 +15,7 @@ import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { discoverSites } from './site-selector.js';
 import { loadSiteAccountMappings } from './site-account-mappings.js';
-import { logInfo, logSuccess, logWarning } from './logging.js';
+import { logInfo, logSuccess, } from './logging.js';
 
 /**
  * Generate the deployed sites list and write to .deployed-sites.json

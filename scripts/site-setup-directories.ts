@@ -177,7 +177,7 @@ async function main(): Promise<void> {
     const availableSites = getAvailableSiteIds();
 
     if (availableSites.length === 0) {
-        console.error('❌ No sites found. Please create sites in sites/my-sites/ or sites/origin-sites/');
+        console.error('❌ No sites found. Please create sites in sites/my-sites/');
         process.exit(1);
     }
 

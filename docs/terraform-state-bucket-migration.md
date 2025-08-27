@@ -62,7 +62,7 @@ The script will:
    - Check if old bucket exists
    - Create new bucket with proper configuration (versioning, encryption, public access blocking)
    - Copy all state files from old bucket to new bucket
-   - Update backend configuration files (`sites/origin-sites/{siteId}/terraform/backend.tfbackend`)
+   - Update backend configuration files (`sites/my-sites/{siteId}/terraform/backend.tfbackend` or `sites/origin-sites/{siteId}/terraform/backend.tfbackend`)
 3. Validate that state files were copied correctly
 
 ### Step 2: Test Deployment of Existing Sites
@@ -143,7 +143,7 @@ The migration updates the following files to use the new bucket naming pattern:
 - `terraform/sites/main.tf` - Documentation comment
 - `terraform/sites/outputs.tf` - Documentation comment
 - `scripts/site-creator/step-executors.ts` - Bucket name checks
-- All site-specific `sites/origin-sites/{siteId}/terraform/backend.tfbackend` files
+- All site-specific `sites/my-sites/{siteId}/terraform/backend.tfbackend` or `sites/origin-sites/{siteId}/terraform/backend.tfbackend` files
 
 ## Affected Sites and Accounts
 
@@ -199,7 +199,7 @@ aws s3api head-bucket --bucket {siteId}-browse-dot-show-tf-state --profile {aws-
 aws s3 ls s3://{siteId}-browse-dot-show-tf-state --profile {aws-profile}
 
 # Check backend config file
-cat sites/origin-sites/{siteId}/terraform/backend.tfbackend
+cat sites/my-sites/{siteId}/terraform/backend.tfbackend
 ```
 
 ## Migration Script Usage

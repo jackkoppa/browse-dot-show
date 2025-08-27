@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { spawn } from 'child_process';
-import { exists, writeTextFile, readTextFile, readJsonFile } from '../utils/file-operations.js';
+import { exists, writeTextFile, readTextFile, } from '../utils/file-operations.js';
 import { execCommand } from '../utils/shell-exec.js';
 import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
 import { checkAwsCredentials, checkAwsSsoLogin } from '../utils/aws-utils.js';
@@ -10,10 +10,10 @@ import prompts from 'prompts';
 import { openGuide, collectInitial2EpisodesMetrics } from './site-operations.js';
 import { loadProgress, saveProgress } from './setup-steps.js';
 import { executeCompleteTranscriptionsStep } from './step-executors-advanced.js';
-import type { SetupProgress, StepStatus, SiteConfig } from './types.js';
+import type { SetupProgress, StepStatus, } from './types.js';
 
 export async function executeStep(progress: SetupProgress, stepId: string): Promise<StepStatus> {
-  const step = progress.steps[stepId];
+  
   
   switch (stepId) {
     case 'generate-site-files':
@@ -129,7 +129,7 @@ async function setupAwsCredentials(siteId: string): Promise<boolean> {
       throw new Error('AWS CLI not found');
     }
     printSuccess('✅ AWS CLI is installed');
-  } catch (error) {
+  } catch {
     printError('❌ AWS CLI is not installed or not in PATH');
     console.log('');
     console.log('Please install AWS CLI first:');
@@ -179,7 +179,7 @@ async function setupAwsCredentials(siteId: string): Promise<boolean> {
           }
         }
       }
-    } catch (error) {
+    } catch {
       printWarning('⚠️  Could not read existing AWS configuration file');
     }
   }
@@ -430,7 +430,7 @@ async function checkPrerequisitesAndEnvironment(): Promise<boolean> {
     } else {
       printSuccess('✅ Terraform is installed');
     }
-  } catch (error) {
+  } catch {
     printError('❌ Terraform is not installed or not in PATH');
     console.log('');
     console.log('Please install Terraform first:');
@@ -557,7 +557,7 @@ async function checkPrerequisitesAndEnvironment(): Promise<boolean> {
     } else {
       throw new Error(`Prerequisites check failed with exit code ${prereqResult.exitCode}`);
     }
-  } catch (error) {
+  } catch {
     printError('❌ Prerequisite check failed');
     console.log('');
     
@@ -631,7 +631,7 @@ async function bootstrapTerraformState(siteId: string): Promise<boolean> {
         printWarning('⚠️  State bucket exists but backend config is missing. Will recreate...');
       }
     }
-  } catch (error) {
+  } catch {
     // Bucket doesn't exist or we can't access it - that's fine, we'll create it
     printInfo('Terraform state bucket not found. Will create new one...');
   }
@@ -671,7 +671,7 @@ async function bootstrapTerraformState(siteId: string): Promise<boolean> {
     
     printSuccess('✅ Terraform state infrastructure created successfully!');
     
-  } catch (error) {
+  } catch {
     printError('❌ Failed to bootstrap Terraform state');
     console.log('');
     
@@ -844,14 +844,14 @@ async function runDeploymentWithProgress(siteId: string, env: NodeJS.ProcessEnv)
       stdio: ['inherit', 'pipe', 'pipe']
     });
     
-    let lastOutput = '';
-    let hasErrors = false;
+    let _lastOutput = '';
+    let _hasErrors = false;
     
     // Stream stdout to user
     child.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       process.stdout.write(output);
-      lastOutput = output.trim();
+      _lastOutput = output.trim();
     });
     
     // Stream stderr to user and track errors
@@ -861,10 +861,10 @@ async function runDeploymentWithProgress(siteId: string, env: NodeJS.ProcessEnv)
       
       // Check for specific error patterns
       if (output.includes('Error') || output.includes('Failed') || output.includes('❌')) {
-        hasErrors = true;
+        _hasErrors = true;
       }
       
-      lastOutput = output.trim();
+      _lastOutput = output.trim();
     });
     
     child.on('close', (code: number | null) => {
@@ -1100,7 +1100,7 @@ async function parseEnvLocal(): Promise<Record<string, string>> {
         }
       }
     }
-  } catch (error) {
+  } catch {
     // If we can't read the file, just return empty object
   }
   

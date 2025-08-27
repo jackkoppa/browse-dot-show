@@ -14,7 +14,7 @@
 
 import { execSync } from 'child_process';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
-import { loadSiteAccountMappings, getSiteAccountMapping } from './utils/site-account-mappings.js';
+import { getSiteAccountMapping } from './utils/site-account-mappings.js';
 
 // Site configuration mapping - partial list for testing
 // TODO: Add pickleballstudio mapping when it's deployed for the first time
@@ -119,7 +119,7 @@ function testRoleAssumption(siteId: SiteId, roleArn: string): TestResult {
         message: `✅ Successfully assumed ${siteId} automation role`,
         details: `Session: ${assumeRoleOutput.AssumedRoleUser?.Arn}`
       };
-    } catch (parseError) {
+    } catch {
       return {
         test: 'Role Assumption',
         success: false,

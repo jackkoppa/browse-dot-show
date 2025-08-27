@@ -9,20 +9,18 @@ As of the site reorganization (Phase 2), **site-specific terraform configuration
 Site-specific terraform files are now located in each site's directory:
 
 ```
-sites/origin-sites/{site-id}/terraform/
+sites/my-sites/{site-id}/terraform/
 ├── prod.tfvars          # Previously: terraform/sites/environments/{site-id}-prod.tfvars
 └── backend.tfbackend    # Previously: terraform/sites/backend-configs/{site-id}.tfbackend
 ```
 
 ## Example Locations
 
-- **hardfork**: `sites/origin-sites/hardfork/terraform/`
-- **claretandblue**: `sites/origin-sites/claretandblue/terraform/`
-- **listenfairplay**: `sites/origin-sites/listenfairplay/terraform/`
-- **lordsoflimited**: `sites/origin-sites/lordsoflimited/terraform/`
-- **myfavoritemurder**: `sites/origin-sites/myfavoritemurder/terraform/`
-- **naddpod**: `sites/origin-sites/naddpod/terraform/`
-- **searchengine**: `sites/origin-sites/searchengine/terraform/`
+For your own sites, use the `my-sites` directory:
+- **my-site**: `sites/my-sites/my-site/terraform/`
+
+Example sites from the main repository (if available) would be in:
+- **example-site**: `sites/origin-sites/example-site/terraform/`
 
 ## Deployment Scripts
 
@@ -40,8 +38,8 @@ Deployment scripts have been updated to look for terraform files in the new loca
 When creating a new site, create the terraform directory structure:
 
 ```bash
-mkdir -p sites/origin-sites/{new-site-id}/terraform/
-# Copy and modify template files from existing sites
+mkdir -p sites/my-sites/{new-site-id}/terraform/
+# Copy and modify template files from template-site or existing sites
 ```
 
 ## Migration Notes
