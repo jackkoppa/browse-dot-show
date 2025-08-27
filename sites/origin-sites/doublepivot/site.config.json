@@ -1,0 +1,35 @@
+{
+  "id": "doublepivot",
+  "domain": "doublepivot.browse.show",
+  "appHeader": {
+    "primaryTitle": "Double Pivot",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Double Pivot",
+    "taglinePrimaryPodcastExternalURL": "https://www.buzzsprout.com/819853/episodes",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Double Pivot",
+    "canonicalUrl": "https://doublepivot.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
+    "metaDescription": "Search all episodes of the Double Pivot podcast",
+    "metaTitle": "[browse.show] Double Pivot"
+  },
+  "includedPodcasts": [
+    {
+      "id": "doublepivot-podcast",
+      "rssFeedFile": "doublepivot.xml",
+      "title": "Double Pivot",
+      "status": "active",
+      "url": "https://feeds.buzzsprout.com/819853.rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hello, and welcome to Double Pivot. A podcast about soccer analysis, analytics, and commentary with us, your hosts Mike Goodman and Michael Caley. Let's jump in!",
+  "themeColor": "#32ff9a",
+  "themeColorDark": "#11824e",
+  "searchPlaceholderOptions": [
+    "inverting",
+    "4 3 3"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
