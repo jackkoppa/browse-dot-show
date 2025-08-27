@@ -412,9 +412,19 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
 }
 
 async function runTerraformDeployment(siteId: string, skipPrompts: boolean = false): Promise<boolean> {
-  // Relative paths from terraform/sites directory
-  const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
-  const TFVARS_FILE = `../../sites/origin-sites/${siteId}/terraform/prod.tfvars`;
+  // Import site discovery to get the correct site directory
+  const { getSiteDirectory } = await import('../../sites/index.js');
+  
+  // Get the actual site directory (checks my-sites first, then fallback to origin-sites)
+  const siteDir = getSiteDirectory(siteId);
+  if (!siteDir) {
+    throw new Error(`Site directory not found for ${siteId}. Please ensure the site exists in /sites/my-sites/ or /sites/origin-sites/`);
+  }
+  
+  // Calculate relative paths from terraform/sites directory to the actual site directory
+  const siteDirRelative = path.relative(path.resolve('terraform/sites'), siteDir);
+  const BACKEND_CONFIG_FILE = `${siteDirRelative}/terraform/backend.tfbackend`;
+  const TFVARS_FILE = `${siteDirRelative}/terraform/prod.tfvars`;
   const TF_DIR = 'terraform/sites';
 
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);

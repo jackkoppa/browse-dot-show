@@ -1466,7 +1466,7 @@ async function main(): Promise<void> {
   const allSites = discoverSites();
   
   if (allSites.length === 0) {
-    console.error('❌ No sites found! Please create a site in /sites/my-sites/ or /sites/origin-sites/');
+    console.error('❌ No sites found! Please create a site in /sites/my-sites/');
     process.exit(1);
   }
   

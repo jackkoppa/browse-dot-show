@@ -37,9 +37,17 @@ async function loadSpellingCorrections(siteId: string): Promise<SpellingCorrecti
   
   // Load site-specific corrections first
   try {
-    // Navigate up to the repo root and then to the site directory
-    const repoRoot = path.resolve(__dirname, '..', '..', '..');
-    const siteConfigPath = path.join(repoRoot, 'sites', 'origin-sites', siteId, 'spelling-corrections.json');
+    // Import site discovery to get the correct site directory
+    const { getSiteDirectory } = await import('../../sites/index.js');
+    
+    // Get the actual site directory (checks my-sites first, then fallback to origin-sites)
+    const siteDir = getSiteDirectory(siteId);
+    if (!siteDir) {
+      console.warn(`Site directory not found for ${siteId}, skipping site-specific spelling corrections`);
+      return { siteSpecific: [], global: [] };
+    }
+    
+    const siteConfigPath = path.join(siteDir, 'spelling-corrections.json');
     
     if (await fs.pathExists(siteConfigPath)) {
       const siteConfigContent = await fs.readFile(siteConfigPath, 'utf-8');

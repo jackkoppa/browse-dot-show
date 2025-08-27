@@ -170,7 +170,7 @@ export async function selectSite(options: SiteSelectionOptions = {}): Promise<st
     const sites = discoverSites();
 
     if (sites.length === 0) {
-        console.error('No sites found! Please create a site in /sites/my-sites/ or /sites/origin-sites/');
+        console.error('No sites found! Please create a site in /sites/my-sites/');
         process.exit(1);
     }
 

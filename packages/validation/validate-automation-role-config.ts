@@ -82,20 +82,29 @@ function loadSiteConfigs(): SiteConfig[] {
   const configs: SiteConfig[] = [];
   
   try {
-    // New location: sites/origin-sites/{site-id}/terraform/prod.tfvars
-    const sitesDir = '../../sites/origin-sites';
-    const siteDirectories = readdirSync(sitesDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    // Import site discovery to get all available sites
+    const { discoverSites } = await import('../../sites/index.js');
     
-    for (const siteName of siteDirectories) {
-      const tfvarsPath = join(sitesDir, siteName, 'terraform', 'prod.tfvars');
+    // Get all available sites (prioritizes my-sites over origin-sites)
+    const sites = discoverSites();
+    
+    for (const site of sites) {
+      // Import getSiteDirectory to get the actual site directory
+      const { getSiteDirectory } = await import('../../sites/index.js');
+      const siteDir = getSiteDirectory(site.id);
+      
+      if (!siteDir) {
+        console.warn(`Site directory not found for ${site.id}, skipping...`);
+        continue;
+      }
+      
+      const tfvarsPath = join(siteDir, 'terraform', 'prod.tfvars');
       
       if (existsSync(tfvarsPath)) {
         const variables = parseHCLFile(tfvarsPath);
         
         configs.push({
-          siteName,
+          siteName: site.id,
           filePath: tfvarsPath,
           awsProfile: variables.aws_profile,
           createAutomationRole: variables.create_automation_role
@@ -237,7 +246,7 @@ function main(): void {
   const configs = loadSiteConfigs();
   
   if (configs.length === 0) {
-    console.error('❌ No site configuration files found in sites/origin-sites/*/terraform/');
+    console.error('❌ No site configuration files found in sites/my-sites/*/terraform/ or sites/origin-sites/*/terraform/');
     process.exit(1);
   }
   

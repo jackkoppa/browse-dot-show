@@ -6,10 +6,10 @@
                 
             } */
         },
-        // sites/origin-sites
-        // These are the sites deployed by the root repository, https://github.com/jackkoppa/browse-dot-show
+        // Example sites
+        // These are example sites originally deployed by the root repository, now in separate repo
         "originSites": {
-            // sites/origin-sites/listenfairplay
+            // listenfairplay
             // First site created (Football Clichés being the original use case that inspired the project),
             // prior to the multi-site architecture that browse-dot-show now supports 
             "listenfairplay": {
@@ -20,7 +20,7 @@
                 "imageUrl": "https://listenfairplay.com/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "come what February"
             },
-            // sites/origin-sites/naddpod
+            // naddpod
             "naddpod": {
                 "siteName": "[browse.show] NaddPod",
                 "displayedPodcastName": "Not Another D&D Podcast",
@@ -29,7 +29,7 @@
                 "imageUrl": "https://naddpod.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "olaf dies"
             },
-            // sites/origin-sites/spoutlore
+            // spoutlore
             "spoutlore": {
                 "siteName": "[browse.show] Spout Lore",
                 "displayedPodcastName": "Spout Lore",
@@ -38,7 +38,7 @@
                 "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Exodus"
             },
-            // sites/origin-sites/claretandblue
+            // claretandblue
             "claretandblue": {
                 "siteName": "[browse.show] Claret & Blue",
                 "displayedPodcastName": "Claret & Blue",
@@ -47,7 +47,7 @@
                 "imageUrl": "https://claretandblue.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "absolute scenes"
             },
-            // sites/origin-sites/fromtherookeryend
+            // fromtherookeryend
             "fromtherookeryend": {
                 "siteName": "[browse.show] From the Rookery End",
                 "displayedPodcastName": "From the Rookery End",
@@ -56,7 +56,7 @@
                 "imageUrl": "https://fromtherookeryend.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Vicarage Road"
             },
-            // sites/origin-sites/officeladies
+            // officeladies
             "officeladies": {
                 "siteName": "[browse.show] Office Ladies",
                 "displayedPodcastName": "Office Ladies",
@@ -65,7 +65,7 @@
                 "imageUrl": "https://officeladies.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Michael Scott"
             },
-            // sites/origin-sites/screenrot
+            // screenrot
             "screenrot": {
                 "siteName": "[browse.show] Screen Rot",
                 "displayedPodcastName": "Screen Rot",
@@ -74,7 +74,7 @@
                 "imageUrl": "https://screenrot.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "men are class"
             },
-            // sites/origin-sites/searchengine
+            // searchengine
             "searchengine": {
                 "siteName": "[browse.show] Search Engine",
                 "displayedPodcastName": "Search Engine",
@@ -83,7 +83,7 @@
                 "imageUrl": "https://searchengine.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "coffee on airplanes"
             },
-            // sites/origin-sites/hiddenbrain
+            // hiddenbrain
             "hiddenbrain": {
                 "siteName": "[browse.show] Hidden Brain",
                 "displayedPodcastName": "Hidden Brain",
@@ -92,7 +92,7 @@
                 "imageUrl": "https://hiddenbrain.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "gratitude"
             },
-            // sites/origin-sites/celebritymemoirbookclub
+            // celebritymemoirbookclub
             "celebritymemoirbookclub": {
                 "siteName": "[browse.show] Celebrity Memoir Book Club",
                 "displayedPodcastName": "Celebrity Memoir Book Club",
@@ -101,7 +101,7 @@
                 "imageUrl": "https://celebritymemoirbookclub.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "narcissist"
             },
-            // sites/origin-sites/hardfork
+            // hardfork
             "hardfork": {
                 "siteName": "[browse.show] Hard Fork",
                 "displayedPodcastName": "Hard Fork",
@@ -110,7 +110,7 @@
                 "imageUrl": "https://hardfork.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Bing Sydney"
             },
-            // sites/origin-sites/myfavoritemurder
+            // myfavoritemurder
             "myfavoritemurder": {
                 "siteName": "[browse.show] My Favorite Murder",
                 "displayedPodcastName": "My Favorite Murder",
@@ -119,7 +119,7 @@
                 "imageUrl": "https://myfavoritemurder.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "10 foot skeletons"
             },
-            // sites/origin-sites/drivetowork
+            // drivetowork
             "drivetowork": {
                 "siteName": "[browse.show] Magic: The Gathering - Drive to Work",
                 "displayedPodcastName": "Magic: The Gathering - Drive to Work",
@@ -128,7 +128,7 @@
                 "imageUrl": "https://drivetowork.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "tabula rasa"
             },
-            // sites/origin-sites/luckypaper
+            // luckypaper
             "luckypaper": {
                 "siteName": "[browse.show] Lucky Paper Radio",
                 "displayedPodcastName": "Lucky Paper Radio",
@@ -137,7 +137,7 @@
                 "imageUrl": "https://luckypaper.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "cube will outlive"
             },
-            // sites/origin-sites/lordsoflimited
+            // lordsoflimited
             "lordsoflimited": {
                 "siteName": "[browse.show] Lords of Limited",
                 "displayedPodcastName": "Lords of Limited",
@@ -146,7 +146,7 @@
                 "imageUrl": "https://lordsoflimited.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "magicians against data"
             },
-            // sites/origin-sites/limitedresources
+            // limitedresources
             "limitedresources": {
                 "siteName": "[browse.show] Limited Resources",
                 "displayedPodcastName": "Limited Resources",
@@ -155,7 +155,7 @@
                 "imageUrl": "https://limitedresources.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Elmer the elk"
             },
-            // sites/origin-sites/pickleballstudio
+            // pickleballstudio
             "pickleballstudio": {
                 "siteName": "[browse.show] Pickleball Studio",
                 "displayedPodcastName": "Pickleball Studio",
@@ -164,7 +164,7 @@
                 "imageUrl": "https://pickleballstudio.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "3.5 at best"
             },
-            // sites/origin-sites/eggplant
+            // eggplant
             "eggplant": {
                 "siteName": "[browse.show] Eggplant: The Secret Lives of Games",
                 "displayedPodcastName": "Eggplant: The Secret Lives of Games",

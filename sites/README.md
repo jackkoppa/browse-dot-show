@@ -17,6 +17,8 @@ Each site defines a few things, including its:
 * styling
 * a few .env variables, including AWS SSO username for deployment
 
-The primary repo - [jackkoppa/browse-dot-show](https://github.com/jackkoppa/browse-dot-show) - will define the sites it hosts, in [origin-sites/](./origin-sites/).
+The primary repo - [jackkoppa/browse-dot-show](https://github.com/jackkoppa/browse-dot-show) - provides a template structure for creating sites in [my-sites/](./my-sites/).
 
-All other repos will define their sites in [my-sites/](./my-sites/).
+Example sites are available in a separate repository: [browse-dot-show-example-sites](https://github.com/jackkoppa/browse-dot-show-example-sites) (coming soon).
+
+All forked repos should define their sites in [my-sites/](./my-sites/).
