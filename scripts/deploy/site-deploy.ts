@@ -113,7 +113,7 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
           printInfo('💡 No certificates found for this site. This might be expected if the certificate creation failed.');
         }
       }
-    } catch (parseError) {
+    } catch {
       printInfo('💡 To get validation records manually, run:');
       console.log(`   aws acm list-certificates --region us-east-1`);
       console.log(`   aws acm describe-certificate --region us-east-1 --certificate-arn <CERTIFICATE_ARN>`);
@@ -121,7 +121,7 @@ async function displaySSLCertificateSetupInstructions(siteId: string): Promise<v
       process.chdir(originalCwd);
     }
 
-  } catch (error) {
+  } catch {
     printInfo('💡 Unable to automatically retrieve certificate details.');
     printInfo('You can get the DNS validation records from the AWS Console:');
     console.log('   1. Go to AWS Certificate Manager (ACM) in us-east-1 region');

@@ -189,7 +189,7 @@ function createEpisodeKey(fileKey: string): string {
   try {
     const parsed = parseFileKey(fileKey);
     return `${parsed.date}_${parsed.title}`;
-  } catch (error) {
+  } catch {
     // If parsing fails, use the original fileKey
     return fileKey;
   }

@@ -273,7 +273,7 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
           outputs.accessKeyId = accessKeyResult.stdout.trim();
           outputs.secretAccessKey = secretKeyResult.stdout.trim();
         }
-      } catch (error) {
+      } catch {
         printInfo('Note: Could not retrieve automation credentials (this is normal if they already exist)');
       }
     }

@@ -100,7 +100,7 @@ async function scanLocalFiles(siteId: string): Promise<FileInventory> {
           files.push(relativePath);
         }
       }
-    } catch (error) {
+    } catch {
       // Directory might not exist or be accessible, that's okay
     }
     

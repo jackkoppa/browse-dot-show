@@ -82,7 +82,7 @@ function logProgress(type: string, message: string, data: any = {}) {
     try {
       const fs = require('fs');
       fs.appendFileSync(process.env.LOG_FILE, logLine + '\n');
-    } catch (error) {
+    } catch {
       // Silently ignore file write errors to avoid breaking transcription
     }
   }
@@ -857,7 +857,7 @@ export async function handler(): Promise<void> {
 
   // Calculate total duration of untranscribed files for progress tracking
   let totalMinutesToProcess = 0;
-  const processIdFromEnv = process.env.PROCESS_ID;
+  
   
   // If this is part of a multi-terminal session, get the total from environment
   if (process.env.TERMINAL_TOTAL_MINUTES) {
@@ -991,10 +991,10 @@ export async function handler(): Promise<void> {
       incompletedTranscripts--;
       
       // Calculate completed duration for progress tracking
-      let completedMinutes = 0;
+      let _completedMinutes = 0;
       try {
         const currentFileDuration = await getAudioDurationMinutes(fileKey);
-        completedMinutes = currentFileDuration;
+        _completedMinutes = currentFileDuration;
         
         // If we have access to all processed files, calculate total completed duration
         // For now, we'll use an approximation based on completed file count

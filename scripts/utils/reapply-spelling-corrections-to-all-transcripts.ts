@@ -9,7 +9,7 @@
  * from global to site-specific corrections.
  */
 
-import { logInfo, logError, logDebug, logProgress, logSuccess } from './logging.js';
+import { logInfo, logError, logDebug, logSuccess } from './logging.js';
 import { discoverSites } from './site-selector.js';
 import {
   listFiles,

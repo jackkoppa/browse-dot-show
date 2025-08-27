@@ -9,7 +9,7 @@
  * - Every site should have both aws_profile and create_automation_role defined
  */
 
-import { readdirSync, readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 interface SiteConfig {
@@ -78,7 +78,7 @@ function parseHCLFile(filePath: string): Record<string, any> {
   }
 }
 
-function loadSiteConfigs(): SiteConfig[] {
+async function loadSiteConfigs(): Promise<SiteConfig[]> {
   const configs: SiteConfig[] = [];
   
   try {
@@ -240,10 +240,10 @@ function displayResults(result: ValidationResult): void {
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   console.log('Starting automation role configuration validation...\n');
   
-  const configs = loadSiteConfigs();
+  const configs = await loadSiteConfigs();
   
   if (configs.length === 0) {
     console.error('❌ No site configuration files found in sites/my-sites/*/terraform/ or sites/origin-sites/*/terraform/');
@@ -257,7 +257,7 @@ function main(): void {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  main().catch(console.error);
 }
 
 export { validateAutomationRoleConfig, loadSiteConfigs }; 

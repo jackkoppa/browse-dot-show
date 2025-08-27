@@ -59,7 +59,7 @@ describe('applySpellingCorrections', () => {
       return Promise.resolve(false);
     });
     
-    (fs.readFile as any).mockImplementation((path: string, encoding: string) => {
+    (fs.readFile as any).mockImplementation((path: string, _encoding: string) => {
       if (path.includes('listenfairplay/spelling-corrections.json')) {
         return Promise.resolve(JSON.stringify(mockListenFairPlayConfig));
       }
@@ -228,7 +228,7 @@ describe('applyCorrectionToFile', () => {
       return Promise.resolve(false);
     });
     
-    (fs.readFile as any).mockImplementation((path: string, encoding: string) => {
+    (fs.readFile as any).mockImplementation((path: string, _encoding: string) => {
       if (path.includes('listenfairplay/spelling-corrections.json')) {
         return Promise.resolve(JSON.stringify(mockListenFairPlayConfig));
       }

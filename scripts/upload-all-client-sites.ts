@@ -11,7 +11,7 @@
 
 import { discoverSites, Site } from './utils/site-selector.js';
 import { loadAutomationCredentials } from './utils/automation-credentials.js';
-import { loadSiteAccountMappings, getSiteAccountMapping } from './utils/site-account-mappings.js';
+import { getSiteAccountMapping } from './utils/site-account-mappings.js';
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, } from './utils/logging.js';
 import { 

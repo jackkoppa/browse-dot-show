@@ -367,7 +367,7 @@ async function main(): Promise<void> {
   logHeader('🚀 Deploy Homepage to browse.show');
 
   // Load environment and validate AWS authentication
-  const awsProfile = await loadHomepageEnvironmentAndValidateAws();
+  await loadHomepageEnvironmentAndValidateAws();
 
   // Ask for deployment options
   const options = await askDeploymentOptions();
