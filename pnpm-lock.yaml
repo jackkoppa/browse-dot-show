@@ -525,6 +525,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: 'catalog:'
         version: 3.844.0
+      '@browse-dot-show/config':
+        specifier: workspace:*
+        version: link:../config
       '@browse-dot-show/database':
         specifier: workspace:*
         version: link:../database
@@ -699,6 +702,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.0.0
         version: 3.844.0
+      '@browse-dot-show/config':
+        specifier: workspace:*
+        version: link:../packages/config
       '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../packages/constants
