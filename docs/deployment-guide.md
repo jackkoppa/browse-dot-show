@@ -7,9 +7,9 @@ This guide will walk you through deploying your podcast site to AWS using the au
 Your site will be deployed to AWS with:
 - **S3**: Static website hosting
 - **CloudFront**: Global CDN for fast loading
-- **Lambda**: Backend API functions for search and ingestion
+- **Lambda**: Backend API functions for search (ingestion lambdas available but optional)
 - **Route 53**: Custom domain management
-- **Local transcription**: Cost-effective transcript generation
+- **Local processing**: Primary method for cost-effective transcript generation
 
 ## 🔧 Prerequisites
 
@@ -122,9 +122,12 @@ pnpm run site:deploy
 
 The deployment script handles:
 - **Infrastructure creation**: All AWS resources via Terraform
+- **Lambda deployment**: Search API and optional ingestion functions
 - **Content building**: Compiles your site for production
 - **Asset uploading**: Deploys to S3 and CloudFront
 - **Configuration**: Sets up all necessary environment variables
+
+**Note:** Ingestion lambdas are deployed but not scheduled by default. Local processing is the recommended approach for new episodes.
 
 ### Verify Deployment
 
@@ -171,13 +174,16 @@ pnpm run ingestion:run-pipeline:interactive
 - Updates search database
 - Refreshes CloudFront cache
 
-### Cost Savings with Local Transcription
+### Cost Savings with Local Processing
 
-By running transcription locally, you save significant costs:
-- **Cloud API costs**: $0.006 per minute (adds up quickly)
-- **Local processing**: Only compute time on your machine
-- **One-time setup**: Process entire podcast archive locally
+By running the full ingestion pipeline locally, you save significant costs:
+- **Cloud API costs**: $0.006 per minute for Whisper API (adds up quickly for long podcasts)
+- **Local processing**: Free using whisper.cpp on your machine
+- **No Lambda execution costs**: Avoid Lambda compute charges for processing
+- **One-time setup**: Process entire podcast archive locally without usage limits
 - **Ongoing updates**: Only new episodes need processing
+
+**Example:** A 2-hour podcast episode costs $0.72 via OpenAI Whisper API vs. free with local processing.
 
 ## ✅ Step 6: Verify Everything Works
 
@@ -218,15 +224,20 @@ sudo pnpm run ingestion:automation:manage
 # - Includes interactive management interface
 ```
 
-**Option 2: Cloud-Based Automation (Production)**
+**Option 2: Cloud-Based Automation (Production - Higher Cost)**
 ```bash
-# Deploy cloud automation for regular updates
-pnpm run automation:deploy
+# Enable scheduled Lambda execution (uses paid Whisper API)
+# This is NOT recommended due to cost, but available if needed
 
-# This creates CloudWatch scheduled events to:
-# - Check for new episodes daily
-# - Process new content automatically
-# - Update search index continuously
+# To enable during deployment, set terraform variable:
+# enable_rss_processing_schedule = true
+
+# This creates EventBridge scheduled events to:
+# - Check for new episodes daily (or custom schedule)
+# - Process content using OpenAI Whisper API ($0.006/minute)
+# - Update search index automatically
+
+# Note: This will incur ongoing costs for transcription
 ```
 
 ### Manual Updates

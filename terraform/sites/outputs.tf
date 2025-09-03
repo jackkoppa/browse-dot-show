@@ -54,4 +54,14 @@ output "indexing_lambda_function_name" {
 output "account_id" {
   description = "AWS Account ID where this site is deployed"
   value       = data.aws_caller_identity.current.account_id
+}
+
+output "rss_processing_schedule_enabled" {
+  description = "Whether RSS processing schedule is enabled"
+  value       = var.enable_rss_processing_schedule
+}
+
+output "rss_processing_schedule_expression" {
+  description = "Schedule expression for RSS processing (if enabled)"
+  value       = var.enable_rss_processing_schedule ? var.rss_processing_schedule_expression : "disabled"
 } 
