@@ -294,8 +294,8 @@ pnpm run site:deploy
 # Re-run the ingestion pipeline
 pnpm run ingestion:run-pipeline:interactive
 
-# Check local data directory
-ls -la aws-local-dev/s3/sites/[your-site]/
+# Check local data directory (configured via .local-files-config.json)
+ls -la [local-files-path]/s3/sites/[your-site]/
 ```
 
 ### Performance Issues
@@ -437,4 +437,4 @@ pnpm validate:sites                  # Verify configuration
 ### Important Files
 - **Site config**: `sites/my-sites/[your-site]/site.config.json`
 - **Terraform state**: Managed automatically in S3
-- **Local data**: `aws-local-dev/s3/sites/[your-site]/`
+- **Local data**: Configured local files directory (default: `aws-local-dev/s3/sites/[your-site]/`)

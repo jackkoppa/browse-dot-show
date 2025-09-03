@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import prompts from 'prompts';
+import { getLocalS3SitePath, getLocalS3LegacyPath } from '@browse-dot-show/config';
 
 // Define types for site utilities
 interface SiteUtils {
@@ -41,8 +42,7 @@ const SITE_DIRECTORIES = [
 ];
 
 function createSiteDirectories(siteId: string): string {
-    const rootDir = path.resolve(__dirname, '..');
-    const siteDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId);
+    const siteDir = getLocalS3SitePath(siteId);
 
     console.log(`📁 Creating directories for site: ${siteId}`);
     console.log(`   Base directory: ${siteDir}`);
@@ -78,8 +78,7 @@ function createSiteDirectories(siteId: string): string {
 }
 
 function checkLegacyData(): LegacyDir[] {
-    const rootDir = path.resolve(__dirname, '..');
-    const legacyDir = path.join(rootDir, 'aws-local-dev', 's3');
+    const legacyDir = getLocalS3LegacyPath();
 
     // Check if legacy directories exist with data
     const legacyDirs: LegacyDir[] = [];
@@ -122,8 +121,7 @@ async function offerDataMigration(legacyDirs: LegacyDir[], targetSiteId: string)
     }
 
     // Perform the migration
-    const rootDir = path.resolve(__dirname, '..');
-    const targetDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', targetSiteId);
+    const targetDir = getLocalS3SitePath(targetSiteId);
 
     let copiedFiles = 0;
     legacyDirs.forEach(dir => {

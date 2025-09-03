@@ -38,6 +38,7 @@ import { loadSiteAccountMappings, getSiteAccountMapping, type SiteAccountMapping
 import { execCommand } from './utils/shell-exec.js';
 import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
 import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
 import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
 import { invalidateCloudFrontWithCredentials } from './utils/client-deployment.js';
@@ -469,7 +470,7 @@ function createSyncOptions(
   siteConfig: { accountId: string; bucketName: string },
   tempCredentials: any
 ): SyncOptions {
-  const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+  const localBasePath = getLocalS3SitePath(siteId);
   
   return {
     siteId,
@@ -803,7 +804,7 @@ async function performS3ToLocalPreSync(
     const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'pre-sync', credentials);
     
     // Set up sync options for S3-to-local direction
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+    const localBasePath = getLocalS3SitePath(siteId);
     
     // Ensure base local directory exists
     if (!fs.existsSync(localBasePath)) {
@@ -881,7 +882,7 @@ async function syncTranscriptsToS3(
     const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 's3-sync', credentials);
     
     // Set up paths
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+    const localBasePath = getLocalS3SitePath(siteId);
     const localTranscriptsPath = path.join(localBasePath, 'transcripts');
     const s3TranscriptsPath = `s3://${siteConfig.bucketName}/transcripts`;
     

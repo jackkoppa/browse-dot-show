@@ -18,6 +18,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 import { execSync } from 'child_process';
 import prompts from 'prompts';
 import { discoverSites, Site } from './utils/site-selector.js';
@@ -157,7 +158,7 @@ function hasExistingTranscript(audioPath: string, siteId: string): boolean {
  * Scan for audio files and determine which need transcription
  */
 function analyzeTranscriptionStatus(siteId: string): TranscriptionSession {
-  const audioDir = path.join(process.cwd(), 'aws-local-dev', 's3', 'sites', siteId, 'audio');
+  const audioDir = getLocalS3SitePath(siteId, 'audio');
   
   if (!fs.existsSync(audioDir)) {
     throw new Error(`Audio directory not found: ${audioDir}`);

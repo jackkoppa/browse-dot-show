@@ -10,6 +10,7 @@ import { log } from './src/utils/logging';
 import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
 
 import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 
 // Function to load site configuration and create environment variables
 function loadSiteConfig() {
@@ -225,8 +226,7 @@ function transcriptServerPlugin() {
           }
 
           // Get all .srt files from site-specific processing/transcripts directory
-          const rootDir = path.resolve(__dirname, '..', '..');
-          const transcriptsDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId, 'transcripts');
+          const transcriptsDir = getLocalS3SitePath(siteId, 'transcripts');
           const files = findSrtFiles(transcriptsDir);
 
           res.setHeader('Content-Type', 'application/json');
@@ -248,8 +248,7 @@ function transcriptServerPlugin() {
             return;
           }
 
-          const rootDir = path.resolve(__dirname, '..', '..');
-          const transcriptsDir = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId, 'transcripts');
+          const transcriptsDir = getLocalS3SitePath(siteId, 'transcripts');
           const requestedFile = req.url?.substring(1); // Remove leading slash
 
           if (!requestedFile) {

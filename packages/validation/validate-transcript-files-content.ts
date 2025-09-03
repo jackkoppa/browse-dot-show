@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
+import { getLocalS3LegacyPath } from '@browse-dot-show/config';
 
 const readdir = promisify(fs.readdir);
 const readFile = promisify(fs.readFile);
@@ -15,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Directory containing transcript files
-const TRANSCRIPTS_DIR = path.resolve(__dirname, "../../aws-local-dev/s3/transcripts");
+const TRANSCRIPTS_DIR = path.join(getLocalS3LegacyPath(), 'transcripts');
 
 // We don't care about the punctuation being at the end of a given .srt item - just that there *is* sentence-ending punctuation within the target duration
 const sentenceEndRegex = /[.!?]/;

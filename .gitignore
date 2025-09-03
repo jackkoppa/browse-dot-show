@@ -39,6 +39,9 @@ aws-dist
 .site-account-mappings.json
 .deployed-sites.json
 
+# Local files configuration
+.local-files-config.json
+
 # Terraform
 **/.terraform/*
 *.tfstate
