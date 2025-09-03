@@ -1,0 +1,42 @@
+{
+  "id": "wattsoccurring",
+  "domain": "wattsoccurring.browse.show",
+  "appHeader": {
+    "primaryTitle": "Watts Occurring",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Watts Occurring",
+    "taglinePrimaryPodcastExternalURL": "https://crowdnetwork.co.uk/podcasts/the-geraint-thomas-cycling-club/",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Watts Occurring",
+    "canonicalUrl": "https://wattsoccurring.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
+    "metaDescription": "Search all episodes of the Watts Occurring podcast",
+    "metaTitle": "[browse.show] Watts Occurring"
+  },
+  "includedPodcasts": [
+    {
+      "id": "wattsoccurring-podcast",
+      "rssFeedFile": "wattsoccurring.xml",
+      "title": "Watts Occurring",
+      "status": "active",
+      "url": "https://feeds.megaphone.fm/COMG5638744817"
+    },
+    {
+      "id": "old-wattsoccurring-feed",
+      "rssFeedFile": "old-wattsoccurring-feed.xml",
+      "title": "The Old Watts Occurring Feed",
+      "status": "active",
+      "url": "https://anchor.fm/s/c9cfc50/podcast/rss"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hello, and welcome to Watts Occurring! Join us: Tour de France winner Geraint Thomas, best friend and long-time teammate Luke Rowe, Tom Fordyce, Olympic Gold medallist Emma Finucane and former pro Manon Lloyd for comprehensive, year-round cycling content, covering anything and everything cycling. Jump aboard!",
+  "themeColor": "#059CF2",
+  "themeColorDark": "#014593",
+  "searchPlaceholderOptions": [
+    "Tour",
+    "peloton"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}

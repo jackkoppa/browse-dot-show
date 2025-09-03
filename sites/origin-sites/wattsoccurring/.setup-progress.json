@@ -1,0 +1,66 @@
+{
+  "siteId": "wattsoccurring",
+  "podcastName": "Watts Occurring",
+  "createdAt": "2025-08-31T10:32:09.590Z",
+  "lastUpdated": "2025-08-31T10:32:51.915Z",
+  "steps": {
+    "generate-site-files": {
+      "id": "generate-site-files",
+      "displayName": "Generate initial site files",
+      "description": "Create the core site structure and configuration",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-08-31T10:32:09.591Z"
+    },
+    "run-locally": {
+      "id": "run-locally",
+      "displayName": "Run React site locally",
+      "description": "Verify your local development environment works",
+      "optional": false,
+      "status": "COMPLETED",
+      "completedAt": "2025-08-31T10:32:51.915Z"
+    },
+    "first-transcriptions": {
+      "id": "first-transcriptions",
+      "displayName": "Generate first episode transcriptions",
+      "description": "Process a few episodes locally to test the workflow",
+      "optional": false,
+      "status": "NOT_STARTED"
+    },
+    "custom-icons": {
+      "id": "custom-icons",
+      "displayName": "Setup custom icons",
+      "description": "Customize your site branding and visual identity",
+      "optional": true,
+      "status": "NOT_STARTED"
+    },
+    "custom-styling": {
+      "id": "custom-styling",
+      "displayName": "Setup custom CSS & styling",
+      "description": "Customize your site theme and appearance",
+      "optional": true,
+      "status": "NOT_STARTED"
+    },
+    "complete-transcriptions": {
+      "id": "complete-transcriptions",
+      "displayName": "Complete all episode transcriptions",
+      "description": "Process your full podcast archive",
+      "optional": false,
+      "status": "NOT_STARTED"
+    },
+    "aws-deployment": {
+      "id": "aws-deployment",
+      "displayName": "Setup AWS deployment",
+      "description": "Deploy your site to production (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    },
+    "local-automation": {
+      "id": "local-automation",
+      "displayName": "Setup local automation",
+      "description": "Automate future episode processing (recommended)",
+      "optional": true,
+      "status": "NOT_STARTED"
+    }
+  }
+}
