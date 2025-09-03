@@ -137,6 +137,28 @@ export async function getAudioMetadata(filePath: string, timeoutMs: number = 100
 }
 
 /**
+ * Determine the appropriate audio codec for output based on input format
+ */
+async function getAudioCodecForChunking(inputPath: string): Promise<string> {
+  try {
+    const metadata = await getAudioMetadata(inputPath);
+    
+    // If it's already MP3, we can copy directly
+    // For other formats (AAC, M4A, etc.), we need to convert to MP3
+    const formatName = (metadata as any).format?.format_name || '';
+    
+    if (formatName.includes('mp3')) {
+      return 'copy'; // Direct copy for MP3 files
+    } else {
+      return 'libmp3lame'; // Convert other formats to MP3
+    }
+  } catch (error) {
+    log.warn(`Could not determine input format for ${inputPath}, defaulting to libmp3lame:`, error);
+    return 'libmp3lame'; // Safe fallback
+  }
+}
+
+/**
  * Split audio file into chunks using ffmpeg CLI
  */
 export async function createAudioChunk(
@@ -149,13 +171,16 @@ export async function createAudioChunk(
   await checkFfmpegAvailability();
   const { ffmpeg } = getBinaryPaths();
 
+  // Determine the appropriate codec based on input format
+  const audioCodec = await getAudioCodecForChunking(inputPath);
+
   return new Promise((resolve, reject) => {
     const args = [
       '-i', inputPath,
       '-ss', startTime.toString(),
       '-t', duration.toString(),
       '-map', '0:0', // Map only the first audio stream (ignore video/cover art)
-      '-c:a', 'copy', // Copy audio without re-encoding for speed
+      '-c:a', audioCodec, // Use appropriate codec (copy for MP3, libmp3lame for others)
       '-avoid_negative_ts', 'make_zero',
       '-fflags', '+discardcorrupt', // Handle corrupted packets gracefully
       '-err_detect', 'ignore_err', // Ignore minor errors that might cause hangs
