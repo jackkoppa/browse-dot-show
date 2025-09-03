@@ -103,3 +103,15 @@ variable "api_gateway_timeout" {
   type        = number
   default     = 30
 }
+
+variable "enable_rss_processing_schedule" {
+  description = "Whether to enable scheduled RSS processing via EventBridge (NOTE: Local processing is recommended for cost savings - see docs)"
+  type        = bool
+  default     = false
+}
+
+variable "rss_processing_schedule_expression" {
+  description = "Schedule expression for RSS processing (e.g., 'cron(0 1,8,16 * * ? *)' for 3x daily)"
+  type        = string
+  default     = "cron(0 8 * * ? *)"  # Once daily at 8 AM UTC instead of 3x daily
+}

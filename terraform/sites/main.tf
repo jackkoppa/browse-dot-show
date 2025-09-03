@@ -194,12 +194,13 @@ module "whisper_lambda" {
   layers               = [aws_lambda_layer_version.ffmpeg_layer.arn]
 }
 
-# EventBridge schedule for daily RSS processing
+# EventBridge schedule for RSS processing (optional - local processing recommended)
 module "eventbridge_schedule" {
+  count  = var.enable_rss_processing_schedule ? 1 : 0
   source = "./modules/eventbridge"
   
-  schedule_name        = "daily-rss-processing-${var.site_id}"
-  schedule_expression  = "cron(0 1,8,16 * * ? *)"  # Run at 1 AM, 8 AM, and 4 PM UTC daily
+  schedule_name        = "rss-processing-${var.site_id}"
+  schedule_expression  = var.rss_processing_schedule_expression
   lambda_function_arn  = module.rss_lambda.lambda_function_arn
   site_id              = var.site_id
 }
