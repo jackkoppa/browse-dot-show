@@ -36,7 +36,7 @@
   },
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=10.15.0"
+    "pnpm": ">=10.15.1"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "^1.45.1",
@@ -49,5 +49,5 @@
   "lint-staged": {
     "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint"
   },
-  "packageManager": "pnpm@10.15.0"
+  "packageManager": "pnpm@10.15.1"
 }

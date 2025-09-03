@@ -10,6 +10,7 @@
         "test": "vitest run"
     },
     "devDependencies": {
+        "@browse-dot-show/config": "workspace:*",
         "@browse-dot-show/types": "workspace:*",
         "@browse-dot-show/logging": "workspace:*",
         "@browse-dot-show/database": "workspace:*",

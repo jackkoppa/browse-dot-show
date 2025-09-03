@@ -9,6 +9,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@browse-dot-show/config": "workspace:*",
         "@browse-dot-show/constants": "workspace:*",
         "@browse-dot-show/s3": "workspace:*",
         "@browse-dot-show/spelling": "workspace:*",
