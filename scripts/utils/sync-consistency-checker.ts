@@ -9,6 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execCommand } from './shell-exec.js';
 import { logInfo, logDebug, logError } from './logging.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 
 interface FileInventory {
   audioFiles: string[];
@@ -62,7 +63,7 @@ interface SyncGapReport {
  * Scan local directory for files
  */
 async function scanLocalFiles(siteId: string): Promise<FileInventory> {
-  const localBasePath = path.join('aws-local-dev', 's3', 'sites', siteId);
+  const localBasePath = getLocalS3SitePath(siteId);
   const inventory: FileInventory = {
     audioFiles: [],
     transcriptFiles: [],

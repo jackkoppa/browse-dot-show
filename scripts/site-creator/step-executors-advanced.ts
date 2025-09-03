@@ -7,6 +7,7 @@ import { printInfo, printSuccess, printWarning, printError, logInColor } from '.
 import prompts from 'prompts';
 import { loadProgress } from './setup-steps.js';
 import type { SetupProgress, StepStatus, SiteConfig } from './types.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 
 // Helper functions for complete transcriptions step
 function formatTimeEstimate(seconds: number): string {
@@ -28,7 +29,7 @@ async function parseRSSFileForEpisodeCount(siteId: string): Promise<number> {
   const fs = await import('fs');
   const path = await import('path');
   
-  const rssDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'rss');
+  const rssDir = getLocalS3SitePath(siteId, 'rss');
   const rssFile = path.join(rssDir, `${siteId}.xml`);
   
   if (!fs.existsSync(rssFile)) {
@@ -46,7 +47,7 @@ async function calculateTotalAudioDuration(siteId: string): Promise<number> {
   const fs = await import('fs');
   const path = await import('path');
   
-  const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+  const audioDir = getLocalS3SitePath(siteId, 'audio');
   let totalDurationInSeconds = 0;
   
   if (!fs.existsSync(audioDir)) {
@@ -107,7 +108,7 @@ async function validateTranscriptionCompletion(siteId: string): Promise<{ isComp
     const rssCount = await parseRSSFileForEpisodeCount(siteId);
     
     // Count audio files
-    const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+    const audioDir = getLocalS3SitePath(siteId, 'audio');
     let audioCount = 0;
     
     if (fs.existsSync(audioDir)) {
@@ -125,7 +126,7 @@ async function validateTranscriptionCompletion(siteId: string): Promise<{ isComp
     }
     
     // Count transcript files
-    const transcriptDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'transcripts');
+    const transcriptDir = getLocalS3SitePath(siteId, 'transcripts');
     let transcriptCount = 0;
     
     if (fs.existsSync(transcriptDir)) {
@@ -156,11 +157,11 @@ async function validateFinalIndexing(siteId: string): Promise<{ isComplete: bool
   
   try {
     // Check if search index exists
-    const searchIndexFile = path.join('aws-local-dev', 's3', 'sites', siteId, 'search-index', 'orama_index.msp');
+    const searchIndexFile = getLocalS3SitePath(siteId, 'search-index', 'orama_index.msp');
     const hasSearchIndex = fs.existsSync(searchIndexFile);
     
     // Count search entries
-    const searchEntriesDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'search-entries', siteId);
+    const searchEntriesDir = getLocalS3SitePath(siteId, 'search-entries', siteId);
     let searchEntriesCount = 0;
     
     if (fs.existsSync(searchEntriesDir)) {
@@ -169,7 +170,7 @@ async function validateFinalIndexing(siteId: string): Promise<{ isComplete: bool
     }
     
     // Get expected count from audio files
-    const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+    const audioDir = getLocalS3SitePath(siteId, 'audio');
     let expectedCount = 0;
     
     if (fs.existsSync(audioDir)) {

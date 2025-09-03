@@ -3,6 +3,7 @@ import { copyDir, ensureDir, exists, writeTextFile, readTextFile } from '../util
 import { execCommand } from '../utils/shell-exec.js';
 import { printInfo, printSuccess, printWarning } from '../utils/logging.js';
 import type { Initial2EpisodesResults } from './types.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 
 export async function getExistingSites(): Promise<string[]> {
   const mySitesDir = 'sites/my-sites';
@@ -150,7 +151,7 @@ export async function collectInitial2EpisodesMetrics(siteId: string, downloadTim
   const episodesTranscriptionTimeInSeconds = transcriptionTimeInSeconds;
   
   // Find the local audio directory for this site
-  const audioDir = path.join('aws-local-dev', 's3', 'sites', siteId, 'audio');
+  const audioDir = getLocalS3SitePath(siteId, 'audio');
   
   let totalSizeInBytes = 0;
   let totalDurationInSeconds = 0;

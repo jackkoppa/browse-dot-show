@@ -4,6 +4,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { getLocalS3SitePath, getLocalS3LegacyPath } from '@browse-dot-show/config';
 
 function main(): void {
   // Get the current site ID from environment
@@ -16,9 +17,8 @@ function main(): void {
   }
 
   // Determine the path to serve based on site ID
-  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-  const siteAssetsPath = path.join(rootDir, 'aws-local-dev', 's3', 'sites', siteId);
-  const legacyAssetsPath = path.join(rootDir, 'aws-local-dev', 's3');
+  const siteAssetsPath = getLocalS3SitePath(siteId);
+  const legacyAssetsPath = getLocalS3LegacyPath();
 
   let assetsPath: string;
   

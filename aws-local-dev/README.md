@@ -1,21 +1,50 @@
-// CURSOR-TODO: It's important that when using `aws-local-dev`, we can now have it segmented by `/sites` - e.g. when `/Users/jackkoppa/Personal_Development/browse-dot-show/packages/s3/index.ts` is running in local mode, for a given site, it should *not* just put all files in `/aws-local-dev/`. It should put them in `/aws-local-dev/{siteID}/`
+# Local Files Storage
 
+This directory stores local files that mirror AWS resources for development (primarily S3 content). During local development, these resources are retrieved from this directory _instead of_ AWS.
 
-# aws-local-dev
+## 🔧 Configuration
 
-In this directory (which aside from this README, is gitignored), we save local files that will be available from AWS for production deployments (primarily S3)
+The location of local files is configurable via `.local-files-config.json` in the project root.
 
-During local dev, those resources are retrieved from here _instead of_ AWS.
+**Default**: Files are stored in `aws-local-dev/` relative to the project root.
 
-## S3
+**Custom**: Create `.local-files-config.json` to use a different location:
+```json
+{
+  "localFilesPath": "/Volumes/ExternalSSD/browse-dot-show-local-files"
+}
+```
 
-Expected structure of S3 Bucket
+This is useful for:
+- Storing large files on external drives
+- Using faster SSDs for processing
+- Keeping development files separate from source code
 
-/aws-local-dev # should match S3 bucket structure in prod
-|--s3
-   |--rss
-   |  # RSS feeds retrieved based on /podcasts.manifest.json
-   |--audio
-   |  # .mp3 files for retrieved episodes
-   |--transcripts
-   |  # .srt files for transcribed episodes
+## 📁 Directory Structure
+
+```
+[local-files-path]/
+├── s3/
+│   ├── sites/
+│   │   └── [site-id]/
+│   │       ├── rss/           # RSS feeds
+│   │       ├── audio/         # .mp3 files
+│   │       ├── transcripts/   # .srt files
+│   │       ├── search-index/  # Search database
+│   │       └── search-entries/ # Search data
+│   └── [legacy files]
+```
+
+Each site's files are organized under `s3/sites/[site-id]/` for isolation and scalability.
+
+## 💡 Usage in Code
+
+The configuration is handled automatically by the `@browse-dot-show/config` package:
+
+```typescript
+import { getLocalS3SitePath } from '@browse-dot-show/config';
+
+// Get site-specific path
+const audioDir = getLocalS3SitePath('my-site', 'audio');
+// Returns: [local-files-path]/s3/sites/my-site/audio
+```

@@ -6,6 +6,7 @@ import { getSearchIndexKey } from '@browse-dot-show/constants';
 import { } from '@browse-dot-show/s3';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { getLocalS3LegacyPath } from '@browse-dot-show/config';
 
 interface SiteProcessingResult {
     siteId: string;
@@ -33,7 +34,7 @@ async function getFileSize(key: string): Promise<number> {
         if (fileStorageEnv === 'local') {
             // For local files, use fs.stat
             const siteId = process.env.SITE_ID;
-            const localS3Path = path.join(process.cwd(), 'aws-local-dev/s3');
+            const localS3Path = getLocalS3LegacyPath();
             let localPath: string;
             
             if (siteId && !key.startsWith('sites/')) {

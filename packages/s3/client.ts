@@ -5,12 +5,13 @@ import { GetObjectCommand, S3 } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { fromSSO } from '@aws-sdk/credential-provider-sso';
 import { log } from '@browse-dot-show/logging';
+import { getLocalS3Path } from '@browse-dot-show/config';
 
 const PROD_BUCKET_NAME = 'listen-fair-play-s3-prod';
 
 // Fixed: Set path relative to this file's location instead of process.cwd()
 // This allows the package to work regardless of where the importing script is run from
-const LOCAL_S3_PATH = path.join(path.dirname(new URL(import.meta.url).pathname), '../../../aws-local-dev/s3');
+const LOCAL_S3_PATH = getLocalS3Path();
 
 // Dynamic function to get FILE_STORAGE_ENV instead of a constant
 function getFileStorageEnv(): string {
@@ -70,7 +71,7 @@ function getLocalFilePath(key: string): string {
   const siteId = process.env.SITE_ID;
   
   if (siteId && !key.startsWith('sites/')) {
-    // Site-specific local path: aws-local-dev/s3/sites/{siteId}/{key}
+    // Site-specific local path: {localFilesPath}/s3/sites/{siteId}/{key}
     // Only add the site prefix if the key doesn't already include it
     const result = path.join(LOCAL_S3_PATH, 'sites', siteId, key);
     return result;

@@ -5,6 +5,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -342,7 +343,7 @@ async function main() {
     }
     
     // Set up paths and options
-    const localBasePath = path.resolve(__dirname, '..', 'aws-local-dev', 's3', 'sites', siteId);
+    const localBasePath = getLocalS3SitePath(siteId);
     const s3BucketName = `${siteId}-browse-dot-show`;
     
     const syncOptions: SyncOptions = {
