@@ -118,6 +118,9 @@ importers:
       '@browse-dot-show/blocks':
         specifier: workspace:*
         version: link:../blocks
+      '@browse-dot-show/config':
+        specifier: workspace:*
+        version: link:../config
       '@browse-dot-show/constants':
         specifier: workspace:*
         version: link:../constants
