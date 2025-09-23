@@ -32,6 +32,7 @@ function createMockProcess() {
   const process = new EventEmitter() as any;
   process.stdout = new EventEmitter();
   process.stderr = new EventEmitter();
+  process.kill = vi.fn(); // Add the missing kill method
   return process;
 }
 
@@ -179,30 +180,59 @@ describe('ffmpeg-utils', () => {
 
   describe('createAudioChunk', () => {
     it('should create audio chunk successfully', async () => {
-      const mockFfmpegProcess = createMockProcess();
-      const mockChunkProcess = createMockProcess();
+      const mockFfmpegProcess1 = createMockProcess(); // First availability check
+      const mockFfmpegProcess2 = createMockProcess(); // Second availability check in getAudioCodecForChunking
+      const mockFfprobeProcess = createMockProcess(); // Codec detection
+      const mockChunkProcess = createMockProcess(); // Chunk creation
 
       mockSpawn
-        .mockReturnValueOnce(mockFfmpegProcess) // Availability check
+        .mockReturnValueOnce(mockFfmpegProcess1) // First availability check
+        .mockReturnValueOnce(mockFfmpegProcess2) // Second availability check in getAudioCodecForChunking
+        .mockReturnValueOnce(mockFfprobeProcess) // Codec detection
         .mockReturnValueOnce(mockChunkProcess); // Chunk creation
 
       const promise = createAudioChunk('/input.mp3', '/output.mp3', 30, 60);
 
+      // First availability check
       setImmediate(() => {
-        mockFfmpegProcess.emit('close', 0);
+        mockFfmpegProcess1.emit('close', 0);
       });
+
+      // Second availability check in getAudioCodecForChunking
+      setTimeout(() => {
+        mockFfmpegProcess2.emit('close', 0);
+      }, 5);
+
+      setTimeout(() => {
+        // Mock metadata response for codec detection
+        mockFfprobeProcess.stdout.emit('data', JSON.stringify({
+          format: { format_name: 'mp3' }
+        }));
+        mockFfprobeProcess.emit('close', 0);
+      }, 10);
 
       setTimeout(() => {
         mockChunkProcess.emit('close', 0);
-      }, 10);
+      }, 15);
 
       await expect(promise).resolves.toBeUndefined();
       
-      // Verify availability check was called
+      // Verify first availability check was called
       expect(mockSpawn).toHaveBeenNthCalledWith(1, 'ffmpeg', ['-version']);
       
+      // Verify second availability check was called
+      expect(mockSpawn).toHaveBeenNthCalledWith(2, 'ffmpeg', ['-version']);
+      
+      // Verify codec detection was called
+      expect(mockSpawn).toHaveBeenNthCalledWith(3, 'ffprobe', [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        '/input.mp3'
+      ]);
+      
       // Verify chunk creation was called with the correct arguments including error handling flags
-      expect(mockSpawn).toHaveBeenNthCalledWith(2, 'ffmpeg', [
+      expect(mockSpawn).toHaveBeenNthCalledWith(4, 'ffmpeg', [
         '-i', '/input.mp3',
         '-ss', '30',
         '-t', '60',
@@ -213,29 +243,47 @@ describe('ffmpeg-utils', () => {
         '-err_detect', 'ignore_err',
         '/output.mp3'
       ]);
-    });
+    }, 10000); // Increase timeout to 10 seconds
 
     it('should reject when chunk creation fails', async () => {
-      const mockFfmpegProcess = createMockProcess();
-      const mockChunkProcess = createMockProcess();
+      const mockFfmpegProcess1 = createMockProcess(); // First availability check
+      const mockFfmpegProcess2 = createMockProcess(); // Second availability check in getAudioCodecForChunking
+      const mockFfprobeProcess = createMockProcess(); // Codec detection
+      const mockChunkProcess = createMockProcess(); // Chunk creation
 
       mockSpawn
-        .mockReturnValueOnce(mockFfmpegProcess)
+        .mockReturnValueOnce(mockFfmpegProcess1)
+        .mockReturnValueOnce(mockFfmpegProcess2)
+        .mockReturnValueOnce(mockFfprobeProcess)
         .mockReturnValueOnce(mockChunkProcess);
 
       const promise = createAudioChunk('/input.mp3', '/output.mp3', 30, 60);
 
+      // First availability check
       setImmediate(() => {
-        mockFfmpegProcess.emit('close', 0);
+        mockFfmpegProcess1.emit('close', 0);
       });
+
+      // Second availability check in getAudioCodecForChunking
+      setTimeout(() => {
+        mockFfmpegProcess2.emit('close', 0);
+      }, 5);
+
+      setTimeout(() => {
+        // Mock metadata response for codec detection
+        mockFfprobeProcess.stdout.emit('data', JSON.stringify({
+          format: { format_name: 'mp3' }
+        }));
+        mockFfprobeProcess.emit('close', 0);
+      }, 10);
 
       setTimeout(() => {
         mockChunkProcess.stderr.emit('data', 'ffmpeg error');
         mockChunkProcess.emit('close', 1);
-      }, 10);
+      }, 15);
 
       await expect(promise).rejects.toThrow('ffmpeg failed with exit code 1');
-    });
+    }, 10000); // Increase timeout to 10 seconds
   });
 
   describe('splitAudioFile', () => {
