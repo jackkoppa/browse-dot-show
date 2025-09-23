@@ -1,0 +1,36 @@
+{
+  "id": "haveaword",
+  "domain": "haveaword.browse.show",
+  "appHeader": {
+    "primaryTitle": "Have A Word",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Have A Word",
+    "taglinePrimaryPodcastExternalURL": "https://haveawordpod.com",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Have A Word",
+    "canonicalUrl": "https://haveaword.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
+    "metaDescription": "Search all episodes of the Have A Word podcast",
+    "metaTitle": "[browse.show] Have A Word"
+  },
+  "includedPodcasts": [
+    {
+      "id": "haveaword-podcast",
+      "rssFeedFile": "haveaword.xml",
+      "title": "Have A Word",
+      "status": "active",
+      "url": "https://feeds.acast.com/public/shows/660d348bf844f70016bf5fd1"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, we're your hosts, Adam Rowe and Dan Nightingale. The self-styled funniest podcast in the UK. Thanks for joining us, let's jump in!",
+  "themeColor": "#fa4202",
+  "themeColorDark": "#302475",
+  "searchPlaceholderOptions": [
+    "mad that",
+    "murderers row",
+    "horno world order"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}

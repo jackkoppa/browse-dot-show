@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@browse-dot-show/blocks": "workspace:*",
+    "@browse-dot-show/config": "workspace:*",
     "@browse-dot-show/constants": "workspace:*",
     "@browse-dot-show/types": "workspace:*",
     "@browse-dot-show/ui": "workspace:*",
