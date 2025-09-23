@@ -38,6 +38,15 @@
                 "imageUrl": "https://spoutlore.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Exodus"
             },
+            // sites/origin-sites/doublepivot
+            "doublepivot": {
+                "siteName": "[browse.show] Double Pivot",
+                "displayedPodcastName": "Double Pivot",
+                "podcastTagline": "Soccer analysis, analytics, and commentary with hosts Mike Goodman and Michael Caley.",
+                "domain": "doublepivot.browse.show",
+                "imageUrl": "https://doublepivot.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "false nine"
+            },
             // sites/origin-sites/claretandblue
             "claretandblue": {
                 "siteName": "[browse.show] Claret & Blue",
@@ -100,6 +109,15 @@
                 "domain": "celebritymemoirbookclub.browse.show",
                 "imageUrl": "https://celebritymemoirbookclub.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "narcissist"
+            },
+            // sites/origin-sites/haveaword
+            "haveaword": {
+                "siteName": "[browse.show] Have A Word",
+                "displayedPodcastName": "Have A Word",
+                "podcastTagline": "The funniest podcast in the UK with comedians Adam Rowe and Dan Nightingale.",
+                "domain": "haveaword.browse.show",
+                "imageUrl": "https://haveaword.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "mad that"
             },
             // sites/origin-sites/hardfork
             "hardfork": {
@@ -172,7 +190,16 @@
                 "domain": "eggplant.browse.show",
                 "imageUrl": "https://eggplant.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "UFO 50"
-            }
+            },
+            // sites/origin-sites/wattsoccurring
+            "wattsoccurring": {
+                "siteName": "[browse.show] Watts Occurring",
+                "displayedPodcastName": "Watts Occurring",
+                "podcastTagline": "Welcome to your year-round cycling podcast with Geraint Thomas, Luke Rowe, Manon Lloyd, Emma Finucane & Tom Fordyce.",
+                "domain": "wattsoccurring.browse.show",
+                "imageUrl": "https://wattsoccurring.browse.show/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "Tour"
+            },
         }
     }
 }
