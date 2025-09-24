@@ -18,10 +18,11 @@ search_lambda_warming_schedule = "rate(5 minutes)"
 # Logging
 log_level = "info"
 
-## OPTIONAL
 
-## Search lambda configuration
-# search_lambda_memory_size = 3008  # Adjust based on your podcast size / max observed memory usage
+# Search lambda configuration
+search_lambda_memory_size = 7168 # Max observed memory as of 2025-09-24: 4579 MB
+
+## OPTIONAL
 
 ## SRT indexing Lambda configuration
 # srt_indexing_lambda_memory_size = 3008 # Adjust based on your podcast size / max observed memory usage
