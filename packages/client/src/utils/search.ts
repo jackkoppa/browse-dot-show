@@ -1,9 +1,10 @@
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
-import { SortOption } from '../types/search';
+import { SortOption, DateRange } from '../types/search';
 
 export interface SearchParams {
   query: string;
   sortOption: SortOption;
+  dateRange?: DateRange;
   searchApiBaseUrl: string;
   searchLimit: number;
   searchOffset?: number;
@@ -13,7 +14,7 @@ export interface SearchParams {
  * Perform a search request to the search API
  */
 export async function performSearch(params: SearchParams): Promise<SearchResponse> {
-  const { query, sortOption, searchApiBaseUrl, searchLimit, searchOffset = 0 } = params;
+  const { query, sortOption, dateRange, searchApiBaseUrl, searchLimit, searchOffset = 0 } = params;
 
   const searchRequest: SearchRequest = {
     query: query.trim(),
@@ -31,6 +32,14 @@ export async function performSearch(params: SearchParams): Promise<SearchRespons
     searchRequest.sortOrder = 'ASC';
   }
   // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
+
+  // Add date filtering parameters
+  if (dateRange?.startDate) {
+    searchRequest.startDate = dateRange.startDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+  }
+  if (dateRange?.endDate) {
+    searchRequest.endDate = dateRange.endDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+  }
 
   const response = await fetch(`${searchApiBaseUrl}/`, {
     method: 'POST',

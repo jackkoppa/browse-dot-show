@@ -1,14 +1,8 @@
 import { ApiSearchResultHit, EpisodeManifest } from '@browse-dot-show/types'
 import SearchResult from './SearchResult'
 import SearchResultsPagination from './SearchResultsPagination'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@browse-dot-show/ui"
-import { SortOption } from '../types/search'
+import SearchFiltersSheet from './SearchFiltersSheet'
+import { SortOption, DateRange } from '../types/search'
 
 interface SearchResultsProps {
   results: ApiSearchResultHit[];
@@ -23,6 +17,9 @@ interface SearchResultsProps {
   manifestError: string | null;
   sortOption: SortOption;
   onSortChange: (option: SortOption) => void;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
+  onClearFilters: () => void;
   // Pagination props
   currentPage: number;
   itemsPerPage: number;
@@ -102,6 +99,9 @@ export default function SearchResults({
   manifestError,
   sortOption,
   onSortChange,
+  dateRange,
+  onDateRangeChange,
+  onClearFilters,
   currentPage,
   itemsPerPage,
   onPageChange,
@@ -122,6 +122,9 @@ export default function SearchResults({
   // Only show this banner area once we've had a successful search
   const showResultsInfo = Boolean(mostRecentSuccessfulSearchQuery);
 
+  // Check if any filters are active
+  const hasActiveFilters = sortOption !== 'relevance' || dateRange.startDate || dateRange.endDate;
+
   return (
     <div className="mb-10">
       {showResultsInfo && (
@@ -136,20 +139,18 @@ export default function SearchResults({
           itemsPerPage={itemsPerPage}
         />
 
-        {/* Right side: Sort dropdown */}
+        {/* Right side: Filter sheet */}
         <div className="flex items-start gap-2 text-foreground">
-          <label className="font-bold text-right">Sort<br/>by</label>
-          <Select value={sortOption} onValueChange={(value: SortOption) => onSortChange(value)}>
-            <SelectTrigger className="w-32 border-foreground border-2 shadow-[2px_2px_0px_rgba(0,0,0,1)] rounded-none">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="border-foreground border-2 shadow-sm rounded-none">
-              <SelectItem value="relevance">Relevance</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="oldest">Oldest</SelectItem>
-            </SelectContent>
-          </Select>
-          </div>
+          <SearchFiltersSheet
+            sortOption={sortOption}
+            onSortChange={onSortChange}
+            dateRange={dateRange}
+            onDateRangeChange={onDateRangeChange}
+            episodeManifest={episodeManifest}
+            onClearFilters={onClearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
+        </div>
         </div>
       )}
 

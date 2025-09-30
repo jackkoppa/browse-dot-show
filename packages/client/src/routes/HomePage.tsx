@@ -10,7 +10,7 @@ import AppHeader from '../components/AppHeader'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import { performSearch, performHealthCheck } from '../utils/search'
-import { SortOption } from '../types/search'
+import { SortOption, DateRange } from '../types/search'
 import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
 import { trackEvent } from '@/utils/goatcounter';
 import siteConfig from '../config/site-config'
@@ -41,6 +41,12 @@ function HomePage() {
   const searchQuery = searchParams.get('q') || '';
   const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  
+  // Date range from URL parameters
+  const dateRange: DateRange = {
+    startDate: searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined,
+    endDate: searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined,
+  };
 
   const headerConfig = { 
     extraHeightForLongTitle: siteConfig.appHeader.extraHeightForLongTitle,
@@ -69,7 +75,7 @@ function HomePage() {
   // Ref to track when the page was loaded for cold start timeout logic
   const pageLoadTime = useRef(Date.now());
   // Ref to track the last search parameters to prevent duplicate searches
-  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number} | null>(null);
+  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number, dateRange: DateRange} | null>(null);
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
@@ -90,6 +96,44 @@ function HomePage() {
         newParams.delete('sort');
       }
       // Reset to page 1 when sort changes
+      newParams.delete('page');
+      return newParams;
+    });
+  };
+
+  const updateDateRange = (newDateRange: DateRange) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      
+      // Update or remove startDate
+      if (newDateRange.startDate) {
+        newParams.set('startDate', newDateRange.startDate.toISOString().split('T')[0]);
+      } else {
+        newParams.delete('startDate');
+      }
+      
+      // Update or remove endDate
+      if (newDateRange.endDate) {
+        newParams.set('endDate', newDateRange.endDate.toISOString().split('T')[0]);
+      } else {
+        newParams.delete('endDate');
+      }
+      
+      // Reset to page 1 when date range changes
+      newParams.delete('page');
+      return newParams;
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      // Clear sort (back to relevance)
+      newParams.delete('sort');
+      // Clear date filters
+      newParams.delete('startDate');
+      newParams.delete('endDate');
+      // Reset to page 1
       newParams.delete('page');
       return newParams;
     });
@@ -161,10 +205,13 @@ function HomePage() {
       setMostRecentSuccessfulSearchQuery(null);
       setShowColdStartLoader(false);
       
-      // Update URL to clear search
+      // Update URL to clear search and date filters (as per clearing behavior decision)
       setSearchParams(prev => {
         const newParams = new URLSearchParams(prev);
         newParams.delete('q');
+        newParams.delete('startDate');
+        newParams.delete('endDate');
+        // Keep sort option when clearing search
         return newParams;
       });
       return;
@@ -198,13 +245,15 @@ function HomePage() {
    */
   const performSearchRequest = async (query: string) => {
     // Check if we're about to perform the same search as last time
-    const currentSearchParams = { query, sort: sortOption, page: currentPage };
+    const currentSearchParams = { query, sort: sortOption, page: currentPage, dateRange };
     const lastParams = lastSearchParams.current;
     
     if (lastParams && 
         lastParams.query === currentSearchParams.query && 
         lastParams.sort === currentSearchParams.sort &&
-        lastParams.page === currentSearchParams.page) {
+        lastParams.page === currentSearchParams.page &&
+        lastParams.dateRange.startDate?.getTime() === currentSearchParams.dateRange.startDate?.getTime() &&
+        lastParams.dateRange.endDate?.getTime() === currentSearchParams.dateRange.endDate?.getTime()) {
       return;
     }
     
@@ -219,6 +268,7 @@ function HomePage() {
       const data: SearchResponse = await performSearch({
         query,
         sortOption,
+        dateRange,
         searchApiBaseUrl: SEARCH_API_BASE_URL,
         searchLimit: SEARCH_LIMIT,
         searchOffset,
@@ -283,7 +333,7 @@ function HomePage() {
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
 
   /**
-   * Re-run search when sort option or page changes (but only if we have an active search)
+   * Re-run search when sort option, page, or date range changes (but only if we have an active search)
    */
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -291,7 +341,7 @@ function HomePage() {
     if (trimmedQuery.length >= 2) {
       performSearchRequest(trimmedQuery);
     }
-  }, [sortOption, currentPage]);
+  }, [sortOption, currentPage, dateRange.startDate, dateRange.endDate]);
 
   return (
     <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 sm:pt-28 min-h-screen">
@@ -327,6 +377,9 @@ function HomePage() {
           manifestError={manifestError}
           sortOption={sortOption}
           onSortChange={updateSortOption}
+          dateRange={dateRange}
+          onDateRangeChange={updateDateRange}
+          onClearFilters={clearAllFilters}
           currentPage={currentPage}
           itemsPerPage={SEARCH_LIMIT}
           onPageChange={handlePageChange}

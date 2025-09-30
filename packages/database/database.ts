@@ -129,6 +129,8 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       sortBy,
       sortOrder = 'DESC',
       searchFields = ['text'],
+      startDate,
+      endDate,
     } = searchRequest;
 
     // Build search options
@@ -145,6 +147,31 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       // TODO: Make this configurable
       exact: true
     };
+
+    // Add date filtering if specified
+    if (startDate || endDate) {
+      const whereClause: any = {};
+      
+      if (startDate && endDate) {
+        // Both dates provided - use between operator
+        const startTimestamp = new Date(startDate).getTime();
+        const endTimestamp = new Date(endDate).getTime() + (24 * 60 * 60 * 1000 - 1); // End of day
+        whereClause.episodePublishedUnixTimestamp = {
+          between: [startTimestamp, endTimestamp]
+        };
+      } else if (startDate) {
+        // Only start date - use gte
+        const startTimestamp = new Date(startDate).getTime();
+        whereClause.episodePublishedUnixTimestamp = { gte: startTimestamp };
+      } else if (endDate) {
+        // Only end date - use lte
+        const endTimestamp = new Date(endDate).getTime() + (24 * 60 * 60 * 1000 - 1); // End of day
+        whereClause.episodePublishedUnixTimestamp = { lte: endTimestamp };
+      }
+      
+      searchOptions.where = whereClause;
+      log.info(`Date filtering applied: startDate=${startDate}, endDate=${endDate}, whereClause=${JSON.stringify(whereClause)}`);
+    }
 
     // Add sorting if specified
     if (sortBy) {

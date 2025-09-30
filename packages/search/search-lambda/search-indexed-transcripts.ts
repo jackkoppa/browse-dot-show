@@ -201,6 +201,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: queryParams.fields ? queryParams.fields.split(',') : ['text'],
           sortBy: queryParams.sortBy || undefined,
           sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
+          startDate: queryParams.startDate || undefined,
+          endDate: queryParams.endDate || undefined,
           isHealthCheckOnly: queryParams.isHealthCheckOnly === 'true',
           forceFreshDBFileDownload: queryParams.forceFreshDBFileDownload === 'true'
         };
@@ -217,6 +219,8 @@ export async function handler(event: any): Promise<SearchResponse> {
           searchFields: body.searchFields || ['text'],
           sortBy: body.sortBy || undefined,
           sortOrder: body.sortOrder || 'DESC',
+          startDate: body.startDate || undefined,
+          endDate: body.endDate || undefined,
           isHealthCheckOnly: body.isHealthCheckOnly || false,
           forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
         };
@@ -234,6 +238,8 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: body.searchFields || ['text'],
         sortBy: body.sortBy || undefined,
         sortOrder: body.sortOrder || 'DESC',
+        startDate: body.startDate || undefined,
+        endDate: body.endDate || undefined,
         isHealthCheckOnly: body.isHealthCheckOnly || false,
         forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
       };
@@ -246,6 +252,8 @@ export async function handler(event: any): Promise<SearchResponse> {
         searchFields: event.searchFields || ['text'],
         sortBy: event.sortBy || undefined,
         sortOrder: event.sortOrder || 'DESC',
+        startDate: event.startDate || undefined,
+        endDate: event.endDate || undefined,
         isHealthCheckOnly: event.isHealthCheckOnly || false,
         forceFreshDBFileDownload: event.forceFreshDBFileDownload || false
       };
