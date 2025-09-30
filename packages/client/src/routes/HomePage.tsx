@@ -10,7 +10,7 @@ import AppHeader from '../components/AppHeader'
 import SearchInput from '../components/SearchInput'
 import SearchResults from '../components/SearchResults'
 import { performSearch, performHealthCheck } from '../utils/search'
-import { SortOption } from '../types/search'
+import { SortOption, DateRange } from '../types/search'
 import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
 import { trackEvent } from '@/utils/goatcounter';
 import siteConfig from '../config/site-config'
@@ -41,6 +41,17 @@ function HomePage() {
   const searchQuery = searchParams.get('q') || '';
   const sortOption = (searchParams.get('sort') as SortOption) || 'relevance';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  
+  // Date range from URL parameters
+  const dateRange: DateRange = {
+    startDate: searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined,
+    endDate: searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined,
+  };
+
+  // Episode selection from URL parameters
+  const episodeSelection: EpisodeSelection = {
+    selectedEpisodeIds: searchParams.get('episodeIds') ? searchParams.get('episodeIds')!.split(',') : [],
+  };
 
   const headerConfig = { 
     extraHeightForLongTitle: siteConfig.appHeader.extraHeightForLongTitle,
@@ -69,12 +80,67 @@ function HomePage() {
   // Ref to track when the page was loaded for cold start timeout logic
   const pageLoadTime = useRef(Date.now());
   // Ref to track the last search parameters to prevent duplicate searches
-  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number} | null>(null);
+  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number, dateRange: DateRange, episodeSelection: EpisodeSelection} | null>(null);
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
     setLocalSearchQuery(searchQuery);
   }, [searchQuery]);
+
+  // Unified URL update function
+  const updateSearchParams = (updates: {
+    sort?: SortOption;
+    page?: number;
+    dateRange?: DateRange;
+    episodeSelection?: EpisodeSelection;
+  }) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+
+      if (updates.sort !== undefined) {
+        if (updates.sort !== 'relevance') {
+          newParams.set('sort', updates.sort);
+        } else {
+          newParams.delete('sort');
+        }
+      }
+
+      if (updates.page !== undefined) {
+        if (updates.page > 1) {
+          newParams.set('page', updates.page.toString());
+        } else {
+          newParams.delete('page');
+        }
+      }
+
+      if (updates.dateRange !== undefined) {
+        // Update or remove startDate
+        if (updates.dateRange.startDate) {
+          newParams.set('startDate', updates.dateRange.startDate.toISOString().split('T')[0]);
+        } else {
+          newParams.delete('startDate');
+        }
+        
+        // Update or remove endDate
+        if (updates.dateRange.endDate) {
+          newParams.set('endDate', updates.dateRange.endDate.toISOString().split('T')[0]);
+        } else {
+          newParams.delete('endDate');
+        }
+      }
+
+      if (updates.episodeSelection !== undefined) {
+        // Handle episode selection updates
+        if (updates.episodeSelection.selectedEpisodeIds.length > 0) {
+          newParams.set('episodeIds', updates.episodeSelection.selectedEpisodeIds.join(','));
+        } else {
+          newParams.delete('episodeIds');
+        }
+      }
+
+      return newParams;
+    });
+  };
 
   // URL update functions
   const updateSearchQuery = (query: string) => {
@@ -82,29 +148,28 @@ function HomePage() {
   };
 
   const updateSortOption = (sort: SortOption) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (sort !== 'relevance') {
-        newParams.set('sort', sort);
-      } else {
-        newParams.delete('sort');
-      }
-      // Reset to page 1 when sort changes
-      newParams.delete('page');
-      return newParams;
+    updateSearchParams({ sort, page: 1 });
+  };
+
+  const handleDateRangeChange = (newDateRange: DateRange) => {
+    updateSearchParams({ dateRange: newDateRange, page: 1 });
+  };
+
+  const handleEpisodeSelectionChange = (newEpisodeSelection: EpisodeSelection) => {
+    updateSearchParams({ episodeSelection: newEpisodeSelection, page: 1 });
+  };
+
+  const handleClearFilters = () => {
+    updateSearchParams({ 
+      sort: 'relevance', 
+      page: 1,
+      dateRange: { startDate: undefined, endDate: undefined },
+      episodeSelection: { selectedEpisodeIds: [] }
     });
   };
 
   const handlePageChange = (page: number) => {
-    setSearchParams(prev => {
-      const newParams = new URLSearchParams(prev);
-      if (page > 1) {
-        newParams.set('page', page.toString());
-      } else {
-        newParams.delete('page');
-      }
-      return newParams;
-    });
+    updateSearchParams({ page });
   };
 
   /**
@@ -161,10 +226,14 @@ function HomePage() {
       setMostRecentSuccessfulSearchQuery(null);
       setShowColdStartLoader(false);
       
-      // Update URL to clear search
+      // Update URL to clear search, date filters, and episode filters (as per clearing behavior decision)
       setSearchParams(prev => {
         const newParams = new URLSearchParams(prev);
         newParams.delete('q');
+        newParams.delete('startDate');
+        newParams.delete('endDate');
+        newParams.delete('episodeIds');
+        // Keep sort option when clearing search
         return newParams;
       });
       return;
@@ -198,13 +267,16 @@ function HomePage() {
    */
   const performSearchRequest = async (query: string) => {
     // Check if we're about to perform the same search as last time
-    const currentSearchParams = { query, sort: sortOption, page: currentPage };
+    const currentSearchParams = { query, sort: sortOption, page: currentPage, dateRange, episodeSelection };
     const lastParams = lastSearchParams.current;
     
     if (lastParams && 
         lastParams.query === currentSearchParams.query && 
         lastParams.sort === currentSearchParams.sort &&
-        lastParams.page === currentSearchParams.page) {
+        lastParams.page === currentSearchParams.page &&
+        lastParams.dateRange.startDate?.getTime() === currentSearchParams.dateRange.startDate?.getTime() &&
+        lastParams.dateRange.endDate?.getTime() === currentSearchParams.dateRange.endDate?.getTime() &&
+        JSON.stringify(lastParams.episodeSelection.selectedEpisodeIds.sort()) === JSON.stringify(currentSearchParams.episodeSelection.selectedEpisodeIds.sort())) {
       return;
     }
     
@@ -219,6 +291,8 @@ function HomePage() {
       const data: SearchResponse = await performSearch({
         query,
         sortOption,
+        dateRange,
+        episodeSelection,
         searchApiBaseUrl: SEARCH_API_BASE_URL,
         searchLimit: SEARCH_LIMIT,
         searchOffset,
@@ -283,7 +357,7 @@ function HomePage() {
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
 
   /**
-   * Re-run search when sort option or page changes (but only if we have an active search)
+   * Re-run search when sort option, page, or date range changes (but only if we have an active search)
    */
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -291,7 +365,7 @@ function HomePage() {
     if (trimmedQuery.length >= 2) {
       performSearchRequest(trimmedQuery);
     }
-  }, [sortOption, currentPage]);
+  }, [sortOption, currentPage, dateRange.startDate, dateRange.endDate, episodeSelection.selectedEpisodeIds]);
 
   return (
     <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 sm:pt-28 min-h-screen">
@@ -327,6 +401,11 @@ function HomePage() {
           manifestError={manifestError}
           sortOption={sortOption}
           onSortChange={updateSortOption}
+          dateRange={dateRange}
+          onDateRangeChange={handleDateRangeChange}
+          episodeSelection={episodeSelection}
+          onEpisodeSelectionChange={handleEpisodeSelectionChange}
+          onClearFilters={handleClearFilters}
           currentPage={currentPage}
           itemsPerPage={SEARCH_LIMIT}
           onPageChange={handlePageChange}
