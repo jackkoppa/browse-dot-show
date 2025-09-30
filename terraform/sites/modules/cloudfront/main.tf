@@ -79,6 +79,26 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     max_ttl                = 31536000 # 1 year
   }
 
+  # Cache behavior for episode-manifest files - always fetch fresh
+  ordered_cache_behavior {
+    path_pattern     = "episode-manifest/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-${var.bucket_name}"
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0        # No caching - always fetch fresh
+    max_ttl                = 0        # No caching - always fetch fresh
+  }
+
   restrictions {
     geo_restriction {
       restriction_type = "none"

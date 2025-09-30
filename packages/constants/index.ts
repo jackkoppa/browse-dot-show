@@ -2,6 +2,7 @@ export {
   getSearchIndexKey,
   getLocalDbPath,
   getEpisodeManifestKey,
+  getEpisodeManifestMetadataKey,
   getAudioDirPrefix,
   getTranscriptsDirPrefix,
   getRSSDirectoryPrefix,
