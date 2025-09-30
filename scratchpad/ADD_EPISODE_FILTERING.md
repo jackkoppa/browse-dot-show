@@ -5,50 +5,180 @@ Add episode-based filtering to the existing search functionality, allowing users
 
 ## Current Architecture Context
 
-Based on the date filtering implementation, we have:
-- **Backend**: Orama search with `where` clause filtering support
-- **Frontend**: Responsive filter sheet with `SearchFilters` and `SearchFiltersSheet` components
+Based on the successful date filtering implementation, we have:
+- **Backend**: Orama search with `where` clause filtering using `between`, `gte`, `lte`, and `in` operators
+- **Frontend**: Working responsive filter sheet with `SearchFilters` and `SearchFiltersSheet` components
 - **Data Structure**: Search entries contain `sequentialEpisodeIdAsString` field for episode identification
-- **Episode Data**: Episode manifest provides episode titles, IDs, and metadata
+- **Episode Data**: Episode manifest provides episode titles, IDs, and metadata via `useEpisodeManifest` hook
+- **URL State**: Proven URL parameter management for filter persistence
+- **UI Components**: Available `Command`, `Badge`, `Button`, `Popover` components in UI package
 
 ## Implementation Plan Overview
 
-### Phase 1: Extend Type Definitions
-- **SearchRequest Interface**: Add `episodeIds?: string[]` parameter
-- **Client Types**: Add `EpisodeSelection` interface and related types
-- **Filter Types**: Extend existing filter interfaces
+### Phase 1: Extend Type Definitions ✅ **COMPLETED**
+- ✅ **SearchRequest Interface**: Added `episodeIds?: string[]` parameter to [`packages/types/search.ts`](packages/types/search.ts)
+- ✅ **Client Types**: Added `EpisodeSelection` interface to [`packages/client/src/types/search.ts`](packages/client/src/types/search.ts)
+- ✅ **Database Integration**: Added `episodeIds` parameter extraction in [`packages/database/database.ts`](packages/database/database.ts)
 
-### Phase 2: Backend Implementation
-- **Database Layer**: Extend Orama filtering to support `sequentialEpisodeIdAsString` array filtering
-- **Search Lambda**: Add episode ID parameter parsing and validation
-- **Filtering Logic**: Implement `in` operator for episode ID array matching
+### Phase 2: Backend Implementation ✅ **COMPLETED**
+- ✅ **Database Layer**: Implemented Orama `in` operator filtering in [`packages/database/database.ts`](packages/database/database.ts)
+- ✅ **Search Lambda**: Added episode ID parameter parsing in [`packages/search/search-lambda/search-indexed-transcripts.ts`](packages/search/search-lambda/search-indexed-transcripts.ts)
+- ✅ **Build & Test**: Rebuilt packages successfully with no compilation errors
 
-### Phase 3: UI Components
-- **Command Component**: Leverage existing `Command` component from UI package
-- **Episode Selector**: Create searchable, multi-select episode picker
-- **Episode Search**: Implement fuzzy search through episode titles
-- **Selection Display**: Show selected episodes with remove functionality
+### Phase 3: UI Components ✅ **COMPLETED**
+- ✅ **Episode Selector Component**: Created multi-select episode picker using [`packages/ui/components/command.tsx`](packages/ui/components/command.tsx)
+- ✅ **Episode Search**: Implemented fuzzy search through episode titles from episode manifest
+- ✅ **Selection Display**: Show selected episodes with [`packages/ui/components/badge.tsx`](packages/ui/components/badge.tsx) and remove functionality
 
-### Phase 4: Frontend Integration
-- **SearchFilters Component**: Add episode selector to existing filter controls
-- **State Management**: Extend date range state to include episode selection
-- **URL Persistence**: Add episode IDs to URL parameters
-- **Search API**: Include episode filtering in search requests
+### Phase 4: Frontend Integration ✅ **COMPLETED**
+- ✅ **SearchFilters Component**: Added episode selector to existing [`packages/client/src/components/SearchFilters.tsx`](packages/client/src/components/SearchFilters.tsx)
+- ✅ **State Management**: Extended date range state to include episode selection in [`packages/client/src/routes/HomePage.tsx`](packages/client/src/routes/HomePage.tsx)
+- ✅ **URL Persistence**: Added episode IDs to URL parameters (comma-separated format)
+- ✅ **Search API**: Included episode filtering in [`packages/client/src/utils/search.ts`](packages/client/src/utils/search.ts)
 
-### Phase 5: UX Enhancements
-- **Episode Grouping**: Consider grouping by date ranges or seasons
-- **Quick Actions**: Add "Select All", "Clear All" functionality
-- **Performance**: Implement virtualization for large episode lists
-- **Search Optimization**: Debounce episode title search
+### Phase 5: UX Enhancements ⏸️ **PENDING**
+- ⏸️ **Episode Grouping**: Consider grouping by date ranges or seasons
+- ⏸️ **Quick Actions**: Add "Select All", "Clear All" functionality  
+- ⏸️ **Performance**: Implement virtualization for large episode lists
+- ⏸️ **Search Optimization**: Debounce episode title search
+
+## Current Implementation Status
+
+### ✅ **Completed (All Core Phases)**
+
+#### Phase 1: Type Definitions ✅
+- **Backend Types**: Extended `SearchRequest` interface in [`packages/types/search.ts`](packages/types/search.ts)
+- **Frontend Types**: Added `EpisodeSelection` interface in [`packages/client/src/types/search.ts`](packages/client/src/types/search.ts)
+- **Database Integration**: Added parameter extraction in [`packages/database/database.ts`](packages/database/database.ts)
+
+#### Phase 2: Backend Implementation ✅
+- **Database Layer**: Implemented Orama `in` operator filtering for episode IDs
+- **Search Lambda**: Added episode ID parameter parsing for GET, POST, and direct invocation request types
+- **Combined Filtering**: Successfully combined date and episode filtering in single where clause
+
+#### Phase 3: UI Components ✅
+- **Episode Selector**: Created [`packages/client/src/components/EpisodeSelector.tsx`](packages/client/src/components/EpisodeSelector.tsx) with:
+  - Multi-select episode picker using Command component
+  - Fuzzy search through episode titles and descriptions
+  - Selected episodes display with Badge components and remove functionality
+  - Clear all functionality
+  - Episode count information
+
+#### Phase 4: Frontend Integration ✅
+- **SearchFilters Component**: Extended to include episode selector
+- **SearchFiltersSheet**: Added episode selection props and handlers
+- **HomePage State Management**: 
+  - Added episode selection URL parameter handling (`episodeIds`)
+  - Extended unified `updateSearchParams` function
+  - Added episode selection change handlers
+  - Updated search clearing behavior to include episode filters
+- **Search API Client**: Extended to include episode filtering parameters
+- **SearchResults**: Updated to pass through episode selection props and check active filters
+
+### ✅ **EPISODE FILTERING IMPLEMENTATION - COMPLETED**
+
+#### Implementation Status
+- ✅ **Backend Implementation**: Complete and working
+  - Episode ID parameter parsing for all request types (GET, POST, direct invocation)
+  - Correct Orama where clause syntax implementation
+  - Combined filtering with existing date filtering
+  
+- ✅ **UI Components**: Complete and working
+  - Episode selector with fuzzy search through episode titles
+  - Multi-select with badge display and individual remove functionality
+  - Command component-based interface with popover
+  - Clear all functionality and episode count display
+  
+- ✅ **Frontend Integration**: Complete and working
+  - URL state management with `episodeIds` parameter (comma-separated)
+  - State management integrated with existing date filtering
+  - Search API client includes episode filtering parameters
+  - Filter sheet includes episode selector
+  - Active filter detection includes episode selection
+  
+- ✅ **Development Server**: Successfully started and running
+- ✅ **Build Status**: All packages build successfully with no TypeScript errors
+
+#### ✅ **Issue Resolution - Orama Where Clause Syntax Fixed**
+**Problem Identified**: The episode filtering logic was using incorrect Orama where clause syntax for string field filtering.
+
+**Root Cause**: Based on [Orama's official documentation](https://github.com/oramasearch/docs/blob/main/content/docs/orama-js/search/filters.mdx), string fields require direct value assignment, not operator objects.
+
+**Incorrect Implementation** (was causing 0 results):
+```typescript
+// ❌ WRONG - Using operator syntax for strings
+whereClause.sequentialEpisodeIdAsString = { eq: "250" };
+whereClause.sequentialEpisodeIdAsString = { in: episodeIds };
+```
+
+**Correct Implementation** (now working):
+```typescript
+// ✅ CORRECT - Direct value assignment for strings
+// Single episode
+whereClause.sequentialEpisodeIdAsString = "250";           
+
+// Multiple episodes  
+whereClause.sequentialEpisodeIdAsString = ["250", "251"];  
+```
+
+**Key Learning**: According to Orama documentation:
+- **String operators**: "On string properties it performs an exact matching on tokens"
+- **Single value**: `tag: "new"`
+- **Multiple values**: `tag: ["favorite", "new"]` - "it will return all documents that contain at least one of the values provided"
+
+**Fix Applied**: Updated `packages/database/database.ts` to use correct syntax:
+- Single episode: Direct string assignment
+- Multiple episodes: Direct array assignment
+- Removed incorrect operator object syntax
+
+#### Current State
+The episode filtering feature is **fully functional and working correctly**. Users can:
+1. ✅ **Select Episodes**: Filter UI works perfectly - opens filter sheet, shows episode selector
+2. ✅ **Search Episodes**: Episode search through titles and descriptions works
+3. ✅ **Multi-Select**: Multi-select interface with badges works correctly
+4. ✅ **View Selection**: Selected episodes display as removable badges
+5. ✅ **Clear Selection**: Remove individual episodes or clear all works
+6. ✅ **URL Persistence**: Episode selections persist correctly in URL (`episodeIds=250`)
+7. ✅ **Backend Filtering**: Search API receives parameters and Orama filtering works correctly
 
 ## Technical Implementation Details
 
-### Backend Filtering
+### Backend Filtering - Working Implementation
 ```typescript
-// Extend existing where clause logic in database.ts
+// Fixed implementation in database.ts (WORKING: Correct Orama syntax)
 if (episodeIds?.length) {
-  whereClause.sequentialEpisodeIdAsString = { in: episodeIds };
+  // For string fields in Orama, use direct value assignment (not operator objects)
+  // Single episode: sequentialEpisodeIdAsString = "250"
+  // Multiple episodes: sequentialEpisodeIdAsString = ["250", "251", "252"]
+  if (episodeIds.length === 1) {
+    whereClause.sequentialEpisodeIdAsString = episodeIds[0];
+    log.info(`Episode filtering applied (single): episodeId=${episodeIds[0]}`);
+  } else {
+    whereClause.sequentialEpisodeIdAsString = episodeIds;
+    log.info(`Episode filtering applied (multiple): episodeIds=${JSON.stringify(episodeIds)}`);
+  }
+  
+  log.info(`Episode filtering where clause: ${JSON.stringify({ sequentialEpisodeIdAsString: whereClause.sequentialEpisodeIdAsString })}`);
 }
+
+// Example working where clauses:
+// Single: {"sequentialEpisodeIdAsString":"250"}
+// Multiple: {"sequentialEpisodeIdAsString":["250","251","252"]}
+```
+
+### Key Fix Details
+```
+Previous failing approach:
+- Query: "team hamilton" with episodeIds: ["250"]
+- Where clause: {"sequentialEpisodeIdAsString":{"eq":"250"}} ❌
+- Result: 0 hits
+
+Current working approach:
+- Query: "team hamilton" with episodeIds: ["250"] 
+- Where clause: {"sequentialEpisodeIdAsString":"250"} ✅
+- Result: Expected hits returned
+
+Fix: Removed operator objects, used direct value assignment per Orama documentation
 ```
 
 ### Episode Selector Component Structure
@@ -67,8 +197,9 @@ interface EpisodeSelection {
 
 ### URL State Management
 ```
-// Extend existing URL parameters:
-// ?q=search&sort=newest&startDate=2023-01-01&endDate=2023-12-31&episodes=1,5,10,25
+// Extend existing URL parameters (following date filtering pattern):
+// ?q=search&sort=newest&startDate=2025-08-29&endDate=2025-09-28&episodes=352,351,350
+// episodeIds will be comma-separated sequential episode IDs
 ```
 
 ## Key Files to Review for Future Implementation

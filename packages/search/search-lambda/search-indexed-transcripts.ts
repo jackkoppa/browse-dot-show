@@ -203,6 +203,7 @@ export async function handler(event: any): Promise<SearchResponse> {
           sortOrder: (queryParams.sortOrder as 'ASC' | 'DESC') || 'DESC',
           startDate: queryParams.startDate || undefined,
           endDate: queryParams.endDate || undefined,
+          episodeIds: queryParams.episodeIds ? queryParams.episodeIds.split(',') : undefined,
           isHealthCheckOnly: queryParams.isHealthCheckOnly === 'true',
           forceFreshDBFileDownload: queryParams.forceFreshDBFileDownload === 'true'
         };
@@ -221,6 +222,7 @@ export async function handler(event: any): Promise<SearchResponse> {
           sortOrder: body.sortOrder || 'DESC',
           startDate: body.startDate || undefined,
           endDate: body.endDate || undefined,
+          episodeIds: body.episodeIds || undefined,
           isHealthCheckOnly: body.isHealthCheckOnly || false,
           forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
         };
@@ -240,6 +242,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         sortOrder: body.sortOrder || 'DESC',
         startDate: body.startDate || undefined,
         endDate: body.endDate || undefined,
+        episodeIds: body.episodeIds || undefined,
         isHealthCheckOnly: body.isHealthCheckOnly || false,
         forceFreshDBFileDownload: body.forceFreshDBFileDownload || false
       };
@@ -254,6 +257,7 @@ export async function handler(event: any): Promise<SearchResponse> {
         sortOrder: event.sortOrder || 'DESC',
         startDate: event.startDate || undefined,
         endDate: event.endDate || undefined,
+        episodeIds: event.episodeIds || undefined,
         isHealthCheckOnly: event.isHealthCheckOnly || false,
         forceFreshDBFileDownload: event.forceFreshDBFileDownload || false
       };

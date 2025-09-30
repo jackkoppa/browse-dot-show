@@ -3,7 +3,7 @@ import { Button } from "@browse-dot-show/ui"
 import { MixerHorizontalIcon } from "@radix-ui/react-icons"
 import ResponsiveDrawerOrDialog from './ResponsiveDrawerOrDialog'
 import SearchFilters from './SearchFilters'
-import { SortOption, DateRange } from "../types/search"
+import { SortOption, DateRange, EpisodeSelection } from "../types/search"
 import { EpisodeManifest } from "@browse-dot-show/types"
 
 interface SearchFiltersSheetProps {
@@ -11,6 +11,8 @@ interface SearchFiltersSheetProps {
   onSortChange: (option: SortOption) => void
   dateRange: DateRange
   onDateRangeChange: (range: DateRange) => void
+  episodeSelection: EpisodeSelection
+  onEpisodeSelectionChange: (selection: EpisodeSelection) => void
   episodeManifest: EpisodeManifest | null
   onClearFilters: () => void
   hasActiveFilters?: boolean
@@ -21,6 +23,8 @@ export default function SearchFiltersSheet({
   onSortChange,
   dateRange,
   onDateRangeChange,
+  episodeSelection,
+  onEpisodeSelectionChange,
   episodeManifest,
   onClearFilters,
   hasActiveFilters = false,
@@ -52,6 +56,8 @@ export default function SearchFiltersSheet({
         onSortChange={onSortChange}
         dateRange={dateRange}
         onDateRangeChange={onDateRangeChange}
+        episodeSelection={episodeSelection}
+        onEpisodeSelectionChange={onEpisodeSelectionChange}
         episodeManifest={episodeManifest}
         onClearFilters={onClearFilters}
       />

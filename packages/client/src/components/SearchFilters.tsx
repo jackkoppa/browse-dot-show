@@ -1,14 +1,17 @@
 import * as React from "react"
 import { Button, DatePicker, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@browse-dot-show/ui"
-import { SortOption, DateRange, DateRangePreset } from "../types/search"
+import { SortOption, DateRange, DateRangePreset, EpisodeSelection } from "../types/search"
 import { EpisodeManifest } from "@browse-dot-show/types"
 import { DateRange as ReactDayPickerDateRange } from "react-day-picker"
+import EpisodeSelector from "./EpisodeSelector"
 
 interface SearchFiltersProps {
   sortOption: SortOption
   onSortChange: (option: SortOption) => void
   dateRange: DateRange
   onDateRangeChange: (range: DateRange) => void
+  episodeSelection: EpisodeSelection
+  onEpisodeSelectionChange: (selection: EpisodeSelection) => void
   episodeManifest: EpisodeManifest | null
   onClearFilters: () => void
 }
@@ -18,6 +21,8 @@ export default function SearchFilters({
   onSortChange,
   dateRange,
   onDateRangeChange,
+  episodeSelection,
+  onEpisodeSelectionChange,
   episodeManifest,
   onClearFilters,
 }: SearchFiltersProps) {
@@ -88,7 +93,7 @@ export default function SearchFilters({
   }
 
   // Check if any filters are active
-  const hasActiveFilters = sortOption !== 'relevance' || dateRange.startDate || dateRange.endDate
+  const hasActiveFilters = sortOption !== 'relevance' || dateRange.startDate || dateRange.endDate || episodeSelection.selectedEpisodeIds.length > 0
 
   return (
     <div className="space-y-6">
@@ -160,6 +165,14 @@ export default function SearchFilters({
           </div>
         )}
       </div>
+
+      {/* Episode Filtering Controls */}
+      <EpisodeSelector
+        episodeSelection={episodeSelection}
+        onEpisodeSelectionChange={onEpisodeSelectionChange}
+        episodeManifest={episodeManifest}
+        disabled={!episodeManifest}
+      />
 
       {/* Clear Filters Button */}
       {hasActiveFilters && (

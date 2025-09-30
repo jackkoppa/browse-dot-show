@@ -12,3 +12,10 @@ export interface DateRange {
  * Date range presets for quick selection
  */
 export type DateRangePreset = 'last30days' | 'lastyear';
+
+/**
+ * Episode selection for filtering search results
+ */
+export interface EpisodeSelection {
+  selectedEpisodeIds: string[];
+}

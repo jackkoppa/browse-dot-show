@@ -19,6 +19,8 @@ interface SearchResultsProps {
   onSortChange: (option: SortOption) => void;
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
+  episodeSelection: EpisodeSelection;
+  onEpisodeSelectionChange: (selection: EpisodeSelection) => void;
   onClearFilters: () => void;
   // Pagination props
   currentPage: number;
@@ -101,6 +103,8 @@ export default function SearchResults({
   onSortChange,
   dateRange,
   onDateRangeChange,
+  episodeSelection,
+  onEpisodeSelectionChange,
   onClearFilters,
   currentPage,
   itemsPerPage,
@@ -123,7 +127,7 @@ export default function SearchResults({
   const showResultsInfo = Boolean(mostRecentSuccessfulSearchQuery);
 
   // Check if any filters are active
-  const hasActiveFilters = sortOption !== 'relevance' || dateRange.startDate || dateRange.endDate;
+  const hasActiveFilters = sortOption !== 'relevance' || dateRange.startDate || dateRange.endDate || episodeSelection.selectedEpisodeIds.length > 0;
 
   return (
     <div className="mb-10">
@@ -146,6 +150,8 @@ export default function SearchResults({
             onSortChange={onSortChange}
             dateRange={dateRange}
             onDateRangeChange={onDateRangeChange}
+            episodeSelection={episodeSelection}
+            onEpisodeSelectionChange={onEpisodeSelectionChange}
             episodeManifest={episodeManifest}
             onClearFilters={onClearFilters}
             hasActiveFilters={hasActiveFilters}
