@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
+import { getSearchIndexKey, getLocalDbPath, getShardId, getShardCount, isShardedMode } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { searchOramaIndex, OramaSearchDatabase, restoreFromFileStreamingMsgPackR } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
@@ -10,6 +10,20 @@ import {
 
 // Keep the Orama index in memory for reuse between lambda invocations
 let oramaIndex: OramaSearchDatabase | null = null;
+
+/**
+ * Log sharding configuration on startup for debugging
+ */
+function logShardingConfig() {
+  const shardId = getShardId();
+  const shardCount = getShardCount();
+  
+  if (isShardedMode()) {
+    log.info(`Running in SHARDED mode: Shard ${shardId} of ${shardCount}`);
+  } else {
+    log.debug('Running in SINGLE mode (no sharding)');
+  }
+}
 
 /**
  * Memory monitoring utility functions
@@ -50,6 +64,7 @@ function forceGarbageCollection() {
  */
 async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise<OramaSearchDatabase> {
   logMemoryUsage('Function Entry');
+  logShardingConfig();
 
   if (oramaIndex && !forceFreshDBFileDownload) {
     logMemoryUsage('Using Cached Index');
