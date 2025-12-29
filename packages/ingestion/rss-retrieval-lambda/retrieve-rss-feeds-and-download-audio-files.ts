@@ -5,8 +5,8 @@ import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-clo
 import { log } from '@browse-dot-show/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory, deleteFile } from '@browse-dot-show/s3';
 import { getCurrentSiteRSSConfig, getCurrentSiteId } from '@browse-dot-show/config';
-import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
-import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
+import { EpisodeManifest, EpisodeInManifest, EpisodeManifestMetadata } from '@browse-dot-show/types';
+import { getEpisodeManifestKey, getEpisodeManifestMetadataKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
 import { stripDownloadedAtFromFileKey, getEpisodeFileKeyWithDownloadedAt } from './utils/get-episode-file-key.js';
@@ -130,8 +130,33 @@ async function saveEpisodeManifest(manifest: EpisodeManifest): Promise<void> {
     manifest.lastUpdated = new Date().toISOString();
     await saveFile(episodeManifestKey, JSON.stringify(manifest, null, 2));
     log.debug(`Episode manifest saved to ${episodeManifestKey}`);
+    
+    // Also save the manifest metadata for fast client-side cache checking
+    await saveEpisodeManifestMetadata(manifest);
   } catch (error) {
     log.error('Error saving episode manifest:', error);
+    throw error;
+  }
+}
+
+// Save Episode Manifest Metadata (lightweight version for cache checking)
+async function saveEpisodeManifestMetadata(manifest: EpisodeManifest): Promise<void> {
+  const metadataKey = getEpisodeManifestMetadataKey();
+  
+  try {
+    const now = new Date();
+    const version = `v${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}.${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    const metadata: EpisodeManifestMetadata = {
+      lastUpdated: manifest.lastUpdated,
+      episodeCount: manifest.episodes.length,
+      version: version
+    };
+    
+    await saveFile(metadataKey, JSON.stringify(metadata, null, 2));
+    log.debug(`Episode manifest metadata saved to ${metadataKey}`);
+  } catch (error) {
+    log.error('Error saving episode manifest metadata:', error);
     throw error;
   }
 }

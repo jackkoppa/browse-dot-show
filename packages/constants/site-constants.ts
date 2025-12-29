@@ -58,6 +58,20 @@ export function getEpisodeManifestKey(): string {
 }
 
 /** 
+ * Get environment-aware episode manifest metadata key
+ * - Local: sites/{siteId}/episode-manifest/manifest-metadata.json
+ * - AWS: episode-manifest/manifest-metadata.json
+ */
+export function getEpisodeManifestMetadataKey(): string {
+    if (isLocalEnvironment()) {
+        const siteId = getSiteId();
+        return `sites/${siteId}/episode-manifest/manifest-metadata.json`;
+    } else {
+        return `episode-manifest/manifest-metadata.json`;
+    }
+}
+
+/** 
  * Get environment-aware audio directory prefix
  * - Local: sites/{siteId}/audio/
  * - AWS: audio/
