@@ -41,7 +41,7 @@
           "url": "https://feeds.captivate.fm/elis-james-and-john-robins/"
       }
   ],
-  "whisperTranscriptionPrompt": "Hi, welcome to Elis James and John Robins. Let's jump in!",
+  "whisperTranscriptionPrompt": "Hi, welcome to the Elis James and John Robins podcast. We're your hosts, Elis & John. Let's jump in!",
   "themeColor": "#fdf100",
   "themeColorDark": "#136cba",
   "searchPlaceholderOptions": [
