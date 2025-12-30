@@ -20,11 +20,11 @@ This directory contains scripts for local deployment of the Listen Fair Play app
    # For other platforms, see https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
    ```
 
-3. **Node.js** - Make sure you have Node.js 20 or later installed
+3. **Node.js** - Make sure you have Node.js 24 or later installed
    ```bash
    # Using nvm (recommended)
-   nvm install 20
-   nvm use 20
+   nvm install 24
+   nvm use 24
    ```
 
 4. **pnpm** - For managing Node.js dependencies

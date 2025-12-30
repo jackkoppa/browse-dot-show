@@ -24,13 +24,13 @@
     "openai": "^4.28.0",
     "srt-parser-2": "catalog:",
     "@types/fs-extra": "catalog:",
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "rolldown": "catalog:",
     "typescript": "catalog:",
     "tsx": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   }
 }

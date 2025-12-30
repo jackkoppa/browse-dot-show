@@ -67,7 +67,7 @@ resource "aws_lambda_layer_version" "compress_encode_layer" {
   layer_name       = "compress-encode-${var.site_id}"
   source_code_hash = filebase64sha256("lambda-layers/mongodb-js-zstd__msgpackr.zip")
   
-  compatible_runtimes      = ["nodejs20.x"]
+  compatible_runtimes      = ["nodejs24.x"]
   compatible_architectures = ["arm64"]
   
   description = "@mongodb-js/zstd & msgpackr NPM packages, for compressing & encoding/decoding search index files - ${var.site_id}"
@@ -79,7 +79,7 @@ resource "aws_lambda_layer_version" "ffmpeg_layer" {
   layer_name       = "ffmpeg-${var.site_id}"
   source_code_hash = filebase64sha256("lambda-layers/ffmpeg-layer.zip")
   
-  compatible_runtimes      = ["nodejs20.x"]
+  compatible_runtimes      = ["nodejs24.x"]
   compatible_architectures = ["arm64"]
   
   description = "FFmpeg static binaries for audio/video processing - ${var.site_id}"
@@ -156,7 +156,7 @@ module "rss_lambda" {
   
   function_name        = "rss-retrieval-${var.site_id}"
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 300
   memory_size          = 2560
   environment_variables = {
@@ -178,7 +178,7 @@ module "whisper_lambda" {
   
   function_name        = "whisper-transcription-${var.site_id}"
   handler              = "process-new-audio-files-via-whisper.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 900
   memory_size          = 1024
   environment_variables = {
@@ -220,7 +220,7 @@ module "indexing_lambda" {
 
   function_name        = "srt-indexing-${var.site_id}"
   handler              = "convert-srts-indexed-search.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 900 # TODO: Switch back to more reasonable size after confirming if max timeout is long enough for Brotli compression
   memory_size          = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
   ephemeral_storage    = 2048 # Space for the Orama index file
@@ -251,7 +251,7 @@ module "search_lambda" {
 
   function_name        = "search-api-${var.site_id}"
   handler              = "search-indexed-transcripts.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = var.search_lambda_timeout # Configurable per-site. While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file - default of 45 seconds usually enough
   memory_size          = var.search_lambda_memory_size # Configurable per-site, default 3008
   ephemeral_storage    = 2048 # Space for the Orama index file
