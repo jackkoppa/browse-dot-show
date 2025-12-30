@@ -53,10 +53,10 @@ The worktree directory is configured via `.local-files-config.json`. On first us
 
 ```bash
 # Create a new worktree for a branch
-tsx scripts/worktree.ts create <branch-name>
+pnpm worktree create <branch-name>
 
 # Example: Create a worktree for feature branch
-tsx scripts/worktree.ts create feature/my-feature
+pnpm worktree create feature/my-feature
 ```
 
 This will:
@@ -68,14 +68,14 @@ This will:
 
 ```bash
 # List all worktrees
-tsx scripts/worktree.ts list
+pnpm worktree list
 ```
 
 ### Removing a Worktree
 
 ```bash
 # Remove a worktree
-tsx scripts/worktree.ts remove <branch-name>
+pnpm worktree remove <branch-name>
 ```
 
 This will:
