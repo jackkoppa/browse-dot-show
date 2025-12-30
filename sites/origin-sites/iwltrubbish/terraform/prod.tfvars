@@ -21,7 +21,8 @@ log_level = "info"
 ## OPTIONAL
 
 ## Search lambda configuration
-# search_lambda_memory_size = 3008  # Adjust based on your podcast size / max observed memory usage
+search_lambda_memory_size = 8192 # Max observed memory as of 2025-12-29: ______ MB -- TODO: Confirm
+search_lambda_timeout = 65 # 45 seconds is the default. As of 2025-12-29, ____ seconds has been enough for `iwltrubbish` cold start. TODO: Test further
 
-## SRT indexing Lambda configuration
-# srt_indexing_lambda_memory_size = 3008 # Adjust based on your podcast size / max observed memory usage
+# SRT indexing Lambda configuration
+srt_indexing_lambda_memory_size = 9728 # Max observed memory as of 2025-12-29: ______ MB -- TODO: Confirm
