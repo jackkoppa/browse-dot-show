@@ -144,23 +144,30 @@ async function removeWorktree(branchName: string) {
   const worktreeDir = await ensureWorktreeDirectory();
   const worktreePath = path.join(worktreeDir, branchName);
   
-  if (!fs.existsSync(worktreePath)) {
-    console.error(`❌ Worktree not found at: ${worktreePath}`);
-    process.exit(1);
-  }
-  
   // Check if worktree is registered
   const result = await execCommand('git', ['worktree', 'list'], { cwd: REPO_ROOT });
   const isRegistered = result.stdout.includes(worktreePath);
   
   if (isRegistered) {
     console.log(`🗑️  Removing worktree: ${worktreePath}`);
-    await execCommandOrThrow('git', ['worktree', 'remove', worktreePath], { cwd: REPO_ROOT });
+    
+    // Check if directory exists
+    if (fs.existsSync(worktreePath)) {
+      await execCommandOrThrow('git', ['worktree', 'remove', worktreePath], { cwd: REPO_ROOT });
+    } else {
+      // Directory was manually deleted, prune the reference
+      console.log(`⚠️  Worktree directory was manually deleted. Pruning stale reference...`);
+      await execCommandOrThrow('git', ['worktree', 'prune'], { cwd: REPO_ROOT });
+    }
     console.log(`✅ Worktree removed successfully`);
-  } else {
+  } else if (fs.existsSync(worktreePath)) {
     console.log(`⚠️  Worktree directory exists but is not registered. Removing directory...`);
     fs.rmSync(worktreePath, { recursive: true, force: true });
     console.log(`✅ Directory removed`);
+  } else {
+    console.error(`❌ Worktree not found at: ${worktreePath}`);
+    console.error(`💡 Tip: Run 'git worktree prune' to clean up stale references`);
+    process.exit(1);
   }
   
   // Optionally delete the branch if it exists
@@ -188,6 +195,23 @@ async function removeWorktree(branchName: string) {
   }
 }
 
+async function pruneWorktrees() {
+  console.log('🧹 Pruning stale worktree references...');
+  const result = await execCommand('git', ['worktree', 'prune', '-v'], { cwd: REPO_ROOT });
+  
+  if (result.exitCode !== 0) {
+    console.error('❌ Failed to prune worktrees');
+    process.exit(1);
+  }
+  
+  if (result.stdout.trim()) {
+    console.log(result.stdout);
+    console.log('✅ Stale worktree references pruned');
+  } else {
+    console.log('✅ No stale worktree references found');
+  }
+}
+
 function showHelp() {
   console.log('Git Worktree Helper - Manage parallel development sessions');
   console.log('');
@@ -198,12 +222,14 @@ function showHelp() {
   console.log('  create <branch-name>   Create a new worktree for a branch');
   console.log('  list                   List all worktrees');
   console.log('  remove <branch-name>   Remove a worktree');
+  console.log('  prune                  Clean up stale worktree references');
   console.log('  help                   Show this help message');
   console.log('');
   console.log('Examples:');
   console.log('  pnpm worktree create feature/my-feature');
   console.log('  pnpm worktree list');
   console.log('  pnpm worktree remove feature/my-feature');
+  console.log('  pnpm worktree prune');
   console.log('');
   console.log('Configuration:');
   console.log('  Worktree directory is stored in .local-files-config.json');
@@ -241,6 +267,10 @@ async function main() {
           process.exit(1);
         }
         await removeWorktree(branchName);
+        break;
+        
+      case 'prune':
+        await pruneWorktrees();
         break;
         
       default:
