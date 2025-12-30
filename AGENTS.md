@@ -4,45 +4,13 @@ This project uses **bd** (beads) for issue tracking.
 
 ## Prerequisites
 
-Before running any commands, you must have **Hermit** installed and configured.
+**Hermit** must be installed for tool management (Node.js, pnpm). See [Local Development Guide](docs/local-development.md#tool-management-with-hermit) for setup instructions.
 
-### Install Hermit
-
+**Quick setup:**
 ```bash
 curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
-```
-
-### Install Shell Hooks (Recommended)
-
-Shell hooks enable automatic environment activation when entering the project directory:
-
-```bash
-# For Zsh (macOS default)
-hermit shell-hooks --zsh
-
-# For Bash
-hermit shell-hooks --bash
-
-# For Fish
-hermit shell-hooks --fish
-```
-
-After installing shell hooks, restart your shell or run `source ~/.zshrc` (or equivalent).
-
-### Manual Activation (Alternative)
-
-If you prefer not to use shell hooks, manually activate the environment:
-
-```bash
-. bin/activate-hermit
-```
-
-### Verify Setup
-
-```bash
-# Check that Node and pnpm are available
-node --version  # Should show v20.x.x
-pnpm --version  # Should show 10.15.1
+hermit shell-hooks  # For automatic activation
+# Restart shell, then cd into project
 ```
 
 ## Quick Reference
