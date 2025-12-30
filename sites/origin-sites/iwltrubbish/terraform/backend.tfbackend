@@ -1,3 +1,3 @@
-bucket = "iwltr-browse-dot-show-tf-state"
+bucket = "iwltrubbish-browse-dot-show-tf-state"
 key    = "terraform.tfstate"
 region = "us-east-1" 

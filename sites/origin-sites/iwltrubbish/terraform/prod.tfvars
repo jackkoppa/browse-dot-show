@@ -1,14 +1,14 @@
 aws_region     = "us-east-1"
 aws_profile    = "SETUP_AWS_PROFILE_AFTER_ACCOUNT_CREATION"
-site_id        = "iwltr"
+site_id        = "iwltrubbish"
 s3_bucket_name = "browse-dot-show"
 
 # Automation role configuration  
 create_automation_role = false  # Role already exists from claretandblue in same account
 
 # Custom domain configuration
-custom_domain_name = "iwltr.browse.show"
-root_domain_name = "iwltr.browse.show"
+custom_domain_name = "iwantlistenthisrubbish.com"
+root_domain_name = "iwantlistenthisrubbish.com"
 enable_custom_domain_on_cloudfront = true
 
 # Lambda warming
