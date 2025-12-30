@@ -1,0 +1,37 @@
+{
+  "id": "iwltr",
+  "domain": "iwltr.browse.show",
+  "appHeader": {
+    "primaryTitle": "Elis and John Podcast",
+    "includeTitlePrefix": true,
+    "taglinePrimaryPodcastName": "Elis and John Podcast",
+    "taglinePrimaryPodcastExternalURL": "https://www.radiox.co.uk/radio/podcasts/elis-james-and-john-robins-radio-x-podcast/",
+    "taglineSuffix": "podcast archives"
+  },
+  "socialAndMetadata": {
+    "pageTitle": "[browse.show] Elis and John Podcast",
+    "canonicalUrl": "https://iwltr.browse.show",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "metaDescription": "Search all episodes of the Elis and John Podcast podcast",
+    "metaTitle": "[browse.show] Elis and John Podcast"
+  },
+  "includedPodcasts": [
+    {
+      "id": "elisandjohnpodcast",
+      "rssFeedFile": "iwltr.xml",
+      "title": "Elis and John Podcast",
+      "status": "active",
+      "url": "https://feeds.captivate.fm/elis-james-and-john-robins/"
+    }
+  ],
+  "whisperTranscriptionPrompt": "Hi, welcome to Elis and John Podcast. Let's jump in!",
+  "themeColor": "#734ee4",
+  "themeColorDark": "#2f6a9e",
+  "searchPlaceholderOptions": [
+    "Episode topic",
+    "Guest name",
+    "Key discussion",
+    "Recent episode"
+  ],
+  "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
+}
