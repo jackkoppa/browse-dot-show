@@ -5,8 +5,9 @@
  * 
  * Usage:
  *   pnpm worktree create <branch-name>  # Create a new worktree
- *   pnpm worktree list                   # List all worktrees
+ *   pnpm worktree list                  # List all worktrees
  *   pnpm worktree remove <branch-name>  # Remove a worktree
+ *   pnpm worktree help                  # Show help message
  */
 
 import { execCommand, execCommandOrThrow } from './utils/shell-exec.js';
