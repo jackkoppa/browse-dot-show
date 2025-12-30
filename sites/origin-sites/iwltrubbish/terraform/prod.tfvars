@@ -9,7 +9,7 @@ create_automation_role = false  # Role already exists from claretandblue in same
 # Custom domain configuration
 custom_domain_name = "iwantlistenthisrubbish.com"
 root_domain_name = "iwantlistenthisrubbish.com"
-enable_custom_domain_on_cloudfront = true
+enable_custom_domain_on_cloudfront = false  # TEMPORARILY disabled to avoid CNAME conflict with old deployment
 
 # Lambda warming
 enable_search_lambda_warming = true
