@@ -9,11 +9,10 @@ Guides on using `browse-dot-show`, to host your own podcast search sites.
 
 ## 🛠️ For Developers
 
-This project uses [Beads](https://github.com/steveyegge/beads) for issue tracking. To view and manage issues in a web UI:
+- **[Local Development Guide](./local-development.md)** - Tools and workflows for local development, including Beads issue tracking and git worktrees for parallel development sessions
+- **[Agent Instructions](../AGENTS.md)** - Detailed workflow for agents working on this project
 
-```bash
-# Start the Beads UI (opens in browser at http://127.0.0.1:3000)
-./start-beads-ui.sh
-```
+### Quick Links
 
-See [AGENTS.md](../AGENTS.md) for CLI usage and workflow details.
+- **Beads UI**: Run `./scripts/start-beads-ui.sh` to view and manage issues in a web UI (opens at http://127.0.0.1:3000)
+- **Worktrees**: Use `tsx scripts/worktree.ts` to manage parallel development sessions
