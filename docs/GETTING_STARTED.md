@@ -17,33 +17,23 @@ cd browse-dot-show
 
 ### 2. Set Up Development Tools
 
-This project uses [Hermit](https://cashapp.github.io/hermit) to automatically manage Node.js and pnpm versions.
+This project uses [Hermit](https://cashapp.github.io/hermit) to automatically manage Node.js and pnpm versions. See the [Local Development Guide](./local-development.md#tool-management-with-hermit) for detailed setup instructions.
 
-**Recommended approach (Hermit):**
+**Quick setup:**
 
 ```bash
-# Install Hermit
+# Install Hermit and shell hooks
 curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
-
-# Install shell hooks for automatic activation
 hermit shell-hooks
 
-# Restart your shell
-# When you cd into the project, tools are automatically available!
+# Restart your shell, then cd into the project
+# Tools are automatically available!
 
 # Verify setup
 ./scripts/prereqs.sh
 ```
 
-**Alternative approach (without Hermit):**
-
-If you prefer to manage tools yourself, you can use nvm for Node.js and install pnpm separately:
-
-```bash
-# Install Node.js 20+ and pnpm 10.15.1+
-# Then verify:
-./scripts/prereqs.sh
-```
+> **Note:** You can also use nvm/Corepack if you prefer manual tool management. See [alternatives](./local-development.md#alternative-using-nvmcorepack).
 
 ### 3. Install Dependencies
 
