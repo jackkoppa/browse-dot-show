@@ -11,7 +11,7 @@
 pnpm worktree create feature/add-new-search
 
 # 2. Navigate to the worktree
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-new-search
+cd <worktree-directory>/feature/add-new-search
 
 # 3. Start working - install dependencies, run dev server, etc.
 pnpm install
@@ -28,16 +28,16 @@ When running multiple agent sessions in parallel:
 ```bash
 # Terminal 1: Agent working on bug fix
 pnpm worktree create bug/fix-transcription-timeout
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/bug/fix-transcription-timeout
+cd <worktree-directory>/bug/fix-transcription-timeout
 # Agent session starts here...
 
 # Terminal 2: Agent working on feature
 pnpm worktree create feature/add-authentication
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-authentication
+cd <worktree-directory>/feature/add-authentication
 # Another agent session starts here...
 
 # Terminal 3: Main branch for quick fixes
-cd /Users/jackkoppa/Personal_Development/browse-dot-show
+cd <repo-root>
 # Work on main branch without conflicts
 ```
 
@@ -50,19 +50,17 @@ pnpm worktree list
 
 Output example:
 ```
-📋 Listing worktrees in: /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees
+📋 Listing worktrees in: <worktree-directory>
 
 Worktrees:
-  1. /Users/jackkoppa/Personal_Development/browse-dot-show
+  1. <repo-root>
      Branch: main
 
-  2. /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-new-search
+  2. <worktree-directory>/feature/add-new-search
      Branch: feature/add-new-search
-     📂 /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-new-search
 
-  3. /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/bug/fix-transcription-timeout
+  3. <worktree-directory>/bug/fix-transcription-timeout
      Branch: bug/fix-transcription-timeout
-     📂 /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/bug/fix-transcription-timeout
 ```
 
 ### Cleaning Up After Work is Complete
@@ -70,7 +68,6 @@ Worktrees:
 ```bash
 # Remove a worktree when done
 pnpm worktree remove feature/add-new-search
-```
 
 # You'll be prompted to delete the branch if it exists
 # After removal, you can delete the remote branch if needed:
@@ -84,7 +81,6 @@ If a branch already exists (locally or remotely):
 ```bash
 # Create worktree for existing branch
 pnpm worktree create existing-branch-name
-```
 
 # The script will detect the existing branch and use it
 ```
@@ -100,11 +96,11 @@ Each worktree is independent. You can:
 
 ```bash
 # Worktree 1
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/a
+cd <worktree-directory>/feature/a
 pnpm dev  # Runs on port 3000
 
 # Worktree 2 (different terminal)
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/b
+cd <worktree-directory>/feature/b
 pnpm dev  # Runs on port 3001 (or configure different port)
 ```
 
@@ -112,7 +108,7 @@ pnpm dev  # Runs on port 3001 (or configure different port)
 
 ```bash
 # In each worktree, you can use beads independently
-cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/my-feature
+cd <worktree-directory>/feature/my-feature
 bd ready              # Find available work
 bd update bds-123 --status in_progress  # Claim work
 # ... do work ...

@@ -25,14 +25,26 @@ async function ensureWorktreeDirectory(): Promise<string> {
   
   if (!worktreeDir) {
     console.log('⚠️  Worktree directory not configured.');
+    
+    // Suggest a default path relative to the parent of the repo root
+    const repoParent = path.dirname(REPO_ROOT);
+    const repoName = path.basename(REPO_ROOT);
+    const suggestedPath = path.join(repoParent, `${repoName}--worktrees`);
+    
     const response = await prompts({
       type: 'text',
       name: 'directory',
       message: 'Enter the worktree directory path:',
-      initial: '/Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees',
+      initial: suggestedPath,
       validate: (value: string) => {
         if (!value || value.trim().length === 0) {
           return 'Directory path is required';
+        }
+        const trimmedValue = value.trim();
+        // Check if the path is inside the repo root
+        const resolvedPath = path.resolve(trimmedValue);
+        if (resolvedPath.startsWith(REPO_ROOT + path.sep) || resolvedPath === REPO_ROOT) {
+          return 'Worktree directory must be outside the main repository to avoid nested repos';
         }
         return true;
       }
@@ -68,10 +80,10 @@ async function createWorktree(branchName: string) {
     process.exit(1);
   }
   
-  // Check if branch exists locally or remotely
-  const branchCheck = await execCommand('git', ['branch', '-a'], { cwd: REPO_ROOT });
-  const branchExists = branchCheck.stdout.includes(`remotes/origin/${branchName}`) || 
-                       branchCheck.stdout.includes(`  ${branchName}`);
+  // Check if branch exists locally or remotely using rev-parse
+  const localCheck = await execCommand('git', ['rev-parse', '--verify', branchName], { cwd: REPO_ROOT });
+  const remoteCheck = await execCommand('git', ['rev-parse', '--verify', `origin/${branchName}`], { cwd: REPO_ROOT });
+  const branchExists = localCheck.exitCode === 0 || remoteCheck.exitCode === 0;
   
   console.log(`🌳 Creating worktree at: ${worktreePath}`);
   
@@ -121,9 +133,6 @@ async function listWorktrees() {
     if (isWorktreeDir || index === 0) {
       console.log(`  ${displayNumber}. ${worktreePath}`);
       console.log(`     Branch: ${branch}`);
-      if (isWorktreeDir) {
-        console.log(`     📂 ${worktreePath}`);
-      }
       console.log('');
       displayNumber++;
     }
@@ -164,6 +173,12 @@ async function removeWorktree(branchName: string) {
       message: `Delete branch '${branchName}'?`,
       initial: false
     });
+    
+    // Handle user cancellation
+    if (response.deleteBranch === undefined) {
+      console.log('❌ Operation cancelled by user');
+      process.exit(1);
+    }
     
     if (response.deleteBranch) {
       await execCommandOrThrow('git', ['branch', '-D', branchName], { cwd: REPO_ROOT });
