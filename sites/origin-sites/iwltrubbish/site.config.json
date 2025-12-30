@@ -2,9 +2,8 @@
   "id": "iwltrubbish",
   "domain": "iwantlistenthisrubbish.com",
   "appHeader": {
-      "primaryTitle": "Elis James and John Robins",
-      "includeTitlePrefix": true,
-      "extraHeightForLongTitle": true,
+      "primaryTitle": "I Want Listen This Rubbish",
+      "includeTitlePrefix": false,
       "taglinePrimaryPodcastName": "Elis James and John Robins",
       "taglinePrimaryPodcastExternalURL": "http://www.bbc.co.uk/programmes/m0005fdz",
       "taglineSuffix": "BBC, Radio X and HDYC podcast archives",
