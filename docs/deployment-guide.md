@@ -16,7 +16,7 @@ Your site will be deployed to AWS with:
 ### Required Software
 ```bash
 # Node.js and pnpm (already installed)
-node --version  # Should be >=20.0.0
+node --version  # Should be >=24.0.0
 pnpm --version  # Should be >=10.0.0
 
 # AWS CLI

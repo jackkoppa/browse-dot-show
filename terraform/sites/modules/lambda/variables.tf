@@ -11,7 +11,7 @@ variable "handler" {
 variable "runtime" {
   description = "The runtime for the Lambda function"
   type        = string
-  default     = "nodejs20.x"
+  default     = "nodejs24.x"
 }
 
 variable "memory_size" {
