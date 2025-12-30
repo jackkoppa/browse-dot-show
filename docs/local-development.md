@@ -96,6 +96,12 @@ Each worktree is a fully independent working directory. You can:
 - Work on different features simultaneously
 - Use different agent sessions without conflicts
 
+See also
+
+```bash
+pnpm worktree help
+```
+
 ### Configuration
 
 The worktree directory is stored in `.local-files-config.json`:
