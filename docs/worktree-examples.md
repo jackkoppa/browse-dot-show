@@ -8,7 +8,7 @@
 
 ```bash
 # 1. Create a worktree for your feature
-tsx scripts/worktree.ts create feature/add-new-search
+pnpm worktree create feature/add-new-search
 
 # 2. Navigate to the worktree
 cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-new-search
@@ -27,12 +27,12 @@ When running multiple agent sessions in parallel:
 
 ```bash
 # Terminal 1: Agent working on bug fix
-tsx scripts/worktree.ts create bug/fix-transcription-timeout
+pnpm worktree create bug/fix-transcription-timeout
 cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/bug/fix-transcription-timeout
 # Agent session starts here...
 
 # Terminal 2: Agent working on feature
-tsx scripts/worktree.ts create feature/add-authentication
+pnpm worktree create feature/add-authentication
 cd /Users/jackkoppa/Workrees_Personal_Development/browse-dot-show--worktrees/feature/add-authentication
 # Another agent session starts here...
 
@@ -45,7 +45,7 @@ cd /Users/jackkoppa/Personal_Development/browse-dot-show
 
 ```bash
 # List all worktrees
-tsx scripts/worktree.ts list
+pnpm worktree list
 ```
 
 Output example:
@@ -69,7 +69,8 @@ Worktrees:
 
 ```bash
 # Remove a worktree when done
-tsx scripts/worktree.ts remove feature/add-new-search
+pnpm worktree remove feature/add-new-search
+```
 
 # You'll be prompted to delete the branch if it exists
 # After removal, you can delete the remote branch if needed:
@@ -82,7 +83,8 @@ If a branch already exists (locally or remotely):
 
 ```bash
 # Create worktree for existing branch
-tsx scripts/worktree.ts create existing-branch-name
+pnpm worktree create existing-branch-name
+```
 
 # The script will detect the existing branch and use it
 ```

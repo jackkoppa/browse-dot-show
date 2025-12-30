@@ -15,4 +15,4 @@ Guides on using `browse-dot-show`, to host your own podcast search sites.
 ### Quick Links
 
 - **Beads UI**: Run `./scripts/start-beads-ui.sh` to view and manage issues in a web UI (opens at http://127.0.0.1:3000)
-- **Worktrees**: Use `tsx scripts/worktree.ts` to manage parallel development sessions
+- **Worktrees**: Use `pnpm worktree` to manage parallel development sessions

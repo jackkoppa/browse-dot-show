@@ -4,9 +4,9 @@
  * Git worktree helper script for managing parallel development sessions
  * 
  * Usage:
- *   tsx scripts/worktree.ts create <branch-name>  # Create a new worktree
- *   tsx scripts/worktree.ts list                   # List all worktrees
- *   tsx scripts/worktree.ts remove <branch-name>  # Remove a worktree
+ *   pnpm worktree create <branch-name>  # Create a new worktree
+ *   pnpm worktree list                   # List all worktrees
+ *   pnpm worktree remove <branch-name>  # Remove a worktree
  */
 
 import { execCommand, execCommandOrThrow } from './utils/shell-exec.js';
@@ -111,6 +111,7 @@ async function listWorktrees() {
   }
   
   console.log('Worktrees:');
+  let displayNumber = 1;
   lines.forEach((line, index) => {
     const parts = line.split(/\s+/);
     const worktreePath = parts[0];
@@ -118,12 +119,13 @@ async function listWorktrees() {
     const isWorktreeDir = worktreePath.startsWith(worktreeDir);
     
     if (isWorktreeDir || index === 0) {
-      console.log(`  ${index + 1}. ${worktreePath}`);
+      console.log(`  ${displayNumber}. ${worktreePath}`);
       console.log(`     Branch: ${branch}`);
       if (isWorktreeDir) {
         console.log(`     📂 ${worktreePath}`);
       }
       console.log('');
+      displayNumber++;
     }
   });
 }
