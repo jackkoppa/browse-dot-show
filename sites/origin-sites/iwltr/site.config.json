@@ -1,37 +1,57 @@
 {
   "id": "iwltr",
-  "domain": "iwltr.browse.show",
+  "domain": "iwantlistenthisrubbish.com",
   "appHeader": {
-    "primaryTitle": "Elis and John Podcast",
-    "includeTitlePrefix": true,
-    "taglinePrimaryPodcastName": "Elis and John Podcast",
-    "taglinePrimaryPodcastExternalURL": "https://www.radiox.co.uk/radio/podcasts/elis-james-and-john-robins-radio-x-podcast/",
-    "taglineSuffix": "podcast archives"
+      "primaryTitle": "Elis James and John Robins",
+      "includeTitlePrefix": true,
+      "extraHeightForLongTitle": true,
+      "taglinePrimaryPodcastName": "Elis James and John Robins",
+      "taglinePrimaryPodcastExternalURL": "http://www.bbc.co.uk/programmes/m0005fdz",
+      "taglineSuffix": "BBC, Radio X and HDYC podcast archives",
+      "taglineSecondLine": "Sadly all good things must come to an end and iwantlistenthisrubbish.com is one of them. We will be closing down on Friday, 30th January 2026 :(",
+      "includeAIUseDisclosure": true
   },
   "socialAndMetadata": {
-    "pageTitle": "[browse.show] Elis and John Podcast",
-    "canonicalUrl": "https://iwltr.browse.show",
-    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
-    "metaDescription": "Search all episodes of the Elis and John Podcast podcast",
-    "metaTitle": "[browse.show] Elis and John Podcast"
+      "pageTitle": "I Want Listen This Rubbish | Elis James and John Robins",
+      "canonicalUrl": "https://iwantlistenthisrubbish.com",
+      "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+      "metaDescription": "Search all episodes of the Elis James and John Robins podcasts",
+      "metaTitle": "I Want Listen This Rubbish | Elis James and John Robins"
   },
   "includedPodcasts": [
-    {
-      "id": "elisandjohnpodcast",
-      "rssFeedFile": "iwltr.xml",
-      "title": "Elis and John Podcast",
-      "status": "active",
-      "url": "https://feeds.captivate.fm/elis-james-and-john-robins/"
-    }
+      {
+          "id": "elis-james-and-john-robins-bbc",
+          "rssFeedFile": "bbc.xml",
+          "title": "Elis James and John Robins on BBC Radio 5 Live",
+          "status": "active",
+          "url": "https://podcasts.files.bbci.co.uk/m0005fdz.rss"
+      },
+      {
+          "id": "how-do-you-cope",
+          "rssFeedFile": "hdc.xml",
+          "title": "How Do You Cope …with Elis and John",
+          "status": "active",
+          "url": "https://podcasts.files.bbci.co.uk/p07rq6vh.rss"
+      },
+      {
+          "id": "elis-and-john-podcast-radiox",
+          "rssFeedFile": "radiox.xml",
+          "title": "Elis James and John Robins on Radio X",
+          "status": "active",
+          "url": "https://feeds.captivate.fm/elis-james-and-john-robins/"
+      }
   ],
-  "whisperTranscriptionPrompt": "Hi, welcome to Elis and John Podcast. Let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "whisperTranscriptionPrompt": "Hi, welcome to Elis James and John Robins. Let's jump in!",
+  "themeColor": "#fdf100",
+  "themeColorDark": "#136cba",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+      "Billy Balance",
+      "good egg",
+      "good radio bell",
+      "lovely stuff",
+      "todgers",
+      "Queen",
+      "undue prominence"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }
