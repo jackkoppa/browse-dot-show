@@ -13,15 +13,46 @@ Start your own podcast archive and search engine with our interactive setup wiza
 # Then clone your fork:
 git clone <your-fork-url>
 cd browse-dot-show
+```
 
-# Confirm Node & pnpm installs
+### 2. Set Up Development Tools
+
+This project uses [Hermit](https://cashapp.github.io/hermit) to automatically manage Node.js and pnpm versions.
+
+**Recommended approach (Hermit):**
+
+```bash
+# Install Hermit
+curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
+
+# Install shell hooks for automatic activation
+hermit shell-hooks
+
+# Restart your shell
+# When you cd into the project, tools are automatically available!
+
+# Verify setup
 ./scripts/prereqs.sh
+```
 
+**Alternative approach (without Hermit):**
+
+If you prefer to manage tools yourself, you can use nvm for Node.js and install pnpm separately:
+
+```bash
+# Install Node.js 20+ and pnpm 10.15.1+
+# Then verify:
+./scripts/prereqs.sh
+```
+
+### 3. Install Dependencies
+
+```bash
 # Install dependencies & build initial packages
 pnpm i && pnpm all:build
 ```
 
-### 2. Create Your Site
+### 4. Create Your Site
 
 ```bash
 # Run the interactive site creation wizard
