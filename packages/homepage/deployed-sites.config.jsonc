@@ -20,6 +20,15 @@
                 "imageUrl": "https://listenfairplay.com/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "come what February"
             },
+            // sites/origin-sites/screenrot
+            "iwltr": {
+                "siteName": "I Want Listen This Rubbish",
+                "displayedPodcastName": "Elis James and John Robins",
+                "podcastTagline": "BBC, Radio X and HDYC podcast archives",
+                "domain": "iwantlistenthisrubbish.com",
+                "imageUrl": "https://iwantlistenthisrubbish.com/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "John Robins"
+            },
             // sites/origin-sites/naddpod
             "naddpod": {
                 "siteName": "[browse.show] NaddPod",
