@@ -2,6 +2,77 @@
 
 This guide covers tools and workflows for local development of `browse-dot-show`.
 
+## Tool Management with Hermit
+
+This project uses [Hermit](https://cashapp.github.io/hermit) to manage development tools (Node.js and pnpm). Hermit ensures consistent tool versions across all developers and CI environments.
+
+### Why Hermit?
+
+- **Automatic activation**: Tools become available when you `cd` into the project (with shell hooks)
+- **Version consistency**: Everyone uses the exact same Node.js and pnpm versions
+- **No global installs**: Tools are project-scoped, avoiding conflicts
+- **Simple setup**: One command to install, one command for shell hooks
+
+### Installation
+
+```bash
+# Install Hermit
+curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
+
+# Install shell hooks for automatic activation (recommended)
+hermit shell-hooks
+
+# Restart your shell
+```
+
+### Usage
+
+**With shell hooks (recommended):**
+
+```bash
+# Just cd into the project - tools activate automatically!
+cd browse-dot-show
+node --version  # v20.19.6
+pnpm --version  # 10.15.1
+```
+
+**Without shell hooks:**
+
+```bash
+# Manually activate the environment
+. bin/activate-hermit
+
+# Now tools are available
+node --version
+pnpm --version
+
+# Deactivate when done
+deactivate-hermit
+```
+
+### Managing Packages
+
+```bash
+# List installed packages
+hermit list
+
+# Search for available packages
+hermit search <package-name>
+
+# Install a package
+hermit install <package-name>
+
+# Update packages
+hermit update
+```
+
+### Alternative: Using nvm/Corepack
+
+If you prefer not to use Hermit, you can manage tools manually:
+
+- Use [nvm](https://github.com/nvm-sh/nvm) for Node.js (version 20+)
+- Install pnpm globally or use Corepack: `corepack enable && corepack prepare pnpm@10.15.1 --activate`
+
 ## Issue Tracking with Beads
 
 This project uses [Beads](https://github.com/steveyegge/beads) for issue tracking. Beads provides a lightweight, git-based issue tracking system that integrates seamlessly with your workflow.

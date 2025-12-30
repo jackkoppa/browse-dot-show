@@ -80,3 +80,11 @@ aws-local-dev-TEMP/
 
 # Site setup progress tracking
 sites/my-sites/**/.setup-progress.json
+
+# Hermit
+.hermit/
+bin/*
+!bin/hermit.hcl
+!bin/activate-hermit
+!bin/activate-hermit.fish
+!bin/README.hermit.md
