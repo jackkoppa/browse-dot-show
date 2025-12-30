@@ -1,0 +1,21 @@
+{
+  "name": "iwantlistenthisrubbish",
+  "short_name": "iwantlistenthisrubbish",
+  "icons": [
+    {
+      "src": "/assets/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#037789",
+  "background_color": "#037789",
+  "display": "standalone"
+}
