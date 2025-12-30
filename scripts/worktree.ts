@@ -187,16 +187,35 @@ async function removeWorktree(branchName: string) {
   }
 }
 
+function showHelp() {
+  console.log('Git Worktree Helper - Manage parallel development sessions');
+  console.log('');
+  console.log('Usage:');
+  console.log('  pnpm worktree <command> [arguments]');
+  console.log('');
+  console.log('Commands:');
+  console.log('  create <branch-name>   Create a new worktree for a branch');
+  console.log('  list                   List all worktrees');
+  console.log('  remove <branch-name>   Remove a worktree');
+  console.log('  help                   Show this help message');
+  console.log('');
+  console.log('Examples:');
+  console.log('  pnpm worktree create feature/my-feature');
+  console.log('  pnpm worktree list');
+  console.log('  pnpm worktree remove feature/my-feature');
+  console.log('');
+  console.log('Configuration:');
+  console.log('  Worktree directory is stored in .local-files-config.json');
+  console.log('  You will be prompted to set it on first use');
+}
+
 async function main() {
   const command = process.argv[2];
   const branchName = process.argv[3];
   
-  if (!command) {
-    console.error('Usage:');
-    console.error('  tsx scripts/worktree.ts create <branch-name>  # Create a new worktree');
-    console.error('  tsx scripts/worktree.ts list                   # List all worktrees');
-    console.error('  tsx scripts/worktree.ts remove <branch-name>   # Remove a worktree');
-    process.exit(1);
+  if (!command || command === 'help' || command === '--help' || command === '-h') {
+    showHelp();
+    process.exit(command ? 0 : 1);
   }
   
   try {
@@ -204,6 +223,7 @@ async function main() {
       case 'create':
         if (!branchName) {
           console.error('❌ Branch name is required for create command');
+          console.error('Usage: pnpm worktree create <branch-name>');
           process.exit(1);
         }
         await createWorktree(branchName);
@@ -216,6 +236,7 @@ async function main() {
       case 'remove':
         if (!branchName) {
           console.error('❌ Branch name is required for remove command');
+          console.error('Usage: pnpm worktree remove <branch-name>');
           process.exit(1);
         }
         await removeWorktree(branchName);
@@ -223,7 +244,8 @@ async function main() {
         
       default:
         console.error(`❌ Unknown command: ${command}`);
-        console.error('Available commands: create, list, remove');
+        console.error('');
+        showHelp();
         process.exit(1);
     }
   } catch (error: any) {
