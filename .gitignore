@@ -84,6 +84,7 @@ sites/my-sites/**/.setup-progress.json
 # Hermit
 .hermit/
 bin/*
+!bin/hermit
 !bin/hermit.hcl
 !bin/activate-hermit
 !bin/activate-hermit.fish
