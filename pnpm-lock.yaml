@@ -231,6 +231,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+      vitest:
+        specifier: 'catalog:'
+        version: 1.6.1(@types/node@22.16.3)(jsdom@26.1.0)(lightningcss@1.30.1)
 
   packages/database:
     dependencies:
@@ -586,6 +589,37 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+
+  packages/search/search-orchestrator-lambda:
+    dependencies:
+      '@aws-sdk/client-lambda':
+        specifier: 'catalog:'
+        version: 3.844.0
+    devDependencies:
+      '@browse-dot-show/constants':
+        specifier: workspace:*
+        version: link:../../constants
+      '@browse-dot-show/logging':
+        specifier: workspace:*
+        version: link:../../logging
+      '@browse-dot-show/s3':
+        specifier: workspace:*
+        version: link:../../s3
+      '@browse-dot-show/types':
+        specifier: workspace:*
+        version: link:../../types
+      rolldown:
+        specifier: 'catalog:'
+        version: 1.0.0-beta.27
+      tsx:
+        specifier: ^4.7.0
+        version: 4.20.3
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: 'catalog:'
+        version: 1.6.1(@types/node@22.16.3)(jsdom@26.1.0)(lightningcss@1.30.1)
 
   packages/spelling:
     dependencies:

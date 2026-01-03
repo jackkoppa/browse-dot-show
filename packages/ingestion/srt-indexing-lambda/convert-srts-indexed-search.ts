@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix } from '@browse-dot-show/constants';
+import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix, getShardedSearchIndexKey, getShardedLocalDbPath, getShardManifestKey } from '@browse-dot-show/constants';
 import { hasDownloadedAtTimestamp, parseFileKey } from './utils/get-episode-file-key.js';
 import {
   createOramaIndex,
@@ -20,6 +20,14 @@ import {
 } from '@browse-dot-show/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import {
+  getShardCount,
+  isShardedMode,
+  calculateShardRanges,
+  groupEntriesByShard,
+  generateShardManifest,
+  logShardingConfig
+} from './shard-utils.js';
 
 log.info(`▶️ Starting convert-srts-indexed-search, with logging level: ${log.getLevel()}`);
 
@@ -244,20 +252,40 @@ export async function handler(): Promise<any> {
 
   await createDirectory(getSearchEntriesDirPrefix()); // Ensure base search entries dir exists
 
-  // Always create a fresh Orama index
-  log.info('Creating fresh Orama search index');
+  // Determine sharding configuration
+  const shardCount = getShardCount();
+  const shardRanges = calculateShardRanges(episodeManifestData.length, shardCount);
+  logShardingConfig(shardCount, shardRanges);
 
-  // Clean up any existing local index file
-  try {
-    await fs.unlink(getLocalDbPath());
-    log.debug(`Removed any existing local index at ${getLocalDbPath()}`);
-  } catch (e: any) {
-    if (e.code !== 'ENOENT') log.warn(`Could not remove existing local index: ${e.message}`);
+  // Always create a fresh Orama index (or multiple indexes if sharded)
+  if (isShardedMode()) {
+    log.info(`Creating ${shardCount} fresh Orama search indexes (sharded mode)`);
+  } else {
+    log.info('Creating fresh Orama search index (single mode)');
   }
 
-  const oramaIndex: OramaSearchDatabase = await createOramaIndex();
-  log.info('Created fresh Orama search index');
-  logMemoryUsage('after creating fresh Orama index');
+  // Clean up any existing local index files
+  if (isShardedMode()) {
+    for (let i = 1; i <= shardCount; i++) {
+      try {
+        await fs.unlink(getShardedLocalDbPath(i));
+        log.debug(`Removed any existing local index at ${getShardedLocalDbPath(i)}`);
+      } catch (e: any) {
+        if (e.code !== 'ENOENT') log.warn(`Could not remove existing local index: ${e.message}`);
+      }
+    }
+  } else {
+    try {
+      await fs.unlink(getLocalDbPath());
+      log.debug(`Removed any existing local index at ${getLocalDbPath()}`);
+    } catch (e: any) {
+      if (e.code !== 'ENOENT') log.warn(`Could not remove existing local index: ${e.message}`);
+    }
+  }
+
+  // Note: We'll create the Orama indexes after collecting all entries
+  // This allows us to group entries by shard efficiently
+  logMemoryUsage('before collecting search entries');
 
   // List all SRT files (keeping existing logic for podcast directory traversal)
   const podcastDirectoryPrefixes = await listDirectories(getTranscriptsDirPrefix());
@@ -412,31 +440,128 @@ export async function handler(): Promise<any> {
     log.info(`[DEBUG] ✅ No duplicate ids found`);
   }
 
-  // Insert all collected entries in a single batch
-  if (allSearchEntriesToInsert.length > 0) {
-    log.info(`Inserting all ${allSearchEntriesToInsert.length} entries into Orama index in single batch...`);
-    logMemoryUsage('before inserting all entries into Orama index');
-    const insertStart = Date.now();
-    await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
-    log.info(`All entries inserted into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
-    logMemoryUsage('after inserting all entries into Orama index');
-  }
-
-  log.info(`Persisting Orama index using streaming approach to ${getLocalDbPath()}...`);
-  logMemoryUsage('before attempting to persist Orama index with streaming');
+  // Create and persist indexes (single or sharded)
   try {
-    // Use streaming persistence with gzip compression
-    const compression: CompressionType = 'zstd';
-    await persistToFileStreamingMsgPackR(oramaIndex, getLocalDbPath(), compression);
-    logMemoryUsage('after persisting Orama index to file with streaming');
-
-    // Upload to S3 (this will overwrite any existing index)
-    log.info(`Uploading Orama index from ${getLocalDbPath()} to S3 at ${getSearchIndexKey()}...`);
-    const indexFileBuffer = await fs.readFile(getLocalDbPath());
-    await saveFile(getSearchIndexKey(), indexFileBuffer);
-    log.info(`Orama index successfully saved and exported to S3: ${getSearchIndexKey()}`);
+    if (isShardedMode()) {
+      // SHARDED MODE: Create multiple indexes, one per shard
+      log.info(`Creating ${shardCount} sharded indexes...`);
+      
+      // Group entries by shard
+      const entriesByShard = groupEntriesByShard(allSearchEntriesToInsert, shardRanges);
+      
+      // Track entry counts per shard for manifest
+      const shardEntryCounts = new Map<number, number>();
+      
+      // Create and persist each shard's index
+      for (let shardId = 1; shardId <= shardCount; shardId++) {
+        const shardEntries = entriesByShard.get(shardId) || [];
+        shardEntryCounts.set(shardId, shardEntries.length);
+        
+        log.info(`\n📦 Processing Shard ${shardId}/${shardCount}: ${shardEntries.length} entries`);
+        
+        if (shardEntries.length === 0) {
+          log.warn(`Shard ${shardId} has no entries. Skipping index creation.`);
+          continue;
+        }
+        
+        // Create Orama index for this shard
+        logMemoryUsage(`before creating Orama index for shard ${shardId}`);
+        const shardIndex: OramaSearchDatabase = await createOramaIndex();
+        log.info(`Created Orama index for shard ${shardId}`);
+        
+        // Insert entries into shard index
+        const insertStart = Date.now();
+        await insertMultipleSearchEntries(shardIndex, shardEntries);
+        log.info(`Inserted ${shardEntries.length} entries into shard ${shardId} in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
+        logMemoryUsage(`after inserting entries into shard ${shardId}`);
+        
+        // Persist shard index to local file
+        const shardLocalPath = getShardedLocalDbPath(shardId);
+        log.info(`Persisting shard ${shardId} index to ${shardLocalPath}...`);
+        const compression: CompressionType = 'zstd';
+        await persistToFileStreamingMsgPackR(shardIndex, shardLocalPath, compression);
+        logMemoryUsage(`after persisting shard ${shardId} to file`);
+        
+        // Upload shard index to S3
+        const shardS3Key = getShardedSearchIndexKey(shardId);
+        log.info(`Uploading shard ${shardId} index to S3 at ${shardS3Key}...`);
+        const shardFileBuffer = await fs.readFile(shardLocalPath);
+        await saveFile(shardS3Key, shardFileBuffer);
+        log.info(`Shard ${shardId} index successfully uploaded to S3: ${shardS3Key}`);
+        
+        // Clean up local shard file
+        try {
+          await fs.unlink(shardLocalPath);
+          log.debug(`Cleaned up local shard ${shardId} index file`);
+        } catch (error: any) {
+          if (error.code !== 'ENOENT') {
+            log.warn(`Could not clean up local shard ${shardId} index file: ${error.message}`);
+          }
+        }
+      }
+      
+      // Generate and upload shard manifest
+      log.info('\n📋 Generating shard manifest...');
+      const manifest = generateShardManifest(
+        shardCount,
+        shardRanges,
+        episodeManifestData.length,
+        siteId,
+        shardEntryCounts
+      );
+      
+      const manifestKey = getShardManifestKey();
+      log.info(`Uploading shard manifest to S3 at ${manifestKey}...`);
+      await saveFile(manifestKey, JSON.stringify(manifest, null, 2));
+      log.info(`Shard manifest successfully uploaded to S3: ${manifestKey}`);
+      
+      log.info(`\n✅ All ${shardCount} sharded indexes created and uploaded successfully`);
+      
+    } else {
+      // SINGLE MODE: Create one index (backward compatible)
+      log.info('Creating single Orama index (backward compatible mode)...');
+      
+      const oramaIndex: OramaSearchDatabase = await createOramaIndex();
+      log.info('Created fresh Orama search index');
+      logMemoryUsage('after creating fresh Orama index');
+      
+      // Insert all collected entries in a single batch
+      if (allSearchEntriesToInsert.length > 0) {
+        log.info(`Inserting all ${allSearchEntriesToInsert.length} entries into Orama index in single batch...`);
+        logMemoryUsage('before inserting all entries into Orama index');
+        const insertStart = Date.now();
+        await insertMultipleSearchEntries(oramaIndex, allSearchEntriesToInsert);
+        log.info(`All entries inserted into Orama index in ${((Date.now() - insertStart) / 1000).toFixed(2)}s`);
+        logMemoryUsage('after inserting all entries into Orama index');
+      }
+      
+      log.info(`Persisting Orama index using streaming approach to ${getLocalDbPath()}...`);
+      logMemoryUsage('before attempting to persist Orama index with streaming');
+      
+      // Use streaming persistence with zstd compression
+      const compression: CompressionType = 'zstd';
+      await persistToFileStreamingMsgPackR(oramaIndex, getLocalDbPath(), compression);
+      logMemoryUsage('after persisting Orama index to file with streaming');
+      
+      // Upload to S3 (this will overwrite any existing index)
+      log.info(`Uploading Orama index from ${getLocalDbPath()} to S3 at ${getSearchIndexKey()}...`);
+      const indexFileBuffer = await fs.readFile(getLocalDbPath());
+      await saveFile(getSearchIndexKey(), indexFileBuffer);
+      log.info(`Orama index successfully saved and exported to S3: ${getSearchIndexKey()}`);
+      
+      // Clean up local index file
+      try {
+        await fs.unlink(getLocalDbPath());
+        log.info(`Cleaned up local Orama index file: ${getLocalDbPath()}`);
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') { // ENOENT means file not found, which is fine
+          log.warn(`Could not clean up local Orama index file: ${error.message}`);
+        }
+      }
+    }
 
     // If new entries were added, invoke the search lambda to force a refresh (only when running in AWS Lambda)
+    // Note: In sharded mode, we would invoke the orchestrator instead, but that's handled by Terraform
     if (newEntriesAddedInThisRun > 0) {
       if (isRunningInLambda()) {
         log.info(`New entries (${newEntriesAddedInThisRun}) were added. Invoking ${searchLambdaName} to refresh its index.`);
@@ -463,7 +588,7 @@ export async function handler(): Promise<any> {
     }
 
   } catch (error: any) {
-    log.error(`Failed to serialize or upload Orama index to S3: ${error.message}. The local index may be present at ${getLocalDbPath()} but S3 is not updated.`, error);
+    log.error(`Failed to serialize or upload Orama index to S3: ${error.message}`, error);
     logMemoryUsage('after failed to serialize or upload Orama index to S3');
     return {
       status: 'error',
@@ -472,16 +597,6 @@ export async function handler(): Promise<any> {
       totalSrtFiles: totalSrtFiles,
       newEntriesAdded: newEntriesAddedInThisRun
     };
-  }
-
-  // Clean up local index file
-  try {
-    await fs.unlink(getLocalDbPath());
-    log.info(`Cleaned up local Orama index file: ${getLocalDbPath()}`);
-  } catch (error: any) {
-    if (error.code !== 'ENOENT') { // ENOENT means file not found, which is fine
-      log.warn(`Could not clean up local Orama index file: ${error.message}`);
-    }
   }
 
   const totalLambdaTime = (Date.now() - lambdaStartTime) / 1000;

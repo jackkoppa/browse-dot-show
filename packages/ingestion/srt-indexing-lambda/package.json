@@ -9,7 +9,7 @@
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
     "run:local": "tsx convert-srts-indexed-search.ts",
-    "test": "echo 'No tests yet'",
+    "test": "vitest run",
     "__prepare-for-aws": "tsx ../../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/srt-indexing-lambda"
   },
   "devDependencies": {

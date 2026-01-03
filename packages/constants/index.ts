@@ -1,4 +1,12 @@
 export {
+  // Sharding support
+  getShardId,
+  getShardCount,
+  isShardedMode,
+  getShardedSearchIndexKey,
+  getShardedLocalDbPath,
+  getShardManifestKey,
+  // S3 keys and paths
   getSearchIndexKey,
   getLocalDbPath,
   getEpisodeManifestKey,
@@ -7,6 +15,7 @@ export {
   getRSSDirectoryPrefix,
   getSearchEntriesDirPrefix,
   getEpisodeManifestDirPrefix,
+  // File key utilities
   hasDownloadedAtTimestamp,
   extractDownloadedAtFromFileKey,
   parseFileKey,

@@ -43,6 +43,13 @@ export interface SearchResponse {
   query: string;                        // Original query
   sortBy?: keyof SearchEntry;           // Field used for sorting
   sortOrder?: 'ASC' | 'DESC';          // Sort order applied
+  // Sharding metadata (optional, only present when orchestrator is used)
+  shardingMetadata?: {
+    isShardedResponse: boolean;         // Whether this response came from sharded search
+    queriedShards?: number[];           // Which shard(s) were queried (for debugging)
+    failedShards?: number[];            // If any shards failed, their IDs (for partial results)
+    partial?: boolean;                  // Whether this is a partial result due to shard failures
+  };
 }
 
 /**
