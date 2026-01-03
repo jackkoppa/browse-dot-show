@@ -16,10 +16,14 @@ This project uses [Hermit](https://cashapp.github.io/hermit) to manage developme
 ### Installation
 
 ```bash
-# Install Hermit
+# Install Hermit (installs to ~/bin)
 curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
 
+# Add ~/bin to PATH (if not already there)
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc for Bash
+
 # Install shell hooks for automatic activation (recommended)
+source ~/.zshrc  # reload to pick up ~/bin
 hermit shell-hooks
 
 # Restart your shell

@@ -22,8 +22,14 @@ This project uses [Hermit](https://cashapp.github.io/hermit) to automatically ma
 **Quick setup:**
 
 ```bash
-# Install Hermit and shell hooks
+# Install Hermit (installs to ~/bin)
 curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
+
+# Add ~/bin to PATH and reload shell config
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc for Bash
+source ~/.zshrc
+
+# Install shell hooks for automatic activation
 hermit shell-hooks
 
 # Restart your shell, then cd into the project

@@ -21,7 +21,9 @@ if command -v hermit &> /dev/null; then
 else
     echo "⚠️  Hermit is not installed (recommended)"
     echo "   🐚 Hermit provides automatic tool management for this project"
-    echo "   🔗 Install: curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash"
+    echo "   🔗 Install:"
+    echo "      curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash"
+    echo "      echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
     echo "   📖 Learn more: https://cashapp.github.io/hermit"
     echo ""
     HERMIT_OK=false
@@ -73,12 +75,34 @@ if [ "$NODE_OK" = true ] && [ "$PNPM_OK" = true ]; then
         echo "💡 Tip: Install Hermit shell hooks for automatic environment activation:"
         echo "   🔧 Run: hermit shell-hooks"
         echo ""
+    elif [ "$HERMIT_OK" = false ]; then
+        echo "💡 Tip: Consider using Hermit for automatic tool management:"
+        echo "   🔗 See docs/local-development.md for setup instructions"
+        echo ""
     fi
     echo "📦 Next step: Install project dependencies"
     echo "   💻 Run: pnpm i && pnpm all:build"
     echo ""
 else
-    echo "⚠️  Please install the missing prerequisites above, then run:"
-    echo "   💻 pnpm i && pnpm all:build"
+    echo "⚠️  Missing prerequisites!"
     echo ""
-fi 
+    if [ "$HERMIT_OK" = false ]; then
+        echo "🐚 Recommended: Install Hermit to get Node.js and pnpm automatically:"
+        echo "   curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash"
+        echo "   echo 'export PATH=\"\$HOME/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+        echo "   hermit shell-hooks  # For auto-activation"
+        echo "   # Restart shell, then cd into project"
+        echo ""
+        echo "📖 Alternative: Install Node.js and pnpm manually (see above)"
+        echo ""
+    elif [ "$HERMIT_OK" = true ]; then
+        echo "💡 Activate Hermit to get Node.js and pnpm:"
+        echo "   . bin/activate-hermit"
+        echo ""
+        echo "🔧 Or install shell hooks for auto-activation:"
+        echo "   hermit shell-hooks"
+        echo ""
+    fi
+    echo "📦 Then run: pnpm i && pnpm all:build"
+    echo ""
+fi

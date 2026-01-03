@@ -4,14 +4,12 @@ This project uses **bd** (beads) for issue tracking.
 
 ## Prerequisites
 
-**Hermit** must be installed for tool management (Node.js, pnpm). See [Local Development Guide](docs/local-development.md#tool-management-with-hermit) for setup instructions.
-
-**Quick setup:**
+This project uses **Hermit** for tool management (Node.js, pnpm). If tools aren't available, activate with:
 ```bash
-curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
-hermit shell-hooks  # For automatic activation
-# Restart shell, then cd into project
+. bin/activate-hermit
 ```
+
+First-time setup? See [Local Development Guide](docs/local-development.md#tool-management-with-hermit).
 
 ## Quick Reference
 
