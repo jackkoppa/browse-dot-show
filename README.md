@@ -18,5 +18,3 @@ Use this repo to deploy & host your own podcast search engine, for any number of
 🛠️ Follow the interactive Site Creator there, to get started with local development in a few minutes.
 
 ☁️ Local transcription & serverless architecture - including simple deployment to AWS - keep hosting costs low.
-
-💡 This project uses [Hermit](https://cashapp.github.io/hermit) for automatic tool management - see the [Getting Started Guide](docs/GETTING_STARTED.md) for setup.
