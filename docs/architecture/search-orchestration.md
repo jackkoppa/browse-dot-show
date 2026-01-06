@@ -268,7 +268,7 @@ module "search_orchestrator_lambda" {
 
   function_name = "search-orchestrator-${var.site_id}"
   handler       = "search-orchestrator.handler"
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs24.x"
   timeout       = var.search_lambda_timeout
   memory_size   = 512  # Orchestrator is lightweight, just coordinates
   environment_variables = {
@@ -294,7 +294,7 @@ module "search_shard_lambdas" {
 
   function_name = "search-api-${var.site_id}-shard-${count.index + 1}"
   handler       = "search-indexed-transcripts.handler"
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs24.x"
   timeout       = var.search_lambda_timeout
   memory_size   = var.search_lambda_memory_size
   ephemeral_storage = 2048
