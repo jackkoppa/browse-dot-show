@@ -28,4 +28,10 @@ export interface EpisodeInManifest {
 export interface EpisodeManifest {
     lastUpdated: string; // ISO 8601 date string
     episodes: EpisodeInManifest[];
+}
+
+export interface EpisodeManifestMetadata {
+    lastUpdated: string; // ISO 8601 date string
+    episodeCount: number;
+    version: string; // Format: vYYYY.MM.DD.HHMM
 } 
