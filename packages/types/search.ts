@@ -29,6 +29,9 @@ export interface SearchRequest {
   sortBy?: keyof SearchEntry;           // Field to sort by
   sortOrder?: 'ASC' | 'DESC';          // Sort order (default: 'DESC' for date) - converted to uppercase internally
   searchFields?: (keyof SearchEntry)[]; // Fields to search in (default: ['text'])
+  startDate?: string;                   // Filter start date (ISO date string YYYY-MM-DD)
+  endDate?: string;                     // Filter end date (ISO date string YYYY-MM-DD)
+  episodeIds?: string[];                // Filter by specific episode IDs (sequential episode IDs as strings)
   isHealthCheckOnly?: boolean;          // If true, only initialize the Lambda and return immediately (for warming up)
   forceFreshDBFileDownload?: boolean; // If true, force re-download of the S3 DB index file
 }

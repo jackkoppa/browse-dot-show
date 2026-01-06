@@ -129,6 +129,9 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       sortBy,
       sortOrder = 'DESC',
       searchFields = ['text'],
+      startDate,
+      endDate,
+      episodeIds,
     } = searchRequest;
 
     // Build search options
@@ -146,6 +149,53 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       exact: true
     };
 
+    // Build where clause for filtering
+    let whereClause: any = {};
+    
+    // Add date filtering if specified
+    if (startDate || endDate) {
+      if (startDate && endDate) {
+        // Both dates provided - use between operator
+        const startTimestamp = new Date(startDate).getTime();
+        const endTimestamp = new Date(endDate).getTime() + (24 * 60 * 60 * 1000 - 1); // End of day
+        whereClause.episodePublishedUnixTimestamp = {
+          between: [startTimestamp, endTimestamp]
+        };
+      } else if (startDate) {
+        // Only start date - use gte
+        const startTimestamp = new Date(startDate).getTime();
+        whereClause.episodePublishedUnixTimestamp = { gte: startTimestamp };
+      } else if (endDate) {
+        // Only end date - use lte
+        const endTimestamp = new Date(endDate).getTime() + (24 * 60 * 60 * 1000 - 1); // End of day
+        whereClause.episodePublishedUnixTimestamp = { lte: endTimestamp };
+      }
+      
+      log.info(`Date filtering applied: startDate=${startDate}, endDate=${endDate}`);
+    }
+
+    // Add episode filtering if specified
+    if (episodeIds?.length) {
+      // For string fields in Orama, use direct value assignment (not operator objects)
+      // Single episode: sequentialEpisodeIdAsString = "250"
+      // Multiple episodes: sequentialEpisodeIdAsString = ["250", "251", "252"]
+      if (episodeIds.length === 1) {
+        whereClause.sequentialEpisodeIdAsString = episodeIds[0];
+        log.info(`Episode filtering applied (single): episodeId=${episodeIds[0]}`);
+      } else {
+        whereClause.sequentialEpisodeIdAsString = episodeIds;
+        log.info(`Episode filtering applied (multiple): episodeIds=${JSON.stringify(episodeIds)}`);
+      }
+      
+      log.info(`Episode filtering where clause: ${JSON.stringify({ sequentialEpisodeIdAsString: whereClause.sequentialEpisodeIdAsString })}`);
+    }
+
+    // Apply where clause if any filters are specified
+    if (Object.keys(whereClause).length > 0) {
+      searchOptions.where = whereClause;
+      log.info(`Combined where clause: ${JSON.stringify(whereClause)}`);
+    }
+
     // Add sorting if specified
     if (sortBy) {
       searchOptions.sortBy = {
@@ -154,7 +204,7 @@ export async function searchOramaIndex(db: OramaSearchDatabase, searchRequest: S
       };
     }
 
-    log.warn(`Search options: ${JSON.stringify(searchOptions)}`);
+    log.info(`Search options: ${JSON.stringify(searchOptions)}`);
 
     const results = await search(db, searchOptions);
     const processingTimeMs = Date.now() - startTime;
