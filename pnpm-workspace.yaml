@@ -16,6 +16,7 @@ packages:
   - packages/ingestion/process-audio-lambda
   - packages/ingestion/srt-indexing-lambda
   - packages/search/search-lambda
+  - packages/search/search-orchestrator-lambda
   - scripts
   - sites
 
