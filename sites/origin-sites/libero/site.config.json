@@ -11,7 +11,7 @@
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Libero",
     "canonicalUrl": "https://libero.browse.show",
-    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.jpg",
+    "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
     "metaDescription": "Search all episodes of the Libero podcast",
     "metaTitle": "[browse.show] Libero"
   },
@@ -24,14 +24,12 @@
       "url": "https://feeds.megaphone.fm/COMG8994451557"
     }
   ],
-  "whisperTranscriptionPrompt": "Hi, welcome to Libero. Let's jump in!",
-  "themeColor": "#734ee4",
-  "themeColorDark": "#2f6a9e",
+  "whisperTranscriptionPrompt": "Welcome to Libero, a podcast about football - the most important of the least important things. Let's get started.",
+  "themeColor": "#fffde2",
+  "themeColorDark": "#272b33",
   "searchPlaceholderOptions": [
-    "Episode topic",
-    "Guest name",
-    "Key discussion",
-    "Recent episode"
+    "most important",
+    "inverting"
   ],
   "trackingScript": "<script data-goatcounter=\"https://browse-dot-show.goatcounter.com/count\" async src=\"//gc.zgo.at/count.js\"></script>"
 }
