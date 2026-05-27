@@ -1,0 +1,11 @@
+{
+    "correctionsToApply": [
+        {
+            "misspellings": [
+                "WORD_1_EXAMPLE_MISSPELLING_A",
+                "WORD_1_EXAMPLE_MISSPELLING_B"
+            ],
+            "correctedSpelling": "WORD_1_EXAMPLE_CORRECTED_SPELLING"
+        }
+    ]
+}
