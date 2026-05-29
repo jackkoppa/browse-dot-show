@@ -107,9 +107,9 @@ export default function FullEpisodeTranscript({
         const baseClass = 'py-2 px-4';
 
         if (isUrlBasedTarget(entry)) {
-            return baseClass + ' bg-yellow-100 border-l-4 border-yellow-500 font-bold';
+            return baseClass + ' text-background bg-yellow-100 border-l-4 border-yellow-500 font-bold';
         } else if (isCurrentlyPlaying(entry)) {
-            return baseClass + ' bg-blue-100 border-l-4 border-blue-500 font-semibold';
+            return baseClass + ' text-background bg-blue-100 border-l-4 border-blue-500 font-semibold';
         } else {
             return baseClass + ' text-muted-foreground hover:bg-muted cursor-pointer';
         }
