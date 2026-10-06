@@ -9,10 +9,9 @@ Guides on using `browse-dot-show`, to host your own podcast search sites.
 
 ## 🛠️ For Developers
 
-- **[Local Development Guide](./local-development.md)** - Tools and workflows for local development, including Beads issue tracking and git worktrees for parallel development sessions
+- **[Local Development Guide](./local-development.md)** - Tools and workflows for local development, including git worktrees for parallel development sessions
 - **[Agent Instructions](../AGENTS.md)** - Detailed workflow for agents working on this project
 
 ### Quick Links
 
-- **Beads UI**: Run `./scripts/start-beads-ui.sh` to view and manage issues in a web UI (opens at http://127.0.0.1:3000)
 - **Worktrees**: Use `pnpm worktree` to manage parallel development sessions
