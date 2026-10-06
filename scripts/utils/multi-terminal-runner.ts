@@ -29,6 +29,13 @@ interface ProcessConfig {
   args: string[];
   logFile: string;
   env?: Record<string, string>;
+  /** Known total for this process, if calculated upfront. Otherwise read from the process's progress logs */
+  totalMinutes?: number;
+  /**
+   * For processes that run several sequential jobs (e.g. one per site), the siteIds that must each
+   * log COMPLETE before the process counts as complete. Progress is summed across these jobs.
+   */
+  expectedSiteIds?: string[];
 }
 
 interface ProgressUpdate {
@@ -41,6 +48,7 @@ interface ProgressUpdate {
     completedMinutes?: number;
     percentComplete?: number;
     currentFile?: string;
+    siteId?: string;
   };
 }
 
@@ -335,7 +343,7 @@ process.on('SIGINT', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
     
-    console.log(`✅ All ${this.numProcesses} terminal windows launched!`);
+    console.log(`✅ All ${this.processes.length} terminal windows launched!`);
     
     // Start monitoring
     this.startMonitoring();
@@ -472,10 +480,10 @@ process.on('SIGINT', () => {
           const logContent = fs.readFileSync(config.logFile, 'utf8');
           const logLines = logContent.trim().split('\n').filter(line => line);
           
-          let processTotal = 0;
-          let processCompleted = 0;
           let processStatus = 'UNKNOWN';
           let lastMessage = 'No activity';
+          // Latest progress per job, keyed by siteId (a process may run one job per site, sequentially)
+          const jobs = new Map<string, { total: number; completed: number; status: string }>();
 
           // Parse all log entries for this process
           for (const line of logLines) {
@@ -483,13 +491,30 @@ process.on('SIGINT', () => {
               const entry: ProgressUpdate = JSON.parse(line);
               allProgress.push(entry);
               
-              if (entry.data?.totalMinutes) processTotal = entry.data.totalMinutes;
-              if (entry.data?.completedMinutes) processCompleted = entry.data.completedMinutes;
+              const jobKey = entry.data?.siteId ?? '';
+              const job = jobs.get(jobKey) ?? { total: 0, completed: 0, status: 'UNKNOWN' };
+              if (entry.data?.totalMinutes) job.total = entry.data.totalMinutes;
+              if (entry.data?.completedMinutes) job.completed = entry.data.completedMinutes;
+              job.status = entry.type;
+              jobs.set(jobKey, job);
+
               processStatus = entry.type;
-              lastMessage = entry.message;
+              lastMessage = entry.data?.siteId ? `[${entry.data.siteId}] ${entry.message}` : entry.message;
             } catch (e) {
               // Skip invalid JSON lines
             }
+          }
+
+          const processTotal = config.totalMinutes ?? [...jobs.values()].reduce((sum, job) => sum + job.total, 0);
+          const processCompleted = Math.min(
+            [...jobs.values()].reduce((sum, job) => sum + job.completed, 0),
+            processTotal
+          );
+
+          // A multi-job process is only complete once every expected job has completed
+          if (config.expectedSiteIds && processStatus === 'COMPLETE') {
+            const allJobsComplete = config.expectedSiteIds.every(siteId => jobs.get(siteId)?.status === 'COMPLETE');
+            if (!allJobsComplete) processStatus = 'PROGRESS';
           }
 
           totalMinutes += processTotal;
@@ -519,7 +544,7 @@ process.on('SIGINT', () => {
 
     // Overall summary
     const overallPercent = totalMinutes > 0 ? (completedMinutes / totalMinutes) * 100 : 0;
-    const pendingProcesses = this.numProcesses - completedProcesses - activeProcesses;
+    const pendingProcesses = this.processes.length - completedProcesses - activeProcesses;
     
     // Progress bar
     const barLength = 50;
@@ -551,7 +576,7 @@ process.on('SIGINT', () => {
     // Mark that we've completed the first update
     this.isFirstUpdate = false;
 
-    if (completedProcesses === this.numProcesses) {
+    if (completedProcesses === this.processes.length) {
       // Stop the spinner updates
       if (this.spinnerInterval) {
         clearInterval(this.spinnerInterval);
