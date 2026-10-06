@@ -25,6 +25,15 @@ Developer ergonomics have **no** backwards-compatibility requirement. Any script
 - Machine-level changes (`sudo`, `pmset`, `/Library/LaunchDaemons`, FileVault) must be run by or with the developer. Write the commands; don't run them silently.
 - Hermit (`bin/activate-hermit`) has caused problems for some scripts. Scripts run fine with plain Node 22 + pnpm on PATH. Deciding whether to keep Hermit is part of this work (see 03).
 
+## Timeline: two separate agent sessions
+
+| Session | Target date | Scope |
+| --- | --- | --- |
+| **1. Scripts cleanup** | **2026-10-06** | M0–M4 and M6 below: clean up **all** existing scripts, build the unified CLI, add parallel transcription to the pipeline, update docs. This includes *deleting* the old, non-working Mac scheduling code. |
+| **2. Mac scheduling** | **2026-10-12** | M5: unattended scheduled runs on a Mac ([03](./03-mac-automation.md)). It needs more work and real-machine testing (logging out, sleep/wake, reboots), so it's a separate follow-up session. |
+
+Session 1 should **work towards** session 2 without building it. Every pipeline action must run non-interactively with a correct exit code, the CLI should leave room for a `schedule` command group, the pipeline should run headless with `--parallel=N`, and config and credentials loading should not depend on a logged-in shell (no reliance on Hermit/nvm shims or AWS SSO). Leave a note in [03](./03-mac-automation.md) of anything learned that session 2 should know. If M4 doesn't fit in session 1, it moves to session 2, since unattended runs need it.
+
 ## Suggested milestones (one PR each)
 
 | # | Milestone | Done when |
@@ -34,10 +43,10 @@ Developer ergonomics have **no** backwards-compatibility requirement. Any script
 | M2 | **Consolidate shared libs.** One module each for sites, env loading, arg parsing, running a lambda locally, S3 sync. | Duplicates in 01 §2 gone |
 | M3 | **Unified CLI.** Single entry point plus subcommands; `package.json` scripts reduced to a handful. | Menu tree from 02 implemented; docs updated |
 | M4 | **Parallel transcription in the pipeline.** `--parallel=N` across all sites; optional terminal-window view. | Pipeline transcribes all sites in parallel, headless |
-| M5 | **Mac automation.** `setup machine`, `schedule install / status / uninstall`, run logs, notifications on failure. | Fresh Mac → scheduled unattended runs with a few commands |
+| M5 | **Mac automation** *(session 2, 2026-10-12)*. `setup machine`, `schedule install / status / uninstall`, run logs, notifications on failure. | Fresh Mac → scheduled unattended runs with a few commands |
 | M6 | **Docs.** Rewrite `docs/local-development.md`, the deployment guide's "Ongoing Updates" section, `AGENTS.md`; delete stale docs. | Docs match reality |
 
-M4 and M5 are independent of each other once M3 exists. M1 can start immediately.
+M1 can start immediately. M5 is out of scope for session 1.
 
 ## Related state (as of writing)
 
