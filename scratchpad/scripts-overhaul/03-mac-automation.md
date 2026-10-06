@@ -1,10 +1,16 @@
 # 03: Unattended Ingestion on a Mac
 
+> **Timing:** this is **session 2, targeted for 2026-10-12**, a separate agent session after the scripts cleanup (session 1, 2026-10-06). It needs more work and real-machine testing than the cleanup does.
+>
+> **In session 1 (cleanup):** do only the "Remove first" section below, and keep the design compatible with this doc (non-interactive commands, headless `--parallel=N`, no dependence on a logged-in shell; see the README timeline). Don't build the LaunchDaemon, `pmset` wake, `setup machine` or `schedule` commands yet.
+>
+> **Notes from session 1 for session 2:** *(session 1 agent: add anything learned here, e.g. final CLI command names, where config and credentials now load from, the PATH/tooling decision on Hermit)*
+
 ## Goal
 
 On an Apple silicon Mac (M1+; assuming M4 is fine if it helps), a few commands from this repo set the machine up to run the full ingestion pipeline for all sites on a schedule, with **no user logged in** and no manual steps afterwards. So far it has only ever been run by hand.
 
-## Remove first (none of this has worked)
+## Remove first (none of this has worked) *(done in session 1)*
 
 Delete these outright; don't keep them for compatibility:
 
