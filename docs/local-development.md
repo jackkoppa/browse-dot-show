@@ -77,45 +77,6 @@ If you prefer not to use Hermit, you can manage tools manually:
 - Use [nvm](https://github.com/nvm-sh/nvm) for Node.js (version 20+)
 - Install pnpm globally or use Corepack: `corepack enable && corepack prepare pnpm@10.15.1 --activate`
 
-## Issue Tracking with Beads
-
-This project uses [Beads](https://github.com/steveyegge/beads) for issue tracking. Beads provides a lightweight, git-based issue tracking system that integrates seamlessly with your workflow.
-
-### Quick Start
-
-```bash
-# Onboard to the project (first time only)
-bd onboard
-
-# Find available work
-bd ready
-
-# View issue details
-bd show <id>
-
-# Claim work
-bd update <id> --status in_progress
-
-# Complete work
-bd close <id>
-
-# Sync with git
-bd sync
-```
-
-### Web UI
-
-To view and manage issues in a web UI:
-
-```bash
-# Start the Beads UI (opens in browser at http://127.0.0.1:3000)
-./scripts/start-beads-ui.sh
-```
-
-### Workflow
-
-See [AGENTS.md](../AGENTS.md) for detailed workflow instructions, including the mandatory "Landing the Plane" process for completing work sessions.
-
 ## Git Worktrees for Parallel Development
 
 When working with multiple agent sessions or parallel development tasks, git worktrees allow you to have multiple working directories for the same repository, each checked out to a different branch.
