@@ -57,14 +57,17 @@ describe('renderPlanComment', () => {
     const comment = renderPlanComment([summarizePlan('site:alpha', plan), summarizePlan('site:beta', { resource_changes: [plan.resource_changes[0]] })], { marker: '<!-- m -->', runUrl: 'https://example/run' });
     expect(comment).toContain('<!-- m -->');
     expect(comment).toContain('**Needs approval:**');
+    expect(comment).toContain('⚠️ Some resources are **created, replaced or destroyed**.');
     expect(comment).toContain('| `site:alpha` | 1 | 1 | 1 | 1 |');
     expect(comment).toContain('♻️ replace `aws_cloudfront_distribution.cdn`');
     expect(comment).toContain('2 in-place update(s)');
     expect(comment).toContain('https://example/run');
   });
 
-  it('says no approval is needed for in-place updates only', () => {
+  it('still asks for approval for in-place updates only, without the warning', () => {
     const comment = renderPlanComment([summarizePlan('site:beta', { resource_changes: [plan.resource_changes[0]] })], { marker: '<!-- m -->' });
-    expect(comment).toContain('no approval needed');
+    expect(comment).toContain('**Needs approval:**');
+    expect(comment).toContain('Only in-place updates');
+    expect(comment).not.toContain('⚠️');
   });
 });

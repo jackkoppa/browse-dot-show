@@ -19,7 +19,7 @@ export interface PlanSummary {
   changes: PlanChange[];
 }
 
-/** Changes that need the developer's approval before merging. */
+/** Changes called out in the PR comment, and never applied without an approved plan. */
 export const RISKY_ACTIONS: PlanAction[] = ['create', 'replace', 'delete'];
 
 interface TerraformJsonPlan {
@@ -58,14 +58,16 @@ const ACTION_LABELS: Record<PlanAction, string> = { create: '➕ create', update
 /** The sticky PR comment for a set of plans. */
 export function renderPlanComment(summaries: PlanSummary[], options: { runUrl?: string; marker: string }): string {
   const lines = [options.marker, '## Terraform plan', ''];
-  const needsApproval = summaries.some(summary => riskyChanges(summary).length > 0);
+  const risky = summaries.some(summary => riskyChanges(summary).length > 0);
 
   if (summaries.length === 0) {
     lines.push('No Terraform changes in this PR.');
   } else {
-    lines.push(needsApproval
-      ? '**Needs approval:** some resources are created, replaced or destroyed. Review them below, then approve the `terraform-approval` deployment in this PR\'s checks. Merging applies these plans.'
-      : 'Only in-place updates (or no changes). Merging applies these plans; no approval needed.');
+    lines.push(
+      `**Needs approval:** review the plans below, then approve the \`terraform-approval\` deployment in this PR's checks. Merging applies them. ${
+        risky ? '⚠️ Some resources are **created, replaced or destroyed**.' : 'Only in-place updates (or no changes).'
+      }`
+    );
     lines.push('', '| Target | Create | Update | Replace | Destroy |', '| --- | --- | --- | --- | --- |');
     for (const summary of summaries) {
       const count = (action: PlanAction) => summary.changes.filter(change => change.action === action).length || '';

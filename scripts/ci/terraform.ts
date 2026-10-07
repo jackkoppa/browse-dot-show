@@ -12,7 +12,8 @@ import { renderPlanComment, riskyChanges, summarizePlan, unapprovedChanges, type
  *
  * - plan:  init + plan (read-only, no state lock) → `<out>/summary.json`
  * - apply: init + plan → refuse if the plan creates, replaces or destroys anything that isn't
- *          in the approved summary → apply → `<out>/summary.json`
+ *          in the approved summary (or, with requireApproval, if there's no approved summary
+ *          at all) → apply → `<out>/summary.json`
  *
  * Credentials come from the environment (OIDC in CI), or AWS_PROFILE locally. Only the
  * summary (addresses and actions) is written: the JSON plan and tfplan contain secrets.
@@ -26,6 +27,8 @@ export interface CiTerraformOptions {
   outDir: string;
   /** Apply mode: the summary approved on the PR (missing file = nothing risky was approved). */
   approvedSummaryPath?: string;
+  /** Apply mode: refuse any change unless an approved summary exists (merged PRs). */
+  requireApproval?: boolean;
 }
 
 interface TargetConfig {
@@ -110,6 +113,11 @@ export async function runCiTerraform(options: CiTerraformOptions): Promise<numbe
     if (options.mode === 'plan') return 0;
 
     const approved = readSummary(options.approvedSummaryPath);
+    if (options.requireApproval && !approved && summary.changes.length > 0) {
+      console.error(`\n❌ Not applying ${options.target}: no plan for it was approved on the PR.`);
+      console.error('   Approve it on a PR, or deploy locally (`bds site deploy` / `bds infra homepage deploy`).');
+      return 1;
+    }
     const unapproved = unapprovedChanges(summary, approved);
     if (unapproved.length > 0) {
       console.error(`\n❌ Not applying ${options.target}: this plan has changes that weren't approved on the PR:`);
