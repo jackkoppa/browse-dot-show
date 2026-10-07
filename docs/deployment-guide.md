@@ -218,6 +218,16 @@ pnpm bds site upload-client --site=<your-site>   # client only
 pnpm bds site upload-client --all-sites          # every site's client (automation credentials)
 ```
 
+### Deploys from GitHub Actions (optional)
+
+The repo's workflows can deploy code changes for you when a PR merges to `main`, deploying only what changed: each affected site's Terraform stack (infrastructure + lambdas) and client, and the homepage. Transcription and ingestion never run in Actions.
+
+- **PRs (`terraform-plan.yml`):** for every Terraform stack a PR affects, a read-only plan runs and a summary is posted as a PR comment. If a plan creates, replaces or destroys anything, the PR waits for approval in the `terraform-approval` environment ("Review deployments" in the PR's checks).
+- **Merges (`deploy.yml`):** applies a fresh plan per stack, refusing creates/replaces/destroys that weren't approved on the PR, then uploads the affected clients. `workflow_dispatch` can redeploy everything.
+- **Locally:** `pnpm bds ci affected --base=origin/main` shows what your branch would deploy; `pnpm bds ci terraform --target=site:<id> --mode=plan` runs the same read-only plan.
+
+AWS access is through GitHub OIDC roles (`terraform/github-actions/`, deployed with `pnpm bds infra github-actions deploy`). The workflows do nothing until the repository variable `GHA_DEPLOYS_ENABLED` is `true`. Setup steps: [`scratchpad/scripts-overhaul/08-github-actions-deploys.md`](../scratchpad/scripts-overhaul/08-github-actions-deploys.md#setup-in-order).
+
 ## 🔧 Troubleshooting
 
 ### Common Deployment Issues

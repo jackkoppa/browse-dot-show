@@ -1,0 +1,160 @@
+# Deploys on merge to main (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
+#
+# Deploys only what the pushed commits affect (`bds ci affected`): each affected site's
+# Terraform stack (infrastructure + lambdas) and client, and the homepage. Terraform applies
+# a fresh plan, but refuses creates/replaces/destroys that weren't approved on the PR
+# (terraform-plan.yml). Never runs transcription or ingestion; that stays on the Mac.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Deploy everything (every site's Terraform and client, and the homepage). Terraform still refuses creates/replaces/destroys.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+  pull-requests: read
+
+# One deploy at a time; later merges queue
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  TF_CLI_ARGS: -no-color
+  AWS_REGION: us-east-1
+
+jobs:
+  affected:
+    # Off until the OIDC roles and repo config exist (08: setup); set the repo variable to enable
+    if: vars.GHA_DEPLOYS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      terraform_targets: ${{ steps.affected.outputs.terraform_targets }}
+      client_sites: ${{ steps.affected.outputs.client_sites }}
+      has_terraform: ${{ steps.affected.outputs.has_terraform }}
+      has_clients: ${{ steps.affected.outputs.has_clients }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - id: affected
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.all }}" = "true" ]; then pnpm bds ci affected --all; else pnpm bds ci affected --base=HEAD~1; fi
+          else
+            pnpm bds ci affected --base=${{ github.event.before }} --head=${{ github.sha }}
+          fi
+        env:
+          HOMEPAGE_AWS_ACCOUNT_ID: ${{ vars.HOMEPAGE_AWS_ACCOUNT_ID }}
+
+  # The plan summaries approved on the merged PR, if any: from that PR's last successful
+  # terraform-plan run at its head commit. If a plan needed approval, the run's approve-plan
+  # job must have succeeded. Without them, nothing risky is approved.
+  approved-plans:
+    needs: affected
+    if: needs.affected.outputs.has_terraform == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find the approved plans
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p approved
+          pr=$(gh api "repos/$REPO/commits/${{ github.sha }}/pulls" -q '[.[] | select(.merged_at != null)][0]' || true)
+          if [ -z "$pr" ] || [ "$pr" = "null" ]; then
+            echo "No merged PR for ${{ github.sha }}; nothing risky is approved."
+            exit 0
+          fi
+          number=$(echo "$pr" | jq -r .number)
+          head_sha=$(echo "$pr" | jq -r .head.sha)
+          echo "PR #$number, head $head_sha"
+          run_id=$(gh api "repos/$REPO/actions/workflows/terraform-plan.yml/runs?head_sha=$head_sha&status=success" -q '.workflow_runs[0].id // empty')
+          if [ -z "$run_id" ]; then
+            echo "No successful terraform-plan run for $head_sha; nothing risky is approved."
+            exit 0
+          fi
+          approval=$(gh api "repos/$REPO/actions/runs/$run_id/jobs" -q '.jobs[] | select(.name == "approve-plan") | .conclusion')
+          echo "terraform-plan run $run_id; approve-plan: ${approval:-not run}"
+          if gh run download "$run_id" --repo "$REPO" -n terraform-plan-summaries -D approved; then
+            # A summary with risky changes counts only if approve-plan succeeded
+            if [ "$approval" != "success" ] && grep -lqE '"action": "(create|replace|delete)"' -r approved; then
+              echo "Plans needed approval but approve-plan didn't succeed; ignoring them."
+              rm -rf approved && mkdir approved
+            fi
+          fi
+          find approved -name summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-plans
+          path: approved
+          if-no-files-found: ignore
+
+  terraform:
+    needs: [affected, approved-plans]
+    if: needs.affected.outputs.has_terraform == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include: ${{ fromJSON(needs.affected.outputs.terraform_targets) }}
+    name: terraform (${{ matrix.target }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          terraform: 'true'
+      - name: Build
+        run: |
+          pnpm all:build
+          if [ "${{ matrix.target }}" = "homepage" ]; then pnpm --filter homepage build; else pnpm all:build:prod; fi
+      - uses: actions/download-artifact@v4
+        continue-on-error: true # none when nothing was approved
+        with:
+          name: approved-plans
+          path: approved
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/browse-dot-show-gha-deploy
+          aws-region: us-east-1
+          role-duration-seconds: 7200
+      - name: Terraform apply
+        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=apply --out=plans/${{ matrix.slug }} --approved=approved/plan-summary-${{ matrix.slug }}/summary.json
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Upload homepage
+        if: matrix.target == 'homepage'
+        run: pnpm bds ci upload-homepage
+
+  client:
+    needs: [affected, terraform]
+    # After Terraform (a site's client may need its new infrastructure); skip if any apply failed
+    if: always() && !cancelled() && needs.affected.outputs.has_clients == 'true' && needs.terraform.result != 'failure'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.affected.outputs.client_sites) }}
+    name: client (${{ matrix.site }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm all:build
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/browse-dot-show-gha-deploy
+          aws-region: us-east-1
+      - name: Build and upload client
+        run: pnpm bds site upload-client --site=${{ matrix.site }}

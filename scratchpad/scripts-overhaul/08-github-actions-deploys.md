@@ -101,8 +101,34 @@ Build the automation user's assume-role policy from the distinct account IDs in 
 2. ✅ **Prep**: commit `.site-account-mappings.json`; `upload-client --site` fix; deterministic `aws-dist/package.json`: #177.
 3. ✅ **`bds ci` commands**: `affected` (unit-tested over sample diffs), `terraform` (plan / check against approved / apply; shared Terraform args with `site deploy` in `scripts/lib/site-terraform.ts`), `plan-comment`, `upload-homepage`. The OpenAI key goes to Terraform via `TF_VAR_openai_api_key`, never as an argument.
 4. ✅ **`terraform/github-actions/` stack** + `bds infra github-actions deploy`. State in `homepage-terraform-state` (key `github-actions/terraform.tfstate`), so no bootstrap. Role names are fixed, so workflows derive ARNs from account IDs; only `HOMEPAGE_AWS_ACCOUNT_ID` is a repo variable. Developer applies it.
-5. **Workflows** (`terraform-plan.yml`, `deploy.yml`) + branch protection/environment setup commands. First real run: a no-op PR touching one site's client.
+5. ✅ **Workflows** (`terraform-plan.yml`, `deploy.yml`, `.github/actions/setup`), off until `GHA_DEPLOYS_ENABLED=true`. Setup steps below.
 6. **10 §1** automation Terraform fix.
+
+## Setup, in order
+
+The workflows are inert until step 4, so the stack can merge first.
+
+1. **Merge** the M4b PRs. (With `GHA_DEPLOYS_ENABLED` unset, every workflow job is skipped.)
+2. **Create the OIDC roles:** `aws sso login --profile browse.show-0_admin-permissions-297202224084`, then `pnpm bds infra github-actions deploy`. Expect `Plan: 15 to add, 0 to change, 0 to destroy`; it asks before applying.
+3. **Repo config** (printed by step 2):
+   ```sh
+   gh variable set HOMEPAGE_AWS_ACCOUNT_ID --body 297202224084
+   gh secret set OPENAI_API_KEY            # paste the key from .env.local
+   gh api -X PUT repos/jackkoppa/browse-dot-show/environments/terraform-approval \
+     -F "reviewers[][type]=User" -F "reviewers[][id]=$(gh api user -q .id)"
+   ```
+4. **Enable:** `gh variable set GHA_DEPLOYS_ENABLED --body true`
+5. **Branch protection** (require the plan check and up-to-date branches):
+   ```sh
+   gh api -X PUT repos/jackkoppa/browse-dot-show/branches/main/protection --input - <<'JSON'
+   {"required_status_checks": {"strict": true, "contexts": ["terraform-plan-result"]},
+    "enforce_admins": false, "required_pull_request_reviews": null, "restrictions": null}
+   JSON
+   ```
+   `strict` means a PR must be rebased onto the latest `main` before merging, so the approved plan matches what merges. (With `enforce_admins: false` you can still bypass in an emergency; deploy.yml then refuses risky changes that weren't approved.)
+6. **First runs:**
+   - A PR that changes one site's client only (e.g. a `site.config.json` tweak): `terraform-plan` shows no Terraform; after merge, `deploy` uploads that one client. Check the site.
+   - A PR that touches lambda code: every site gets a plan with in-place lambda updates (the first one also picks up the sorted `aws-dist/package.json`). Check the comment, merge, watch `deploy`.
 
 ## Open questions (to confirm during implementation)
 
