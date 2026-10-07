@@ -26,7 +26,8 @@
   },
   "lint-staged": {
     "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint",
-    "scripts/**/*.ts": "bash -c 'pnpm --filter @browse-dot-show/scripts typecheck'"
+    "scripts/**/*.ts": "bash -c 'pnpm --filter @browse-dot-show/scripts typecheck'",
+    "packages/ingestion/process-audio-lambda/**/*.ts": "bash -c 'pnpm --filter @browse-dot-show/process-audio-lambda typecheck'"
   },
   "packageManager": "pnpm@10.15.1"
 }

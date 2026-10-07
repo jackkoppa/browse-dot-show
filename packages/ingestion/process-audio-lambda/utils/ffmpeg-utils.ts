@@ -354,7 +354,7 @@ export async function splitAudioFile(fileKey: string, fileSizeMB: number, proces
             log.warn(`Failed to clean up chunk ${createdChunk.filePath}:`, cleanupError);
           }
         }
-        throw new Error(`Failed to create chunk ${i + 1}/${chunks.length} for ${fileKey}: ${error.message}`);
+        throw new Error(`Failed to create chunk ${i + 1}/${chunks.length} for ${fileKey}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
     
