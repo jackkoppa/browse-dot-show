@@ -714,6 +714,9 @@ importers:
       '@browse-dot-show/s3':
         specifier: workspace:*
         version: link:../packages/s3
+      '@browse-dot-show/sites':
+        specifier: workspace:*
+        version: link:../sites
       '@browse-dot-show/spelling':
         specifier: workspace:*
         version: link:../packages/spelling

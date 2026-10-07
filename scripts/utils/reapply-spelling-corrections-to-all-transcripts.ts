@@ -9,8 +9,8 @@
  * from global to site-specific corrections.
  */
 
-import { logInfo, logError, logDebug, logProgress, logSuccess } from './logging.js';
-import { discoverSites } from './site-selector.js';
+import { logInfo, logError, logDebug, logProgress, logSuccess } from '../lib/logging.js';
+import { discoverSites } from '../lib/sites.js';
 import {
   listFiles,
   listDirectories,
@@ -22,8 +22,6 @@ import {
   aggregateCorrectionResults,
   type ApplyCorrectionsResult
 } from '@browse-dot-show/spelling';
-
-logInfo(`▶️ Starting reapply-spelling-corrections-to-all-transcripts`);
 
 const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
 
@@ -44,14 +42,11 @@ async function findAllSrtFiles(basePrefix: string): Promise<string[]> {
   
   for (const subdir of subdirectories) {
     try {
-      const subdirFiles = await listFiles(subdir);
-      const subdirSrtFiles = subdirFiles.filter(file => file.endsWith('.srt'));
+      // The recursive call lists the subdirectory's own files too, so don't list them here
+      // (doing both used to process every transcript twice)
+      const subdirSrtFiles = await findAllSrtFiles(subdir);
       logDebug(`Found ${subdirSrtFiles.length} SRT files in ${subdir}`);
       allSrtFiles.push(...subdirSrtFiles);
-      
-      // Recursively search deeper subdirectories if needed
-      const deeperSrtFiles = await findAllSrtFiles(subdir);
-      allSrtFiles.push(...deeperSrtFiles);
     } catch (error) {
       logError(`Error searching subdirectory ${subdir}:`, error);
       // Continue with other subdirectories

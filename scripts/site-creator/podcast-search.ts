@@ -1,7 +1,6 @@
 import { join } from 'path';
-import { exists } from '../utils/file-operations.js';
-import { printInfo, printSuccess, printWarning, printError } from '../utils/logging.js';
-// @ts-ignore - prompts types not resolving properly but runtime works
+import { exists } from '../lib/file-operations.js';
+import { printInfo, printSuccess, printWarning, printError } from '../lib/logging.js';
 import prompts from 'prompts';
 import type { PodcastSearchResult, PodcastIndexResponse, SiteConfig } from './types.js';
 

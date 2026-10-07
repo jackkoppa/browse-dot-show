@@ -1,9 +1,8 @@
 import { join } from 'path';
-import { spawn } from 'child_process';
-import { readJsonFile } from '../utils/file-operations.js';
-import { execCommand } from '../utils/shell-exec.js';
-import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
-// @ts-ignore - prompts types not resolving properly but runtime works
+import { readJsonFile } from '../lib/file-operations.js';
+import { execCommand } from '../lib/shell-exec.js';
+import { runLambdaLocally } from '../lib/lambda.js';
+import { printInfo, printSuccess, printWarning, printError, logInColor } from '../lib/logging.js';
 import prompts from 'prompts';
 import { loadProgress } from './setup-steps.js';
 import type { SetupProgress, StepStatus, SiteConfig } from './types.js';
@@ -194,37 +193,6 @@ async function validateFinalIndexing(siteId: string): Promise<{ isComplete: bool
     return { isComplete: false, hasSearchIndex: false, searchEntriesCount: 0, expectedCount: 0 };
   }
 }
-
-async function runSpawnCommand(command: string, args: string[]): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const child = spawn(command, args, {
-      cwd: process.cwd(),
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        NODE_OPTIONS: '--max-old-space-size=9728'
-      }
-    });
-    
-    child.stdout?.on('data', (data) => {
-      process.stdout.write(data.toString());
-    });
-    
-    child.stderr?.on('data', (data) => {
-      process.stderr.write(data.toString());
-    });
-    
-    child.on('close', (code) => {
-      console.log('');
-      resolve(code === 0);
-    });
-    
-    child.on('error', () => {
-      resolve(false);
-    });
-  });
-}
-
 export async function executeCompleteTranscriptionsStep(progress: SetupProgress): Promise<StepStatus> {
   console.log('');
   printInfo('🎙️  Time to complete transcriptions for your entire podcast archive!');
@@ -274,12 +242,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
 
     // Execute download
     printInfo('🚀 Starting download of all episode files...');
-    const downloadSuccess = await runSpawnCommand('pnpm', [
-      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-      `--sites=${progress.siteId}`,
-      '--lambda=rss-retrieval',
-      '--env=local'
-    ]);
+    const downloadSuccess = (await runLambdaLocally({ lambda: 'rss-retrieval', siteId: progress.siteId })).success;
 
     if (!downloadSuccess) {
       printError('Download failed. Please try again.');
@@ -365,12 +328,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
       console.log('');
       printInfo('🎵 Starting transcription of all episodes...');
       
-      const transcriptionSuccess = await runSpawnCommand('pnpm', [
-        'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-        `--sites=${progress.siteId}`,
-        '--lambda=process-audio',
-        '--env=local'
-      ]);
+      const transcriptionSuccess = (await runLambdaLocally({ lambda: 'process-audio', siteId: progress.siteId })).success;
 
       if (!transcriptionSuccess) {
         printError('Transcription failed. Please try again.');
@@ -453,12 +411,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
     }
 
     printInfo('🔍 Creating searchable index...');
-    const indexingSuccess = await runSpawnCommand('pnpm', [
-      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-      `--sites=${progress.siteId}`,
-      '--lambda=srt-indexing',
-      '--env=local'
-    ]);
+    const indexingSuccess = (await runLambdaLocally({ lambda: 'srt-indexing', siteId: progress.siteId })).success;
 
     if (!indexingSuccess) {
       printError('Indexing failed. Please try again.');

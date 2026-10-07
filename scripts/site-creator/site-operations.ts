@@ -1,7 +1,7 @@
 import { join } from 'path';
-import { copyDir, ensureDir, exists, writeTextFile, readTextFile } from '../utils/file-operations.js';
-import { execCommand } from '../utils/shell-exec.js';
-import { printInfo, printSuccess, printWarning } from '../utils/logging.js';
+import { copyDir, ensureDir, exists, writeTextFile, readTextFile } from '../lib/file-operations.js';
+import { execCommand } from '../lib/shell-exec.js';
+import { printInfo, printSuccess, printWarning } from '../lib/logging.js';
 import type { Initial2EpisodesResults } from './types.js';
 import { getLocalS3SitePath } from '@browse-dot-show/config';
 

@@ -9,16 +9,21 @@
  * Usage: tsx scripts/deploy/upload-all-client-sites.ts [OPTIONS]
  */
 
-import { discoverSites, Site } from '../utils/site-selector.js';
-import { loadAutomationCredentials } from '../utils/automation-credentials.js';
-import { loadSiteAccountMappings, getSiteAccountMapping, getSiteSearchApiUrl } from '../utils/site-account-mappings.js';
-import { execCommand } from '../utils/shell-exec.js';
-import { logSuccess, logError, logWarning, logProgress, logHeader } from '../utils/logging.js';
+import { discoverSites, type Site } from '../lib/sites.js';
+import { loadAutomationCredentials, type AutomationCredentials } from '../lib/env.js';
+import {
+  assumeSiteRole,
+  getSiteAccountMapping,
+  getSiteSearchApiUrl,
+  loadSiteAccountMappings,
+  tempCredentialsEnv,
+} from '../lib/site-accounts.js';
+import { logSuccess, logError, logWarning, logProgress, logHeader } from '../lib/logging.js';
 import { 
   buildClientForSite, 
   validateBuildOutput, 
   uploadClientToS3WithCredentials
-} from '../utils/client-deployment.js';
+} from '../lib/client-deployment.js';
 
 // Site account mappings moved to centralized location
 // TODO: Add pickleballstudio mapping when it's deployed for the first time
@@ -91,40 +96,16 @@ client files for all sites to their respective S3 buckets.
  */
 async function uploadClientToS3(
   siteId: string,
-  credentials: any,
+  credentials: AutomationCredentials,
   bucketName: string
 ): Promise<{ success: boolean; duration: number; error?: string }> {
-  const siteConfig = getSiteAccountMapping(siteId);
-
-  const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-  
-  // Assume the role to get temporary credentials
-  const assumeRoleResult = await execCommand('aws', [
-    'sts', 'assume-role',
-    '--role-arn', roleArn,
-    '--role-session-name', `automation-upload-${siteId}-${Date.now()}`
-  ], {
-    silent: true,
-    env: {
-      ...process.env,
-      AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-      AWS_REGION: credentials.AWS_REGION
-    }
-  });
-  
-  if (assumeRoleResult.exitCode !== 0) {
-    throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-  }
-  
-  const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-  const tempCredentials = assumeRoleOutput.Credentials;
-  
-  // Transform credentials to match the expected format
+  const { tempCredentials } = await assumeSiteRole(
+    siteId,
+    credentials,
+    `automation-upload-${siteId}-${Date.now()}`
+  );
   const transformedCredentials = {
-    AWS_ACCESS_KEY_ID: tempCredentials.AccessKeyId,
-    AWS_SECRET_ACCESS_KEY: tempCredentials.SecretAccessKey,
-    AWS_SESSION_TOKEN: tempCredentials.SessionToken,
+    ...tempCredentialsEnv(tempCredentials),
     AWS_REGION: credentials.AWS_REGION
   };
   

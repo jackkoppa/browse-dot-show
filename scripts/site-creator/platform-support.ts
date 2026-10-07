@@ -1,8 +1,7 @@
 import { arch, platform } from 'os';
-import { readJsonFile } from '../utils/file-operations.js';
-import { execCommand } from '../utils/shell-exec.js';
-import { printInfo, printSuccess, printWarning, printError } from '../utils/logging.js';
-// @ts-ignore - prompts types not resolving properly but runtime works
+import { readJsonFile } from '../lib/file-operations.js';
+import { execCommand } from '../lib/shell-exec.js';
+import { printInfo, printSuccess, printWarning, printError } from '../lib/logging.js';
 import prompts from 'prompts';
 import type { PlatformSupportConfig, StepStatus } from './types.js';
 

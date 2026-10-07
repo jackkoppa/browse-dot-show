@@ -1,11 +1,11 @@
 import { join } from 'path';
 import { spawn } from 'child_process';
-import { exists, writeTextFile, readTextFile, readJsonFile } from '../utils/file-operations.js';
-import { execCommand } from '../utils/shell-exec.js';
-import { printInfo, printSuccess, printWarning, printError, logInColor } from '../utils/logging.js';
-import { checkAwsCredentials, checkAwsSsoLogin } from '../utils/aws-utils.js';
+import { exists, writeTextFile, readTextFile, readJsonFile } from '../lib/file-operations.js';
+import { execCommand } from '../lib/shell-exec.js';
+import { runLambdaLocally } from '../lib/lambda.js';
+import { printInfo, printSuccess, printWarning, printError, logInColor } from '../lib/logging.js';
+import { checkAwsCredentials, checkAwsSsoLogin } from '../lib/aws-utils.js';
 import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
-// @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
 import { openGuide, collectInitial2EpisodesMetrics } from './site-operations.js';
 import { loadProgress, saveProgress } from './setup-steps.js';
@@ -1337,13 +1337,7 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
     printInfo('📥 Phase 1: Downloading episode audio files...');
     downloadStartTime = Date.now();
     
-    const downloadSuccess = await runSpawnCommand('pnpm', [
-      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-      `--sites=${progress.siteId}`,
-      '--lambda=rss-retrieval',
-      '--env=local',
-      '--max-episodes=2'
-    ]);
+    const downloadSuccess = (await runLambdaLocally({ lambda: 'rss-retrieval', siteId: progress.siteId, args: ['--max-episodes', '2'] })).success;
     
     downloadEndTime = Date.now();
     if (!downloadSuccess) throw new Error('Download phase failed');
@@ -1353,12 +1347,7 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
     printInfo('🎙️  Phase 2: Transcribing episodes...');
     transcriptionStartTime = Date.now();
     
-    const transcriptionSuccess = await runSpawnCommand('pnpm', [
-      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-      `--sites=${progress.siteId}`,
-      '--lambda=process-audio',
-      '--env=local'
-    ]);
+    const transcriptionSuccess = (await runLambdaLocally({ lambda: 'process-audio', siteId: progress.siteId })).success;
     
     transcriptionEndTime = Date.now();
     if (!transcriptionSuccess) throw new Error('Transcription phase failed');
@@ -1367,12 +1356,7 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
     // Phase 3: Indexing
     printInfo('🔍 Phase 3: Creating search index...');
     
-    const indexingSuccess = await runSpawnCommand('pnpm', [
-      'tsx', 'scripts/trigger-individual-ingestion-lambda.ts',
-      `--sites=${progress.siteId}`,
-      '--lambda=srt-indexing',
-      '--env=local'
-    ]);
+    const indexingSuccess = (await runLambdaLocally({ lambda: 'srt-indexing', siteId: progress.siteId })).success;
     
     if (!indexingSuccess) throw new Error('Indexing phase failed');
     printSuccess('✅ All phases completed successfully!');
@@ -1418,29 +1402,4 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
   
   return testResponse.tested ? 'COMPLETED' : 'DEFERRED';
 }
-
-async function runSpawnCommand(command: string, args: string[]): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const child = spawn(command, args, {
-      cwd: process.cwd(),
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    child.stdout?.on('data', (data) => {
-      process.stdout.write(data.toString());
-    });
-    
-    child.stderr?.on('data', (data) => {
-      process.stderr.write(data.toString());
-    });
-    
-    child.on('close', (code) => {
-      console.log('');
-      resolve(code === 0);
-    });
-    
-    child.on('error', () => {
-      resolve(false);
-    });
-  });
-} 
+ 
