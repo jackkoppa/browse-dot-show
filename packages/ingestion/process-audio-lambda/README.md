@@ -5,11 +5,11 @@ This Lambda function processes new audio files by transcribing them using Whispe
 ## Spelling Corrections
 
 > [!TIP]
-> Add custom, gitignored spelling corrections at [utils/_custom-spelling-corrections.json](./utils/_custom-spelling-corrections.json)
+> Add custom, gitignored spelling corrections at `packages/spelling/_custom-spelling-corrections.json`
 
 ### How It Works
 
-The spelling correction system automatically fixes common transcription errors in SRT files based on a configuration file (`utils/spelling-corrections.json`). 
+The spelling correction system automatically fixes common transcription errors in SRT files using `@browse-dot-show/spelling` (`packages/spelling`). Each site's corrections live in `sites/origin-sites/<site>/spelling-corrections.json`.
 
 #### In the Lambda Process
 
@@ -23,7 +23,7 @@ When new audio files are transcribed:
 
 #### Configuration
 
-Spelling corrections are defined in `utils/spelling-corrections.json` with the following structure:
+Each site's `spelling-corrections.json` has this structure:
 
 ```json
 {
@@ -49,36 +49,21 @@ The system:
 
 #### On All Existing Transcripts
 
-To apply spelling corrections to all existing SRT files:
+To reapply the current corrections to every existing `.srt` file of a site, run only that step of the pipeline from the repo root:
 
 ```bash
-# CURSOR-TODO: List correct commands here
+pnpm bds ingest --sites=<site> --reapply-spelling-corrections --skip=pre-sync,rss,transcribe,s3-sync,cloudfront
 ```
 
-These commands will:
-- Process all `.srt` files in the `transcripts/` directory
-- Apply corrections and save updated files
-- Display a comprehensive summary showing:
-  - Total files processed
-  - Number of files that had corrections applied
-  - Total corrections applied
-  - Breakdown by correction type
-
-#### Within the Package Directory
-
-You can also run the corrections script directly from within the package:
-
-```bash
-# CURSOR-TODO: List correct commands here
-```
+Corrections change the transcripts, so the `index` phase then re-indexes the site. Drop `s3-sync` and `cloudfront` from `--skip` to upload the result. The run prints how many files were processed and corrected, with a breakdown by correction.
 
 ### Adding New Corrections
 
 To add new spelling corrections:
 
-1. Edit `utils/spelling-corrections.json`
+1. Edit the site's `spelling-corrections.json`
 2. Add the new misspellings and correct spelling to the `correctionsToApply` array
-3. Deploy the updated Lambda or run the corrections script manually
+3. New transcripts pick it up automatically; reapply to existing transcripts as shown above
 
 Example addition:
 ```json

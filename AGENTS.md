@@ -19,6 +19,7 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `sit
 ## Checks
 
 - `pnpm --filter @browse-dot-show/scripts typecheck` (also runs on commit for `scripts/**/*.ts`)
+- `pnpm --filter @browse-dot-show/process-audio-lambda typecheck` (also runs on commit for that package)
 - `pnpm all:test`, `pnpm all:lint`
 
 ## Current work

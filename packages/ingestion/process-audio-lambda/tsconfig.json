@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  // Type checking only (`pnpm typecheck`); the lambda is bundled by rolldown
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "aws-dist", "temp-dist"]
+}
