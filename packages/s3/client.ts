@@ -218,7 +218,11 @@ export async function listFiles(prefix: string): Promise<string[]> {
         const files = await fs.promises.readdir(localPath);
         return files
           .filter(file => file !== '.DS_Store') // Filter out .DS_Store
-          .map(file => path.join(prefix, file));
+          // Names come back in whatever Unicode form they were created with (a file synced
+          // from an old S3 key can be NFD: "O" + combining "¨" instead of "Ö"). File keys
+          // are NFC, so return NFC to make name comparisons work. Lookups still resolve:
+          // APFS and HFS+ ignore normalization when opening a path.
+          .map(file => path.join(prefix, file.normalize('NFC')));
       }
       return [];
     } catch (error) {

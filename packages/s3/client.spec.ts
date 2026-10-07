@@ -201,6 +201,21 @@ describe('S3 Client', () => {
       expect(listedFiles).toEqual(expect.arrayContaining(files));
     });
 
+    test('should list file names in NFC, whatever form they were created in', async () => {
+      const nfd = 'BJO\u0308RN.txt';
+      const nfc = nfd.normalize('NFC');
+      await fs.writeFile(getLocalFilePath(nfd), 'content');
+
+      try {
+        const listedFiles = await listFiles('');
+        expect(listedFiles).toContain(nfc);
+        expect(listedFiles).not.toContain(nfd);
+        expect((await getFile(nfc)).toString()).toBe('content');
+      } finally {
+        await fs.remove(getLocalFilePath(nfd));
+      }
+    });
+
     test('should create directories', async () => {
       const dirKey = 'test-directory/';
       await createDirectory(dirKey);
