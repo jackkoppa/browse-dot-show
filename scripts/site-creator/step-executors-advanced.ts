@@ -346,7 +346,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
       console.log('2. In each terminal, navigate to this project directory');
       console.log('3. Run this command in each terminal:');
       console.log('');
-      console.log(`NODE_OPTIONS=--max-old-space-size=9728 pnpm tsx scripts/trigger-individual-ingestion-lambda.ts --sites=${progress.siteId} --lambda=process-audio --env=local`);
+      console.log(`pnpm bds lambda run --lambda=process-audio --sites=${progress.siteId}`);
       console.log('');
 
       const continueResponse = await prompts({
@@ -434,7 +434,7 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
       console.log('');
       console.log(`🔍 Test it by running this command in a new terminal window:`);
       console.log('');
-      logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
+      logInColor('green', `pnpm bds dev client --site=${progress.siteId}`);
       console.log('');
       console.log('');
       return 'COMPLETED';

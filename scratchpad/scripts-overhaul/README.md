@@ -55,7 +55,7 @@ Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-ch
 - [x] M0: Baseline (`jackkoppa/scripts-overhaul-m0-baseline`)
 - [x] M1: Delete dead code (`jackkoppa/scripts-overhaul-m1-delete-dead-code`)
 - [x] M2: Consolidate shared libs (`jackkoppa/scripts-overhaul-m2-shared-libs`)
-- [ ] M3: Unified CLI
+- [x] M3: Unified CLI (`jackkoppa/scripts-overhaul-m3-unified-cli`); docs updated in M6
 - [ ] M4: Parallel transcription
 - [ ] M6: Docs
 

@@ -23,11 +23,7 @@ import type { SetupProgress, StepStatus } from './types.js';
 // Track steps deferred in current session to avoid infinite loops
 const sessionDeferredSteps = new Set<string>();
 
-export async function main(): Promise<void> {
-  // Parse CLI arguments
-  const args = process.argv.slice(2);
-  const isReviewMode = args.includes('--review');
-  
+export async function main({ review: isReviewMode = false }: { review?: boolean } = {}): Promise<void> {  
   logInColor('green', '🎧 Welcome to the browse.show Site Creator!\n');
   
   if (isReviewMode) {
@@ -48,7 +44,7 @@ async function handleReviewMode(): Promise<void> {
   const existingSites = await getExistingSites();
   
   if (existingSites.length === 0) {
-    printInfo('No sites found yet. Run `pnpm run site:create` to create your first site!');
+    printInfo('No sites found yet. Run `pnpm bds site create` to create your first site!');
     return;
   }
   
@@ -62,7 +58,7 @@ async function handleReviewMode(): Promise<void> {
     }
   }
   
-  console.log('💡 To continue setup for any site, run `pnpm run site:create` without --review');
+  console.log('💡 To continue setup for any site, run `pnpm bds site create` without --review');
 }
 
 async function handleExistingSites(existingSites: string[]): Promise<void> {
@@ -143,8 +139,8 @@ async function handleNewSiteCreation(): Promise<void> {
     printInfo('No problem! Run this command again when you\'re ready.');
     printInfo('');
     printInfo('💡 Helpful commands:');
-    printInfo('   • `pnpm run site:create` - Start or continue setup');
-    printInfo('   • `pnpm run site:create --review` - See progress on all sites');
+    printInfo('   • `pnpm bds site create` - Start or continue setup');
+    printInfo('   • `pnpm bds site create --review` - See progress on all sites');
     process.exit(0);
   }
   
@@ -388,8 +384,8 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
     printSuccess('🎉 Congratulations! You\'ve addressed all setup steps for your podcast site!');
     console.log('');
     console.log('🚀 Your site is ready to go! Here are some helpful next steps:');
-    console.log('   • Run locally: `pnpm run client:dev --filter ' + progress.siteId + '`');
-    console.log('   • Review status: `pnpm run site:create --review`');
+    console.log('   • Run locally: `pnpm bds dev client --site=' + progress.siteId + '`');
+    console.log('   • Review status: `pnpm bds site create --review`');
     console.log('   • Documentation: Check the docs/ folder for guides');
     console.log('');
     return;
@@ -425,8 +421,8 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
           return await continueProgressiveSetup(updatedProgress);
         }
       } else {
-        printInfo('Perfect! Run `pnpm run site:create` anytime to continue where you left off.');
-        printInfo('💡 Use `pnpm run site:create --review` to see your current progress.');
+        printInfo('Perfect! Run `pnpm bds site create` anytime to continue where you left off.');
+        printInfo('💡 Use `pnpm bds site create --review` to see your current progress.');
       }
     } else {
       // User deferred or skipped, offer to continue
@@ -444,19 +440,10 @@ async function continueProgressiveSetup(progress: SetupProgress): Promise<void> 
           return await continueProgressiveSetup(updatedProgress);
         }
       } else {
-        printInfo('No problem! Run `pnpm run site:create` anytime to continue setup.');
+        printInfo('No problem! Run `pnpm bds site create` anytime to continue setup.');
       }
     }
   } else {
-    printInfo('Setup paused. Run `pnpm run site:create` anytime to continue.');
+    printInfo('Setup paused. Run `pnpm bds site create` anytime to continue.');
   }
 }
-
-// Run the script if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    console.error('An error occurred during site creation:');
-    console.error(error);
-    process.exit(1);
-  });
-} 

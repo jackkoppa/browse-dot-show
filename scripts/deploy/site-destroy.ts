@@ -9,7 +9,7 @@ import prompts from 'prompts';
 
 
 async function validateEnvironment(): Promise<void> {
-  // Note: AWS_PROFILE should already be loaded from site .env.aws-sso by the run-with-site-selection script
+  // Note: AWS_PROFILE should already be loaded from site .env.aws-sso by `bds site destroy`
   
   // Validate required environment variables
   if (!process.env.OPENAI_API_KEY) {
@@ -182,8 +182,8 @@ async function main(): Promise<void> {
     // Get selected site from environment (set by site selection wrapper)
     const siteId = process.env.SITE_ID;
     if (!siteId) {
-      printError('Error: No site selected. This script should be run through the site selection wrapper.');
-      printError('Use: tsx scripts/run-with-site-selection.ts "infrastructure destruction" "tsx scripts/deploy/destroy.ts"');
+      printError('Error: No site selected (SITE_ID is not set).');
+      printError('Use: pnpm bds site destroy --site=<id>');
       process.exit(1);
     }
 

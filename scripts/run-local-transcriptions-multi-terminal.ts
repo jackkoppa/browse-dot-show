@@ -106,7 +106,7 @@ class TranscriptionMultiTerminalRunner extends MultiTerminalRunner {
             `SITE_ID="${siteId}"`,
             `TERMINAL_TOTAL_MINUTES="${sumDuration(siteFiles)}"`,
             `TERMINAL_FILE_LIST_PATH="${fileListPath}"`,
-            'pnpm tsx scripts/trigger-individual-ingestion-lambda.ts',
+            'pnpm bds lambda run',
             `--sites=${siteId}`,
             '--lambda=process-audio',
             '--env=local'

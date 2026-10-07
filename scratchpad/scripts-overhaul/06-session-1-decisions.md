@@ -61,3 +61,8 @@ rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-erro
 - `.env.automation` and `.site-account-mappings.json` now load from the repo root regardless of the current directory. Verified by running from `cwd=/`, which is what launchd does.
 - Lambda child processes now always get `NODE_OPTIONS=--max-old-space-size=9728`, unless a heap limit is already set (`scripts/lib/lambda.ts`).
 - `scripts/test-cross-account-access.ts` was stale (4 hardcoded sites, lambda names that no longer exist, and it wrote a test file to S3). Deleted; a read-only "can assume every site's role" check goes into `bds doctor` (M3).
+
+## Notes from M3
+
+- `pnpm bds validate sites` reports 34 errors on `main` as well: every `site.config.json` is missing `appHeader.includeAIUseDisclosure`. This was there before the overhaul and is out of scope; flagging it.
+- `bds doctor --aws` (read-only `sts:AssumeRole`, once per site account) is written but hasn't been run yet; it needs your OK because it calls AWS.

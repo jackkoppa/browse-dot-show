@@ -166,7 +166,7 @@ async function askMultiSelect(message: string, choices: MultiSelectChoice[]): Pr
 }
 
 async function validateEnvironment(): Promise<void> {
-  // Note: AWS_PROFILE should already be loaded from site .env.aws-sso by the run-with-site-selection script
+  // Note: AWS_PROFILE should already be loaded from site .env.aws-sso by `bds site deploy`
   
   // Validate required environment variables
   if (!process.env.OPENAI_API_KEY) {
@@ -579,8 +579,8 @@ async function main(): Promise<void> {
     logHeader('Deploy Infrastructure and Applications');
 
     if (!siteId) {
-      printError('Error: No site selected. This script should be run through the site selection wrapper.');
-      printError('Use: pnpm all:deploy');
+      printError('Error: No site selected (SITE_ID is not set).');
+      printError('Use: pnpm bds site deploy --site=<id>');
       process.exit(1);
     }
 

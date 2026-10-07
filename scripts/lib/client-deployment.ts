@@ -69,7 +69,7 @@ export async function buildClientForSite(
       NODE_OPTIONS: '--max-old-space-size=6144'
     };
 
-    const child = spawn('pnpm', ['client:build:specific-site', siteId], {
+    const child = spawn('pnpm', ['--filter', 'client', 'build:specific-site', siteId], {
       stdio: silent ? 'pipe' : 'inherit',
       shell: true,
       env: buildEnv

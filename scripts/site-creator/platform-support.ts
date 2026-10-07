@@ -181,7 +181,7 @@ export async function executePlatformSupportStep(): Promise<StepStatus> {
       printSuccess('Great! Let\'s proceed with the setup.');
       return 'COMPLETED';
     } else {
-      printInfo('Setup cancelled. You can restart anytime with `pnpm run site:create`.');
+      printInfo('Setup cancelled. You can restart anytime with `pnpm bds site create`.');
       process.exit(0);
     }
   } catch (error) {

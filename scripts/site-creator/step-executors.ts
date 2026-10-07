@@ -54,7 +54,7 @@ export async function executeRunLocallyStep(progress: SetupProgress): Promise<St
   console.log('');
   console.log('To run your site locally, use this command in a new terminal window:');
   console.log('');
-  logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
+  logInColor('green', `pnpm bds dev client --site=${progress.siteId}`);
   console.log('');
   console.log('This will start your React development server. You should see your');
   console.log(`podcast site running at http://localhost:${CLIENT_PORT_NUMBER}`);
@@ -836,7 +836,7 @@ async function runDeploymentWithProgress(siteId: string, env: NodeJS.ProcessEnv)
   return new Promise<boolean>((resolve) => {
     const { spawn } = require('child_process');
     
-    // The site-deploy script expects SITE_ID to be set and will use run-with-site-selection
+    // The site-deploy script expects SITE_ID (and the site env) to be set
     // But we'll call it directly since we already have the site selected
     const child = spawn('tsx', ['scripts/deploy/site-deploy.ts'], {
       cwd: process.cwd(),
@@ -1390,7 +1390,7 @@ async function runIngestionPipeline(progress: SetupProgress): Promise<StepStatus
   console.log('');
   console.log(`🔍 Test it by running this command in a new terminal window, and searching for any text from those episodes:`);
   console.log('');
-  logInColor('green', `pnpm client:dev --site=${progress.siteId}`);
+  logInColor('green', `pnpm bds dev client --site=${progress.siteId}`);
   console.log('');
   
   const testResponse = await prompts({
