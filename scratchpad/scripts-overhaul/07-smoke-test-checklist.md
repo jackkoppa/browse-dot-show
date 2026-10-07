@@ -1,6 +1,6 @@
 # 07: Smoke-Test Checklist
 
-Run this before finishing each milestone. It's derived from [05](./05-deployed-sites-invariants.md). Commands use the **current** names; update them as the CLI changes (M3).
+Run this before finishing each milestone. It's derived from [05](./05-deployed-sites-invariants.md). Commands use the `bds` CLI (since M3).
 
 Items 4–7 touch real AWS. Get the developer's go-ahead each time.
 
@@ -9,16 +9,15 @@ Items 4–7 touch real AWS. Get the developer's go-ahead each time.
 1. **Typecheck:** `pnpm --filter @browse-dot-show/scripts typecheck` passes. In a fresh clone or worktree, first build the workspace packages it depends on: `pnpm --filter "@browse-dot-show/scripts^..." build`. It also runs in the pre-commit hook (lint-staged) whenever `scripts/**/*.ts` changes.
 2. **Lint:** `pnpm all:lint` shows 0 errors. The baseline had 64 warnings (53 after M1); the count shouldn't grow.
 3. **Tests:** `pnpm all:test` passes. Baseline: spelling 10, client 33, s3 22, validation 24, rss-retrieval 28, scripts 26, process-audio 10.
-4. **Pipeline dry run, all sites:**
-   `NODE_OPTIONS=--max-old-space-size=9728 pnpm tsx scripts/run-ingestion-pipeline.ts --dry-run`
-   Exit code 0, all 23 sites listed, every phase prints "DRY RUN: Would …".
-   - ⚠️ At baseline, the dry run makes **no** AWS calls and **doesn't** resolve accounts, buckets or roles. It does append to `scripts/automation-logs/ingestion-pipeline-runs.md`. Once `bds doctor` / `bds ingest --dry-run` can resolve each site's account ID, bucket and role ARN from `.site-account-mappings.json` (and optionally run a read-only `sts:AssumeRole` per site), add that check here.
+4. **Pipeline dry run, all sites:** `pnpm bds ingest --all-sites --dry-run`
+   Exit code 0, all 23 sites listed, every phase prints "DRY RUN: Would …". Also `pnpm bds doctor` (0 failures).
+   - The dry run makes **no** AWS calls. `bds doctor` checks every site has an account and bucket mapping; `bds doctor --aws` (read-only `sts:AssumeRole` per account) needs the developer's OK.
 
 ## When the relevant code changed (AWS: ask first)
 
-5. **Real pipeline run, one site:** `haveaword`. Afterwards, confirm new episodes appear on haveaword.browse.show and search finds them. If anything breaks, the site must be back up within a few hours.
-6. **Deploy code changed:** `site deploy` for one site shows a Terraform plan with **no changes**.
-7. **Client upload code changed:** upload one site's client and load the site.
+5. **Real pipeline run, one site:** `pnpm bds ingest --sites=haveaword`. Afterwards, confirm new episodes appear on haveaword.browse.show and search finds them. If anything breaks, the site must be back up within a few hours.
+6. **Deploy code changed:** `pnpm bds site deploy --site=<id> --interactive` for one site shows a Terraform plan with **no changes**.
+7. **Client upload code changed:** `pnpm bds site upload-client --site=<id>`, then load the site.
 8. **Lambda packaging changed** (`pnpm-deploy-with-versions-fix.ts` or any `__prepare-for-aws`): build each lambda package and compare the zip contents to `main`.
 
 ## Invariants to grep for before deleting or moving anything

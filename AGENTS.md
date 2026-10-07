@@ -1,10 +1,27 @@
 # Agent Instructions
 
-## Prerequisites
+## Tools
 
-This project uses **Hermit** for tool management (Node.js, pnpm). If tools aren't available, activate with:
-```bash
-. bin/activate-hermit
-```
+Node.js 22 (see `.nvmrc`) and pnpm 10 (via Corepack: `corepack enable`). No other tool manager is needed. Run `pnpm install && pnpm all:build` once after cloning.
 
-First-time setup? See [Local Development Guide](docs/local-development.md#tool-management-with-hermit).
+## The `bds` CLI
+
+All developer tasks go through `pnpm bds` (`scripts/cli/`). `pnpm bds help` lists commands; `pnpm bds <command> --help` shows flags. Always pass flags (e.g. `--site=<id>`, `--sites=a,b`, `--all-sites`) so commands don't prompt. Without a TTY, a missing required flag exits with code 2.
+
+Useful, safe commands:
+
+- `pnpm bds doctor`: check tools and config (no AWS calls unless `--aws`)
+- `pnpm bds ingest --sites=<id> --dry-run`: preview the pipeline (no downloads, uploads or AWS calls)
+- `pnpm bds validate sites`: validate site configs
+
+Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `site upload-client`, `site destroy`, `infra ...`, `lambda run --env=prod`, `doctor --aws`) needs the developer's go-ahead.
+
+## Checks
+
+- `pnpm --filter @browse-dot-show/scripts typecheck` (also runs on commit for `scripts/**/*.ts`)
+- `pnpm all:test`, `pnpm all:lint`
+
+## Guides
+
+- [Local Development Guide](docs/local-development.md): setup, config files, CLI reference, ingestion, worktrees, scripts layout
+- [Deployment Guide](docs/deployment-guide.md)

@@ -18,7 +18,7 @@ export const validateCommand: Command = {
   summary: 'Validate site configs, local files or S3 contents',
   usage: `
 USAGE
-  pnpm bds validate <check> [--site=<id>]
+  pnpm bds validate <check> [--site=<id>] [-- <extra args for the check>]
 
 CHECKS
 ${CHECK_IDS.map(id => `  ${id.padEnd(12)} ${CHECKS[id].title}`).join('\n')}
@@ -26,12 +26,16 @@ ${CHECK_IDS.map(id => `  ${id.padEnd(12)} ${CHECKS[id].title}`).join('\n')}
 EXAMPLES
   pnpm bds validate sites
   pnpm bds validate consistency --site=haveaword
+  pnpm bds validate consistency --site=haveaword -- --format=json --verbose
 `,
   async run(argv, ctx) {
-    // The check is a positional argument; everything else is flags
-    const [first, ...rest] = argv;
+    // The check is a positional argument; everything after `--` goes to the check itself
+    const separator = argv.indexOf('--');
+    const passThrough = separator === -1 ? [] : argv.slice(separator + 1);
+    const head = separator === -1 ? argv : argv.slice(0, separator);
+    const [first, ...rest] = head;
     const positional = first && !first.startsWith('-') ? first : undefined;
-    const flags = parseFlags(positional ? rest : argv, { site: { type: 'string' }, help: { type: 'boolean', short: 'h' } });
+    const flags = parseFlags(positional ? rest : head, { site: { type: 'string' }, help: { type: 'boolean', short: 'h' } });
 
     let checkId = oneOf('check', positional, CHECK_IDS);
     if (!checkId) {
@@ -47,12 +51,12 @@ EXAMPLES
 
     const check = CHECKS[checkId];
     if (!check.needsSite) {
-      return runProcess('pnpm', ['--filter', '@browse-dot-show/sites', check.script]);
+      return runProcess('pnpm', ['--filter', '@browse-dot-show/sites', check.script, ...passThrough]);
     }
 
     const site = await resolveSite({ site: flags.site, interactive: ctx.interactive, operation: `${checkId} validation` });
     if (!site) return 130;
     if (!positional || !flags.site) printEquivalentCommand(['validate', checkId, `--site=${site.id}`]);
-    return runProcess('pnpm', ['--filter', '@browse-dot-show/validation', check.script], { env: siteProcessEnv(site.id) });
+    return runProcess('pnpm', ['--filter', '@browse-dot-show/validation', check.script, ...passThrough], { env: siteProcessEnv(site.id) });
   },
 };

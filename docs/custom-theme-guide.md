@@ -88,7 +88,7 @@ Update your `site.config.json` to match your theme:
 pnpm validate:sites
 
 # Start development server to preview
-pnpm client:dev
+pnpm bds dev client
 ```
 
 ## 🎯 Podcast-Specific Color Ideas
@@ -220,7 +220,7 @@ Ensure your colors work across devices:
 **Colors Not Updating**
 ```bash
 # Clear browser cache and restart dev server
-pnpm client:dev
+pnpm bds dev client
 ```
 
 **Dark Mode Not Working**

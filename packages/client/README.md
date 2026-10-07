@@ -9,11 +9,9 @@ A React web interface for searching and viewing podcast transcripts.
 3. **Run tests:** `pnpm test`
 4. **Build for production:** `pnpm build`
 
-From the project root, you can also use:
+From the project root, run the client for a site (with local assets and the local search lambda):
 ```bash
-pnpm client:dev
-pnpm client:test
-pnpm client:build
+pnpm bds dev client --site=<site-id>
 ```
 
 ## Structure

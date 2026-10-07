@@ -30,7 +30,8 @@ Developer ergonomics have **no** backwards-compatibility requirement. Any script
 | Session | Target date | Scope |
 | --- | --- | --- |
 | **1. Scripts cleanup** | **2026-10-06** | M0–M4 and M6 below: clean up **all** existing scripts, build the unified CLI, add parallel transcription to the pipeline, update docs. This includes *deleting* the old, non-working Mac scheduling code. |
-| **2. Mac scheduling** | **2026-10-12** | M5: unattended scheduled runs on a Mac ([03](./03-mac-automation.md)). It needs more work and real-machine testing (logging out, sleep/wake, reboots), so it's a separate follow-up session. |
+| **1b. GitHub Actions deploys** | TBD, before session 2 | Deploy code changes (site frontends, lambdas, homepage) from GitHub Actions on merge, while keeping local deploys easy. Never transcription/ingestion. See [08](./08-github-actions-deploys.md). |
+| **2. Mac scheduling** | **2026-10-12** (after 1b) | M5: unattended scheduled runs on a Mac ([03](./03-mac-automation.md)). It needs more work and real-machine testing (logging out, sleep/wake, reboots), so it's a separate follow-up session. |
 
 Session 1 should **work towards** session 2 without building it. Every pipeline action must run non-interactively with a correct exit code, the CLI should leave room for a `schedule` command group, the pipeline should run headless with `--parallel=N`, and config and credentials loading should not depend on a logged-in shell (no reliance on Hermit/nvm shims or AWS SSO). Leave a note in [03](./03-mac-automation.md) of anything learned that session 2 should know. If M4 doesn't fit in session 1, it moves to session 2, since unattended runs need it.
 
@@ -43,10 +44,16 @@ Session 1 should **work towards** session 2 without building it. Every pipeline 
 | M2 | **Consolidate shared libs.** One module each for sites, env loading, arg parsing, running a lambda locally, S3 sync. | Duplicates in 01 §2 gone |
 | M3 | **Unified CLI.** Single entry point plus subcommands; `package.json` scripts reduced to a handful. | Menu tree from 02 implemented; docs updated |
 | M4 | **Parallel transcription in the pipeline.** `--parallel=N` across all sites; optional terminal-window view. | Pipeline transcribes all sites in parallel, headless |
+| M4b | **GitHub Actions deploys** *(before M5; placeholder)*. | Merged PRs deploy changed sites/lambdas/homepage from Actions; local deploys still work. See [08](./08-github-actions-deploys.md). |
 | M5 | **Mac automation** *(session 2, 2026-10-12)*. `setup machine`, `schedule install / status / uninstall`, run logs, notifications on failure. | Fresh Mac → scheduled unattended runs with a few commands |
 | M6 | **Docs.** Rewrite `docs/local-development.md`, the deployment guide's "Ongoing Updates" section, `AGENTS.md`; delete stale docs. | Docs match reality |
 
 M1 can start immediately. M5 is out of scope for session 1.
+
+### Versioning
+
+- **`v0.0.1`**: annotated tag at `999e345` (`main` before this overhaul), created locally on 2026-10-06; push it with `git push origin v0.0.1`. The README, Getting Started, Local Development and Deployment guides, and `CHANGELOG.md`, point pre-2026-10-06 users to it.
+- **`v1.0.0`**: tag once GitHub Actions deploys (M4b) and Mac automation (M5) both work. Move the changelog's "Unreleased" section under it.
 
 ### Progress
 
@@ -57,7 +64,7 @@ Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-ch
 - [x] M2: Consolidate shared libs (`jackkoppa/scripts-overhaul-m2-shared-libs`)
 - [x] M3: Unified CLI (`jackkoppa/scripts-overhaul-m3-unified-cli`); docs updated in M6
 - [x] M4: Parallel transcription (`jackkoppa/scripts-overhaul-m4-parallel-transcription`). Still to do after the live run finishes: a real run, a Ctrl+C test, and benchmarking the default N
-- [ ] M6: Docs
+- [x] M6: Docs + Hermit removal (`jackkoppa/scripts-overhaul-m6-docs`)
 
 ## Related state (as of writing)
 

@@ -4,13 +4,25 @@
 >
 > **In session 1 (cleanup):** do only the "Remove first" section below, and keep the design compatible with this doc (non-interactive commands, headless `--parallel=N`, no dependence on a logged-in shell; see the README timeline). Don't build the LaunchDaemon, `pmset` wake, `setup machine` or `schedule` commands yet.
 >
-> **Notes from session 1 for session 2:** *(session 1 agent: add anything learned here, e.g. final CLI command names, where config and credentials now load from, the PATH/tooling decision on Hermit)*
+> **Notes from session 1 for session 2** (2026-10-06):
+>
+> - **Order:** the GitHub Actions deploys milestone ([08](./08-github-actions-deploys.md)) comes before this one.
+> - **Commands:** the scheduled job should run `pnpm bds ingest --all-sites --parallel=N` (or `node <repo>/node_modules/tsx/dist/cli.mjs <repo>/scripts/cli/index.ts ingest --all-sites`). `bds schedule` and `bds setup machine` exist as placeholders in `scripts/cli/commands/coming-soon.ts`; replace them there and in `MENU` (`scripts/cli/registry.ts`). Exit codes: 0 ok, 1 failure, 2 usage error, 130 interrupted.
+> - **No logged-in shell needed:** `.env.automation`, `.site-account-mappings.json`, `.local-files-config.json` and site env files resolve from the repo root (`scripts/lib/paths.ts`), not the current directory. Lambda children start via the current `node` binary plus tsx's CLI (`tsxCommand()` in `scripts/lib/lambda.ts`), so they don't need `tsx` on PATH. Verified: an all-sites dry run with `cwd=/` and `PATH=/usr/bin:/bin:/usr/sbin:/sbin`. A real run still needs `aws`, `ffmpeg` and `ffprobe` on PATH; write their absolute paths into the plist/wrapper.
+> - **Hermit is gone** (session 1). Node 22 via Homebrew `node@22` or nvm (`.nvmrc`), pnpm via Corepack. The developer's machine currently uses nvm (`~/.nvm/versions/node/v22.14.0`); under launchd, use an absolute node path.
+> - **Signals:** `bds` handles SIGINT and SIGTERM (`scripts/lib/shutdown.ts`): it stops the transcription children, which release their lockfile entries. launchd sends SIGTERM on `bootout`/stop.
+> - **Logs today:** run summaries in `scripts/automation-logs/ingestion-pipeline-runs.md` (`scripts/lib/pipeline-result-logger.ts`), worker logs in `scripts/automation-logs/transcription/<timestamp>/`. Moving them to `~/Library/Logs/browse-dot-show/` is this session's call.
+> - **Local files are on an external SSD** (`/Volumes/4TB_SSD_…`): needs Full Disk Access for the node binary, and the drive must be mounted (`bds doctor` warns about both). `.env.automation` is currently mode 644 (`doctor` warns).
+> - **whisper.cpp:** the code expects `WHISPER_CPP_PATH/build/bin/whisper-cli` and `models/ggml-<WHISPER_CPP_MODEL>.bin` (a source checkout). Homebrew's `whisper-cpp` puts the binary elsewhere, so switching would need a small change in `packages/ingestion/process-audio-lambda/utils/transcribe-via-whisper.ts`.
+> - **Default parallelism:** `transcriptionWorkers` in `.local-files-config.json` (else 2). See [06](./06-session-1-decisions.md) for benchmark results.
+> - **Doctor:** `bds doctor [--aws]` already checks tools, whisper, local files + disk, credentials, mappings and (with `--aws`) role assumption per account. `schedule status` can reuse those checks.
+> - **Old LaunchAgents:** the commands to remove them are in [06](./06-session-1-decisions.md) under "Developer actions from M1".
 
 ## Goal
 
 On an Apple silicon Mac (M1+; assuming M4 is fine if it helps), a few commands from this repo set the machine up to run the full ingestion pipeline for all sites on a schedule, with **no user logged in** and no manual steps afterwards. So far it has only ever been run by hand.
 
-## Remove first (none of this has worked) *(done in session 1)*
+## Remove first (none of this has worked) *(done in session 1; LaunchAgent unloading is a developer action, see 06)*
 
 Delete these outright; don't keep them for compatibility:
 

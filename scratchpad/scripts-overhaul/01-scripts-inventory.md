@@ -1,5 +1,7 @@
 # 01: Scripts Inventory
 
+> **Status after session 1 (2026-10-06):** every item below is resolved. Delete/merge items are gone; kept behavior now lives in `scripts/cli/` (commands), `scripts/ingestion/` (pipeline + parallel transcription) and `scripts/lib/` (shared modules). `scripts/utils/` no longer exists. Decisions on the "Ask" items: [06](./06-session-1-decisions.md). This table is kept as a record of the starting point.
+
 Every script and runnable entry point as of October 2026, with a recommendation:
 
 - **Delete:** no live references, or superseded.
