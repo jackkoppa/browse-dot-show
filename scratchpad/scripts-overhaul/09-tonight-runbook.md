@@ -1,5 +1,7 @@
 # 09: Tonight's Runbook (2026-10-06)
 
+> **Completed on 2026-10-06.** All steps were done and the stack merged as #162–#168. Results are in [06](./06-session-1-decisions.md); what's next is in [HANDOFF.md](./HANDOFF.md). Kept for reference.
+
 Work through this once the multi-terminal transcription run has finished. Steps marked **🧑 You** are yours; steps marked **💬 Prompt** are things to paste into the Claude session (resume it in the worktree: `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`).
 
 ## 0. Check the run is really done

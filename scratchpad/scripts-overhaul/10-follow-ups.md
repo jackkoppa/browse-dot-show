@@ -2,6 +2,8 @@
 
 Captured from session 1 and from the review of the PR stack (#162–#168). Each item is either deferred on purpose or out of scope for the overhaul.
 
+**Order (decided 2026-10-06):** do the small items here first (suggested sequence in [HANDOFF.md](./HANDOFF.md)), then M4b (which includes §1), then M5 (which includes §3). §2 waits for #156.
+
 ## Before or alongside M4b (GitHub Actions deploys)
 
 1. **`bds infra automation deploy` fails at `terraform plan`.** `terraform/automation/main.tf` (and `outputs.tf`) index `var.site_account_ids[site_id]` for every site in `.deployed-sites.json`. The gitignored `terraform/automation/terraform.tfvars` maps only 6 sites, so the 7-site file already fails on `lordsoflimited`, and the regenerated 23-site file would too. Nothing gets applied; live sites and the current automation user are unaffected.
@@ -22,7 +24,3 @@ Captured from session 1 and from the review of the PR stack (#162–#168). Each 
 7. **`bds validate sites`: 34 errors on `main`.** Every `site.config.json` is missing `appHeader.includeAIUseDisclosure`. Add the field, or make it optional in validation.
 8. **Worktree config files.** `bds worktree create` doesn't copy or symlink gitignored config (`.env.*`, `.site-account-mappings.json`, `.local-files-config.json`, sites' `.env.aws-sso`). Session 1 symlinked them by hand.
 9. **Pre-existing type error** in `packages/ingestion/process-audio-lambda/utils/ffmpeg-utils.ts:357` (`error` is `unknown`); the package has no `tsconfig.json`/typecheck script.
-
-## Merging the stack
-
-Merge bottom-up (#162 → #168) with **merge commits or rebase merges**. If you squash, each later PR shows its parents' commits again until it's rebased onto the new `main`. With "Automatically delete head branches" on, GitHub retargets the next PR to `main` after each merge.
