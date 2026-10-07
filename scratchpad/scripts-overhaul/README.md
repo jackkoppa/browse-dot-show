@@ -48,6 +48,17 @@ Session 1 should **work towards** session 2 without building it. Every pipeline 
 
 M1 can start immediately. M5 is out of scope for session 1.
 
+### Progress
+
+Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`.
+
+- [x] M0: Baseline (`jackkoppa/scripts-overhaul-m0-baseline`)
+- [ ] M1: Delete dead code
+- [ ] M2: Consolidate shared libs
+- [ ] M3: Unified CLI
+- [ ] M4: Parallel transcription
+- [ ] M6: Docs
+
 ## Related state (as of writing)
 
 - Branch `jackkoppa/multi-terminal-all-sites` adds an "All sites" option to `run-local-transcriptions-multi-terminal.ts`, balancing files by duration across terminals. Check whether it has merged; M4 builds on it.

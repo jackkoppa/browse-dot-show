@@ -6,7 +6,8 @@
     "description": "Scripts used during development & deployment",
     "scripts": {
         "help": "echo './scripts directory is not built; all scripts are either imported elsewhere, or run directly via tsx'",
-        "test": "vitest run"
+        "test": "vitest run",
+        "typecheck": "tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {
         "@browse-dot-show/config": "workspace:*",
