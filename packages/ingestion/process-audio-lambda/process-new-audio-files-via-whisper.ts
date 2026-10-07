@@ -155,17 +155,31 @@ async function addToLockfile(fileKey: string): Promise<boolean> {
   }
 }
 
-async function removeFromLockfile(fileKey: string): Promise<void> {
-  try {
+/**
+ * Remove matching lockfile entries, then re-read and retry until they're gone.
+ * The lockfile is a read-modify-write JSON file, so when several processes update it at once
+ * (e.g. parallel workers for one site), one process's write can restore entries another just
+ * removed. Re-checking makes sure this process's own entries don't linger.
+ */
+async function removeLockfileEntries(shouldRemove: (entry: LockfileEntry) => boolean): Promise<void> {
+  const maxAttempts = 10;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const lockfile = await readLockfile();
-    
-    // Remove the entry for this file and process ID
-    lockfile.entries = lockfile.entries.filter(
-      entry => !(entry.fileKey === fileKey && entry.processId === PROCESS_ID)
-    );
-    
+    const remaining = lockfile.entries.filter(entry => !shouldRemove(entry));
+    if (remaining.length === lockfile.entries.length) return;
+
+    lockfile.entries = remaining;
     lockfile.version++;
     await writeLockfile(lockfile);
+    // Give concurrent writers a moment, then verify
+    await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 200));
+  }
+  log.warn(`Lockfile entries for process ${PROCESS_ID} could not be removed after ${maxAttempts} attempts`);
+}
+
+async function removeFromLockfile(fileKey: string): Promise<void> {
+  try {
+    await removeLockfileEntries(entry => entry.fileKey === fileKey && entry.processId === PROCESS_ID);
     log.debug(`Removed ${fileKey} from lockfile for process ID ${PROCESS_ID}`);
   } catch (error) {
     log.error(`Error removing ${fileKey} from lockfile: ${error}`);
@@ -174,13 +188,7 @@ async function removeFromLockfile(fileKey: string): Promise<void> {
 
 async function removeOwnLockfileEntries(): Promise<void> {
   try {
-    const lockfile = await readLockfile();
-    const remaining = lockfile.entries.filter(entry => entry.processId !== PROCESS_ID);
-    if (remaining.length !== lockfile.entries.length) {
-      lockfile.entries = remaining;
-      lockfile.version++;
-      await writeLockfile(lockfile);
-    }
+    await removeLockfileEntries(entry => entry.processId === PROCESS_ID);
   } catch (error) {
     log.error(`Error removing lockfile entries for process ${PROCESS_ID}: ${error}`);
   }
