@@ -302,15 +302,16 @@ async function identifyEpisodesToDownload(
   
   try {
     const existingAudioFilesS3 = (await listFiles(podcastAudioDirS3)).map(filePath => path.basename(filePath));
-    // Normalize filenames from S3 to NFC before adding to the set
-    const existingAudioFilenamesSet = new Set(existingAudioFilesS3);
+    // Compare in NFC: older S3 keys (and local files synced from them) can be NFD, which
+    // otherwise never matches and re-downloads the episode on every run
+    const existingAudioFilenamesSet = new Set(existingAudioFilesS3.map(name => name.normalize('NFC')));
 
     for (const episode of episodesFromManifest) {
       if (episode.podcastId !== podcastId) continue; 
 
       const expectedAudioFilename = getEpisodeAudioFilename(episode.fileKey);
 
-      if (!existingAudioFilenamesSet.has(expectedAudioFilename)) {
+      if (!existingAudioFilenamesSet.has(expectedAudioFilename.normalize('NFC'))) {
         filesToDownload.push(episode);
         log.info(`Queueing for download: "${episode.title}" (File: ${expectedAudioFilename}) as it's not in S3 set.`);
       } else {
