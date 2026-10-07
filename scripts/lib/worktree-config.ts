@@ -4,12 +4,11 @@ import { execCommandOrThrow } from './shell-exec.js';
 
 /**
  * Gitignored config a new worktree needs to run `bds` like the main checkout: env files
- * (`.env.*`, sites' `.env.aws-sso`), the deployed-sites list, local files config, Terraform tfvars
+ * (`.env.*`, sites' `.env.aws-sso`), local files config, Terraform tfvars
  * and custom spelling corrections. Matched by file name, at any depth.
  */
 const CONFIG_FILE_NAMES = new Set([
   '.local-files-config.json',
-  '.deployed-sites.json',
   '_custom-spelling-corrections.json',
 ]);
 

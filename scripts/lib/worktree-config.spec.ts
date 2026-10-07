@@ -6,12 +6,11 @@ import { describe, it, expect } from 'vitest';
 import { isWorktreeConfigFile, linkWorktreeConfig } from './worktree-config.js';
 
 describe('isWorktreeConfigFile', () => {
-  it('matches env files, deployed sites, local config, tfvars and custom spelling corrections', () => {
+  it('matches env files, local config, tfvars and custom spelling corrections', () => {
     for (const file of [
       '.env.automation',
       '.env.lambda-prod-build',
       '.local-files-config.json',
-      '.deployed-sites.json',
       'sites/origin-sites/naddpod/.env.aws-sso',
       'packages/homepage/.env.aws-sso',
       'terraform/automation/terraform.tfvars',
@@ -43,20 +42,20 @@ describe('linkWorktreeConfig', () => {
     fs.mkdirSync(path.join(source, 'sites/a'), { recursive: true });
     fs.mkdirSync(path.join(target, 'sites'), { recursive: true });
     execFileSync('git', ['init', '-q'], { cwd: source });
-    fs.writeFileSync(path.join(source, '.gitignore'), '.env*\n.deployed-sites.json\nnode_modules/\n');
+    fs.writeFileSync(path.join(source, '.gitignore'), '.env*\n.local-files-config.json\nnode_modules/\n');
     fs.writeFileSync(path.join(source, '.env.automation'), 'KEY=1');
-    fs.writeFileSync(path.join(source, '.deployed-sites.json'), '[]');
+    fs.writeFileSync(path.join(source, '.local-files-config.json'), '{}');
     fs.writeFileSync(path.join(source, 'sites/a/.env.aws-sso'), 'AWS_PROFILE=a');
     fs.mkdirSync(path.join(source, 'node_modules/pkg'), { recursive: true });
     fs.writeFileSync(path.join(source, 'node_modules/pkg/.env'), '');
-    fs.writeFileSync(path.join(target, '.deployed-sites.json'), '["local"]');
+    fs.writeFileSync(path.join(target, '.local-files-config.json'), '{"local": true}');
 
     const result = await linkWorktreeConfig(source, target);
 
     expect(result.linked.sort()).toEqual(['.env.automation', 'sites/a/.env.aws-sso']);
-    expect(result.skipped).toEqual(['.deployed-sites.json']);
+    expect(result.skipped).toEqual(['.local-files-config.json']);
     expect(fs.readlinkSync(path.join(target, 'sites/a/.env.aws-sso'))).toBe(path.join(source, 'sites/a/.env.aws-sso'));
-    expect(fs.readFileSync(path.join(target, '.deployed-sites.json'), 'utf8')).toBe('["local"]');
+    expect(fs.readFileSync(path.join(target, '.local-files-config.json'), 'utf8')).toBe('{"local": true}');
     expect(fs.existsSync(path.join(target, 'node_modules'))).toBe(false);
   });
 });

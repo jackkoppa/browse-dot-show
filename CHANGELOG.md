@@ -56,7 +56,8 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Fixed
 
-- `automation:deploy` (now `bds infra automation deploy`) looked for `.site-account-mappings.json` relative to the Terraform directory. (The automation deploy still needs a Terraform fix before it can plan: its `site_account_ids` tfvars map is incomplete.)
+- `automation:deploy` (now `bds infra automation deploy`) looked for `.site-account-mappings.json` relative to the Terraform directory.
+- `bds infra automation deploy` failed at `terraform plan` (its per-site `site_account_ids` tfvars map covered 6 of 23 sites). The automation user's assume-role policy is now built from the distinct account IDs in `.site-account-mappings.json`, and `.deployed-sites.json` is no longer used. Remove `deployed_sites` and `site_account_ids` from your `terraform/automation/terraform.tfvars`.
 - Reapplying spelling corrections processed every transcript twice.
 - `bds ingest` now re-indexes sites whose transcripts are newer than their search index, so episodes transcribed outside the pipeline (e.g. `bds lambda run`) get indexed without `--force-local-indexing`.
 - `bds worktree create` symlinks the main checkout's gitignored config (`.env.*`, sites' `.env.aws-sso`, `.local-files-config.json`, …) into the new worktree. `bds worktree link-config <path>` does the same for an existing worktree.

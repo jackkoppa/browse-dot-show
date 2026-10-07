@@ -128,7 +128,7 @@ pnpm bds worktree prune
 pnpm bds worktree link-config <path>          # symlink config into an existing worktree
 ```
 
-`create` symlinks the main checkout's gitignored config files (`.env.*`, sites' `.env.aws-sso`, `.local-files-config.json`, `.deployed-sites.json`, Terraform `*.tfvars`, custom spelling corrections) into the new worktree, so it shares your credentials and local files path. Then run `pnpm install` and `pnpm all:build` in it.
+`create` symlinks the main checkout's gitignored config files (`.env.*`, sites' `.env.aws-sso`, `.local-files-config.json`, Terraform `*.tfvars`, custom spelling corrections) into the new worktree, so it shares your credentials and local files path. Then run `pnpm install` and `pnpm all:build` in it.
 
 ## 6. Working on the scripts
 
