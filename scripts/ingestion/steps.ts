@@ -74,41 +74,34 @@ export async function triggerSearchApiLambdaRefresh(
 }
 
 /**
- * Run an ingestion lambda locally for a site, streaming its output, and extract metrics
- * from that output.
+ * Run RSS retrieval locally for a site, streaming its output, and count new audio files.
  */
-export async function runLambdaWithMetrics(
-  siteId: string,
-  lambda: 'rss-retrieval' | 'process-audio',
-  operation: string
-): Promise<{ success: boolean; duration: number; error?: string; newAudioFiles?: number; newTranscripts?: number }> {
+export async function runRssRetrieval(
+  siteId: string
+): Promise<{ success: boolean; duration: number; error?: string; newAudioFiles?: number }> {
+  const operation = 'RSS retrieval';
   console.log(`\n🚀 Running ${operation} for site: ${siteId}`);
 
-  // Transcription logs its own detailed progress; log a heartbeat for everything else
   const startTime = Date.now();
-  const progressInterval = lambda === 'process-audio' ? undefined : setInterval(() => {
+  const progressInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     console.log(`   🔄 ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
   }, 10000);
 
-  const result = await runLambdaLocally({ lambda, siteId });
-  if (progressInterval) clearInterval(progressInterval);
+  const result = await runLambdaLocally({ lambda: 'rss-retrieval', siteId });
+  clearInterval(progressInterval);
 
   let newAudioFiles = 0;
-  let newTranscripts = 0;
   if (result.success) {
     const audioFilesMatch = result.stdout.match(/🎧 New Audio Files Downloaded: (\d+)/);
     if (audioFilesMatch) newAudioFiles = parseInt(audioFilesMatch[1], 10);
-
-    const transcriptsMatch = result.stdout.match(/✅ Successfully Processed: (\d+)/);
-    if (transcriptsMatch) newTranscripts = parseInt(transcriptsMatch[1], 10);
 
     console.log(`   ✅ ${operation} completed successfully for ${siteId} (${(result.duration / 1000).toFixed(1)}s)`);
   } else {
     console.log(`   ❌ ${operation} failed for ${siteId}: ${result.error} (${(result.duration / 1000).toFixed(1)}s)`);
   }
 
-  return { success: result.success, duration: result.duration, error: result.error, newAudioFiles, newTranscripts };
+  return { success: result.success, duration: result.duration, error: result.error, newAudioFiles };
 }
 
 /**

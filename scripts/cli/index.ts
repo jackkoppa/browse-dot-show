@@ -12,6 +12,7 @@
 import prompts from 'prompts';
 import { UsageError } from '../lib/args.js';
 import { REPO_ROOT } from '../lib/paths.js';
+import { installShutdownHandlers } from '../lib/shutdown.js';
 import { isInteractive } from '../lib/sites.js';
 import { commandName, type Command, type CommandContext } from './command.js';
 import { commandsInGroup, findCommand, helpText, MENU, type MenuNode } from './registry.js';
@@ -87,10 +88,7 @@ async function main(argv: string[]): Promise<number> {
   throw new UsageError(`Unknown command: ${argv.join(' ')}. Run \`pnpm bds help\` for the list.`);
 }
 
-process.on('SIGINT', () => {
-  console.log('\n⚠️  Cancelled');
-  process.exit(130);
-});
+installShutdownHandlers();
 
 main(process.argv.slice(2))
   .then(code => process.exit(code))

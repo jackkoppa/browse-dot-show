@@ -2,6 +2,9 @@ import { join } from 'path';
 import { readJsonFile } from '../lib/file-operations.js';
 import { execCommand } from '../lib/shell-exec.js';
 import { runLambdaLocally } from '../lib/lambda.js';
+import { getDefaultTranscriptionWorkers } from '../lib/machine-config.js';
+import { discoverSites } from '../lib/sites.js';
+import { runParallelTranscription } from '../ingestion/transcription.js';
 import { printInfo, printSuccess, printWarning, printError, logInColor } from '../lib/logging.js';
 import prompts from 'prompts';
 import { loadProgress } from './setup-steps.js';
@@ -300,67 +303,34 @@ export async function executeCompleteTranscriptionsStep(progress: SetupProgress)
     console.log('⏱️  ESTIMATED TOTAL TRANSCRIPTION TIME: ' + formatTimeEstimate(estimatedTranscriptionTime));
     console.log('');
 
-    const transcriptionChoice = await prompts({
-      type: 'select',
-      name: 'choice',
-      message: 'How would you like to run transcriptions?',
-      choices: [
-        {
-          title: 'Single terminal (simpler, slower)',
-          description: 'Process episodes one at a time in this terminal',
-          value: 'single'
-        },
-        {
-          title: 'Multiple terminals (faster, needs more RAM)',
-          description: 'You\'ll run the same command in 2-3 separate terminals',
-          value: 'multiple'
-        }
-      ],
-      initial: 0
+    const { workers } = await prompts({
+      type: 'number',
+      name: 'workers',
+      message: 'How many parallel transcription workers? (more is faster, but uses more memory)',
+      initial: getDefaultTranscriptionWorkers(),
+      min: 1,
+      max: 8
     });
 
-    if (!transcriptionChoice.choice) {
+    if (!workers) {
       return 'DEFERRED';
     }
 
-    // Execute transcriptions
-    if (transcriptionChoice.choice === 'single') {
-      console.log('');
-      printInfo('🎵 Starting transcription of all episodes...');
-      
-      const transcriptionSuccess = (await runLambdaLocally({ lambda: 'process-audio', siteId: progress.siteId })).success;
-
-      if (!transcriptionSuccess) {
-        printError('Transcription failed. Please try again.');
-        return 'DEFERRED';
-      }
-
-      printSuccess('✅ All episodes transcribed successfully!');
-
-    } else {
-      // Multiple terminals option
-      console.log('');
-      printInfo('🚀 Multiple Terminal Setup Instructions:');
-      console.log('');
-      console.log('1. Open 2-3 new terminal windows/tabs');
-      console.log('2. In each terminal, navigate to this project directory');
-      console.log('3. Run this command in each terminal:');
-      console.log('');
-      console.log(`pnpm bds lambda run --lambda=process-audio --sites=${progress.siteId}`);
-      console.log('');
-
-      const continueResponse = await prompts({
-        type: 'confirm',
-        name: 'transcriptionsComplete',
-        message: 'Have all transcription terminals completed successfully?',
-        initial: false
-      });
-
-      if (!continueResponse.transcriptionsComplete) {
-        printInfo('No problem! Continue when all transcriptions are complete.');
-        return 'DEFERRED';
-      }
+    console.log('');
+    printInfo('🎵 Starting transcription of all episodes...');
+    const site = discoverSites().find(s => s.id === progress.siteId);
+    if (!site) {
+      printError(`Site ${progress.siteId} not found.`);
+      return 'DEFERRED';
     }
+
+    const [result] = await runParallelTranscription({ sites: [site], parallel: workers });
+    if (!result.success) {
+      printError(`Transcription failed: ${result.errors.join('; ')}. Please try again.`);
+      return 'DEFERRED';
+    }
+
+    printSuccess(`✅ All episodes transcribed successfully! (${result.transcribed} new transcripts)`);
 
   } catch (error) {
     printError(`Failed during transcription phase: ${error instanceof Error ? error.message : 'Unknown error'}`);

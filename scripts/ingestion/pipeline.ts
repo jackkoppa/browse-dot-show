@@ -11,11 +11,12 @@ import { displaySyncConsistencyReport, generateSyncConsistencyReport, SYNC_MODES
 import {
   invalidateCloudFrontForSite,
   reapplySpellingCorrectionsToAllTranscripts,
-  runLambdaWithMetrics,
+  runRssRetrieval,
   runLocalIndexingForSite,
   triggerSearchApiLambdaRefresh,
 } from './steps.js';
 import { printPipelineSummary } from './summary.js';
+import { runParallelTranscription } from './transcription.js';
 import type { PipelineConfig, SiteProcessingResult } from './types.js';
 
 /**
@@ -61,7 +62,7 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
   console.log(`   Enabled phases:`);
   if (config.phases.preSync) console.log(`     ✅ Phase 1: Pre-sync check`);
   if (config.phases.rssRetrieval) console.log(`     ✅ Phase 2: RSS retrieval`);
-  if (config.phases.audioProcessing) console.log(`     ✅ Phase 3: Audio processing`);
+  if (config.phases.audioProcessing) console.log(`     ✅ Phase 3: Audio processing (${config.parallel} parallel worker(s))`);
   if (config.reapplySpellingCorrections) console.log(`     ✅ Phase 3.5: Spelling corrections reapplication`);
   if (config.phases.localIndexing) console.log(`     ✅ Phase 4: Local indexing`);
   if (config.phases.s3Sync) console.log(`     ✅ Phase 5: S3 sync`);
@@ -179,7 +180,7 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
       console.log('🔍 DRY RUN: Would download new episodes from RSS feeds');
     } else {
       for (const site of sites) {
-        const rssResult = await runLambdaWithMetrics(site.id, 'rss-retrieval', 'RSS retrieval');
+        const rssResult = await runRssRetrieval(site.id);
         
         const siteIndex = sites.indexOf(site);
         results[siteIndex].rssRetrievalSuccess = rssResult.success;
@@ -209,31 +210,17 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     if (config.dryRun) {
       console.log('🔍 DRY RUN: Would transcribe new audio files using Whisper');
     } else {
-      for (let i = 0; i < sites.length; i++) {
-        const site = sites[i];
-        const audioResult = await runLambdaWithMetrics(site.id, 'process-audio', 'Audio processing');
-        
-        // Update the existing result
-        results[i].audioProcessingSuccess = audioResult.success;
-        results[i].audioProcessingDuration = audioResult.duration;
-        results[i].newEpisodesTranscribed = audioResult.newTranscripts || 0;
-        
-        // Update hasNewFiles if new transcripts were created
-        if ((audioResult.newTranscripts || 0) > 0) {
-          results[i].hasNewFiles = true;
-        }
-        
-        // TODO: Investigate why search-entries folder may be uploading more files than expected.
-        // We've seen cases where 450+ search-entry files get uploaded when only 1 new episode was processed.
-        // This could indicate:
-        // 1. Search entries are being regenerated unnecessarily during local indexing
-        // 2. File timestamps/checksums causing AWS CLI to think files need re-uploading
-        // 3. Search-entries directory structure changes affecting sync detection
-        // Monitor this in future runs, especially multi-site runs.
-        
-        if (audioResult.error) {
-          results[i].errors.push(audioResult.error);
-        }
+      // All selected sites' untranscribed files, split across `config.parallel` workers
+      console.log(`Transcribing with ${config.parallel} parallel worker(s)`);
+      const transcriptionResults = await runParallelTranscription({ sites, parallel: config.parallel });
+
+      for (const transcription of transcriptionResults) {
+        const result = results.find(r => r.siteId === transcription.siteId)!;
+        result.audioProcessingSuccess = transcription.success;
+        result.audioProcessingDuration = transcription.duration;
+        result.newEpisodesTranscribed = transcription.transcribed;
+        if (transcription.transcribed > 0) result.hasNewFiles = true;
+        result.errors.push(...transcription.errors);
       }
     }
   } else {

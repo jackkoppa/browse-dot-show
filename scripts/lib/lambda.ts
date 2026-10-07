@@ -1,5 +1,6 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { loadSiteEnv } from './env.js';
 import { repoPath } from './paths.js';
@@ -91,6 +92,11 @@ export interface RunLambdaLocallyOptions {
   /** Extra env vars, applied last. */
   env?: Record<string, string>;
   /**
+   * process-audio only: transcribe just these files (keys relative to the site's root, e.g.
+   * `audio/<podcastId>/<file>.mp3`) instead of every untranscribed file.
+   */
+  files?: string[];
+  /**
    * - `inherit` (default): stream the child's output to this process's stdout/stderr
    * - `quiet`: capture output without printing it
    */
@@ -112,14 +118,16 @@ export interface RunLambdaLocallyResult {
 
 /** Run an ingestion lambda locally for one site. Never throws; check `success`. */
 export function runLambdaLocally(options: RunLambdaLocallyOptions): Promise<RunLambdaLocallyResult> {
-  const { lambda: lambdaId, siteId, args = [], env = {}, output = 'inherit', onStdout, onSpawn } = options;
+  const { lambda: lambdaId, siteId, args = [], env = {}, files, output = 'inherit', onStdout, onSpawn } = options;
   const lambda = INGESTION_LAMBDAS[lambdaId];
   const startTime = Date.now();
 
   return new Promise(resolve => {
     let stdout = '';
     let stderr = '';
-    const finish = (exitCode: number | null, error?: string) =>
+    let fileListPath: string | undefined;
+    const finish = (exitCode: number | null, error?: string) => {
+      if (fileListPath) fs.rmSync(path.dirname(fileListPath), { recursive: true, force: true });
       resolve({
         success: exitCode === 0 && !error,
         exitCode,
@@ -128,15 +136,22 @@ export function runLambdaLocally(options: RunLambdaLocallyOptions): Promise<RunL
         stderr,
         error: error ?? (exitCode === 0 ? undefined : `Exit code: ${exitCode}`),
       });
+    };
 
     let childEnv: NodeJS.ProcessEnv;
     try {
+      if (files) {
+        // A file rather than an env var, to avoid env size limits with long lists
+        fileListPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bds-files-')), 'files.txt');
+        fs.writeFileSync(fileListPath, files.join('\n'), 'utf8');
+      }
       childEnv = {
         ...process.env,
         ...loadSiteEnv(siteId),
         SITE_ID: siteId,
         FILE_STORAGE_ENV: 'local',
         NODE_OPTIONS: withHeapLimit(process.env.NODE_OPTIONS),
+        ...(fileListPath ? { FILE_LIST_PATH: fileListPath } : {}),
         ...env,
       };
     } catch (error) {

@@ -56,7 +56,7 @@ Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-ch
 - [x] M1: Delete dead code (`jackkoppa/scripts-overhaul-m1-delete-dead-code`)
 - [x] M2: Consolidate shared libs (`jackkoppa/scripts-overhaul-m2-shared-libs`)
 - [x] M3: Unified CLI (`jackkoppa/scripts-overhaul-m3-unified-cli`); docs updated in M6
-- [ ] M4: Parallel transcription
+- [x] M4: Parallel transcription (`jackkoppa/scripts-overhaul-m4-parallel-transcription`). Still to do after the live run finishes: a real run, a Ctrl+C test, and benchmarking the default N
 - [ ] M6: Docs
 
 ## Related state (as of writing)

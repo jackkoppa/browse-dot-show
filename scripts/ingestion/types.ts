@@ -19,6 +19,8 @@ export interface PipelineConfig {
   dryRun: boolean;
   forceLocalIndexing: boolean;
   reapplySpellingCorrections: boolean;
+  /** Parallel transcription workers. */
+  parallel: number;
   phases: Record<PipelinePhaseKey, boolean>;
 }
 

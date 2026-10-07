@@ -66,3 +66,12 @@ rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-erro
 
 - `pnpm bds validate sites` reports 34 errors on `main` as well: every `site.config.json` is missing `appHeader.includeAIUseDisclosure`. This was there before the overhaul and is out of scope; flagging it.
 - `bds doctor --aws` (read-only `sts:AssumeRole`, once per site account) is written but hasn't been run yet; it needs your OK because it calls AWS.
+
+## Notes from M4
+
+- `bds ingest --parallel=N` plans every selected site's untranscribed files in the parent process (ffprobe durations, balanced longest-first) and runs N workers. Each worker runs the process-audio lambda per site batch, as a child process with an exact file list (`FILE_LIST_PATH`, keys like `audio/<podcast>/<file>.mp3`). Verified read-only that the planner's keys match the lambda's own discovery for haveaword.
+- Progress comes from the lambda's JSON events on stdout: a live single-terminal view on a TTY, periodic log lines otherwise. Full per-worker output goes to `scripts/automation-logs/transcription/<timestamp>/worker-N.log`. Session 2 may move logs to `~/Library/Logs/browse-dot-show/`.
+- Default N: `transcriptionWorkers` in `.local-files-config.json`, else 2 (to be benchmarked).
+- process-audio lambda changes (these also ship to AWS on the next deploy; all are no-ops there): the file list now comes from `FILE_LIST_PATH` (the `TERMINAL_*` env vars, the legacy `TERMINAL_FILE_LIST` and the broken `LOG_FILE` writer are gone); progress reports actual per-file durations; `COMPLETE` is always emitted; on SIGINT/SIGTERM it releases its lockfile entries.
+- Removed `run-local-transcriptions-multi-terminal.ts` and `utils/multi-terminal-runner.ts`. The site creator's "complete transcriptions" step uses the parallel runner. The platform-support feature row is renamed to `episode-transcription-parallel`.
+- Observed, not changed: the lambda's lockfile lives at `transcripts/.processing-lock.json`, inside a synced folder, and its read-modify-write isn't atomic. Workers get disjoint files, so this is harmless for `bds ingest`.
