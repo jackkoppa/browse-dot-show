@@ -55,7 +55,7 @@ export class LocalFileLocks {
 
   /** Release every lock this process holds (on exit or interrupt). */
   releaseAll(): void {
-    for (const fileKey of [...this.held]) this.release(fileKey);
+    for (const fileKey of this.held) this.release(fileKey); // deleting the current Set entry is safe
   }
 
   /** Whether another live process holds `fileKey`. */
