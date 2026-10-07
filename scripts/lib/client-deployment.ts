@@ -4,7 +4,7 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { execCommand, execCommandOrThrow } from './shell-exec.js';
 import { exists } from './file-operations.js';
-import { logInfo, logSuccess, logError, logProgress, } from './logging.js';
+import { logSuccess, logError, logProgress } from './logging.js';
 
 /**
  * Client build result interface
