@@ -99,7 +99,7 @@ export const ciTerraformCommand: Command = {
   summary: 'CI: plan or apply one Terraform target, writing a plan summary',
   usage: `
 USAGE
-  pnpm bds ci terraform --target=<site:<id>|homepage> --mode=<plan|apply> [--out=<dir>] [--approved=<file>]
+  pnpm bds ci terraform --target=<site:<id>|homepage> --mode=<plan|apply> [--out=<dir>] [--approved=<file>] [--require-approval]
 
 OPTIONS
   --target=<t>       site:<id> (terraform/sites, with that site's backend and tfvars) or homepage
@@ -108,6 +108,8 @@ OPTIONS
                      isn't in --approved (the summary approved on the PR)
   --out=<dir>        Where summary.json goes (default: .terraform-plans/<target>)
   --approved=<file>  Approved summary.json (apply mode). Missing = nothing risky approved.
+  --require-approval Apply mode: apply nothing unless --approved exists (deploys of merged PRs).
+                     Without it (manual runs), in-place updates apply without an approved plan.
 
 Credentials: the environment in GitHub Actions (OIDC). Locally, the site's .env.aws-sso
 (or packages/homepage/.env.aws-sso) and .env.local, like a local deploy. Site targets need
@@ -120,6 +122,7 @@ sensitive values and is deleted.
       mode: { type: 'string' },
       out: { type: 'string' },
       approved: { type: 'string' },
+      'require-approval': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
     });
     const mode = oneOf('mode', flags.mode, ['plan', 'apply'] as CiTerraformMode[]);
@@ -130,7 +133,13 @@ sensitive values and is deleted.
       Object.assign(process.env, siteId ? loadSiteEnv(siteId) : flags.target === 'homepage' ? loadHomepageEnv() : {});
     }
     const outDir = path.resolve(flags.out ?? repoPath('.terraform-plans', flags.target.replace(':', '-')));
-    return runCiTerraform({ target: flags.target, mode, outDir, approvedSummaryPath: flags.approved && path.resolve(flags.approved) });
+    return runCiTerraform({
+      target: flags.target,
+      mode,
+      outDir,
+      approvedSummaryPath: flags.approved && path.resolve(flags.approved),
+      requireApproval: Boolean(flags['require-approval']),
+    });
   },
 };
 
@@ -150,7 +159,8 @@ USAGE
   pnpm bds ci plan-comment --dir=<dir> --out=<file> [--run-url=<url>]
 
 Reads every summary.json under --dir, writes the markdown comment to --out, and sets the
-GitHub output needs_approval=true when any plan creates, replaces or destroys resources.
+GitHub outputs needs_approval (true whenever there's a plan: every Terraform plan needs
+approval) and has_risky_changes (any create, replace or destroy).
 `,
   async run(argv) {
     const flags = parseFlags(argv, {
@@ -163,8 +173,8 @@ GitHub output needs_approval=true when any plan creates, replaces or destroys re
     const summaries = findSummaries(path.resolve(flags.dir));
     const comment = renderPlanComment(summaries, { marker: PLAN_COMMENT_MARKER, runUrl: flags['run-url'] });
     fs.writeFileSync(path.resolve(flags.out), comment);
-    const needsApproval = summaries.some(summary => riskyChanges(summary).length > 0);
-    setGithubOutputs({ needs_approval: String(needsApproval) });
+    // Every Terraform plan on a PR needs the developer's approval (08: decisions)
+    setGithubOutputs({ needs_approval: String(summaries.length > 0), has_risky_changes: String(summaries.some(summary => riskyChanges(summary).length > 0)) });
     appendStepSummary(comment);
     console.log(comment);
     return 0;
