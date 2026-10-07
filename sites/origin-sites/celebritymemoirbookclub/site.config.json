@@ -4,9 +4,11 @@
   "appHeader": {
     "primaryTitle": "Celebrity Memoir Book Club",
     "includeTitlePrefix": true,
+    "extraHeightForLongTitle": true,
     "taglinePrimaryPodcastName": "Celebrity Memoir Book Club",
     "taglinePrimaryPodcastExternalURL": "https://www.celebritymemoirbookclub.biz/",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Celebrity Memoir Book Club",

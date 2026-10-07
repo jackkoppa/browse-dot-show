@@ -6,7 +6,8 @@
         "includeTitlePrefix": false,
         "taglinePrimaryPodcastName": "My Favorite Murder",
         "taglinePrimaryPodcastExternalURL": "https://myfavoritemurder.com",
-        "taglineSuffix": "archives"
+        "taglineSuffix": "archives",
+        "includeAIUseDisclosure": false
     },
     "socialAndMetadata": {
         "pageTitle": "[browse.show] My Favorite Murder",

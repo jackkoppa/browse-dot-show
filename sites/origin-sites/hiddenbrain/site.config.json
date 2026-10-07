@@ -6,7 +6,8 @@
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "Hidden Brain",
     "taglinePrimaryPodcastExternalURL": "https://www.siriusxm.com",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Hidden Brain",

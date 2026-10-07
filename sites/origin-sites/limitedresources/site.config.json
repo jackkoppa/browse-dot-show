@@ -6,7 +6,8 @@
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "Limited Resources",
     "taglinePrimaryPodcastExternalURL": "http://limitedresources.libsyn.com",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Limited Resources",

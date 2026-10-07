@@ -7,7 +7,8 @@
     "taglinePrimaryPodcastName": "MTG - Drive to Work",
     "taglinePrimaryPodcastExternalURL": "https://mtg.fandom.com/wiki/Drive_to_Work",
     "taglineSuffix": "podcast archives",
-    "extraHeightForLongTitle": true
+    "extraHeightForLongTitle": true,
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Magic: The Gathering - Drive to Work",

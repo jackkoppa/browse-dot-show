@@ -6,7 +6,8 @@
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "Watts Occurring",
     "taglinePrimaryPodcastExternalURL": "https://crowdnetwork.co.uk/podcasts/the-geraint-thomas-cycling-club/",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Watts Occurring",

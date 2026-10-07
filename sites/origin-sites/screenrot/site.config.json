@@ -6,7 +6,8 @@
     "includeTitlePrefix": true,
     "taglinePrimaryPodcastName": "Screen Rot",
     "taglinePrimaryPodcastExternalURL": "https://feeds.megaphone.fm/APL3838395585",
-    "taglineSuffix": "podcast archives"
+    "taglineSuffix": "podcast archives",
+    "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
     "pageTitle": "[browse.show] Screen Rot",

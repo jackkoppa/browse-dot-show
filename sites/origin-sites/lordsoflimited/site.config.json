@@ -6,7 +6,8 @@
         "includeTitlePrefix": true,
         "taglinePrimaryPodcastName": "Lords of Limited",
         "taglinePrimaryPodcastExternalURL": "https://lordsoflimited.com",
-        "taglineSuffix": "podcast archives"
+        "taglineSuffix": "podcast archives",
+        "includeAIUseDisclosure": false
     },
     "socialAndMetadata": {
         "pageTitle": "[browse.show] Lords of Limited",
