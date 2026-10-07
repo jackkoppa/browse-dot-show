@@ -19,9 +19,12 @@ import {
   getDirectorySize,
   listDirectories,
   deleteFile,
+  getFileStorageEnv,
+  LOCAL_S3_PATH,
 } from '@browse-dot-show/s3'
 import { killActiveWhisperProcess, transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
+import { LocalFileLocks } from './utils/local-file-locks.js';
 
 
 log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
@@ -102,6 +105,22 @@ interface Lockfile {
 // Generate a unique process ID for this run
 const PROCESS_ID = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+/**
+ * Local runs use per-file locks, created atomically, in `{localFilesPath}/locks/transcription/<site>/`
+ * (outside the folders synced to S3). In AWS, the shared JSON lockfile below is used.
+ */
+let localLocks: LocalFileLocks | undefined;
+function getLocalLocks(): LocalFileLocks | undefined {
+  if (getFileStorageEnv() !== 'local') return undefined;
+  if (!localLocks) {
+    const siteId = process.env.SITE_ID;
+    if (!siteId) throw new Error('SITE_ID environment variable is required');
+    const lockDir = path.join(path.dirname(LOCAL_S3_PATH), 'locks', 'transcription', siteId);
+    localLocks = new LocalFileLocks(lockDir, PROCESS_ID);
+  }
+  return localLocks;
+}
+
 async function readLockfile(): Promise<Lockfile> {
   try {
     if (await fileExists(LOCKFILE_PATH)) {
@@ -129,6 +148,13 @@ async function writeLockfile(lockfile: Lockfile): Promise<void> {
 
 async function addToLockfile(fileKey: string): Promise<boolean> {
   try {
+    const locks = getLocalLocks();
+    if (locks) {
+      const acquired = locks.acquire(fileKey);
+      if (!acquired) log.debug(`File ${fileKey} is already being processed by another process`);
+      return acquired;
+    }
+
     const lockfile = await readLockfile();
     
     // Check if file is already being processed
@@ -179,6 +205,11 @@ async function removeLockfileEntries(shouldRemove: (entry: LockfileEntry) => boo
 
 async function removeFromLockfile(fileKey: string): Promise<void> {
   try {
+    const locks = getLocalLocks();
+    if (locks) {
+      locks.release(fileKey);
+      return;
+    }
     await removeLockfileEntries(entry => entry.fileKey === fileKey && entry.processId === PROCESS_ID);
     log.debug(`Removed ${fileKey} from lockfile for process ID ${PROCESS_ID}`);
   } catch (error) {
@@ -188,6 +219,11 @@ async function removeFromLockfile(fileKey: string): Promise<void> {
 
 async function removeOwnLockfileEntries(): Promise<void> {
   try {
+    const locks = getLocalLocks();
+    if (locks) {
+      locks.releaseAll();
+      return;
+    }
     await removeLockfileEntries(entry => entry.processId === PROCESS_ID);
   } catch (error) {
     log.error(`Error removing lockfile entries for process ${PROCESS_ID}: ${error}`);
@@ -196,6 +232,13 @@ async function removeOwnLockfileEntries(): Promise<void> {
 
 async function cleanupStaleEntries(): Promise<void> {
   try {
+    const locks = getLocalLocks();
+    if (locks) {
+      const removed = locks.cleanupStale();
+      if (removed > 0) log.info(`Cleaned up ${removed} stale lock(s)`);
+      return;
+    }
+
     const lockfile = await readLockfile();
     const now = Date.now();
     const staleThresholdMs = 2 * 60 * 60 * 1000; // 2 hours
@@ -219,6 +262,9 @@ async function cleanupStaleEntries(): Promise<void> {
 
 async function isFileBeingProcessed(fileKey: string): Promise<boolean> {
   try {
+    const locks = getLocalLocks();
+    if (locks) return locks.isLockedByOther(fileKey);
+
     const lockfile = await readLockfile();
     return lockfile.entries.some(entry => entry.fileKey === fileKey);
   } catch (error) {
