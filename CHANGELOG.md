@@ -52,6 +52,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - Reapplying spelling corrections processed every transcript twice.
 - `bds ingest` now re-indexes sites whose transcripts are newer than their search index, so episodes transcribed outside the pipeline (e.g. `bds lambda run`) get indexed without `--force-local-indexing`.
 - `bds worktree create` symlinks the main checkout's gitignored config (`.env.*`, sites' `.env.aws-sso`, `.site-account-mappings.json`, `.local-files-config.json`, …) into the new worktree. `bds worktree link-config <path>` does the same for an existing worktree.
+- Local indexing rewrote every `search-entries/*.json` on each run (local `listFiles` isn't recursive, so existing files were never found), so every run re-uploaded all of them to S3. It now rewrites only missing files and files whose transcript changed.
 
 ## v0.0.1 (2026-10-06)
 

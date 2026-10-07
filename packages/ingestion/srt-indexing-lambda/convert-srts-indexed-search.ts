@@ -17,6 +17,8 @@ import {
   listFiles,
   listDirectories,
   createDirectory,
+  getFileStorageEnv,
+  getLocalFilePath,
 } from '@browse-dot-show/s3'
 import { convertSrtFileIntoSearchEntryArray } from './utils/convert-srt-file-into-search-entry-array.js';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
@@ -173,18 +175,43 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   return searchEntries;
 }
 
-// Function to check if search entries already exist for a transcript
-// **OPTIMIZATION: Now uses cached JSON file list instead of calling fileExists() for each file**
-function searchEntriesJsonFileExists(srtFileKey: string, allExistingJsonFiles: string[]): string | false {
+function searchEntriesKeyFor(srtFileKey: string): string {
   const srtFileName = path.basename(srtFileKey, '.srt');
   const podcastName = path.basename(path.dirname(srtFileKey));
-  const searchEntriesKey = path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
+  return path.join(getSearchEntriesDirPrefix(), podcastName, `${srtFileName}.json`);
+}
 
-  // **OPTIMIZATION: Use cached JSON file list instead of calling fileExists()**
-  if (allExistingJsonFiles.includes(searchEntriesKey)) {
-    return searchEntriesKey;
+/**
+ * All existing search entry JSON files, as keys like `search-entries/<podcast>/<episode>.json`.
+ * Lists each podcast directory, because local `listFiles` isn't recursive (S3's is).
+ */
+async function listExistingSearchEntryJsonFiles(): Promise<Set<string>> {
+  const searchEntriesPrefix = getSearchEntriesDirPrefix();
+  const keys = new Set<string>();
+  const directories = await listDirectories(searchEntriesPrefix);
+  for (const prefix of [searchEntriesPrefix, ...directories]) {
+    for (const key of await listFiles(prefix.endsWith('/') ? prefix : `${prefix}/`)) {
+      if (key.endsWith('.json')) keys.add(key);
+    }
   }
-  return false;
+  return keys;
+}
+
+/**
+ * Locally, whether the SRT changed after its search entries JSON was written (re-transcribed,
+ * or spelling corrections reapplied), so the JSON needs regenerating. Always false in AWS.
+ */
+async function isSrtNewerThanSearchEntries(srtFileKey: string, searchEntriesKey: string): Promise<boolean> {
+  if (getFileStorageEnv() !== 'local') return false;
+  try {
+    const [srtStat, jsonStat] = await Promise.all([
+      fs.stat(getLocalFilePath(srtFileKey)),
+      fs.stat(getLocalFilePath(searchEntriesKey)),
+    ]);
+    return srtStat.mtimeMs > jsonStat.mtimeMs;
+  } catch {
+    return false;
+  }
 }
 
 // Main handler function
@@ -313,9 +340,9 @@ export async function handler(): Promise<any> {
 
   // **OPTIMIZATION: Get all existing search entry JSON files once at the beginning**
   log.info('Getting all existing search entry JSON files to cache for performance...');
-  const searchEntriesPrefix = getSearchEntriesDirPrefix();
-  const allExistingJsonFiles = await listFiles(searchEntriesPrefix);
-  log.info(`Found ${allExistingJsonFiles.length} existing search entry JSON files to cache.`);
+  const existingJsonFiles = await listExistingSearchEntryJsonFiles();
+  log.info(`Found ${existingJsonFiles.size} existing search entry JSON files to cache.`);
+  let searchEntriesRegenerated = 0;
 
   let srtFilesProcessedCount = 0;
   let newEntriesAddedInThisRun = 0;
@@ -337,7 +364,16 @@ export async function handler(): Promise<any> {
     let searchEntriesForFile: SearchEntry[] = [];
     let jsonNeedsProcessing = true; // Assume we need to process (load or create) the JSON
 
-    const existingJsonPath = searchEntriesJsonFileExists(srtFileKey, allExistingJsonFiles);
+    // Reuse the existing JSON unless the SRT changed since it was written. Rewriting unchanged
+    // JSON would bump its mtime, and the S3 upload (`aws s3 sync`) would then re-upload it.
+    const searchEntriesKey = searchEntriesKeyFor(srtFileKey);
+    const hasJson = existingJsonFiles.has(searchEntriesKey);
+    const srtChanged = hasJson && await isSrtNewerThanSearchEntries(srtFileKey, searchEntriesKey);
+    if (srtChanged) {
+      log.debug(`${srtFileKey} is newer than ${searchEntriesKey}; regenerating it.`);
+      searchEntriesRegenerated++;
+    }
+    const existingJsonPath = hasJson && !srtChanged ? searchEntriesKey : false;
     if (existingJsonPath) {
       log.debug(`Search entries JSON already exists for ${srtFileKey} at ${existingJsonPath}. Loading it.`);
       try {
@@ -491,6 +527,7 @@ export async function handler(): Promise<any> {
   log.info(`\n📁 Total SRT Files Found: ${totalSrtFiles}`);
   log.info(`✅ Successfully Processed: ${srtFilesProcessedCount}`);
   log.info(`📝 New Search Entries Added: ${newEntriesAddedInThisRun}`);
+  log.info(`🔁 Search entry files regenerated (SRT changed): ${searchEntriesRegenerated}`);
   log.info(`\n✨ Completed successfully.`);
 
   return {
