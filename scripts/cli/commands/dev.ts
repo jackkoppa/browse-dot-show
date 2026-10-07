@@ -79,10 +79,10 @@ USAGE
 
 export const worktreeCommand: Command = {
   path: ['worktree'],
-  summary: 'Manage git worktrees (create / list / remove / prune)',
+  summary: 'Manage git worktrees (create / list / remove / prune / link-config)',
   usage: `
 USAGE
-  pnpm bds worktree <create|list|remove|prune|help> [branch]
+  pnpm bds worktree <create|list|remove|prune|link-config|help> [branch|path]
 `,
   async run(argv) {
     // worktree.ts has its own positional argument handling

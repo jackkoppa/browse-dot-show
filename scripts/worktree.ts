@@ -7,10 +7,12 @@
  *   pnpm bds worktree create <branch-name>  # Create a new worktree
  *   pnpm bds worktree list                  # List all worktrees
  *   pnpm bds worktree remove <branch-name>  # Remove a worktree
+ *   pnpm bds worktree link-config [path]    # Symlink gitignored config into a worktree
  *   pnpm bds worktree help                  # Show help message
  */
 
 import { execCommand, execCommandOrThrow } from './lib/shell-exec.js';
+import { linkWorktreeConfig, mainWorktreePath } from './lib/worktree-config.js';
 import { getWorktreeDirectory, saveWorktreeDirectory } from '@browse-dot-show/config';
 import prompts from 'prompts';
 import fs from 'fs';
@@ -100,8 +102,25 @@ async function createWorktree(branchName: string) {
   
   console.log(`✅ Worktree created successfully!`);
   console.log(`📂 Location: ${worktreePath}`);
+
+  await linkConfig(worktreePath);
+
   console.log(`\n💡 To use this worktree:`);
   console.log(`   cd ${worktreePath}`);
+  console.log(`   pnpm install && pnpm all:build`);
+}
+
+/** Symlink the main checkout's gitignored config files (.env.*, .site-account-mappings.json, ...) into a worktree. */
+async function linkConfig(worktreePath: string) {
+  const mainPath = await mainWorktreePath(REPO_ROOT);
+  if (path.resolve(worktreePath) === path.resolve(mainPath)) {
+    console.error('❌ That is the main checkout; config files already live there.');
+    process.exit(1);
+  }
+  const { linked, skipped } = await linkWorktreeConfig(mainPath, worktreePath);
+  console.log(`🔗 Linked ${linked.length} gitignored config file(s) from ${mainPath}`);
+  linked.forEach(file => console.log(`   ${file}`));
+  if (skipped.length > 0) console.log(`   (${skipped.length} already present, left as is: ${skipped.join(', ')})`);
 }
 
 async function listWorktrees() {
@@ -223,6 +242,7 @@ function showHelp() {
   console.log('  list                   List all worktrees');
   console.log('  remove <branch-name>   Remove a worktree');
   console.log('  prune                  Clean up stale worktree references');
+  console.log('  link-config [path]     Symlink gitignored config into a worktree (default: current directory)');
   console.log('  help                   Show this help message');
   console.log('');
   console.log('Examples:');
@@ -230,6 +250,7 @@ function showHelp() {
   console.log('  pnpm bds worktree list');
   console.log('  pnpm bds worktree remove feature/my-feature');
   console.log('  pnpm bds worktree prune');
+  console.log('  pnpm bds worktree link-config ../browse-dot-show--worktrees/feature/my-feature');
   console.log('');
   console.log('Configuration:');
   console.log('  Worktree directory is stored in .local-files-config.json');
@@ -271,6 +292,11 @@ async function main() {
         
       case 'prune':
         await pruneWorktrees();
+        break;
+
+      case 'link-config':
+        // pnpm runs scripts from the package root; INIT_CWD is where the user ran the command
+        await linkConfig(path.resolve(process.env.INIT_CWD ?? process.cwd(), branchName ?? '.'));
         break;
         
       default:
