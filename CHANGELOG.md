@@ -50,6 +50,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 - `automation:deploy` (now `bds infra automation deploy`) looked for `.site-account-mappings.json` relative to the Terraform directory. (The automation deploy still needs a Terraform fix before it can plan: its `site_account_ids` tfvars map is incomplete.)
 - Reapplying spelling corrections processed every transcript twice.
+- `bds ingest` now re-indexes sites whose transcripts are newer than their search index, so episodes transcribed outside the pipeline (e.g. `bds lambda run`) get indexed without `--force-local-indexing`.
 
 ## v0.0.1 (2026-10-06)
 
