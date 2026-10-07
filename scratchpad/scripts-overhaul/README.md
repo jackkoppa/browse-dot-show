@@ -57,7 +57,7 @@ M1 can start immediately. M5 is out of scope for session 1.
 
 ### Progress
 
-Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Tonight: [09](./09-tonight-runbook.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`, worked on in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`.
+Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Tonight: [09](./09-tonight-runbook.md). Follow-ups: [10](./10-follow-ups.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`, worked on in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`.
 
 - [x] M0: Baseline (`jackkoppa/scripts-overhaul-m0-baseline`)
 - [x] M1: Delete dead code (`jackkoppa/scripts-overhaul-m1-delete-dead-code`)

@@ -103,5 +103,5 @@ Note: the plan branch has the early session commits (decisions doc); later plan-
 
 1. **Untranscribed files for test 2b.** Options: (a) wait for new episodes, using `--skip=pre-sync,s3-sync,cloudfront` but keeping `rss`; (b) temporarily move a couple of `.srt` files aside into a backup folder and restore them if the test fails; (c) skip 2b and rely on the haveaword run (2d). Recommendation: (a) if any site has new episodes, otherwise (b).
 2. **Merge strategy for the stack:** merge each PR in order (keeps milestone commits), or squash each? Squashing a stacked PR means rebasing the next one onto `main`.
-3. **When to run `bds infra automation deploy`.** It will regenerate `.deployed-sites.json` with 23 sites (currently 7) and change the automation user's IAM policy. Not needed for anything tonight; review the plan whenever you do run it.
+3. **`bds infra automation deploy`** currently fails at `terraform plan` (the tfvars site map is incomplete); see [10](./10-follow-ups.md). Not needed tonight.
 4. **The 34 `validate sites` errors** (missing `appHeader.includeAIUseDisclosure`, already failing on `main`): fix in a follow-up, or leave?
