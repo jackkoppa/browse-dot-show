@@ -102,7 +102,7 @@ Phases, in order (skip any with `--skip=<id,...>`):
 | `pre-sync` | Download files that exist in S3 but not locally, so a machine that's been offline catches up |
 | `rss` | Download new episodes from each site's RSS feeds |
 | `transcribe` | Transcribe new audio with whisper.cpp, for all selected sites at once with `--parallel=N` workers |
-| `index` | Rebuild the search index for sites with new transcripts |
+| `index` | Rebuild the search index for sites with new transcripts, or whose transcripts are newer than their index (e.g. after a manual `bds lambda run`) |
 | `s3-sync` | Upload new local files (including the search index) to each site's bucket, then refresh the search lambda |
 | `cloudfront` | Invalidate CloudFront for sites with uploads |
 

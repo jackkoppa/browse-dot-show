@@ -15,6 +15,7 @@ import {
   runLocalIndexingForSite,
   triggerSearchApiLambdaRefresh,
 } from './steps.js';
+import { sitesWithStaleSearchIndex } from './index-freshness.js';
 import { printPipelineSummary } from './summary.js';
 import { runParallelTranscription } from './transcription.js';
 import type { PipelineConfig, SiteProcessingResult } from './types.js';
@@ -26,7 +27,8 @@ import type { PipelineConfig, SiteProcessingResult } from './types.js';
  *    offline catches up instead of re-downloading or re-transcribing)
  * 2. RSS retrieval: download new episodes
  * 3. Transcription: transcribe new audio with local whisper
- * 4. Local indexing: rebuild the search index for sites with new files
+ * 4. Local indexing: rebuild the search index for sites with new files, or whose
+ *    transcripts are newer than their index (e.g. after a manual `bds lambda run`)
  * 5. S3 sync: upload new local files (incl. search index), then refresh the search lambda
  * 6. CloudFront invalidation for sites with uploads
  *
@@ -257,41 +259,36 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     console.log('\n⏭️  Skipping Phase 3.5: Spelling Corrections Reapplication (disabled)');
   }
   
-  // Phase 4: Local Indexing for sites with new files
+  // Phase 4: Local Indexing for sites with new files or a stale index
   if (config.phases.localIndexing) {
     console.log('\n' + '='.repeat(60));
-    console.log('🔍 Phase 4: Local Indexing for sites with new files');
+    console.log('🔍 Phase 4: Local Indexing for sites with new files or a stale index');
     console.log('='.repeat(60));
-    
-    let sitesWithNewFiles = results.filter(result => result.hasNewFiles);
-    
-    // If force local indexing is enabled, include all sites
-    if (config.forceLocalIndexing) {
-      console.log('🔄 Force local indexing enabled - processing all sites');
-      sitesWithNewFiles = results; // Include all sites
-    }
-    
+
+    // Why each site needs indexing. A stale index (transcripts newer than it) catches
+    // transcription done outside this run, e.g. a manual `bds lambda run`.
+    const staleSiteIds = new Set(sitesWithStaleSearchIndex(results.map(r => r.siteId)));
+    const indexingReason = (result: SiteProcessingResult): string | undefined => {
+      if (config.forceLocalIndexing) return 'forced indexing';
+      if (result.hasNewFiles) return 'has new files';
+      if (staleSiteIds.has(result.siteId)) return 'transcripts newer than search index';
+      return undefined;
+    };
+    const sitesToIndex = results.filter(result => indexingReason(result) !== undefined);
+
     if (config.dryRun) {
-      console.log(`🔍 DRY RUN: Would run local indexing for ${sitesWithNewFiles.length} site(s)`);
-      if (config.forceLocalIndexing) {
-        console.log('   (Force local indexing enabled - all sites included)');
-      } else {
-        console.log('   (Only sites with new files)');
-      }
-      sitesWithNewFiles.forEach(result => {
-        console.log(`   - ${result.siteId}: ${config.forceLocalIndexing ? 'forced indexing' : 'has new files'}`);
+      console.log(`🔍 DRY RUN: Would run local indexing for ${sitesToIndex.length} site(s)`);
+      sitesToIndex.forEach(result => {
+        console.log(`   - ${result.siteId}: ${indexingReason(result)}`);
       });
     } else {
-      if (sitesWithNewFiles.length === 0) {
-        console.log('ℹ️  No sites have new files. Skipping local indexing phase.');
+      if (sitesToIndex.length === 0) {
+        console.log('ℹ️  No sites have new files or a stale index. Skipping local indexing phase.');
       } else {
-        if (config.forceLocalIndexing) {
-          console.log(`📝 Processing ${sitesWithNewFiles.length} site(s) with forced local indexing:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
-        } else {
-          console.log(`📝 Found ${sitesWithNewFiles.length} site(s) with new files:${sitesWithNewFiles.map(r => ` ${r.siteId}`).join(',')}`);
-        }
-        
-        for (const result of sitesWithNewFiles) {
+        console.log(`📝 Indexing ${sitesToIndex.length} site(s):`);
+        sitesToIndex.forEach(result => console.log(`   - ${result.siteId}: ${indexingReason(result)}`));
+
+        for (const result of sitesToIndex) {
           const resultIndex = results.findIndex(r => r.siteId === result.siteId);
           
           const localIndexingResult = await runLocalIndexingForSite(result.siteId);

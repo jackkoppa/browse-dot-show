@@ -107,7 +107,7 @@ OPTIONS
                                    "transcriptionWorkers" in .local-files-config.json, else ${DEFAULT_TRANSCRIPTION_WORKERS})
   --dry-run                        Show what would happen; no downloads, transcription, uploads or AWS calls
   --reapply-spelling-corrections   Also reapply spelling corrections to ALL existing transcripts
-  --force-local-indexing           Re-index every selected site, even without new files
+  --force-local-indexing           Re-index every selected site (by default: sites with new files or a stale index)
 
 PHASES
 ${PIPELINE_PHASES.map(phase => `  ${phase.id.padEnd(12)} ${phase.title}`).join('\n')}
