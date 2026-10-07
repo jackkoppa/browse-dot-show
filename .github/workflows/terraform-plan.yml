@@ -1,0 +1,127 @@
+# Terraform plans for PRs (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
+#
+# For every Terraform target a PR affects (a site's stack, or the homepage), run a read-only
+# plan and post a summary comment. If any plan creates, replaces or destroys resources, the
+# `approve-plan` job waits for approval in the `terraform-approval` environment. Merging then
+# applies the plans (deploy.yml), refusing anything risky that wasn't approved here.
+#
+# Branch protection requires the `terraform-plan-result` check.
+name: terraform-plan
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: terraform-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  TF_CLI_ARGS: -no-color
+  AWS_REGION: us-east-1
+
+jobs:
+  affected:
+    # Off until the OIDC roles and repo config exist (08: setup); set the repo variable to enable
+    if: vars.GHA_DEPLOYS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      terraform_targets: ${{ steps.affected.outputs.terraform_targets }}
+      has_terraform: ${{ steps.affected.outputs.has_terraform }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - id: affected
+        run: pnpm bds ci affected --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }}
+        env:
+          HOMEPAGE_AWS_ACCOUNT_ID: ${{ vars.HOMEPAGE_AWS_ACCOUNT_ID }}
+
+  plan:
+    needs: affected
+    if: needs.affected.outputs.has_terraform == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include: ${{ fromJSON(needs.affected.outputs.terraform_targets) }}
+    name: plan (${{ matrix.target }})
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          terraform: 'true'
+      - name: Build lambdas
+        if: matrix.target != 'homepage'
+        run: pnpm all:build && pnpm all:build:prod
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/browse-dot-show-gha-plan
+          aws-region: us-east-1
+      - name: Terraform plan
+        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=plan --out=plans/${{ matrix.slug }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Only the summary (resource addresses and actions); never the raw plan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plan-summary-${{ matrix.slug }}
+          path: plans/${{ matrix.slug }}/summary.json
+
+  comment:
+    needs: [affected, plan]
+    if: always() && needs.affected.outputs.has_terraform == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      needs_approval: ${{ steps.comment.outputs.needs_approval }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: plan-summary-*
+          path: plans
+      - id: comment
+        run: pnpm bds ci plan-comment --dir=plans --out=comment.md --run-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      - name: Note failed plans
+        if: needs.plan.result != 'success'
+        run: printf '\n> ⚠️ Some plans failed; see the workflow run. This PR can'"'"'t merge until they pass.\n' >> comment.md
+      - uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: terraform-plan
+          path: comment.md
+      # All summaries together, for deploy.yml to compare against on merge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-summaries
+          path: plans
+
+  approve-plan:
+    needs: comment
+    if: needs.comment.outputs.needs_approval == 'true'
+    runs-on: ubuntu-latest
+    environment: terraform-approval
+    steps:
+      - run: echo "Terraform plan approved for PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }}"
+
+  # The one required check: fails if any plan failed or the approval was rejected
+  terraform-plan-result:
+    needs: [affected, plan, comment, approve-plan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          for result in "${{ needs.affected.result }}" "${{ needs.plan.result }}" "${{ needs.comment.result }}" "${{ needs.approve-plan.result }}"; do
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              echo "A terraform-plan job ended with: $result"
+              exit 1
+            fi
+          done

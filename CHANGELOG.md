@@ -42,6 +42,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Changed (deploys)
 
+- **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`): plans on PRs with an approval gate for creates/replaces/destroys, and deploys of what changed on merge. Off until the `GHA_DEPLOYS_ENABLED` repo variable is `true`; see the Deployment Guide.
 - `terraform/github-actions/` + `bds infra github-actions deploy`: GitHub's OIDC provider and two roles per AWS account (`browse-dot-show-gha-plan`, read-only, for PRs; `browse-dot-show-gha-deploy`, for `main`).
 - `bds ci affected` / `ci terraform` / `ci plan-comment` / `ci upload-homepage`: building blocks for GitHub Actions deploys (what changed, plan summaries, plan/approve/apply).
 - `bds site deploy` passes the OpenAI key to Terraform as `TF_VAR_openai_api_key` instead of a `-var` argument, so it no longer appears in logs or in the saved plan file.

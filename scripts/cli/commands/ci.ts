@@ -60,8 +60,9 @@ OPTIONS
   --all          Everything: every deployed site's Terraform and client, and the homepage
   --json         Print JSON only
 
-In GitHub Actions it also writes outputs: terraform_targets and client_sites (JSON arrays),
-homepage, has_terraform and has_deploys (true/false).
+In GitHub Actions it also writes outputs: terraform_targets ([{target, slug, account_id}])
+and client_sites ([{site, account_id}]) for job matrices, and homepage, has_terraform and
+has_clients (true/false). The homepage's account comes from HOMEPAGE_AWS_ACCOUNT_ID.
 `,
   async run(argv) {
     const flags = parseFlags(argv, {
@@ -72,6 +73,7 @@ homepage, has_terraform and has_deploys (true/false).
       help: { type: 'boolean', short: 'h' },
     });
     const deployableSites = Object.keys(loadSiteAccountMappings()).sort();
+    if (flags.all && flags.base) throw new UsageError('Use either --all or --base, not both.');
     let affected: Affected;
     if (flags.all) {
       affected = { terraformSites: deployableSites, clientSites: deployableSites, homepage: true, notes: [] };
@@ -80,13 +82,24 @@ homepage, has_terraform and has_deploys (true/false).
       affected = computeAffected({ changedFiles: changedFiles(flags.base, flags.head ?? 'HEAD'), packages: loadWorkspacePackages(), deployableSites });
     }
 
-    const terraformTargets = [...affected.terraformSites.map(site => `site:${site}`), ...(affected.homepage ? ['homepage'] : [])];
+    // Matrix entries for the workflows. Role ARNs follow from the account ID
+    // (arn:aws:iam::<account>:role/browse-dot-show-gha-<plan|deploy>, terraform/github-actions).
+    const mappings = loadSiteAccountMappings();
+    const homepageAccountId = process.env.HOMEPAGE_AWS_ACCOUNT_ID ?? '';
+    if (affected.homepage && process.env.GITHUB_ACTIONS && !homepageAccountId) {
+      throw new Error('HOMEPAGE_AWS_ACCOUNT_ID is not set (a repository variable).');
+    }
+    const terraformTargets = [
+      ...affected.terraformSites.map(site => ({ target: `site:${site}`, slug: `site-${site}`, account_id: mappings[site].accountId })),
+      ...(affected.homepage ? [{ target: 'homepage', slug: 'homepage', account_id: homepageAccountId }] : []),
+    ];
+    const clientSites = affected.clientSites.map(site => ({ site, account_id: mappings[site].accountId }));
     setGithubOutputs({
       terraform_targets: JSON.stringify(terraformTargets),
-      client_sites: JSON.stringify(affected.clientSites),
+      client_sites: JSON.stringify(clientSites),
       homepage: String(affected.homepage),
       has_terraform: String(terraformTargets.length > 0),
-      has_deploys: String(terraformTargets.length > 0 || affected.clientSites.length > 0),
+      has_clients: String(clientSites.length > 0),
     });
     appendStepSummary(describeAffected(affected));
     console.log(flags.json ? JSON.stringify({ ...affected, terraformTargets }, null, 2) : describeAffected(affected));
