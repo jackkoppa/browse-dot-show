@@ -1,5 +1,5 @@
 # TODO: Future enhancement - read remote state from each deployed site's terraform configuration
-# Currently using hardcoded account IDs since automation account doesn't have terraform state access yet
+# Site account IDs come from .site-account-mappings.json (locals.tf)
 # data "terraform_remote_state" "sites" {
 #   for_each = toset(var.deployed_sites)
 #   

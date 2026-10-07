@@ -138,14 +138,6 @@ async function runTerraformDeployment(options: DeploymentOptions): Promise<{ acc
   process.chdir(TF_DIR);
 
   try {
-    // Generate deployed sites list
-    printInfo('📋 Generating deployed sites list...');
-    await execCommandOrThrow('npx', [
-      'tsx',
-      '../../scripts/lib/generate-deployed-sites.ts'
-    ]);
-    printSuccess('✅ Generated deployed sites list');
-
     // Initialize Terraform with backend config
     printInfo('🔧 Initializing Terraform...');
     await execCommandOrThrow('terraform', [

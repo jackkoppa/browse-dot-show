@@ -22,22 +22,19 @@ output "automation_secret_access_key" {
 
 output "deployed_sites" {
   description = "List of sites that have automation access configured"
-  value       = local.actual_deployed_sites
+  value       = local.deployed_sites
 }
 
 output "site_account_ids" {
   description = "Map of site IDs to their AWS account IDs"
-  value = {
-    for site_id in local.actual_deployed_sites :
-    site_id => var.site_account_ids[site_id]
-  }
+  value       = local.site_account_ids
 }
 
 output "automation_role_arns" {
   description = "Map of site IDs to their automation role ARNs"
   value = {
-    for site_id in local.actual_deployed_sites :
-    site_id => "arn:aws:iam::${var.site_account_ids[site_id]}:role/browse-dot-show-automation-role"
+    for site_id, account_id in local.site_account_ids :
+    site_id => "arn:aws:iam::${account_id}:role/browse-dot-show-automation-role"
   }
 }
 
@@ -57,10 +54,7 @@ AWS_SECRET_ACCESS_KEY=${aws_iam_access_key.automation_key.secret}
 AWS_REGION=${var.aws_region}
 
 # Site account mappings (for reference)
-${join("\n", [for site_id, account_id in {
-  for site_id in local.actual_deployed_sites :
-  site_id => var.site_account_ids[site_id]
-} : "# ${site_id}_ACCOUNT_ID=${account_id}"])}
+${join("\n", [for site_id, account_id in local.site_account_ids : "# ${site_id}_ACCOUNT_ID=${account_id}"])}
 EOT
   sensitive = true
 } 

@@ -4,18 +4,6 @@ variable "automation_user_name" {
   default     = "browse-dot-show-automation"
 }
 
-variable "deployed_sites" {
-  description = "List of site IDs that are deployed and need automation access (loaded from .deployed-sites.json)"
-  type        = list(string)
-  default     = []
-}
-
-variable "site_account_ids" {
-  description = "Map of site IDs to their AWS account IDs (hardcoded for now)"
-  type        = map(string)
-  default     = {}
-}
-
 variable "aws_region" {
   description = "The AWS region for automation resources"
   type        = string

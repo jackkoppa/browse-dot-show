@@ -6,7 +6,7 @@ Captured from session 1 and from the review of the PR stack (#162–#168). Each 
 
 ## Before or alongside M4b (GitHub Actions deploys)
 
-1. **`bds infra automation deploy` fails at `terraform plan`.** `terraform/automation/main.tf` (and `outputs.tf`) index `var.site_account_ids[site_id]` for every site in `.deployed-sites.json`. The gitignored `terraform/automation/terraform.tfvars` maps only 6 sites, so the 7-site file already fails on `lordsoflimited`, and the regenerated 23-site file would too. Nothing gets applied; live sites and the current automation user are unaffected.
+1. **✅ M4b PR 6: `bds infra automation deploy` fails at `terraform plan`.** `terraform/automation/main.tf` (and `outputs.tf`) index `var.site_account_ids[site_id]` for every site in `.deployed-sites.json`. The gitignored `terraform/automation/terraform.tfvars` maps only 6 sites, so the 7-site file already fails on `lordsoflimited`, and the regenerated 23-site file would too. Nothing gets applied; live sites and the current automation user are unaffected.
    - **Recommended fix:** build the assume-role policy from the distinct site **account IDs** (all 23 sites share 2 accounts, so 2 role ARNs), e.g. have `generate-deployed-sites.ts` also write the account IDs from `.site-account-mappings.json`, or pass them as a variable. That drops the per-site tfvars map.
    - Or: add the 17 missing sites to `terraform.tfvars`.
    - Review the plan before applying: it changes the automation user's IAM policy. Terraform was out of scope for session 1, so this wasn't changed.

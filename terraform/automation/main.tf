@@ -50,10 +50,7 @@ resource "aws_iam_user_policy" "assume_site_roles" {
       {
         Effect = "Allow"
         Action = "sts:AssumeRole"
-        Resource = [
-          for site_id in local.actual_deployed_sites :
-          "arn:aws:iam::${var.site_account_ids[site_id]}:role/browse-dot-show-automation-role"
-        ]
+        Resource = local.automation_role_arns
       }
     ]
   })
