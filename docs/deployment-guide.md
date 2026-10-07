@@ -211,18 +211,9 @@ Visit `https://[your-site].browse.show` and verify:
 
 Set up scheduled processing for new episodes:
 
-**Option 1: Local Automation (Recommended for Development)**
-```bash
-# Set up local automation that runs on login
-sudo pnpm run ingestion:automation:manage
+**Option 1: Scheduled local runs on a Mac (in progress)**
 
-# This creates a macOS LaunchAgent that:
-# - Runs pipeline automatically when you log in
-# - Executes at most once per 24 hours
-# - Only runs on battery if >50% charged
-# - Provides fast exit if already run recently
-# - Includes interactive management interface
-```
+Unattended, scheduled runs of the local pipeline on a Mac are being rebuilt (see `scratchpad/scripts-overhaul/03-mac-automation.md`). Until then, run the pipeline manually (see below).
 
 **Option 2: Cloud-Based Automation (Production - Higher Cost)**
 ```bash
@@ -249,22 +240,6 @@ When you want to add new episodes manually:
 pnpm run ingestion:run-pipeline:interactive
 
 # Select "Incremental update" to process only new episodes
-```
-
-### Managing Local Automation
-
-If you set up local automation, you can manage it anytime:
-
-```bash
-# Interactive management interface
-sudo pnpm run ingestion:automation:manage
-
-# This allows you to:
-# - Enable/disable automation
-# - View execution history
-# - Test pipeline manually
-# - Check power and timing status
-# - View detailed logs
 ```
 
 ## 🔧 Troubleshooting
@@ -309,21 +284,6 @@ ls -la [local-files-path]/s3/sites/[your-site]/
 - Verify RSS feed URL is correct in site configuration
 - Check that RSS feed is publicly accessible
 - Re-run ingestion pipeline if needed
-
-**Local Automation Issues (macOS)**
-```bash
-# Check automation status
-sudo pnpm run ingestion:automation:manage
-
-# Check LaunchAgent status
-launchctl list | grep ingestion-automation
-
-# View automation logs
-tail -f scripts/automation-logs/automation.log
-
-# Check power conditions
-pmset -g ps
-```
 
 ## 🔄 Ongoing Maintenance
 
