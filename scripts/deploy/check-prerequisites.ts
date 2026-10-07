@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
-import { execCommand, commandExists } from '../utils/shell-exec.js';
-import { logError, logWarning, printError, logSuccess, logProgress, printInfo } from '../utils/logging.js';
-import { validateAwsEnvironment } from '../utils/aws-utils.js';
+import { execCommand, commandExists } from '../lib/shell-exec.js';
+import { logError, logWarning, printError, logSuccess, logProgress, printInfo } from '../lib/logging.js';
+import { validateAwsEnvironment } from '../lib/aws-utils.js';
 
 interface PrerequisiteCheck {
   name: string;

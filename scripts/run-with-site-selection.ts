@@ -3,7 +3,8 @@
 import { spawn } from 'child_process';
 
 // Import site loading utilities
-import { selectSite, loadSiteEnvVars } from './utils/site-selector.js';
+import { resolveSite } from './lib/sites.js';
+import { loadSiteEnv } from './lib/env.js';
 
 /**
  * Wrapper script that handles site selection and runs commands with site context
@@ -50,18 +51,19 @@ async function main(): Promise<void> {
             console.log(`🌐 Selecting site for ${operation}...`);
         }
         
-        const siteId: string = await selectSite({ 
-            operation,
-            defaultSiteId: preselectedSiteId,
-            skipPrompt: !!preselectedSiteId
-        });
+        const site = await resolveSite({ site: preselectedSiteId, operation });
+        if (!site) {
+            console.log('Site selection cancelled.');
+            process.exit(0);
+        }
+        const siteId = site.id;
         
         console.log(`📍 Selected site: ${siteId}`);
 
         // Load site-specific environment variables
         // For local development, use 'local' instead of 'dev'
         const envType: string = process.env.NODE_ENV === 'production' ? 'prod' : 'local';
-        const siteEnvVars: Record<string, string> = loadSiteEnvVars(siteId, envType);
+        const siteEnvVars = loadSiteEnv(siteId, { rootEnv: envType });
         
         // Merge with current environment, giving priority to site-specific vars
         const envVars: NodeJS.ProcessEnv = {

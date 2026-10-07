@@ -25,7 +25,7 @@ import * as path from 'path';
 import { getLocalS3SitePath } from '@browse-dot-show/config';
 import { execSync } from 'child_process';
 import prompts from 'prompts';
-import { discoverSites } from './utils/site-selector.js';
+import { discoverSites } from './lib/sites.js';
 import { MultiTerminalRunner, ProcessConfig } from './utils/multi-terminal-runner.js';
 
 const ALL_SITES = '__all__';

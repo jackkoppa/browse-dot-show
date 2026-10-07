@@ -5,7 +5,8 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 // Import site loading utilities
-import { selectSite, loadSiteEnvVars } from './utils/site-selector.js';
+import { resolveSite } from './lib/sites.js';
+import { loadSiteEnv } from './lib/env.js';
 
 const execAsync = promisify(exec);
 
@@ -89,17 +90,17 @@ async function main(): Promise<void> {
             console.log('🌐 Selecting site for client development...');
         }
         
-        const siteId: string = await selectSite({ 
-            operation: 'client development',
-            defaultSiteId: preselectedSiteId,
-            skipPrompt: !!preselectedSiteId
-        });
+        const site = await resolveSite({ site: preselectedSiteId, operation: 'client development' });
+        if (!site) {
+            console.log('Site selection cancelled.');
+            process.exit(0);
+        }
+        const siteId = site.id;
         
         console.log(`📍 Selected site: ${siteId}`);
 
         // Load site-specific environment variables
-        const envType: string = 'local';
-        const siteEnvVars: Record<string, string> = loadSiteEnvVars(siteId, envType);
+        const siteEnvVars = loadSiteEnv(siteId);
         
         // Merge with current environment, giving priority to site-specific vars
         const envVars: NodeJS.ProcessEnv = {

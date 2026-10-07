@@ -1,6 +1,6 @@
 import { join } from 'path';
-import { exists, writeJsonFile, readJsonFile } from '../utils/file-operations.js';
-import { printInfo, printSuccess, printWarning, printError } from '../utils/logging.js';
+import { exists, writeJsonFile, readJsonFile } from '../lib/file-operations.js';
+import { printInfo, printSuccess, printWarning, printError } from '../lib/logging.js';
 import type { SetupStep, SetupProgress, StepStatus } from './types.js';
 
 // Setup step definitions

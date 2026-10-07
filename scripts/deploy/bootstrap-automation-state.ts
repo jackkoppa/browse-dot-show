@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
-import { execCommandOrThrow } from '../utils/shell-exec.js';
-import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
-import { validateAwsEnvironment } from '../utils/aws-utils.js';
+import { execCommandOrThrow } from '../lib/shell-exec.js';
+import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
+import { validateAwsEnvironment } from '../lib/aws-utils.js';
 
 const STATE_BUCKET_NAME = 'browse-dot-show-automation-terraform-state';
 const AWS_REGION = 'us-east-1';

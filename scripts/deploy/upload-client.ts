@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
-import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
-import { checkAwsCredentials } from '../utils/aws-utils.js';
+import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
+import { checkAwsCredentials } from '../lib/aws-utils.js';
 import { 
   buildClientForSite, 
   validateBuildOutput, 
@@ -9,7 +9,7 @@ import {
   invalidateCloudFrontWithProfile, 
   getTerraformOutputsWithProfile,
   TerraformOutputs 
-} from '../utils/client-deployment.js';
+} from '../lib/client-deployment.js';
 
 interface UploadConfig {
   siteId: string;

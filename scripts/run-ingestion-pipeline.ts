@@ -1,14 +1,5 @@
 #!/usr/bin/env tsx
 
-// CURSOR-TODO: Add a `--local-run-only` flag that will:
-// 1. Not attempt to load any .env.automation file / credentials
-// 2. Skip the S3-to-local pre-sync phase
-// 3. Skip the local-to-S3 post-sync phase
-// 4. Skip the search-api Lambda refresh
-// 5. Adjust logging accordingly (e.g. no logs about S3 sync, new files, etc.)
-// NOTE: Most/some of this can be moved to another file. This file is still the only entry point,
-// but there will be enough differences that we should start moving some of this functionality into a new scripts/ingestion-pipeline/ directory.
-
 /**
  * Ingestion Pipeline Script - Complete Podcast Processing Workflow
  * 
@@ -27,26 +18,24 @@
  * Usage: tsx scripts/run-ingestion-pipeline.ts [OPTIONS]
  */
 
-import { spawn } from 'child_process';
-
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 import prompts from 'prompts';
-import { discoverSites, loadSiteEnvVars, Site } from './utils/site-selector.js';
-import { loadSiteAccountMappings, getSiteAccountMapping, type SiteAccountMapping } from './utils/site-account-mappings.js';
-import { execCommand } from './utils/shell-exec.js';
-import { logInfo, logSuccess, logError, logWarning, logProgress, logDebug } from './utils/logging.js';
-import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './utils/sync-consistency-checker.js';
-import { getLocalS3SitePath } from '@browse-dot-show/config';
-import { loadAutomationCredentials, AutomationCredentials } from './utils/automation-credentials.js';
-import { PipelineResultLogger } from './utils/pipeline-result-logger.js';
-import { invalidateCloudFrontWithCredentials } from './utils/client-deployment.js';
-import { getSiteCloudFrontId } from './utils/site-account-mappings.js';
+import { discoverSites, type Site } from './lib/sites.js';
+import { loadAutomationCredentials, loadSiteEnv, type AutomationCredentials } from './lib/env.js';
+import { getSiteCloudFrontId } from './lib/site-accounts.js';
+import { runLambdaLocally } from './lib/lambda.js';
+import {
+  ALL_SYNC_FOLDERS,
+  assumeAwsRole,
+  performComprehensiveS3Sync,
+  performS3ToLocalPreSync,
+  syncEpisodeManifestFolder,
+} from './lib/s3-sync.js';
+import { execCommand } from './lib/shell-exec.js';
+import { logInfo, logSuccess, logError, logProgress } from './lib/logging.js';
+import { generateSyncConsistencyReport, displaySyncConsistencyReport, SYNC_MODES } from './lib/sync-consistency-checker.js';
+import { PipelineResultLogger } from './lib/pipeline-result-logger.js';
+import { invalidateCloudFrontWithCredentials } from './lib/client-deployment.js';
 import { reapplySpellingCorrectionsToAllTranscripts as reapplySpellingCorrectionsFunction } from './utils/reapply-spelling-corrections-to-all-transcripts.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Configuration options for the automation workflow
@@ -389,106 +378,6 @@ interface SiteProcessingResult {
 
 
 
-// Moved to scripts/utils/site-account-mappings.ts
-
-// S3 Sync Types and Interfaces (extracted from s3-sync.ts)
-type SyncDirection = 'local-to-s3' | 's3-to-local';
-type ConflictResolution = 'overwrite-always' | 'overwrite-if-newer' | 'skip-existing';
-
-interface SyncOptions {
-  siteId: string;
-  direction: SyncDirection;
-  conflictResolution: ConflictResolution;
-  localBasePath: string;
-  s3BucketName: string;
-  awsProfile?: string;
-  roleArn?: string;
-  tempCredentials?: any;
-}
-
-interface SyncResult {
-  success: boolean;
-  duration: number;
-  totalFilesTransferred: number;
-  error?: string;
-}
-
-// All folders that need to be synced
-// Now including search-entries and search-index as we run indexing locally and sync results
-const ALL_SYNC_FOLDERS = [
-  'audio',
-  'transcripts', 
-  'episode-manifest',
-  'rss',
-  'search-entries',
-  'search-index'
-];
-
-/**
- * Helper function to assume AWS role and get temporary credentials
- */
-async function assumeAwsRole(
-  siteId: string,
-  sessionNameSuffix: string,
-  credentials: AutomationCredentials
-): Promise<{ siteConfig: { accountId: string; bucketName: string }; tempCredentials: any }> {
-  const siteConfig = getSiteAccountMapping(siteId);
-
-  const roleArn = `arn:aws:iam::${siteConfig.accountId}:role/browse-dot-show-automation-role`;
-  
-  const assumeRoleResult = await execCommand('aws', [
-    'sts', 'assume-role',
-    '--role-arn', roleArn,
-    '--role-session-name', `auto-${sessionNameSuffix}-${siteId}-${Date.now()}`
-  ], {
-    silent: true,
-    env: {
-      ...process.env,
-      AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-      AWS_REGION: credentials.AWS_REGION
-    }
-  });
-  
-  if (assumeRoleResult.exitCode !== 0) {
-    throw new Error(`Failed to assume role: ${assumeRoleResult.stderr}`);
-  }
-  
-  const assumeRoleOutput = JSON.parse(assumeRoleResult.stdout);
-  const tempCredentials = assumeRoleOutput.Credentials;
-  
-  return { siteConfig, tempCredentials };
-}
-
-/**
- * Helper function to create sync options
- */
-function createSyncOptions(
-  siteId: string,
-  direction: SyncDirection,
-  conflictResolution: ConflictResolution,
-  siteConfig: { accountId: string; bucketName: string },
-  tempCredentials: any
-): SyncOptions {
-  const localBasePath = getLocalS3SitePath(siteId);
-  
-  return {
-    siteId,
-    direction,
-    conflictResolution,
-    localBasePath,
-    s3BucketName: siteConfig.bucketName,
-    tempCredentials
-  };
-}
-
-// Site account mappings moved to centralized location
-// TODO: Add pickleballstudio mapping when it's deployed for the first time
-
-
-
-// Removed old cloud indexing functions - we now run indexing locally for cost optimization
-
 /**
  * Trigger search-api Lambda to refresh its index after new files are uploaded
  * This ensures warm Lambda instances get the updated index file from S3
@@ -554,771 +443,93 @@ async function triggerSearchApiLambdaRefresh(
 }
 
 /**
- * Execute AWS S3 sync command (extracted from s3-sync.ts)
+ * Run an ingestion lambda locally for a site, streaming its output, and extract metrics
+ * from that output.
  */
-async function executeS3Sync(
-  source: string,
-  destination: string,
-  options: SyncOptions,
-  folder: string
-): Promise<{ success: boolean; output: string }> {
-  return new Promise((resolve) => {
-    const args = ['s3', 'sync', source, destination];
-    
-    // Add conflict resolution flags
-    if (options.conflictResolution === 'overwrite-always') {
-      args.push('--delete');
-    } else if (options.conflictResolution === 'skip-existing') {
-      // For skip-existing (only download if file doesn't exist locally),
-      // we'll use a custom approach with exclude patterns
-      // First, we need to check what files already exist locally
-      if (options.direction === 's3-to-local') {
-        const localPath = destination.replace(/\/$/, ''); // Remove trailing slash
-        try {
-          if (fs.existsSync(localPath)) {
-            // Get list of existing local files to exclude them from sync
-            const existingFiles = getExistingLocalFiles(localPath);
-            existingFiles.forEach(file => {
-              args.push('--exclude', file);
-            });
-            logDebug(`Excluding ${existingFiles.length} existing local files from S3 sync`);
-          }
-        } catch (error: any) {
-          logWarning(`Could not check existing local files for exclude patterns: ${error.message}`);
-          // Continue without exclude patterns - will use default AWS CLI behavior
-        }
-      }
-    }
-    // For 'overwrite-if-newer', AWS CLI default behavior handles this
-    
-    // Exclude system files
-    args.push('--exclude', '.DS_Store');
-    
-    // Add verbosity for better tracking
-    args.push('--cli-read-timeout', '0', '--cli-connect-timeout', '60');
-    
-    logProgress(`Syncing ${folder}: ${source} → ${destination}`);
-    
-    const syncCmd = spawn('aws', args, { 
-      stdio: 'pipe',
-      env: {
-        ...process.env,
-        ...(options.tempCredentials ? {
-          AWS_ACCESS_KEY_ID: options.tempCredentials.AccessKeyId,
-          AWS_SECRET_ACCESS_KEY: options.tempCredentials.SecretAccessKey,
-          AWS_SESSION_TOKEN: options.tempCredentials.SessionToken
-        } : {})
-      }
-    });
-    
-    let output = '';
-    let errorOutput = '';
-    let filesTransferred = 0;
-    let lastTransferredFile = '';
-    let progressInterval: NodeJS.Timeout;
-    const startTime = Date.now();
-    
-    // Set up progress indicator that updates every 10 seconds
-    const showProgress = () => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const currentFile = lastTransferredFile ? ` | Current: ${path.basename(lastTransferredFile)}` : '';
-      process.stdout.write(`\r🔄 Syncing ${folder}... (${elapsed}s) | Files: ${filesTransferred}${currentFile}`.padEnd(100));
-    };
-    
-    progressInterval = setInterval(showProgress, 10000);
-    
-    syncCmd.stdout.on('data', (data) => {
-      const text = data.toString();
-      output += text;
-      
-      // Count and track file transfers
-      const lines = text.split('\n');
-      for (const line of lines) {
-        if (line.includes('upload:') || line.includes('download:')) {
-          filesTransferred++;
-          // Extract filename from the line (format: "upload: local/path to s3://bucket/path")
-          const match = line.match(/(?:upload|download):\s+(.+?)\s+(?:to\s+)?s3:\/\//);
-          if (match && match[1]) {
-            lastTransferredFile = match[1].trim();
-          }
-          
-          // Show immediate update for file transfers
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          process.stdout.write(`\r🔄 Syncing ${folder}... (${elapsed}s) | Files: ${filesTransferred} | Current: ${path.basename(lastTransferredFile || '')}`.padEnd(100));
-        }
-      }
-    });
-    
-    syncCmd.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-    
-    syncCmd.on('close', (code) => {
-      // Clear progress indicator
-      clearInterval(progressInterval);
-      process.stdout.write('\r'.padEnd(100) + '\r');
-      
-      if (code === 0) {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        logSuccess(`${folder} sync completed (${elapsed}s) - ${filesTransferred} files transferred`);
-        resolve({ success: true, output });
-      } else {
-        logError(`${folder} sync failed: ${errorOutput}`);
-        resolve({ success: false, output: errorOutput });
-      }
-    });
-    
-    syncCmd.on('error', (error) => {
-      // Clear progress indicator on error
-      clearInterval(progressInterval);
-      process.stdout.write('\r'.padEnd(100) + '\r');
-      logError(`${folder} sync error: ${error.message}`);
-      resolve({ success: false, output: error.message });
-    });
-  });
-}
-
-/**
- * Get list of existing local files for exclude patterns
- */
-function getExistingLocalFiles(localPath: string): string[] {
-  const existingFiles: string[] = [];
-  
-  try {
-    const items = fs.readdirSync(localPath);
-    
-    for (const item of items) {
-      const fullPath = path.join(localPath, item);
-      const stat = fs.statSync(fullPath);
-      
-      if (stat.isFile() && !item.startsWith('.') && !item.includes('.DS_Store')) {
-        existingFiles.push(item);
-      } else if (stat.isDirectory()) {
-        // Recursively get files from subdirectories
-        const subPath = fullPath;
-        const relativePath = item;
-        try {
-          const subFiles = getExistingLocalFilesRecursive(subPath, relativePath);
-          existingFiles.push(...subFiles);
-        } catch (error) {
-          // Skip subdirectories that can't be read
-        }
-      }
-    }
-  } catch (error) {
-    // If we can't read the directory, return empty array
-  }
-  
-  return existingFiles;
-}
-
-/**
- * Recursively get existing local files with relative paths
- */
-function getExistingLocalFilesRecursive(dirPath: string, relativePath: string): string[] {
-  const files: string[] = [];
-  
-  try {
-    const items = fs.readdirSync(dirPath);
-    
-    for (const item of items) {
-      const fullPath = path.join(dirPath, item);
-      const itemRelativePath = `${relativePath}/${item}`;
-      
-      const stat = fs.statSync(fullPath);
-      if (stat.isFile() && !item.startsWith('.') && !item.includes('.DS_Store')) {
-        files.push(itemRelativePath);
-      } else if (stat.isDirectory()) {
-        const subFiles = getExistingLocalFilesRecursive(fullPath, itemRelativePath);
-        files.push(...subFiles);
-      }
-    }
-  } catch (error) {
-    // Skip directories that can't be read
-  }
-  
-  return files;
-}
-
-/**
- * Parse sync output to extract the number of files transferred
- */
-function parseSyncOutputForFileCount(output: string): number {
-  const lines = output.split('\n');
-  let fileCount = 0;
-  
-  for (const line of lines) {
-    if (line.includes('upload:') || line.includes('download:')) {
-      fileCount++;
-    }
-  }
-  
-  return fileCount;
-}
-
-/**
- * Sync a single folder between local and S3
- */
-async function syncSingleFolder(
-  folder: string,
-  options: SyncOptions
-): Promise<{ success: boolean; filesTransferred: number; error?: string }> {
-  const localPath = path.join(options.localBasePath, folder);
-  const s3Path = `s3://${options.s3BucketName}/${folder}`;
-  
-  // Determine source and destination based on sync direction
-  const { source, destination } = options.direction === 'local-to-s3' 
-    ? { source: localPath + '/', destination: s3Path + '/' }
-    : { source: s3Path + '/', destination: localPath + '/' };
-  
-  // Ensure local directory exists for s3-to-local sync
-  if (options.direction === 's3-to-local' && !fs.existsSync(localPath)) {
-    fs.mkdirSync(localPath, { recursive: true });
-  }
-  
-  const result = await executeS3Sync(source, destination, options, folder);
-  
-  if (!result.success) {
-    logWarning(`Failed to sync ${folder}, continuing with other folders...`);
-    return { success: false, filesTransferred: 0, error: result.output };
-  }
-  
-  const filesTransferred = parseSyncOutputForFileCount(result.output);
-  return { success: true, filesTransferred };
-}
-
-/**
- * Comprehensive S3-to-Local Pre-Sync - Phase 0
- * Downloads all existing S3 files to local storage before processing begins
- */
-async function performS3ToLocalPreSync(
+async function runLambdaWithMetrics(
   siteId: string,
-  credentials: AutomationCredentials
-): Promise<SyncResult> {
-  const startTime = Date.now();
-  
-  logProgress(`Phase 0: Pre-syncing all S3 content to local for ${siteId}`);
-  
-  try {
-    // Assume AWS role and get temporary credentials
-    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'pre-sync', credentials);
-    
-    // Set up sync options for S3-to-local direction
-    const localBasePath = getLocalS3SitePath(siteId);
-    
-    // Ensure base local directory exists
-    if (!fs.existsSync(localBasePath)) {
-      fs.mkdirSync(localBasePath, { recursive: true });
-    }
-    
-    const syncOptions = createSyncOptions(
-      siteId,
-      's3-to-local',
-      'skip-existing', // Only download files that don't exist locally
-      siteConfig,
-      tempCredentials
-    );
-    
-    let totalFilesTransferred = 0;
-    const errors: string[] = [];
-    
-    // Sync all folders from S3 to local
-    for (const folder of ALL_SYNC_FOLDERS) {
-      try {
-        const folderResult = await syncSingleFolder(folder, syncOptions);
-        totalFilesTransferred += folderResult.filesTransferred;
-        
-        if (!folderResult.success && folderResult.error) {
-          errors.push(`${folder}: ${folderResult.error}`);
-        }
-        
-        logDebug(`Pre-sync ${folder}: ${folderResult.filesTransferred} files downloaded`);
-      } catch (error: any) {
-        logError(`Error pre-syncing ${folder}: ${error.message}`);
-        errors.push(`${folder}: ${error.message}`);
-      }
-    }
-    
-    const duration = Date.now() - startTime;
-    
-    if (errors.length > 0) {
-      logWarning(`Pre-sync completed with errors for ${siteId}: ${errors.join(', ')}`);
-    } else {
-      logSuccess(`Pre-sync completed for ${siteId}: ${totalFilesTransferred} files downloaded in ${duration}ms`);
-    }
-    
-    return {
-      success: errors.length === 0,
-      duration,
-      totalFilesTransferred,
-      error: errors.length > 0 ? errors.join('; ') : undefined
-    };
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logError(`Failed to pre-sync S3 content for ${siteId}: ${error.message}`);
-    return {
-      success: false,
-      duration,
-      totalFilesTransferred: 0,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Sync transcripts folder to S3 for a site with new SRT files (original function)
- */
-async function syncTranscriptsToS3(
-  siteId: string,
-  credentials: AutomationCredentials
-): Promise<{ success: boolean; duration: number; error?: string }> {
-  const startTime = Date.now();
-  
-  logProgress(`Syncing new transcripts to S3 for ${siteId}`);
-  
-  try {
-    // Assume AWS role and get temporary credentials
-    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 's3-sync', credentials);
-    
-    // Set up paths
-    const localBasePath = getLocalS3SitePath(siteId);
-    const localTranscriptsPath = path.join(localBasePath, 'transcripts');
-    const s3TranscriptsPath = `s3://${siteConfig.bucketName}/transcripts`;
-    
-    // Ensure local directory exists
-    if (!fs.existsSync(localTranscriptsPath)) {
-      logWarning(`No transcripts directory found for ${siteId}: ${localTranscriptsPath}`);
-      return { success: true, duration: Date.now() - startTime }; // Not an error - just no files to sync
-    }
-    
-    // Set up sync options
-    const syncOptions = createSyncOptions(
-      siteId,
-      'local-to-s3',
-      'overwrite-if-newer',
-      siteConfig,
-      tempCredentials
-    );
-    
-    // Sync transcripts folder
-    const result = await executeS3Sync(
-      localTranscriptsPath + '/',
-      s3TranscriptsPath + '/',
-      syncOptions,
-      'transcripts'
-    );
-    
-    if (!result.success) {
-      throw new Error(`S3 sync failed: ${result.output}`);
-    }
-    
-    const duration = Date.now() - startTime;
-    logSuccess(`Transcripts synced to S3 for ${siteId} in ${duration}ms`);
-    return { success: true, duration };
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logError(`Failed to sync transcripts to S3 for ${siteId}: ${error.message}`);
-    return { success: false, duration, error: error.message };
-  }
-}
-
-/**
- * Sync episode-manifest folder to S3 for a site (always runs regardless of other files)
- */
-async function syncEpisodeManifestFolder(
-  siteId: string,
-  credentials: AutomationCredentials
-): Promise<SyncResult> {
-  const startTime = Date.now();
-  
-  logProgress(`Syncing episode-manifest folder to S3 for ${siteId} (always updated)`);
-  
-  try {
-    // Assume AWS role and get temporary credentials
-    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'episode-manifest-sync', credentials);
-    
-    // Set up sync options for local-to-S3 direction
-    const syncOptions = createSyncOptions(
-      siteId,
-      'local-to-s3',
-      'overwrite-always', // Always overwrite since timestamp updates every run
-      siteConfig,
-      tempCredentials
-    );
-    
-    // Sync only the episode-manifest folder
-    const folderResult = await syncSingleFolder('episode-manifest', syncOptions);
-    
-    const duration = Date.now() - startTime;
-    
-    if (!folderResult.success && folderResult.error) {
-      logWarning(`Episode-manifest sync completed with error for ${siteId}: ${folderResult.error}`);
-    } else {
-      logSuccess(`Episode-manifest sync completed for ${siteId}: ${folderResult.filesTransferred} files uploaded in ${duration}ms`);
-    }
-    
-    return {
-      success: folderResult.success,
-      duration,
-      totalFilesTransferred: folderResult.filesTransferred,
-      error: folderResult.error
-    };
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logError(`Failed to sync episode-manifest folder for ${siteId}: ${error.message}`);
-    return {
-      success: false,
-      duration,
-      totalFilesTransferred: 0,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Comprehensive Local-to-S3 Sync - Phase 4.3
- * Uploads ALL files that exist locally but not on S3 (not just new files)
- */
-async function performComprehensiveS3Sync(
-  siteId: string,
-  credentials: AutomationCredentials,
-  filesToUploadCount: number
-): Promise<SyncResult> {
-  const startTime = Date.now();
-  
-  if (filesToUploadCount === 0) {
-    logInfo(`No files to upload for ${siteId} - skipping comprehensive sync`);
-    return {
-      success: true,
-      duration: Date.now() - startTime,
-      totalFilesTransferred: 0
-    };
-  }
-  
-  logProgress(`Phase 3 (Enhanced): Comprehensive S3 sync for ${siteId} - uploading ${filesToUploadCount} files`);
-  
-  try {
-    // Assume AWS role and get temporary credentials
-    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'comprehensive-sync', credentials);
-    
-    // Set up sync options for local-to-S3 direction
-    const syncOptions = createSyncOptions(
-      siteId,
-      'local-to-s3',
-      'overwrite-if-newer',
-      siteConfig,
-      tempCredentials
-    );
-    
-    let totalFilesTransferred = 0;
-    const errors: string[] = [];
-    
-    // Sync all folders from local to S3
-    for (const folder of ALL_SYNC_FOLDERS) {
-      try {
-        const folderResult = await syncSingleFolder(folder, syncOptions);
-        totalFilesTransferred += folderResult.filesTransferred;
-        
-        if (!folderResult.success && folderResult.error) {
-          errors.push(`${folder}: ${folderResult.error}`);
-        } else if (folderResult.filesTransferred > 0) {
-          logInfo(`Uploaded ${folderResult.filesTransferred} files from ${folder} folder`);
-        }
-        
-        logDebug(`Comprehensive sync ${folder}: ${folderResult.filesTransferred} files uploaded`);
-      } catch (error: any) {
-        logError(`Error syncing ${folder} to S3: ${error.message}`);
-        errors.push(`${folder}: ${error.message}`);
-      }
-    }
-    
-    const duration = Date.now() - startTime;
-    
-    if (errors.length > 0) {
-      logWarning(`Comprehensive sync completed with errors for ${siteId}: ${errors.join(', ')}`);
-    } else {
-      logSuccess(`Comprehensive sync completed for ${siteId}: ${totalFilesTransferred} files uploaded in ${duration}ms`);
-    }
-    
-    return {
-      success: errors.length === 0,
-      duration,
-      totalFilesTransferred,
-      error: errors.length > 0 ? errors.join('; ') : undefined
-    };
-    
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    logError(`Failed to perform comprehensive S3 sync for ${siteId}: ${error.message}`);
-    return {
-      success: false,
-      duration,
-      totalFilesTransferred: 0,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Run a command with site context and capture output to extract metrics
- */
-async function runCommandWithSiteContext(
-  siteId: string,
-  command: string,
-  args: string[],
+  lambda: 'rss-retrieval' | 'process-audio',
   operation: string
 ): Promise<{ success: boolean; duration: number; error?: string; newAudioFiles?: number; newTranscripts?: number }> {
-  const startTime = Date.now();
-  
   console.log(`\n🚀 Running ${operation} for site: ${siteId}`);
-  console.log(`   Command: ${command} ${args.join(' ')}`);
-  
-  return new Promise((resolve) => {
-    try {
-      // Load site-specific environment variables
-      const siteEnvVars = loadSiteEnvVars(siteId, 'local');
-      
-      // Merge with current environment, giving priority to site-specific vars
-      const envVars = {
-        ...process.env,
-        ...siteEnvVars,
-        SITE_ID: siteId,
-        FILE_STORAGE_ENV: 'local'  // Ensure we're using local storage for all operations
-      };
 
-      let stdout = '';
-      let stderr = '';
+  // Transcription logs its own detailed progress; log a heartbeat for everything else
+  const startTime = Date.now();
+  const progressInterval = lambda === 'process-audio' ? undefined : setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    console.log(`   🔄 ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
+  }, 10000);
 
-      const child = spawn(command, args, {
-        stdio: ['inherit', 'pipe', 'pipe'],
-        shell: true,
-        env: envVars,
-        cwd: process.cwd()
-      });
+  const result = await runLambdaLocally({ lambda, siteId });
+  if (progressInterval) clearInterval(progressInterval);
 
-      // Set up progress logging for non-audio operations
-      // Audio processing already provides detailed transcription progress messages
-      let progressInterval: NodeJS.Timeout | undefined;
-      if (operation !== 'Audio processing') {
-        progressInterval = setInterval(() => {
-          const elapsed = Math.floor((Date.now() - startTime) / 1000);
-          console.log(`   🔄 ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
-        }, 10000); // Log every 10 seconds
-      }
+  let newAudioFiles = 0;
+  let newTranscripts = 0;
+  if (result.success) {
+    const audioFilesMatch = result.stdout.match(/🎧 New Audio Files Downloaded: (\d+)/);
+    if (audioFilesMatch) newAudioFiles = parseInt(audioFilesMatch[1], 10);
 
-      // Capture stdout and stderr while also displaying them
-      child.stdout?.on('data', (data: Buffer) => {
-        const output = data.toString();
-        stdout += output;
-        process.stdout.write(output);
-      });
+    const transcriptsMatch = result.stdout.match(/✅ Successfully Processed: (\d+)/);
+    if (transcriptsMatch) newTranscripts = parseInt(transcriptsMatch[1], 10);
 
-      child.stderr?.on('data', (data: Buffer) => {
-        const output = data.toString();
-        stderr += output;
-        process.stderr.write(output);
-      });
+    console.log(`   ✅ ${operation} completed successfully for ${siteId} (${(result.duration / 1000).toFixed(1)}s)`);
+  } else {
+    console.log(`   ❌ ${operation} failed for ${siteId}: ${result.error} (${(result.duration / 1000).toFixed(1)}s)`);
+  }
 
-      child.on('close', (code: number | null) => {
-        // Clear progress interval
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
-        
-        const duration = Date.now() - startTime;
-        const success = code === 0;
-        
-        // Parse metrics from output
-        let newAudioFiles = 0;
-        let newTranscripts = 0;
-
-        if (success) {
-          // Extract metrics from RSS retrieval output
-          const audioFilesMatch = stdout.match(/🎧 New Audio Files Downloaded: (\d+)/);
-          if (audioFilesMatch) {
-            newAudioFiles = parseInt(audioFilesMatch[1], 10);
-          }
-
-          // Extract metrics from audio processing output
-          const transcriptsMatch = stdout.match(/✅ Successfully Processed: (\d+)/);
-          if (transcriptsMatch) {
-            newTranscripts = parseInt(transcriptsMatch[1], 10);
-          }
-
-          console.log(`   ✅ ${operation} completed successfully for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
-        } else {
-          console.log(`   ❌ ${operation} failed for ${siteId} with exit code ${code} (${(duration / 1000).toFixed(1)}s)`);
-        }
-        
-        resolve({
-          success,
-          duration,
-          error: success ? undefined : `Exit code: ${code}`,
-          newAudioFiles,
-          newTranscripts
-        });
-      });
-
-      child.on('error', (error: Error) => {
-        // Clear progress interval on error
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
-        
-        const duration = Date.now() - startTime;
-        console.log(`   ❌ ${operation} failed for ${siteId} with error: ${error.message} (${(duration / 1000).toFixed(1)}s)`);
-        
-        resolve({
-          success: false,
-          duration,
-          error: error.message,
-          newAudioFiles: 0,
-          newTranscripts: 0
-        });
-      });
-
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      console.log(`   ❌ ${operation} failed for ${siteId} with error: ${error.message} (${(duration / 1000).toFixed(1)}s)`);
-      
-      resolve({
-        success: false,
-        duration,
-        error: error.message,
-        newAudioFiles: 0,
-        newTranscripts: 0
-      });
-    }
-  });
+  return { success: result.success, duration: result.duration, error: result.error, newAudioFiles, newTranscripts };
 }
 
 /**
- * Run local indexing for a site (SRT indexing to update local search index)
+ * Run local indexing for a site (SRT indexing to update local search index).
+ * Output is captured; a one-line progress indicator is shown instead.
  */
 async function runLocalIndexingForSite(
   siteId: string
 ): Promise<{ success: boolean; duration: number; error?: string; entriesProcessed?: number }> {
   const startTime = Date.now();
-  
   logProgress(`Running local indexing for ${siteId}`);
-  
-  return new Promise((resolve) => {
-    try {
-      // Load site-specific environment variables
-      const siteEnvVars = loadSiteEnvVars(siteId, 'local');
-      
-      // Merge with current environment, giving priority to site-specific vars
-      const envVars = {
-        ...process.env,
-        ...siteEnvVars,
-        SITE_ID: siteId,
-        FILE_STORAGE_ENV: 'local'  // Ensure we're using local storage for all operations
-      };
 
-             let stdout = '';
-       let stderr = '';
-       let lastProgressLine = '';
-       let progressInterval: NodeJS.Timeout;
-       
-       // Set up progress indicator that updates every 5 seconds
-       const showProgress = () => {
-         const elapsed = Math.floor((Date.now() - startTime) / 1000);
-         const baseMessage = `🔍 Processing local indexing for ${siteId}... (${elapsed}s)`;
-         const progressMessage = lastProgressLine 
-           ? `${baseMessage} | ${lastProgressLine}`
-           : baseMessage;
-         process.stdout.write(`\r${progressMessage}`.padEnd(120));
-       };
-       
-       progressInterval = setInterval(showProgress, 5000);
+  let lastProgressLine = '';
+  const progressInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const baseMessage = `🔍 Processing local indexing for ${siteId}... (${elapsed}s)`;
+    process.stdout.write(`\r${lastProgressLine ? `${baseMessage} | ${lastProgressLine}` : baseMessage}`.padEnd(120));
+  }, 5000);
 
-       // Run the SRT indexing lambda locally using spawn 
-       const child = spawn('tsx', [
-         'packages/ingestion/srt-indexing-lambda/convert-srts-indexed-search.ts'
-       ], {
-         stdio: ['inherit', 'pipe', 'pipe'],
-         env: envVars,
-         cwd: process.cwd()
-       });
-
-       // Capture stdout silently and extract the most recent progress line
-       child.stdout?.on('data', (data: Buffer) => {
-         const output = data.toString();
-         stdout += output;
-         
-         // Extract the most recent progress line for display
-         const lines = output.split('\n').filter(line => line.trim());
-         const progressLines = lines.filter(line => 
-           line.includes('Progress:') && line.includes('SRT files processed')
-         );
-         
-         if (progressLines.length > 0) {
-           // Get the most recent progress line and clean it up
-           const rawProgress = progressLines[progressLines.length - 1];
-           // Extract just the essential info: "25% (261/1022), 105435 entries"
-           const progressMatch = rawProgress.match(/(\d+)% of SRT files processed \((\d+)\/(\d+)\)/);
-           const entriesMatch = rawProgress.match(/Collected (\d+) entries/);
-           
-           if (progressMatch) {
-             const [, percent, current, total] = progressMatch;
-             const entries = entriesMatch ? entriesMatch[1] : '';
-             lastProgressLine = entries 
-               ? `${percent}% (${current}/${total}), ${entries} entries`
-               : `${percent}% (${current}/${total})`;
-           }
-         }
-       });
-
-       // Capture stderr silently 
-       child.stderr?.on('data', (data: Buffer) => {
-         const output = data.toString();
-         stderr += output;
-       });
-
-      child.on('close', (code: number | null) => {
-        // Clear progress indicator
-        clearInterval(progressInterval);
-        process.stdout.write('\r'.padEnd(100) + '\r');
-        
-        const duration = Date.now() - startTime;
-        const success = code === 0;
-        
-        if (success) {
-          // Try to extract entries processed count from output
-          let entriesProcessed = 0;
-          const entriesMatch = stdout.match(/📝 New Search Entries Added: (\d+)/);
-          if (entriesMatch) {
-            entriesProcessed = parseInt(entriesMatch[1], 10);
-          }
-          
-          logSuccess(`Local indexing completed for ${siteId} (${(duration / 1000).toFixed(1)}s)`);
-          resolve({ success: true, duration, entriesProcessed });
-        } else {
-          const error = `Local indexing failed with exit code ${code}: ${stderr}`;
-          logError(`Local indexing failed for ${siteId}: ${error}`);
-          resolve({ success: false, duration, error });
-        }
-      });
-
-      child.on('error', (error: Error) => {
-        // Clear progress indicator on error
-        clearInterval(progressInterval);
-        process.stdout.write('\r'.padEnd(100) + '\r');
-        
-        const duration = Date.now() - startTime;
-        logError(`Error running local indexing for ${siteId}: ${error.message}`);
-        resolve({ success: false, duration, error: error.message });
-      });
-
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      logError(`Error setting up local indexing for ${siteId}: ${error.message}`);
-      resolve({ success: false, duration, error: error.message });
-    }
+  const result = await runLambdaLocally({
+    lambda: 'srt-indexing',
+    siteId,
+    output: 'quiet',
+    onStdout: output => {
+      // Keep the most recent progress line, e.g. "25% (261/1022), 105435 entries"
+      const progressLines = output.split('\n').filter(line => line.includes('Progress:') && line.includes('SRT files processed'));
+      if (progressLines.length === 0) return;
+      const rawProgress = progressLines[progressLines.length - 1];
+      const progressMatch = rawProgress.match(/(\d+)% of SRT files processed \((\d+)\/(\d+)\)/);
+      const entriesMatch = rawProgress.match(/Collected (\d+) entries/);
+      if (progressMatch) {
+        const [, percent, current, total] = progressMatch;
+        lastProgressLine = entriesMatch
+          ? `${percent}% (${current}/${total}), ${entriesMatch[1]} entries`
+          : `${percent}% (${current}/${total})`;
+      }
+    },
   });
+
+  clearInterval(progressInterval);
+  process.stdout.write('\r'.padEnd(100) + '\r');
+
+  if (result.success) {
+    const entriesMatch = result.stdout.match(/📝 New Search Entries Added: (\d+)/);
+    const entriesProcessed = entriesMatch ? parseInt(entriesMatch[1], 10) : 0;
+    logSuccess(`Local indexing completed for ${siteId} (${(result.duration / 1000).toFixed(1)}s)`);
+    return { success: true, duration: result.duration, entriesProcessed };
+  }
+
+  const error = `Local indexing failed (${result.error}): ${result.stderr}`;
+  logError(`Local indexing failed for ${siteId}: ${error}`);
+  return { success: false, duration: result.duration, error };
 }
 
 /**
@@ -1383,7 +594,7 @@ async function reapplySpellingCorrectionsToAllTranscripts(
   
   try {
     // Load site-specific environment variables
-    const siteEnvVars = loadSiteEnvVars(siteId, 'local');
+    const siteEnvVars = loadSiteEnv(siteId);
     
     // Set environment variables for the function
     const originalSiteId = process.env.SITE_ID;
@@ -1624,14 +835,7 @@ async function main(): Promise<void> {
       console.log('🔍 DRY RUN: Would download new episodes from RSS feeds');
     } else {
       for (const site of sites) {
-        const rssArgs = ['--filter', '@browse-dot-show/rss-retrieval-lambda', 'run', 'run:local'];
-        
-        const rssResult = await runCommandWithSiteContext(
-          site.id,
-          'pnpm',
-          rssArgs,
-          'RSS retrieval'
-        );
+        const rssResult = await runLambdaWithMetrics(site.id, 'rss-retrieval', 'RSS retrieval');
         
         const siteIndex = sites.indexOf(site);
         results[siteIndex].rssRetrievalSuccess = rssResult.success;
@@ -1663,14 +867,7 @@ async function main(): Promise<void> {
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
-        const audioArgs = ['--filter', '@browse-dot-show/process-audio-lambda', 'run', 'run:local'];
-        
-        const audioResult = await runCommandWithSiteContext(
-          site.id,
-          'pnpm',
-          audioArgs,
-          'Audio processing'
-        );
+        const audioResult = await runLambdaWithMetrics(site.id, 'process-audio', 'Audio processing');
         
         // Update the existing result
         results[i].audioProcessingSuccess = audioResult.success;

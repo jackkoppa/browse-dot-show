@@ -12,10 +12,10 @@
  */
 
 import { writeFileSync } from 'fs';
-import { resolve } from 'path';
-import { discoverSites } from './site-selector.js';
-import { loadSiteAccountMappings } from './site-account-mappings.js';
-import { logInfo, logSuccess, logWarning } from './logging.js';
+import { discoverSites } from './sites.js';
+import { loadSiteAccountMappings } from './site-accounts.js';
+import { logInfo, logSuccess } from './logging.js';
+import { repoPath } from './paths.js';
 
 /**
  * Generate the deployed sites list and write to .deployed-sites.json
@@ -36,10 +36,8 @@ function generateDeployedSitesList(): void {
     
     logInfo(`📍 Found ${deployedSites.length} deployed sites: ${deployedSites.join(', ')}`);
     
-    // TODO: Add pickleballstudio when it gets deployed and added to account mappings
-    
-    // Write to .deployed-sites.json
-    const deployedSitesPath = resolve(process.cwd(), '.deployed-sites.json');
+    // Write to the repo root, where terraform/automation/locals.tf reads it
+    const deployedSitesPath = repoPath('.deployed-sites.json');
     writeFileSync(deployedSitesPath, JSON.stringify(deployedSites, null, 2));
     
     logSuccess(`✅ Generated deployed sites list: ${deployedSitesPath}`);

@@ -5,8 +5,8 @@ import {
   s3BucketExists, 
   createS3Bucket, 
   awsCommand 
-} from '../utils/aws-utils.js';
-import { logError, printInfo, printError, logProgress, logSuccess } from '../utils/logging.js';
+} from '../lib/aws-utils.js';
+import { logError, printInfo, printError, logProgress, logSuccess } from '../lib/logging.js';
 
 /**
  * Bootstrap script to create Terraform state S3 bucket for a site

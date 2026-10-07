@@ -52,3 +52,12 @@ rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-erro
 ```
 
 `.automation-config` didn't exist in the main checkout, so there's nothing to delete.
+
+## Findings from M2 (for review)
+
+- **`automation:deploy` was likely broken.** It ran `generate-deployed-sites.ts` from inside `terraform/automation/`, while the generator read `.site-account-mappings.json` from the current directory. It now resolves paths from the repo root (`scripts/lib/paths.ts`) and writes `.deployed-sites.json` there, where `terraform/automation/locals.tf` reads it.
+- **`.deployed-sites.json` is stale.** It lists 7 sites; 23 have account mappings. It feeds the automation user's `sts:AssumeRole` policy (one role ARN per site account). Sites share accounts, so those 7 probably already cover every account, which fits the pipeline working for all 23 sites. The next `automation:deploy` will regenerate the list with all 23 sites, so expect a Terraform diff in `aws_iam_user_policy.assume_site_roles`. Review that plan before applying.
+- **Spelling-correction reapplication processed every transcript twice** (the recursive listing re-listed each subfolder). Fixed by de-duplicating; applying a correction twice isn't necessarily harmless.
+- `.env.automation` and `.site-account-mappings.json` now load from the repo root regardless of the current directory. Verified by running from `cwd=/`, which is what launchd does.
+- Lambda child processes now always get `NODE_OPTIONS=--max-old-space-size=9728`, unless a heap limit is already set (`scripts/lib/lambda.ts`).
+- `scripts/test-cross-account-access.ts` was stale (4 hardcoded sites, lambda names that no longer exist, and it wrote a test file to S3). Deleted; a read-only "can assume every site's role" check goes into `bds doctor` (M3).

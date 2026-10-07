@@ -10,7 +10,7 @@
  *   pnpm worktree help                  # Show help message
  */
 
-import { execCommand, execCommandOrThrow } from './utils/shell-exec.js';
+import { execCommand, execCommandOrThrow } from './lib/shell-exec.js';
 import { getWorktreeDirectory, saveWorktreeDirectory } from '@browse-dot-show/config';
 import prompts from 'prompts';
 import fs from 'fs';

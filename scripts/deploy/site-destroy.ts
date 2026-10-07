@@ -1,10 +1,9 @@
 #!/usr/bin/env tsx
 
 import * as path from 'path';
-import { execCommandOrThrow, execCommand, execCommandLive } from '../utils/shell-exec.js';
-import { printInfo, printError, printWarning, printSuccess, logHeader } from '../utils/logging.js';
-import { checkAwsCredentials } from '../utils/aws-utils.js';
-// @ts-ignore - prompts types not resolving properly but runtime works
+import { execCommandOrThrow, execCommand, execCommandLive } from '../lib/shell-exec.js';
+import { printInfo, printError, printWarning, printSuccess, logHeader } from '../lib/logging.js';
+import { checkAwsCredentials } from '../lib/aws-utils.js';
 import prompts from 'prompts';
 
 

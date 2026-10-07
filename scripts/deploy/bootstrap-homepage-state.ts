@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
-import { execCommandOrThrow } from '../utils/shell-exec.js';
-import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
-import { validateHomepageAwsEnvironment } from '../utils/aws-utils.js';
-import { loadHomepageEnvVars } from '../utils/env-validation.js';
+import { execCommandOrThrow } from '../lib/shell-exec.js';
+import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
+import { validateHomepageAwsEnvironment } from '../lib/aws-utils.js';
+import { loadHomepageEnv } from '../lib/env.js';
 
 const STATE_BUCKET_NAME = 'homepage-terraform-state';
 const AWS_REGION = 'us-east-1';
@@ -13,7 +13,7 @@ async function loadHomepageEnvironmentAndValidateAws(): Promise<string> {
   
   try {
     // Load homepage-specific environment variables
-    const env = await loadHomepageEnvVars();
+    const env = loadHomepageEnv();
     
     // Apply environment variables to process.env
     Object.assign(process.env, env);

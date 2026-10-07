@@ -1,10 +1,9 @@
 #!/usr/bin/env tsx
 
-// @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { execCommandOrThrow, execCommand } from '../utils/shell-exec.js';
-import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
-import { validateAwsEnvironment } from '../utils/aws-utils.js';
+import { execCommandOrThrow, execCommand } from '../lib/shell-exec.js';
+import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
+import { validateAwsEnvironment } from '../lib/aws-utils.js';
 
 const AUTOMATION_PROFILE = 'browse.show-0_admin-permissions-297202224084';
 
@@ -143,7 +142,7 @@ async function runTerraformDeployment(options: DeploymentOptions): Promise<{ acc
     printInfo('📋 Generating deployed sites list...');
     await execCommandOrThrow('npx', [
       'tsx',
-      '../../scripts/utils/generate-deployed-sites.ts'
+      '../../scripts/lib/generate-deployed-sites.ts'
     ]);
     printSuccess('✅ Generated deployed sites list');
 

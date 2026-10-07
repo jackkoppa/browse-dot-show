@@ -1,11 +1,10 @@
 #!/usr/bin/env tsx
 
-// @ts-ignore - prompts types not resolving properly but runtime works
 import prompts from 'prompts';
-import { execCommandOrThrow, execCommand } from '../utils/shell-exec.js';
-import { printInfo, printError, printSuccess, logHeader } from '../utils/logging.js';
-import { validateHomepageAwsEnvironment } from '../utils/aws-utils.js';
-import { loadHomepageEnvVars } from '../utils/env-validation.js';
+import { execCommandOrThrow, execCommand } from '../lib/shell-exec.js';
+import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
+import { validateHomepageAwsEnvironment } from '../lib/aws-utils.js';
+import { loadHomepageEnv } from '../lib/env.js';
 
 interface DeploymentOptions {
   test: boolean;
@@ -61,7 +60,7 @@ async function loadHomepageEnvironmentAndValidateAws(): Promise<string> {
   
   try {
     // Load homepage-specific environment variables
-    const env = await loadHomepageEnvVars();
+    const env = loadHomepageEnv();
     
     // Apply environment variables to process.env
     Object.assign(process.env, env);

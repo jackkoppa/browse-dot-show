@@ -10,11 +10,12 @@
         "typecheck": "tsc --noEmit -p tsconfig.json"
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
         "@browse-dot-show/config": "workspace:*",
         "@browse-dot-show/constants": "workspace:*",
         "@browse-dot-show/s3": "workspace:*",
-        "@browse-dot-show/spelling": "workspace:*",
-        "@aws-sdk/client-s3": "^3.0.0"
+        "@browse-dot-show/sites": "workspace:*",
+        "@browse-dot-show/spelling": "workspace:*"
     },
     "devDependencies": {
         "typescript": "catalog:",

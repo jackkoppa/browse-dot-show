@@ -1,9 +1,8 @@
 #!/usr/bin/env tsx
 
 import { join } from 'path';
-import { writeJsonFile } from '../utils/file-operations.js';
-import { printInfo, printSuccess, logInColor } from '../utils/logging.js';
-// @ts-ignore - prompts types not resolving properly but runtime works
+import { writeJsonFile } from '../lib/file-operations.js';
+import { printInfo, printSuccess, logInColor } from '../lib/logging.js';
 import prompts from 'prompts';
 import { 
   loadProgress, 
