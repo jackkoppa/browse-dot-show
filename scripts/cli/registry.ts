@@ -3,7 +3,7 @@ import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciUploadHo
 import { scheduleCommand, setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
-import { infraAutomationCommand, infraHomepageCommand } from './commands/infra.js';
+import { infraAutomationCommand, infraGithubActionsCommand, infraHomepageCommand } from './commands/infra.js';
 import { ingestCommand } from './commands/ingest.js';
 import { lambdaRunCommand } from './commands/lambda.js';
 import { siteCreateCommand, siteDeployCommand, siteDestroyCommand, siteUploadClientCommand } from './commands/site.js';
@@ -37,10 +37,11 @@ export const MENU: MenuNode[] = [
   },
   { label: 'Validate', command: validateCommand },
   {
-    label: 'Homepage / automation infra',
+    label: 'Shared infra (homepage, automation, GitHub Actions)',
     children: [
       { label: 'Homepage', command: infraHomepageCommand },
       { label: 'Automation IAM user + cross-account access', command: infraAutomationCommand },
+      { label: 'GitHub Actions OIDC roles', command: infraGithubActionsCommand },
     ],
   },
   { label: 'Doctor (check this machine and config)', command: doctorCommand },

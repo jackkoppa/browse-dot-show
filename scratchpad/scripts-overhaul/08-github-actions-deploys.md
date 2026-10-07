@@ -100,7 +100,7 @@ Build the automation user's assume-role policy from the distinct account IDs in 
 1. ✅ **Plan** (this doc) + follow-up status updates: #176.
 2. ✅ **Prep**: commit `.site-account-mappings.json`; `upload-client --site` fix; deterministic `aws-dist/package.json`: #177.
 3. ✅ **`bds ci` commands**: `affected` (unit-tested over sample diffs), `terraform` (plan / check against approved / apply; shared Terraform args with `site deploy` in `scripts/lib/site-terraform.ts`), `plan-comment`, `upload-homepage`. The OpenAI key goes to Terraform via `TF_VAR_openai_api_key`, never as an argument.
-4. **`terraform/github-actions/` stack** + `bds infra github-actions deploy`. Developer applies it.
+4. ✅ **`terraform/github-actions/` stack** + `bds infra github-actions deploy`. State in `homepage-terraform-state` (key `github-actions/terraform.tfstate`), so no bootstrap. Role names are fixed, so workflows derive ARNs from account IDs; only `HOMEPAGE_AWS_ACCOUNT_ID` is a repo variable. Developer applies it.
 5. **Workflows** (`terraform-plan.yml`, `deploy.yml`) + branch protection/environment setup commands. First real run: a no-op PR touching one site's client.
 6. **10 §1** automation Terraform fix.
 
