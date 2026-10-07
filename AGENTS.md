@@ -21,6 +21,10 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `sit
 - `pnpm --filter @browse-dot-show/scripts typecheck` (also runs on commit for `scripts/**/*.ts`)
 - `pnpm all:test`, `pnpm all:lint`
 
+## Current work
+
+Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer.
+
 ## Guides
 
 - [Local Development Guide](docs/local-development.md): setup, config files, CLI reference, ingestion, worktrees, scripts layout

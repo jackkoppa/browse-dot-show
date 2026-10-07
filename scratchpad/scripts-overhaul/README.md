@@ -1,5 +1,7 @@
 # Scripts Overhaul: Agent Hand-off
 
+> **Status (2026-10-06): session 1 is done and merged (#162–#168).** Next agent: start with [HANDOFF.md](./HANDOFF.md). Next up: small follow-ups ([10](./10-follow-ups.md)) → M4b GitHub Actions deploys ([08](./08-github-actions-deploys.md)) → M5 Mac automation ([03](./03-mac-automation.md)).
+
 This is a brief for an agent (or a series of agent sessions) to clean up this repo's developer tooling and make unattended ingestion on a Mac painless. The developer (Jack) wrote the goals below; the supporting docs in this folder add detail gathered from the codebase in October 2026.
 
 ## Context in one paragraph
@@ -29,9 +31,9 @@ Developer ergonomics have **no** backwards-compatibility requirement. Any script
 
 | Session | Target date | Scope |
 | --- | --- | --- |
-| **1. Scripts cleanup** | **2026-10-06** | M0–M4 and M6 below: clean up **all** existing scripts, build the unified CLI, add parallel transcription to the pipeline, update docs. This includes *deleting* the old, non-working Mac scheduling code. |
-| **1b. GitHub Actions deploys** | TBD, before session 2 | Deploy code changes (site frontends, lambdas, homepage) from GitHub Actions on merge, while keeping local deploys easy. Never transcription/ingestion. See [08](./08-github-actions-deploys.md). |
-| **2. Mac scheduling** | **2026-10-12** (after 1b) | M5: unattended scheduled runs on a Mac ([03](./03-mac-automation.md)). It needs more work and real-machine testing (logging out, sleep/wake, reboots), so it's a separate follow-up session. |
+| **1. Scripts cleanup** ✅ merged | **2026-10-06** | M0–M4 and M6 below: clean up **all** existing scripts, build the unified CLI, add parallel transcription to the pipeline, update docs. This includes *deleting* the old, non-working Mac scheduling code. |
+| **1b. GitHub Actions deploys** | After the small follow-ups in [10](./10-follow-ups.md); before session 2 | Deploy code changes (site frontends, lambdas, homepage) from GitHub Actions on merge, while keeping local deploys easy. Never transcription/ingestion. See [08](./08-github-actions-deploys.md). |
+| **2. Mac scheduling** | After 1b (the original 2026-10-12 target is dropped) | M5: unattended scheduled runs on a Mac ([03](./03-mac-automation.md)). It needs more work and real-machine testing (logging out, sleep/wake, reboots), so it's a separate follow-up session. |
 
 Session 1 should **work towards** session 2 without building it. Every pipeline action must run non-interactively with a correct exit code, the CLI should leave room for a `schedule` command group, the pipeline should run headless with `--parallel=N`, and config and credentials loading should not depend on a logged-in shell (no reliance on Hermit/nvm shims or AWS SSO). Leave a note in [03](./03-mac-automation.md) of anything learned that session 2 should know. If M4 doesn't fit in session 1, it moves to session 2, since unattended runs need it.
 
@@ -52,21 +54,23 @@ M1 can start immediately. M5 is out of scope for session 1.
 
 ### Versioning
 
-- **`v0.0.1`**: annotated tag at `999e345` (`main` before this overhaul), created locally on 2026-10-06; push it with `git push origin v0.0.1`. The README, Getting Started, Local Development and Deployment guides, and `CHANGELOG.md`, point pre-2026-10-06 users to it.
+- **`v0.0.1`**: annotated tag at `999e345` (`main` before this overhaul), pushed on 2026-10-06. The README, Getting Started, Local Development and Deployment guides, and `CHANGELOG.md`, point pre-2026-10-06 users to it.
 - **`v1.0.0`**: tag once GitHub Actions deploys (M4b) and Mac automation (M5) both work. Move the changelog's "Unreleased" section under it.
 
 ### Progress
 
-Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Tonight: [09](./09-tonight-runbook.md). Follow-ups: [10](./10-follow-ups.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`, worked on in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`.
+Handoff: [HANDOFF.md](./HANDOFF.md). Decisions and test results: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Session 1 evening runbook (done): [09](./09-tonight-runbook.md). Follow-ups: [10](./10-follow-ups.md).
 
-- [x] M0: Baseline (`jackkoppa/scripts-overhaul-m0-baseline`)
-- [x] M1: Delete dead code (`jackkoppa/scripts-overhaul-m1-delete-dead-code`)
-- [x] M2: Consolidate shared libs (`jackkoppa/scripts-overhaul-m2-shared-libs`)
-- [x] M3: Unified CLI (`jackkoppa/scripts-overhaul-m3-unified-cli`); docs updated in M6
-- [x] M4: Parallel transcription (`jackkoppa/scripts-overhaul-m4-parallel-transcription`). Real run, Ctrl+C test and benchmark done 2026-10-06 (default N=3)
-- [x] M6: Docs + Hermit removal (`jackkoppa/scripts-overhaul-m6-docs`)
+- [x] M0: Baseline ([#163](https://github.com/jackkoppa/browse-dot-show/pull/163))
+- [x] M1: Delete dead code ([#164](https://github.com/jackkoppa/browse-dot-show/pull/164))
+- [x] M2: Consolidate shared libs ([#165](https://github.com/jackkoppa/browse-dot-show/pull/165))
+- [x] M3: Unified CLI ([#166](https://github.com/jackkoppa/browse-dot-show/pull/166))
+- [x] M4: Parallel transcription ([#167](https://github.com/jackkoppa/browse-dot-show/pull/167)); real run, Ctrl+C test and benchmark done (default N=3)
+- [x] M6: Docs + Hermit removal ([#168](https://github.com/jackkoppa/browse-dot-show/pull/168))
+- [ ] Small follow-ups ([10](./10-follow-ups.md))
+- [ ] M4b: GitHub Actions deploys ([08](./08-github-actions-deploys.md))
+- [ ] M5: Mac automation ([03](./03-mac-automation.md))
 
-## Related state (as of writing)
+## Related state
 
-- Branch `jackkoppa/multi-terminal-all-sites` adds an "All sites" option to `run-local-transcriptions-multi-terminal.ts`, balancing files by duration across terminals. Check whether it has merged; M4 builds on it.
-- Beads issue tracking was removed from the repo. Track progress for this work in this folder, e.g. by checking off the milestones above.
+- The plan PR (#162) and this folder are the only tracking for this work (Beads was removed). Check off items above as they land.
