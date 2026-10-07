@@ -57,13 +57,13 @@ M1 can start immediately. M5 is out of scope for session 1.
 
 ### Progress
 
-Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`, worked on in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`.
+Decisions: [06](./06-session-1-decisions.md). Checklist: [07](./07-smoke-test-checklist.md). Tonight: [09](./09-tonight-runbook.md). Each milestone is a stacked **local** branch `jackkoppa/scripts-overhaul-mN-*`, worked on in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`.
 
 - [x] M0: Baseline (`jackkoppa/scripts-overhaul-m0-baseline`)
 - [x] M1: Delete dead code (`jackkoppa/scripts-overhaul-m1-delete-dead-code`)
 - [x] M2: Consolidate shared libs (`jackkoppa/scripts-overhaul-m2-shared-libs`)
 - [x] M3: Unified CLI (`jackkoppa/scripts-overhaul-m3-unified-cli`); docs updated in M6
-- [x] M4: Parallel transcription (`jackkoppa/scripts-overhaul-m4-parallel-transcription`). Still to do after the live run finishes: a real run, a Ctrl+C test, and benchmarking the default N
+- [x] M4: Parallel transcription (`jackkoppa/scripts-overhaul-m4-parallel-transcription`). Real run, Ctrl+C test and benchmark done 2026-10-06 (default N=3)
 - [x] M6: Docs + Hermit removal (`jackkoppa/scripts-overhaul-m6-docs`)
 
 ## Related state (as of writing)

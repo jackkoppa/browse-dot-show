@@ -83,3 +83,23 @@ rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-erro
 - The deployment guide's "Step 3: Bootstrap Terraform State" pointed at the *automation* state command; `site deploy` already bootstraps the site's state bucket itself, so that step now says so.
 - `bds validate <check> -- <args>` passes extra args through (e.g. `--format=json` for the consistency checker).
 - A placeholder milestone for GitHub Actions code deploys was added ([08](./08-github-actions-deploys.md)), ordered before Mac scheduling.
+
+## Test results (evening of 2026-10-06)
+
+- **After the big multi-terminal run:** no transcription processes left, all 23 lockfiles empty, 0 untranscribed files.
+- **Benchmark** (whisper-cli, large-v3-turbo, M4 Pro 64 GB; 12 × 10-min mp3 chunks = 120 audio-min; same args as the lambda):
+
+  | Workers | Wall | Audio-min / wall-min | Speedup | Peak RSS (all whisper) |
+  | --- | --- | --- | --- | --- |
+  | 1 | 4.9 min | 24.7 | 1.0× | 1.9 GB |
+  | 2 | 3.4 min | 35.2 | 1.4× | 3.8 GB |
+  | 3 | 2.5 min | 47.6 | 1.9× | 5.7 GB |
+  | 4 | 2.4 min | 50.7 | 2.1× | 7.6 GB |
+
+  Recommendation: 3 on this machine (4 adds about 6%). Output was byte-identical across N.
+- **Real parallel transcription (2b):** moved 4 transcripts aside (2 drivetowork ~31 min each, 2 spoutlore 5 and 11 min) and ran `bds ingest --sites=drivetowork,spoutlore --skip=pre-sync,rss,index,s3-sync,cloudfront --parallel=2`: exit 0 in 2.5 min. All 4 new `.srt` files were **byte-identical** to the originals (including the chunked >20-min episodes). Lockfiles empty afterwards.
+- **Ctrl+C / SIGINT to the `bds` parent only** (the harder case; a terminal Ctrl+C also signals children directly): every lambda and whisper-cli child stopped, exit 130. The first attempt **left 1 of 2 lockfile entries behind** (concurrent read-modify-write between the two workers), so I fixed the lambda to verify and retry removals (commit on the M4 branch). Two reruns: exit 130, all children stopped, lockfile empty. Original transcripts restored from backup and verified identical.
+- **Lambda packaging vs `v0.0.1` (2e):** prod-built rss-retrieval, process-audio and search in a temporary `v0.0.1` worktree and on this branch. Same file lists; the rss-retrieval and search bundles are byte-identical; the process-audio bundle is +295 B (tonight's lambda changes); `aws-dist/package.json` differs only in dependency key order (pnpm pack ordering), with the same entries and versions.
+- **`bds doctor --aws` (2c, run by the developer):** 0 failed. Role assumption works in both site accounts (152849157974: 11 sites, 927984855345: 12 sites). Only warning: local files on an external volume.
+- **Real haveaword run (2d, run by the developer):** `pnpm bds ingest --sites=haveaword --force-local-indexing`, 50 s, every phase ✅. Pre-sync: 1207 files in sync, 0 to download. RSS: 0 new episodes. Transcription: nothing to transcribe. Indexing: 359,745 entries. Upload: **11 search-entries were missing from S3** (episodes 391–401, transcribed earlier but never indexed), so `--force-local-indexing` was needed. 408 files uploaded (all 405 search-entries re-uploaded; the known re-index/mtime behavior), then search lambda refresh and CloudFront invalidation. Verified live: site 200, manifest `lastUpdated` 2026-10-07T02:10Z, and search for "Jessie Cave" returns the newest episode (#401, 2026-10-03).
+- **Follow-up idea (not done):** after a manual multi-terminal or `bds lambda run` transcription, the next pipeline run won't index, because it didn't create new files itself. Consider having Phase 4 index any site whose transcripts are newer than its search index, instead of only sites with new files from this run.

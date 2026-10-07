@@ -14,7 +14,7 @@
 > - **Logs today:** run summaries in `scripts/automation-logs/ingestion-pipeline-runs.md` (`scripts/lib/pipeline-result-logger.ts`), worker logs in `scripts/automation-logs/transcription/<timestamp>/`. Moving them to `~/Library/Logs/browse-dot-show/` is this session's call.
 > - **Local files are on an external SSD** (`/Volumes/4TB_SSD_…`): needs Full Disk Access for the node binary, and the drive must be mounted (`bds doctor` warns about both). `.env.automation` is currently mode 644 (`doctor` warns).
 > - **whisper.cpp:** the code expects `WHISPER_CPP_PATH/build/bin/whisper-cli` and `models/ggml-<WHISPER_CPP_MODEL>.bin` (a source checkout). Homebrew's `whisper-cpp` puts the binary elsewhere, so switching would need a small change in `packages/ingestion/process-audio-lambda/utils/transcribe-via-whisper.ts`.
-> - **Default parallelism:** `transcriptionWorkers` in `.local-files-config.json` (else 2). See [06](./06-session-1-decisions.md) for benchmark results.
+> - **Default parallelism:** `transcriptionWorkers` in `.local-files-config.json` (else 3). See [06](./06-session-1-decisions.md) for benchmark results.
 > - **Doctor:** `bds doctor [--aws]` already checks tools, whisper, local files + disk, credentials, mappings and (with `--aws`) role assumption per account. `schedule status` can reuse those checks.
 > - **Old LaunchAgents:** the commands to remove them are in [06](./06-session-1-decisions.md) under "Developer actions from M1".
 
