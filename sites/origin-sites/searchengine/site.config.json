@@ -6,7 +6,8 @@
         "includeTitlePrefix": true,
         "taglinePrimaryPodcastName": "Search Engine",
         "taglinePrimaryPodcastExternalURL": "https://www.searchengine.show/",
-        "taglineSuffix": "podcast archives"
+        "taglineSuffix": "podcast archives",
+        "includeAIUseDisclosure": false
     },
     "socialAndMetadata": {
         "pageTitle": "[browse.show] Search Engine",

@@ -6,7 +6,8 @@
         "includeTitlePrefix": false,
         "taglinePrimaryPodcastName": "Football Clichés",
         "taglinePrimaryPodcastExternalURL": "https://podfollow.com/new-football-cliches",
-        "taglineSuffix": "record books"
+        "taglineSuffix": "record books",
+        "includeAIUseDisclosure": false
     },
     "socialAndMetadata": {
         "pageTitle": "Listen, Fair Play | Search Football Clichés",

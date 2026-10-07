@@ -6,7 +6,8 @@
         "includeTitlePrefix": true,
         "taglinePrimaryPodcastName": "Claret & Blue",
         "taglinePrimaryPodcastExternalURL": "https://podfollow.com/claret-blue-an-aston-villa-podcast",
-        "taglineSuffix": "podcast archives"
+        "taglineSuffix": "podcast archives",
+        "includeAIUseDisclosure": false
     },
     "socialAndMetadata": {
         "pageTitle": "[browse.show] Claret & Blue",
