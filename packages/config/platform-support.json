@@ -6,7 +6,7 @@
         "client-development": "FULL_SUPPORT",
         "episode-downloading": "FULL_SUPPORT", 
         "episode-transcription": "FULL_SUPPORT",
-        "episode-transcription-multi-terminal": "FULL_SUPPORT",
+        "episode-transcription-parallel": "FULL_SUPPORT",
         "episode-indexing": "FULL_SUPPORT",
         "aws-deployment": "FULL_SUPPORT"
       }
@@ -17,7 +17,7 @@
         "client-development": "FULL_SUPPORT",
         "episode-downloading": "FULL_SUPPORT",
         "episode-transcription": "LIMITED_TESTING",
-        "episode-transcription-multi-terminal": "LIMITED_TESTING",
+        "episode-transcription-parallel": "LIMITED_TESTING",
         "episode-indexing": "LIMITED_TESTING", 
         "aws-deployment": "FULL_SUPPORT"
       }
@@ -28,7 +28,7 @@
         "client-development": "FULL_SUPPORT",
         "episode-downloading": "FULL_SUPPORT",
         "episode-transcription": "UNTESTED",
-        "episode-transcription-multi-terminal": "KNOWN_TO_BE_UNOPERATIONAL",
+        "episode-transcription-parallel": "UNTESTED",
         "episode-indexing": "LIMITED_TESTING",
         "aws-deployment": "FULL_SUPPORT"
       }
@@ -39,7 +39,7 @@
         "client-development": "FULL_SUPPORT",
         "episode-downloading": "FULL_SUPPORT",
         "episode-transcription": "UNTESTED",
-        "episode-transcription-multi-terminal": "KNOWN_TO_BE_UNOPERATIONAL",
+        "episode-transcription-parallel": "UNTESTED",
         "episode-indexing": "LIMITED_TESTING",
         "aws-deployment": "FULL_SUPPORT"
       }
@@ -58,9 +58,9 @@
       "name": "Episode Transcription",
       "description": "Transcribing episodes using local Whisper model"
     },
-    "episode-transcription-multi-terminal": {
-      "name": "Episode Transcription - Multi-Terminal",
-      "description": "Transcribing episodes locally, orchestrating multiple terminals for parallel processing"
+    "episode-transcription-parallel": {
+      "name": "Episode Transcription - Parallel",
+      "description": "Transcribing episodes for many sites at once with parallel workers (bds ingest --parallel=N)"
     },
     "episode-indexing": {
       "name": "Episode Indexing & Local Search",

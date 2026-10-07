@@ -42,7 +42,7 @@ function isRunningInLambda(): boolean {
   return !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 }
 
-// ====== STRUCTURED LOGGING FOR MULTI-TERMINAL PROGRESS TRACKING ======
+// ====== STRUCTURED PROGRESS EVENTS (JSON lines on stdout, read by `bds ingest`) ======
 interface ProgressLogEntry {
   processId: string;
   timestamp: string;
@@ -60,11 +60,11 @@ interface ProgressLogEntry {
 }
 
 /**
- * Log structured progress information for multi-terminal monitoring
+ * Write a structured progress event as one JSON line on stdout
  */
 function logProgress(type: string, message: string, data: any = {}) {
   const entry: ProgressLogEntry = {
-    processId: process.env.PROCESS_ID || 'unknown',
+    processId: process.env.WORKER_ID || PROCESS_ID,
     timestamp: new Date().toISOString(),
     type: type as any,
     message,
@@ -74,18 +74,7 @@ function logProgress(type: string, message: string, data: any = {}) {
     }
   };
   
-  // Write structured log to both stdout and file (if LOG_FILE is set)
-  const logLine = JSON.stringify(entry);
-  console.log(logLine);
-  
-  if (process.env.LOG_FILE) {
-    try {
-      const fs = require('fs');
-      fs.appendFileSync(process.env.LOG_FILE, logLine + '\n');
-    } catch (error) {
-      // Silently ignore file write errors to avoid breaking transcription
-    }
-  }
+  console.log(JSON.stringify(entry));
 }
 
 // Types
@@ -180,6 +169,20 @@ async function removeFromLockfile(fileKey: string): Promise<void> {
     log.debug(`Removed ${fileKey} from lockfile for process ID ${PROCESS_ID}`);
   } catch (error) {
     log.error(`Error removing ${fileKey} from lockfile: ${error}`);
+  }
+}
+
+async function removeOwnLockfileEntries(): Promise<void> {
+  try {
+    const lockfile = await readLockfile();
+    const remaining = lockfile.entries.filter(entry => entry.processId !== PROCESS_ID);
+    if (remaining.length !== lockfile.entries.length) {
+      lockfile.entries = remaining;
+      lockfile.version++;
+      await writeLockfile(lockfile);
+    }
+  } catch (error) {
+    log.error(`Error removing lockfile entries for process ${PROCESS_ID}: ${error}`);
   }
 }
 
@@ -770,10 +773,12 @@ export async function handler(): Promise<void> {
     }
 
     log.info('\n❌ Process terminated by user.');
-    process.exit(130);
+    // Release this process's lockfile entries so the next run doesn't skip those files
+    removeOwnLockfileEntries().finally(() => process.exit(130));
   };
 
   process.on('SIGINT', logSummaryAndExit);
+  process.on('SIGTERM', logSummaryAndExit);
 
   log.info('Scanning S3 for audio files.');
   const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
@@ -808,41 +813,23 @@ export async function handler(): Promise<void> {
   }
   log.info(`Found ${filesToProcess.length} MP3 files to process across all directories.`);
 
-  // Filter files for multi-terminal processing
-  if (process.env.TERMINAL_FILE_LIST_PATH || process.env.TERMINAL_FILE_LIST) {
-    let terminalFiles: string[] = [];
-    
-    // Read from file if TERMINAL_FILE_LIST_PATH is provided (new approach)
-    if (process.env.TERMINAL_FILE_LIST_PATH) {
-      try {
-        const fileContent = fs.readFileSync(process.env.TERMINAL_FILE_LIST_PATH, 'utf8');
-        terminalFiles = fileContent.split('\n').map(f => f.trim()).filter(f => f.length > 0);
-        log.info(`📄 Successfully read ${terminalFiles.length} files from ${process.env.TERMINAL_FILE_LIST_PATH}`);
-      } catch (error) {
-        log.error(`Failed to read terminal file list from ${process.env.TERMINAL_FILE_LIST_PATH}: ${error}`);
-        process.exit(1);
-      }
+  // Only process the given files (keys like audio/<podcast>/<file>.mp3), when a list is provided.
+  // `bds ingest --parallel=N` uses this to split one site's files across workers.
+  if (process.env.FILE_LIST_PATH) {
+    let assignedFiles: Set<string>;
+    try {
+      const fileContent = fs.readFileSync(process.env.FILE_LIST_PATH, 'utf8');
+      assignedFiles = new Set(fileContent.split('\n').map(f => path.normalize(f.trim())).filter(f => f.length > 0 && f !== '.'));
+      log.info(`📄 Read ${assignedFiles.size} assigned files from ${process.env.FILE_LIST_PATH}`);
+    } catch (error) {
+      log.error(`Failed to read file list from ${process.env.FILE_LIST_PATH}: ${error}`);
+      process.exit(1);
     }
-    // Fallback to environment variable (legacy approach)
-    else if (process.env.TERMINAL_FILE_LIST) {
-      terminalFiles = process.env.TERMINAL_FILE_LIST.split(',').map(f => f.trim());
-    }
-    
-    const terminalIndex = process.env.TERMINAL_INDEX ? parseInt(process.env.TERMINAL_INDEX) : 0;
-    const totalTerminals = process.env.TOTAL_TERMINALS ? parseInt(process.env.TOTAL_TERMINALS) : 1;
-    
-    log.info(`🖥️  Multi-terminal mode: Terminal ${terminalIndex + 1}/${totalTerminals}`);
-    log.info(`📂 Assigned ${terminalFiles.length} specific files to process`);
-    
-    // Filter to only process files assigned to this terminal
+
     const originalCount = filesToProcess.length;
-    filesToProcess = filesToProcess.filter(filePath => {
-      const fileName = path.basename(filePath);
-      return terminalFiles.includes(fileName);
-    });
-    
-    log.info(`🎯 Filtered from ${originalCount} to ${filesToProcess.length} files for this terminal`);
-    
+    filesToProcess = filesToProcess.filter(filePath => assignedFiles.has(path.normalize(filePath)));
+    log.info(`🎯 Filtered from ${originalCount} to ${filesToProcess.length} assigned files`);
+
     // Update stats to reflect filtered files
     stats.totalFiles = filesToProcess.length;
     stats.podcastStats.clear();
@@ -855,28 +842,21 @@ export async function handler(): Promise<void> {
     }
   }
 
-  // Calculate total duration of untranscribed files for progress tracking
-  let totalMinutesToProcess = 0;
-  const processIdFromEnv = process.env.PROCESS_ID;
-  
-  // If this is part of a multi-terminal session, get the total from environment
-  if (process.env.TERMINAL_TOTAL_MINUTES) {
-    totalMinutesToProcess = parseFloat(process.env.TERMINAL_TOTAL_MINUTES);
-  } else {
-    // Calculate total duration for files that need transcription
-    for (const fileKey of filesToProcess) {
-      if (!(await transcriptExists(fileKey))) {
-        try {
-          const durationMinutes = await getAudioDurationMinutes(fileKey);
-          totalMinutesToProcess += durationMinutes;
-        } catch (error) {
-          log.warn(`Could not get duration for ${fileKey}: ${error}`);
-        }
+  // Duration of each file that needs transcription, for progress reporting
+  const fileDurations = new Map<string, number>();
+  for (const fileKey of filesToProcess) {
+    if (!(await transcriptExists(fileKey))) {
+      try {
+        fileDurations.set(fileKey, await getAudioDurationMinutes(fileKey));
+      } catch (error) {
+        log.warn(`Could not get duration for ${fileKey}: ${error}`);
       }
     }
   }
+  const totalMinutesToProcess = [...fileDurations.values()].reduce((sum, minutes) => sum + minutes, 0);
+  let completedMinutesSoFar = 0;
 
-  // Log structured START event for multi-terminal progress tracking
+  // Structured START event, for progress tracking
   logProgress('START', `Starting transcription of ${filesToProcess.length} files`, {
     totalFiles: filesToProcess.length,
     completedFiles: 0,
@@ -910,12 +890,14 @@ export async function handler(): Promise<void> {
       log.warn(`🐛 DEBUG MODE: No file found matching "${debugSingleFile}". Available files:`);
       filesToProcess.slice(0, 10).forEach(f => log.warn(`   - ${path.basename(f)}`));
       if (filesToProcess.length > 10) log.warn(`   ... and ${filesToProcess.length - 10} more files`);
+      logProgress('COMPLETE', 'No matching file to transcribe', { totalFiles: 0, completedFiles: 0, totalMinutes: 0, completedMinutes: 0, percentComplete: 100 });
       return;
     }
   }
 
   if (filesToProcess.length === 0) {
     log.info("No audio files found to process.");
+    logProgress('COMPLETE', 'No audio files to transcribe', { totalFiles: 0, completedFiles: 0, totalMinutes: 0, completedMinutes: 0, percentComplete: 100 });
     return;
   }
 
@@ -990,30 +972,16 @@ export async function handler(): Promise<void> {
       // Decrement incomplete transcripts counter after successful processing
       incompletedTranscripts--;
       
-      // Calculate completed duration for progress tracking
-      let completedMinutes = 0;
-      try {
-        const currentFileDuration = await getAudioDurationMinutes(fileKey);
-        completedMinutes = currentFileDuration;
-        
-        // If we have access to all processed files, calculate total completed duration
-        // For now, we'll use an approximation based on completed file count
-        const avgDurationPerFile = totalMinutesToProcess / filesToProcess.length;
-        const totalCompletedMinutes = stats.processedFiles * avgDurationPerFile;
-        const percentComplete = totalMinutesToProcess > 0 ? (totalCompletedMinutes / totalMinutesToProcess) * 100 : 0;
-        
-        // Log structured PROGRESS event
-        logProgress('PROGRESS', `Completed transcription of ${path.basename(fileKey)}`, {
-          totalFiles: filesToProcess.length,
-          completedFiles: stats.processedFiles,
-          totalMinutes: totalMinutesToProcess,
-          completedMinutes: totalCompletedMinutes,
-          percentComplete,
-          currentFile: path.basename(fileKey)
-        });
-      } catch (error) {
-        log.warn(`Could not calculate progress for ${fileKey}: ${error}`);
-      }
+      // Report progress using this file's actual duration
+      completedMinutesSoFar += fileDurations.get(fileKey) ?? 0;
+      logProgress('PROGRESS', `Completed transcription of ${path.basename(fileKey)}`, {
+        totalFiles: filesToProcess.length,
+        completedFiles: stats.processedFiles,
+        totalMinutes: totalMinutesToProcess,
+        completedMinutes: completedMinutesSoFar,
+        percentComplete: totalMinutesToProcess > 0 ? (completedMinutesSoFar / totalMinutesToProcess) * 100 : 100,
+        currentFile: path.basename(fileKey)
+      });
       
       // Collect spelling correction results
       if (correctionResult) {
@@ -1036,6 +1004,7 @@ export async function handler(): Promise<void> {
 
   // Remove SIGINT handler since we're completing normally
   process.removeListener('SIGINT', logSummaryAndExit);
+  process.removeListener('SIGTERM', logSummaryAndExit);
 
   // Log summary with emojis and formatting
   log.info('\n📊 Transcription Process Summary:');
@@ -1080,7 +1049,7 @@ export async function handler(): Promise<void> {
 
   log.info('\n✨ Transcription process finished.');
 
-  // Log structured COMPLETE event for multi-terminal progress tracking
+  // Structured COMPLETE event
   logProgress('COMPLETE', `Transcription completed: ${stats.processedFiles} files processed`, {
     totalFiles: filesToProcess.length,
     completedFiles: stats.processedFiles,

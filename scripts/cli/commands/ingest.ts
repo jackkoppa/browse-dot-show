@@ -1,5 +1,6 @@
 import prompts from 'prompts';
-import { csv, parseFlags, UsageError } from '../../lib/args.js';
+import { csv, parseFlags, positiveInt, UsageError } from '../../lib/args.js';
+import { DEFAULT_TRANSCRIPTION_WORKERS, getDefaultTranscriptionWorkers } from '../../lib/machine-config.js';
 import { discoverSites, resolveSites } from '../../lib/sites.js';
 import { runPipeline } from '../../ingestion/pipeline.js';
 import {
@@ -14,6 +15,7 @@ const FLAGS = {
   sites: { type: 'string' },
   'all-sites': { type: 'boolean' },
   skip: { type: 'string' },
+  parallel: { type: 'string' },
   'dry-run': { type: 'boolean' },
   'force-local-indexing': { type: 'boolean' },
   'reapply-spelling-corrections': { type: 'boolean' },
@@ -31,6 +33,7 @@ function parseSkip(value: string | undefined): PipelinePhaseId[] {
 
 interface IngestOptions {
   skip: PipelinePhaseId[];
+  parallel: number;
   dryRun: boolean;
   forceLocalIndexing: boolean;
   reapplySpellingCorrections: boolean;
@@ -66,8 +69,23 @@ async function promptForOptions(current: IngestOptions): Promise<IngestOptions |
   });
   if (!selected) return null;
 
+  const skip = PIPELINE_PHASE_IDS.filter(id => !selected.includes(id));
+  let parallel = current.parallel;
+  if (!skip.includes('transcribe')) {
+    ({ parallel } = await prompts({
+      type: 'number',
+      name: 'parallel',
+      message: 'Parallel transcription workers',
+      initial: current.parallel,
+      min: 1,
+      max: 8,
+    }));
+    if (!parallel) return null;
+  }
+
   return {
-    skip: PIPELINE_PHASE_IDS.filter(id => !selected.includes(id)),
+    skip,
+    parallel,
     reapplySpellingCorrections: selected.includes('reapply'),
     forceLocalIndexing: selected.includes('force-index'),
     dryRun: selected.includes('dry-run'),
@@ -85,6 +103,8 @@ OPTIONS
   --sites=a,b                      Sites to process
   --all-sites                      Process every site
   --skip=<phase,...>               Skip phases: ${PIPELINE_PHASE_IDS.join(', ')}
+  --parallel=N                     Transcription workers across all selected sites (default:
+                                   "transcriptionWorkers" in .local-files-config.json, else ${DEFAULT_TRANSCRIPTION_WORKERS})
   --dry-run                        Show what would happen; no downloads, transcription, uploads or AWS calls
   --reapply-spelling-corrections   Also reapply spelling corrections to ALL existing transcripts
   --force-local-indexing           Re-index every selected site, even without new files
@@ -96,7 +116,7 @@ ${PIPELINE_PHASES.map(phase => `  ${phase.id.padEnd(12)} ${phase.title}`).join('
   browse-dot-show-automation-role in each site's account.
 
 EXAMPLES
-  pnpm bds ingest --all-sites
+  pnpm bds ingest --all-sites --parallel=3
   pnpm bds ingest --sites=haveaword --dry-run
   pnpm bds ingest --sites=haveaword --skip=pre-sync,s3-sync,cloudfront   # local only
 `,
@@ -104,6 +124,7 @@ EXAMPLES
     const flags = parseFlags(argv, FLAGS);
     let options: IngestOptions = {
       skip: parseSkip(flags.skip),
+      parallel: positiveInt('parallel', flags.parallel) ?? getDefaultTranscriptionWorkers(),
       dryRun: Boolean(flags['dry-run']),
       forceLocalIndexing: Boolean(flags['force-local-indexing']),
       reapplySpellingCorrections: Boolean(flags['reapply-spelling-corrections']),
@@ -129,6 +150,7 @@ EXAMPLES
           ? '--all-sites'
           : `--sites=${sites.map(s => s.id).join(',')}`,
         ...(options.skip.length ? [`--skip=${options.skip.join(',')}`] : []),
+        ...(options.skip.includes('transcribe') ? [] : [`--parallel=${options.parallel}`]),
         ...(options.dryRun ? ['--dry-run'] : []),
         ...(options.reapplySpellingCorrections ? ['--reapply-spelling-corrections'] : []),
         ...(options.forceLocalIndexing ? ['--force-local-indexing'] : []),
@@ -140,6 +162,7 @@ EXAMPLES
       dryRun: options.dryRun,
       forceLocalIndexing: options.forceLocalIndexing,
       reapplySpellingCorrections: options.reapplySpellingCorrections,
+      parallel: options.parallel,
       phases: phasesExcept(options.skip),
     });
   },
