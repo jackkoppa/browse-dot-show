@@ -1,0 +1,4 @@
+bucket  = "homepage-terraform-state"
+key     = "github-actions/terraform.tfstate"
+region  = "us-east-1"
+profile = "browse.show-0_admin-permissions-297202224084"

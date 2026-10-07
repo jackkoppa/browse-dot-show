@@ -80,6 +80,7 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds dev homepage` | Homepage dev server |
 | `bds validate <sites\|local\|prod\|consistency>` | Validate site configs, local files or S3 contents |
 | `bds infra <homepage\|automation> <deploy\|bootstrap-state>` | Shared infrastructure |
+| `bds infra github-actions deploy` | The OIDC roles GitHub Actions deploys with, in all 3 AWS accounts (plan shown, then confirm) |
 | `bds worktree <create\|list\|remove\|prune\|link-config>` | Git worktrees (see below) |
 | `bds doctor` | Check this machine and config |
 | `bds ci <affected\|terraform\|plan-comment\|upload-homepage>` | Used by GitHub Actions. `bds ci affected --base=origin/main` shows what your branch would deploy; `bds ci terraform --target=site:<id> --mode=plan` runs a read-only plan and prints a summary |
