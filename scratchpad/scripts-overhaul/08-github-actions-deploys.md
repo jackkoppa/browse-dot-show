@@ -66,7 +66,7 @@ On `pull_request` to `main`:
 1. `affected` job: run `bds ci affected`. If no Terraform targets, the workflow ends (required checks pass as skipped).
 2. `plan` job (matrix over affected Terraform targets, `max-parallel` ~6): build (`all:build`, lambda `build:prod`), assume the **plan** role for the target's account, `terraform init` + `plan -lock=false -out`, then `terraform show -json` → a summary: per resource, the action (create / update / replace / destroy).
 3. `comment` job: one sticky PR comment with, per target, counts and the list of resources being **created, replaced or destroyed** (in-place updates collapsed). The full plan text goes in the job log and as an artifact. Sensitive values are already redacted by Terraform; the comment shows resource addresses, not values (public repo).
-4. `approve-plan` job, only when any target has a **create, replace or destroy**: uses a GitHub Environment `terraform-approval` with the developer as required reviewer. The job waits ("Review deployments" button in the PR's checks) until approved. Plans with only in-place updates (the usual lambda-code change) skip it.
+4. `approve-plan` job, for **every** PR with a Terraform plan (decided 2026-10-07): uses a GitHub Environment `terraform-approval` with the developer as required reviewer. The job waits ("Review deployments" button in the PR's checks) until approved. The comment flags plans that create, replace or destroy.
 
 Branch protection on `main` (the developer applies it; I'll give the `gh api` command): require the `terraform-plan / approve-plan` and `terraform-plan / plan` checks, and **require branches to be up to date**, so the approved plan was computed against the latest `main`. Skipped jobs count as passing.
 
@@ -125,13 +125,14 @@ The workflows are inert until step 4, so the stack can merge first.
     "enforce_admins": false, "required_pull_request_reviews": null, "restrictions": null}
    JSON
    ```
-   `strict` means a PR must be rebased onto the latest `main` before merging, so the approved plan matches what merges. (With `enforce_admins: false` you can still bypass in an emergency; deploy.yml then refuses risky changes that weren't approved.)
+   `strict` means a PR must be rebased onto the latest `main` before merging, so the approved plan matches what merges. (With `enforce_admins: false` you can still bypass in an emergency; deploy.yml then applies nothing for stacks without an approved plan.)
 6. **First runs:**
    - A PR that changes one site's client only (e.g. a `site.config.json` tweak): `terraform-plan` shows no Terraform; after merge, `deploy` uploads that one client. Check the site.
    - A PR that touches lambda code: every site gets a plan with in-place lambda updates (the first one also picks up the sorted `aws-dist/package.json`). Check the comment, merge, watch `deploy`.
 
 ## Open questions (to confirm during implementation)
 
-- Approval gate scope: required only for plans with create/replace/destroy (proposed above), or for every Terraform-affecting PR?
-- `AdministratorAccess` for the deploy role to start, or scope it now?
+- ~~Approval gate scope~~: **every** Terraform-affecting PR needs approval (decided 2026-10-07). On merge, stacks without an approved plan aren't applied (`--require-approval`); `workflow_dispatch` applies in-place updates only.
+- ~~Deploy role permissions~~: `AdministratorAccess` to start (decided 2026-10-07); tighten after a few successful deploys.
+- ~~Lock folder~~ (#175): keep `{localFilesPath}/locks/` (decided 2026-10-07).
 - Is an OIDC provider already present in any of the 3 accounts? (Checked during PR 4's plan.)

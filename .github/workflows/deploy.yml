@@ -2,8 +2,9 @@
 #
 # Deploys only what the pushed commits affect (`bds ci affected`): each affected site's
 # Terraform stack (infrastructure + lambdas) and client, and the homepage. Terraform applies
-# a fresh plan, but refuses creates/replaces/destroys that weren't approved on the PR
-# (terraform-plan.yml). Never runs transcription or ingestion; that stays on the Mac.
+# a fresh plan, but only for stacks whose plan was approved on the PR (terraform-plan.yml),
+# and refuses creates/replaces/destroys that weren't in it. A manual run (workflow_dispatch)
+# has no PR: it applies in-place updates only. Never runs transcription or ingestion; that stays on the Mac.
 name: deploy
 
 on:
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       all:
-        description: Deploy everything (every site's Terraform and client, and the homepage). Terraform still refuses creates/replaces/destroys.
+        description: Deploy everything (every site's Terraform and client, and the homepage). Terraform applies in-place updates only.
         type: boolean
         default: false
 
@@ -57,8 +58,8 @@ jobs:
           HOMEPAGE_AWS_ACCOUNT_ID: ${{ vars.HOMEPAGE_AWS_ACCOUNT_ID }}
 
   # The plan summaries approved on the merged PR, if any: from that PR's last successful
-  # terraform-plan run at its head commit. If a plan needed approval, the run's approve-plan
-  # job must have succeeded. Without them, nothing risky is approved.
+  # terraform-plan run at its head commit, whose approve-plan job succeeded. Without them,
+  # nothing is approved.
   approved-plans:
     needs: affected
     if: needs.affected.outputs.has_terraform == 'true'
@@ -73,7 +74,7 @@ jobs:
           mkdir -p approved
           pr=$(gh api "repos/$REPO/commits/${{ github.sha }}/pulls" -q '[.[] | select(.merged_at != null)][0]' || true)
           if [ -z "$pr" ] || [ "$pr" = "null" ]; then
-            echo "No merged PR for ${{ github.sha }}; nothing risky is approved."
+            echo "No merged PR for ${{ github.sha }}; nothing is approved."
             exit 0
           fi
           number=$(echo "$pr" | jq -r .number)
@@ -81,15 +82,15 @@ jobs:
           echo "PR #$number, head $head_sha"
           run_id=$(gh api "repos/$REPO/actions/workflows/terraform-plan.yml/runs?head_sha=$head_sha&status=success" -q '.workflow_runs[0].id // empty')
           if [ -z "$run_id" ]; then
-            echo "No successful terraform-plan run for $head_sha; nothing risky is approved."
+            echo "No successful terraform-plan run for $head_sha; nothing is approved."
             exit 0
           fi
           approval=$(gh api "repos/$REPO/actions/runs/$run_id/jobs" -q '.jobs[] | select(.name == "approve-plan") | .conclusion')
           echo "terraform-plan run $run_id; approve-plan: ${approval:-not run}"
           if gh run download "$run_id" --repo "$REPO" -n terraform-plan-summaries -D approved; then
-            # A summary with risky changes counts only if approve-plan succeeded
-            if [ "$approval" != "success" ] && grep -lqE '"action": "(create|replace|delete)"' -r approved; then
-              echo "Plans needed approval but approve-plan didn't succeed; ignoring them."
+            # Every plan needs approval; summaries count only if approve-plan succeeded
+            if [ "$approval" != "success" ]; then
+              echo "approve-plan didn't succeed; ignoring these plans."
               rm -rf approved && mkdir approved
             fi
           fi
@@ -130,7 +131,7 @@ jobs:
           aws-region: us-east-1
           role-duration-seconds: 7200
       - name: Terraform apply
-        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=apply --out=plans/${{ matrix.slug }} --approved=approved/plan-summary-${{ matrix.slug }}/summary.json
+        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=apply --out=plans/${{ matrix.slug }} --approved=approved/plan-summary-${{ matrix.slug }}/summary.json ${{ github.event_name == 'push' && '--require-approval' || '' }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Upload homepage
