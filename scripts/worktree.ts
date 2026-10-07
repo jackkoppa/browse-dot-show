@@ -4,10 +4,10 @@
  * Git worktree helper script for managing parallel development sessions
  * 
  * Usage:
- *   pnpm worktree create <branch-name>  # Create a new worktree
- *   pnpm worktree list                  # List all worktrees
- *   pnpm worktree remove <branch-name>  # Remove a worktree
- *   pnpm worktree help                  # Show help message
+ *   pnpm bds worktree create <branch-name>  # Create a new worktree
+ *   pnpm bds worktree list                  # List all worktrees
+ *   pnpm bds worktree remove <branch-name>  # Remove a worktree
+ *   pnpm bds worktree help                  # Show help message
  */
 
 import { execCommand, execCommandOrThrow } from './lib/shell-exec.js';
@@ -216,7 +216,7 @@ function showHelp() {
   console.log('Git Worktree Helper - Manage parallel development sessions');
   console.log('');
   console.log('Usage:');
-  console.log('  pnpm worktree <command> [arguments]');
+  console.log('  pnpm bds worktree <command> [arguments]');
   console.log('');
   console.log('Commands:');
   console.log('  create <branch-name>   Create a new worktree for a branch');
@@ -226,10 +226,10 @@ function showHelp() {
   console.log('  help                   Show this help message');
   console.log('');
   console.log('Examples:');
-  console.log('  pnpm worktree create feature/my-feature');
-  console.log('  pnpm worktree list');
-  console.log('  pnpm worktree remove feature/my-feature');
-  console.log('  pnpm worktree prune');
+  console.log('  pnpm bds worktree create feature/my-feature');
+  console.log('  pnpm bds worktree list');
+  console.log('  pnpm bds worktree remove feature/my-feature');
+  console.log('  pnpm bds worktree prune');
   console.log('');
   console.log('Configuration:');
   console.log('  Worktree directory is stored in .local-files-config.json');
@@ -250,7 +250,7 @@ async function main() {
       case 'create':
         if (!branchName) {
           console.error('❌ Branch name is required for create command');
-          console.error('Usage: pnpm worktree create <branch-name>');
+          console.error('Usage: pnpm bds worktree create <branch-name>');
           process.exit(1);
         }
         await createWorktree(branchName);
@@ -263,7 +263,7 @@ async function main() {
       case 'remove':
         if (!branchName) {
           console.error('❌ Branch name is required for remove command');
-          console.error('Usage: pnpm worktree remove <branch-name>');
+          console.error('Usage: pnpm bds worktree remove <branch-name>');
           process.exit(1);
         }
         await removeWorktree(branchName);

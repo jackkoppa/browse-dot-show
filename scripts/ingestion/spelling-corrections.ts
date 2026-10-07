@@ -1,5 +1,3 @@
-#!/usr/bin/env tsx
-
 /**
  * Reapply Spelling Corrections to All Transcripts
  * 
@@ -7,6 +5,9 @@
  * and reapplies the current spelling corrections configuration.
  * Useful when new corrections are added to a site or when migrating
  * from global to site-specific corrections.
+ *
+ * Run it with: pnpm bds ingest --sites=<id> --reapply-spelling-corrections
+ * (add --skip=... to run only this step)
  */
 
 import { logInfo, logError, logDebug, logProgress, logSuccess } from '../lib/logging.js';
@@ -194,18 +195,3 @@ export async function reapplySpellingCorrectionsToAllTranscripts(): Promise<{
     };
   }
 }
-
-// Only run as script if this file is executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  // Handle Ctrl+C gracefully
-  process.on('SIGINT', () => {
-    logInfo('\n\n⚠️  Operation cancelled by user');
-    process.exit(130);
-  });
-
-  // Run the main function
-  reapplySpellingCorrectionsToAllTranscripts().catch((error) => {
-    logError('\n❌ Unexpected error:', error.message);
-    process.exit(1);
-  });
-} 

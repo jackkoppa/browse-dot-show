@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { REPO_ROOT } from './paths.js';
 
 interface SiteProcessingResult {
   siteId: string;
@@ -50,7 +51,7 @@ interface PipelineRunLog {
 export class PipelineResultLogger {
   private readonly logFilePath: string;
 
-  constructor(projectRoot: string = process.cwd()) {
+  constructor(projectRoot: string = REPO_ROOT) {
     this.logFilePath = path.join(projectRoot, 'scripts/automation-logs/ingestion-pipeline-runs.md');
   }
 

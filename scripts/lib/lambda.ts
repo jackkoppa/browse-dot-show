@@ -75,7 +75,7 @@ export function isIngestionLambdaId(value: string): value is IngestionLambdaId {
  * How to start tsx. Prefer running tsx's CLI with the current node binary, so this works
  * without `tsx` (or even `node`) on PATH, e.g. under launchd.
  */
-function tsxCommand(): { command: string; prefixArgs: string[] } {
+export function tsxCommand(): { command: string; prefixArgs: string[] } {
   const tsxCli = repoPath('node_modules/tsx/dist/cli.mjs');
   if (fs.existsSync(tsxCli)) {
     return { command: process.execPath, prefixArgs: [tsxCli] };
