@@ -1,0 +1,163 @@
+{
+  "hardfork": {
+    "accountId": "927984855345",
+    "bucketName": "hardfork-browse-dot-show",
+    "cloudfrontId": "E3AL5W5TL0MBI0",
+    "cloudfrontDomain": "dnutxpy6o3tmy.cloudfront.net",
+    "searchApiUrl": "https://dkcslzlx29.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "claretandblue": {
+    "accountId": "152849157974",
+    "bucketName": "claretandblue-browse-dot-show",
+    "cloudfrontId": "E1WTVB5EMSISEY",
+    "cloudfrontDomain": "d1zz0tddfxupkh.cloudfront.net",
+    "searchApiUrl": "https://trrbjzxhk2.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "listenfairplay": {
+    "accountId": "927984855345",
+    "bucketName": "listenfairplay-browse-dot-show",
+    "cloudfrontId": "E1C87EPLHIDHZO",
+    "cloudfrontDomain": "d3quuqx4wh7ls9.cloudfront.net",
+    "searchApiUrl": "https://jcrqsoge1d.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "iwltrubbish": {
+    "accountId": "152849157974",
+    "bucketName": "iwltrubbish-browse-dot-show",
+    "cloudfrontId": "E35S1PVI17EDO5",
+    "cloudfrontDomain": "d2hpttuu6ywh37.cloudfront.net",
+    "searchApiUrl": "https://0nhkbtuzrj.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "naddpod": {
+    "accountId": "152849157974",
+    "bucketName": "naddpod-browse-dot-show",
+    "cloudfrontId": "EAQH8T61RT4QK",
+    "cloudfrontDomain": "d1gto0o4xx86be.cloudfront.net",
+    "searchApiUrl": "https://sf22em4dnd.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "myfavoritemurder": {
+    "accountId": "152849157974",
+    "bucketName": "myfavoritemurder-browse-dot-show",
+    "cloudfrontId": "E2QW8JCKDV6I2A",
+    "cloudfrontDomain": "d24vt77c4ov2qe.cloudfront.net",
+    "searchApiUrl": "https://yhuo5914wk.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "searchengine": {
+    "accountId": "927984855345",
+    "bucketName": "searchengine-browse-dot-show",
+    "cloudfrontId": "E35NK9C3NVGUP4",
+    "cloudfrontDomain": "d3tictnlwet1zs.cloudfront.net",
+    "searchApiUrl": "https://ceh9719jxi.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "lordsoflimited": {
+    "accountId": "152849157974",
+    "bucketName": "lordsoflimited-browse-dot-show",
+    "cloudfrontId": "EY6PGXI7642FA",
+    "cloudfrontDomain": "d4hd681dy06mv.cloudfront.net",
+    "searchApiUrl": "https://zv5hrb1494.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "pickleballstudio": {
+    "accountId": "927984855345",
+    "bucketName": "pickleballstudio-browse-dot-show",
+    "cloudfrontId": "EP0G97C4CSIC7",
+    "cloudfrontDomain": "d1u0fhnii5es35.cloudfront.net",
+    "searchApiUrl": "https://m7albw206b.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "limitedresources": {
+    "accountId": "927984855345",
+    "bucketName": "limitedresources-browse-dot-show",
+    "cloudfrontId": "E1UXXW9Q2L3XA1",
+    "cloudfrontDomain": "dfykxwka6qf6a.cloudfront.net",
+    "searchApiUrl": "https://azxhz53c69.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "hiddenbrain": {
+    "accountId": "927984855345",
+    "bucketName": "hiddenbrain-browse-dot-show",
+    "cloudfrontId": "EXLOS5KBLSQXT",
+    "cloudfrontDomain": "d36yv1sygjfbrp.cloudfront.net",
+    "searchApiUrl": "https://zmxabl5y30.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "screenrot": {
+    "accountId": "152849157974",
+    "bucketName": "screenrot-browse-dot-show",
+    "cloudfrontId": "E2H5Z878WQON46",
+    "cloudfrontDomain": "d2cyafdx0b7083.cloudfront.net",
+    "searchApiUrl": "https://43m5yibnuf.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "fromtherookeryend": {
+    "accountId": "152849157974",
+    "bucketName": "fromtherookeryend-browse-dot-show",
+    "cloudfrontId": "E16M245LQ1H5WY",
+    "cloudfrontDomain": "d27v6strj3uwcd.cloudfront.net",
+    "searchApiUrl": "https://kzq0bevkrk.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "spoutlore": {
+    "accountId": "927984855345",
+    "bucketName": "spoutlore-browse-dot-show",
+    "cloudfrontId": "E2FLUSJVR8LQX8",
+    "cloudfrontDomain": "d3m05rkgovhxu0.cloudfront.net",
+    "searchApiUrl": "https://gyb69x22dj.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "drivetowork": {
+    "accountId": "152849157974",
+    "bucketName": "drivetowork-browse-dot-show",
+    "cloudfrontId": "E2XLXSHGDQ261O",
+    "cloudfrontDomain": "dyudln6qeh6pl.cloudfront.net",
+    "searchApiUrl": "https://jnr1zd47i9.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "luckypaper": {
+    "accountId": "152849157974",
+    "bucketName": "luckypaper-browse-dot-show",
+    "cloudfrontId": "E2VFM4KCQQLNYP",
+    "cloudfrontDomain": "d1ds1t33xwgjep.cloudfront.net",
+    "searchApiUrl": "https://c3trfidbpb.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "eggplant": {
+    "accountId": "927984855345",
+    "bucketName": "eggplant-browse-dot-show",
+    "cloudfrontId": "EI2D3FILQXB30",
+    "cloudfrontDomain": "dpfzg5gouflod.cloudfront.net",
+    "searchApiUrl": "https://bdf91jhukl.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "officeladies": {
+    "accountId": "927984855345",
+    "bucketName": "officeladies-browse-dot-show",
+    "cloudfrontId": "E2GB35FRH45ZQ6",
+    "cloudfrontDomain": "d3vcdrc92ctwbj.cloudfront.net",
+    "searchApiUrl": "https://j4u0998y3i.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "celebritymemoirbookclub": {
+    "accountId": "152849157974",
+    "bucketName": "celebritymemoirbookclub-browse-dot-show",
+    "cloudfrontId": "EZB8WOUQQ4KXR",
+    "cloudfrontDomain": "d2jq3usynpumwq.cloudfront.net",
+    "searchApiUrl": "https://fe7xt21rhg.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "doublepivot": {
+    "accountId": "927984855345",
+    "bucketName": "doublepivot-browse-dot-show",
+    "cloudfrontId": "E5UPKWU69RMWI",
+    "cloudfrontDomain": "dj7c4iex54jfy.cloudfront.net",
+    "searchApiUrl": "https://dvlqpkk3h0.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "libero": {
+    "accountId": "927984855345",
+    "bucketName": "libero-browse-dot-show",
+    "cloudfrontId": "E154XQCYU24C67",
+    "cloudfrontDomain": "d2fmj5nehhl7f1.cloudfront.net",
+    "searchApiUrl": "https://936c3jf4e2.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "wattsoccurring": {
+    "accountId": "152849157974",
+    "bucketName": "wattsoccurring-browse-dot-show",
+    "cloudfrontId": "EWSA53GMDH907",
+    "cloudfrontDomain": "d21naanl07y6fp.cloudfront.net",
+    "searchApiUrl": "https://25s8qeuj4g.execute-api.us-east-1.amazonaws.com/prod"
+  },
+  "haveaword": {
+    "accountId": "927984855345",
+    "bucketName": "haveaword-browse-dot-show",
+    "cloudfrontId": "E1RZJQLKN2T6SL",
+    "cloudfrontDomain": "d2idbys2g6cxs0.cloudfront.net",
+    "searchApiUrl": "https://gpexufffjb.execute-api.us-east-1.amazonaws.com/prod"
+  }
+}

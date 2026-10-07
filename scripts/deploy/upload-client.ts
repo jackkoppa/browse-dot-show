@@ -2,22 +2,24 @@
 
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { checkAwsCredentials } from '../lib/aws-utils.js';
-import { 
-  buildClientForSite, 
-  validateBuildOutput, 
-  uploadClientToS3WithProfile, 
-  invalidateCloudFrontWithProfile, 
-  getTerraformOutputsWithProfile,
-  TerraformOutputs 
+import {
+  buildClientForSite,
+  validateBuildOutput,
+  uploadClientToS3WithProfile,
+  invalidateCloudFrontWithProfile,
 } from '../lib/client-deployment.js';
+import { getSiteAccountMapping, getSiteCloudFrontDomain, getSiteCloudFrontId, getSiteSearchApiUrl } from '../lib/site-accounts.js';
 
-interface UploadConfig {
-  siteId: string;
-  awsProfile: string;
-  terraformOutputs: TerraformOutputs;
-}
+/**
+ * Build one site's client, upload it to the site's bucket and invalidate CloudFront.
+ *
+ * The bucket, CloudFront distribution and search API URL come from `.site-account-mappings.json`
+ * (not from `terraform output`, which reflects whichever site `terraform/sites` was last
+ * initialized for). Credentials: the site's SSO profile (`AWS_PROFILE`, from `.env.aws-sso`),
+ * or, when unset, the environment (e.g. GitHub Actions OIDC).
+ */
 
-async function validateInputs(siteId: string): Promise<void> {
+function validateInputs(siteId: string): void {
   if (!siteId) {
     printError('SITE_ID must be provided as second argument or environment variable');
     printError('Usage: tsx scripts/deploy/upload-client.ts prod SITE_ID');
@@ -25,73 +27,58 @@ async function validateInputs(siteId: string): Promise<void> {
   }
 }
 
-async function loadEnvironment(): Promise<{ awsProfile: string }> {  
-  // Validate AWS profile is available from environment
-  const awsProfile = process.env.AWS_PROFILE;
-  if (!awsProfile) {
-    printError('AWS_PROFILE is not set. Please ensure your site .env.aws-sso file contains AWS_PROFILE=your-profile-name');
-    process.exit(1);
-  }
-
-  return { awsProfile };
-}
-
-async function checkAwsSession(awsProfile: string): Promise<void> {
-  // Check if AWS SSO session is active
-  if (!(await checkAwsCredentials(awsProfile))) {
+async function checkAwsSession(awsProfile: string | undefined): Promise<void> {
+  if (await checkAwsCredentials(awsProfile)) return;
+  if (awsProfile) {
     printError(`AWS SSO session is not active or has expired for profile ${awsProfile}`);
     printError(`Please run: aws sso login --profile ${awsProfile}`);
-    process.exit(1);
+  } else {
+    printError('No AWS credentials: set AWS_PROFILE (the site\'s .env.aws-sso) or provide credentials in the environment.');
   }
+  process.exit(1);
 }
 
 async function main(): Promise<void> {
   try {
     logHeader('Upload Client Files to S3');
 
-    // Get SITE_ID from command line arguments or environment
     const siteId = process.argv[3] || process.env.SITE_ID || '';
-    await validateInputs(siteId);
+    validateInputs(siteId);
 
     printInfo(`Uploading client files for site: ${siteId}`);
 
-    // Load environment configuration
-    const { awsProfile } = await loadEnvironment();
-
-    // Check AWS authentication
+    const awsProfile = process.env.AWS_PROFILE || undefined;
+    printInfo(awsProfile ? `Using AWS profile: ${awsProfile}` : 'Using AWS credentials from the environment');
     await checkAwsSession(awsProfile);
 
-    // Get deployment details from Terraform
-    const terraformOutputs = await getTerraformOutputsWithProfile();
+    const { bucketName } = getSiteAccountMapping(siteId);
+    const cloudfrontId = getSiteCloudFrontId(siteId);
+    const cloudfrontDomain = getSiteCloudFrontDomain(siteId);
+    const searchApiUrl = getSiteSearchApiUrl(siteId);
+    printInfo(`Bucket: ${bucketName}, CloudFront: ${cloudfrontId}`);
 
-    
-
-    // Build the client
-    const buildResult = await buildClientForSite(siteId, terraformOutputs.searchApiUrl);
+    const buildResult = await buildClientForSite(siteId, searchApiUrl);
     if (!buildResult.success) {
       throw new Error(`Build failed: ${buildResult.error}`);
     }
 
-    // Validate build output
     const validationResult = await validateBuildOutput(siteId);
     if (!validationResult.valid) {
       throw new Error(`Build validation failed: ${validationResult.errors.join(', ')}`);
     }
 
-    // Upload to S3
-    const uploadResult = await uploadClientToS3WithProfile(siteId, terraformOutputs.bucketName, awsProfile);
+    const uploadResult = await uploadClientToS3WithProfile(siteId, bucketName, awsProfile);
     if (!uploadResult.success) {
       throw new Error(`Upload failed: ${uploadResult.error}`);
     }
 
-    // Invalidate CloudFront cache
-    const invalidationResult = await invalidateCloudFrontWithProfile(terraformOutputs.cloudfrontId, awsProfile);
+    const invalidationResult = await invalidateCloudFrontWithProfile(cloudfrontId, awsProfile);
     if (!invalidationResult.success) {
       throw new Error(`CloudFront invalidation failed: ${invalidationResult.error}`);
     }
 
     printSuccess('Upload complete. Your site should be available at:');
-    console.log(`https://${terraformOutputs.cloudfrontDomain}`);
+    console.log(`https://${cloudfrontDomain}`);
 
   } catch (error) {
     printError(`Upload failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -105,4 +92,4 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-main(); 
+main();

@@ -4,7 +4,7 @@ import { execCommand } from './shell-exec.js';
 import type { AutomationCredentials } from './env.js';
 
 /**
- * Per-site AWS account details, from the gitignored `.site-account-mappings.json`
+ * Per-site AWS account details, from `.site-account-mappings.json`
  * (repo root), plus assuming the automation role in a site's account.
  */
 
