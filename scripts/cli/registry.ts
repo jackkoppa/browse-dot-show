@@ -1,4 +1,5 @@
 import { commandName, type Command } from './command.js';
+import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciUploadHomepageCommand } from './commands/ci.js';
 import { scheduleCommand, setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
@@ -43,6 +44,15 @@ export const MENU: MenuNode[] = [
     ],
   },
   { label: 'Doctor (check this machine and config)', command: doctorCommand },
+  {
+    label: 'CI (used by GitHub Actions)',
+    children: [
+      { label: 'What a range of commits deploys', command: ciAffectedCommand },
+      { label: 'Plan or apply one Terraform target', command: ciTerraformCommand },
+      { label: 'Render the Terraform plan PR comment', command: ciPlanCommentCommand },
+      { label: 'Upload the built homepage', command: ciUploadHomepageCommand },
+    ],
+  },
 ];
 
 function flatten(nodes: MenuNode[]): Command[] {

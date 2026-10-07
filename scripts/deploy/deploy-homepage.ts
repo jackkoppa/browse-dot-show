@@ -5,6 +5,7 @@ import { execCommandOrThrow, execCommand } from '../lib/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { validateHomepageAwsEnvironment } from '../lib/aws-utils.js';
 import { loadHomepageEnv } from '../lib/env.js';
+import { uploadHomepageFiles } from '../lib/homepage-deployment.js';
 
 interface DeploymentOptions {
   test: boolean;
@@ -312,48 +313,6 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
     // Always return to original directory
     process.chdir(originalCwd);
   }
-}
-
-async function uploadHomepageFiles(bucketName: string, distributionId: string): Promise<void> {
-  const DIST_DIR = 'packages/homepage/dist';
-  
-  printInfo(`Uploading homepage files from ${DIST_DIR} to S3 bucket: ${bucketName}`);
-  
-  // Sync files to S3
-  await execCommandOrThrow('aws', [
-    's3',
-    'sync',
-    DIST_DIR,
-    `s3://${bucketName}/`,
-    '--delete',
-    '--cache-control',
-    'max-age=31536000',  // 1 year for assets
-    '--exclude',
-    'index.html'
-  ]);
-
-  // Upload index.html with shorter cache
-  await execCommandOrThrow('aws', [
-    's3',
-    'cp',
-    `${DIST_DIR}/index.html`,
-    `s3://${bucketName}/index.html`,
-    '--cache-control',
-    'max-age=3600'  // 1 hour for index.html
-  ]);
-
-  printInfo('Invalidating entire CloudFront cache...');
-  await execCommandOrThrow('aws', [
-    'cloudfront',
-    'create-invalidation',
-    '--distribution-id',
-    distributionId,
-    '--paths',
-    '/\\*',
-    '--no-cli-pager'
-  ]);
-
-  printSuccess('✅ Homepage files uploaded successfully!');
 }
 
 async function displayDeploymentInfo(): Promise<void> {

@@ -82,6 +82,7 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds infra <homepage\|automation> <deploy\|bootstrap-state>` | Shared infrastructure |
 | `bds worktree <create\|list\|remove\|prune\|link-config>` | Git worktrees (see below) |
 | `bds doctor` | Check this machine and config |
+| `bds ci <affected\|terraform\|plan-comment\|upload-homepage>` | Used by GitHub Actions. `bds ci affected --base=origin/main` shows what your branch would deploy; `bds ci terraform --target=site:<id> --mode=plan` runs a read-only plan and prints a summary |
 | `bds schedule`, `bds setup machine` | Coming soon: scheduled unattended runs on a Mac |
 
 Every command runs without prompts when its required flags are given. If something required is missing and there's no terminal (e.g. a scheduled job), it exits with code 2 instead of waiting for input. Exit codes: `0` success, `1` failure, `2` usage error, `130` cancelled.
