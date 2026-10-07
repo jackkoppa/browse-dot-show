@@ -13,6 +13,10 @@ import { stripDownloadedAtFromFileKey, getEpisodeFileKeyWithDownloadedAt } from 
 
 log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logging level: ${log.getLevel()}`);
 
+// Some hosts reject Node's default `User-Agent: node` (Buzzsprout returns 403 for audio
+// since ~March 2026), so identify ourselves the way podcast clients do
+const FETCH_HEADERS = { 'User-Agent': 'browse.show/1.0 (+https://browse.show)' };
+
 // Types
 interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInManifest
   title: string;
@@ -49,7 +53,7 @@ function getEpisodeAudioFilename(fileKey: string): string {
 // Fetch RSS feed
 async function fetchRSSFeed(url: string): Promise<string> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: FETCH_HEADERS });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -340,7 +344,7 @@ async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string>
   
   try {
     log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${url}`);
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: FETCH_HEADERS });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
