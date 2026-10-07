@@ -115,8 +115,9 @@ async function executeS3Sync(
     }
     // For 'overwrite-if-newer', AWS CLI default behavior handles this
     
-    // Exclude system files
-    args.push('--exclude', '.DS_Store');
+    // Exclude system files, and the AWS-only JSON lockfile (local runs lock per file in
+    // {localFilesPath}/locks/, so it's never synced in either direction)
+    args.push('--exclude', '.DS_Store', '--exclude', '*.processing-lock.json');
     
     // Add verbosity for better tracking
     args.push('--cli-read-timeout', '0', '--cli-connect-timeout', '60');
