@@ -80,7 +80,7 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds dev homepage` | Homepage dev server |
 | `bds validate <sites\|local\|prod\|consistency>` | Validate site configs, local files or S3 contents |
 | `bds infra <homepage\|automation> <deploy\|bootstrap-state>` | Shared infrastructure |
-| `bds worktree <create\|list\|remove\|prune>` | Git worktrees (see below) |
+| `bds worktree <create\|list\|remove\|prune\|link-config>` | Git worktrees (see below) |
 | `bds doctor` | Check this machine and config |
 | `bds schedule`, `bds setup machine` | Coming soon: scheduled unattended runs on a Mac |
 
@@ -123,9 +123,10 @@ pnpm bds worktree create feature/my-feature   # new branch from HEAD, if needed
 pnpm bds worktree list
 pnpm bds worktree remove feature/my-feature
 pnpm bds worktree prune
+pnpm bds worktree link-config <path>          # symlink config into an existing worktree
 ```
 
-A new worktree has no gitignored files. Copy or symlink the config files from section 2 into it, then run `pnpm install` and `pnpm all:build`.
+`create` symlinks the main checkout's gitignored config files (`.env.*`, sites' `.env.aws-sso`, `.site-account-mappings.json`, `.local-files-config.json`, `.deployed-sites.json`, Terraform `*.tfvars`, custom spelling corrections) into the new worktree, so it shares your credentials and local files path. Then run `pnpm install` and `pnpm all:build` in it.
 
 ## 6. Working on the scripts
 
