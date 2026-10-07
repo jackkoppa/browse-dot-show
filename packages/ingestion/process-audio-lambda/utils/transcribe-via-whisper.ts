@@ -35,6 +35,21 @@ interface TranscribeOptions {
 let currentWhisperProcess: any = null;
 
 /**
+ * Kill the whisper.cpp process this module is currently running, if any. Called when the
+ * process is interrupted, so whisper doesn't keep running (and using the GPU) after its
+ * lockfile entry has been released.
+ */
+export function killActiveWhisperProcess(): void {
+  if (currentWhisperProcess && !currentWhisperProcess.killed) {
+    try {
+      currentWhisperProcess.kill('SIGKILL');
+    } catch {
+      // Already exited
+    }
+  }
+}
+
+/**
  * Transcribes an audio file using either OpenAI or Replicate Whisper API
  * @param options Transcription options
  * @returns The transcription as a string in the requested format
