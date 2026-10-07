@@ -67,8 +67,8 @@ Handoff: [HANDOFF.md](./HANDOFF.md). Decisions and test results: [06](./06-sessi
 - [x] M3: Unified CLI ([#166](https://github.com/jackkoppa/browse-dot-show/pull/166))
 - [x] M4: Parallel transcription ([#167](https://github.com/jackkoppa/browse-dot-show/pull/167)); real run, Ctrl+C test and benchmark done (default N=3)
 - [x] M6: Docs + Hermit removal ([#168](https://github.com/jackkoppa/browse-dot-show/pull/168))
-- [ ] Small follow-ups ([10](./10-follow-ups.md))
-- [ ] M4b: GitHub Actions deploys ([08](./08-github-actions-deploys.md))
+- [x] Small follow-ups ([10](./10-follow-ups.md)): #170–#175
+- [ ] M4b: GitHub Actions deploys ([08](./08-github-actions-deploys.md)): plan written; implementation in progress
 - [ ] M5: Mac automation ([03](./03-mac-automation.md))
 
 ## Related state

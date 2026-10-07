@@ -26,15 +26,11 @@ Orientation: [`docs/local-development.md`](../../docs/local-development.md) (set
 
 The developer chose this order on 2026-10-06. No dates.
 
-### 1. Small follow-ups ([10](./10-follow-ups.md))
+### 1. Small follow-ups ([10](./10-follow-ups.md)): ✅ PRs open (2026-10-07)
 
-Suggested order. Each is small and can be its own PR:
+Stacked on #169, in order: [#170](https://github.com/jackkoppa/browse-dot-show/pull/170) `validate sites` passes (10 §7) → [#171](https://github.com/jackkoppa/browse-dot-show/pull/171) index sites whose transcripts are newer than their index (10 §4) → [#172](https://github.com/jackkoppa/browse-dot-show/pull/172) worktrees get gitignored config symlinked (10 §8) → [#173](https://github.com/jackkoppa/browse-dot-show/pull/173) process-audio typecheck (10 §9) → [#174](https://github.com/jackkoppa/browse-dot-show/pull/174) search-entries no longer all rewritten/re-uploaded (10 §6) → [#175](https://github.com/jackkoppa/browse-dot-show/pull/175) atomic per-file transcription locks (10 §5).
 
-1. **`bds validate sites` errors (10 §7).** All 23 `site.config.json` files are missing `appHeader.includeAIUseDisclosure` (34 errors, already failing before the overhaul). Decide with the developer: add the field (what value per site?) or make it optional in `sites/validate.ts`.
-2. **Indexing after out-of-band transcription (10 §4).** Phase 4 should index any site whose transcripts are newer than its search index, not only sites with new files from *this* run. On 2026-10-06 haveaword had 11 transcribed-but-unindexed episodes until `--force-local-indexing` was used.
-3. **Worktree config files (10 §8).** `bds worktree create` should symlink the gitignored config files (`.env.*`, `.site-account-mappings.json`, `.local-files-config.json`, `.deployed-sites.json`, each site's `.env.aws-sso`) into the new worktree.
-4. **Pre-existing type error (10 §9)** in `packages/ingestion/process-audio-lambda/utils/ffmpeg-utils.ts:357`; consider adding a typecheck for that package.
-5. **search-entries re-upload (10 §6)** and **lockfile robustness (10 §5)**: optional; bigger.
+After merging: the next real `bds ingest --all-sites` indexes and uploads ~300 episodes on 17 sites that were transcribed but never indexed (see #171). celebritymemoirbookclub and iwltrubbish need a client redeploy for #170.
 
 Leave for later: **10 §1** (automation Terraform), done as part of M4b; **10 §2** (Node 24), when draft [#156](https://github.com/jackkoppa/browse-dot-show/pull/156) is rebased onto `main`; **10 §3** (launchd signal testing), part of M5.
 
@@ -42,15 +38,7 @@ Leave for later: **10 §1** (automation Terraform), done as part of M4b; **10 §
 
 Goal: when a PR merges to `main`, Actions deploys **only what changed** (a site's frontend/config, the lambdas, or the homepage), using AWS credentials stored in the repo. Deploying locally must stay just as easy. **Never** run transcription or ingestion in Actions; that stays on the Mac (whisper.cpp).
 
-Decided:
-- **Trigger: automatic on merge to `main`** (plus `workflow_dispatch` for manual runs).
-
-Open, for the agent to propose and the developer to approve:
-- **Credentials:** GitHub OIDC → an IAM deploy role per AWS account (likely), vs access keys in repo secrets. The 23 sites live in **2 AWS accounts** (`.site-account-mappings.json`); the homepage and the automation stack deploy with their own AWS profiles (see `scripts/deploy/deploy-homepage.ts` and `deploy-automation.ts`).
-- How to detect what changed in a merge, and how CI gets today's gitignored inputs (`.site-account-mappings.json`, `.env.lambda-prod-build`, sites' `.env.aws-sso` profiles).
-- Fix **10 §1** first or alongside: `bds infra automation deploy` currently fails at `terraform plan` because the gitignored `terraform/automation/terraform.tfvars` maps only 6 sites. Simplest fix: build the assume-role policy from the 2 account IDs.
-
-Starting points in 08: what the deploy scripts assume today (SSO profiles, gitignored config, a hardcoded admin profile in the automation scripts, `tsx` on PATH).
+**The plan is in [08](./08-github-actions-deploys.md)** (decisions, survey of today's deploy scripts, design, PR sequence). Decided: automatic deploys on merge; **GitHub OIDC → a deploy role per AWS account** (there are **3** accounts: homepage/automation, and 2 for sites); Terraform plans are **computed on the PR, posted as a comment, approved, then applied on merge**; `.site-account-mappings.json` gets committed. Fix **10 §1** as part of it.
 
 ### 3. M5: unattended scheduled ingestion on a Mac ([03](./03-mac-automation.md))
 
@@ -72,5 +60,5 @@ These preferences came up during session 1; please keep them:
 
 - Node 22 via nvm on the dev machine (`~/.nvm/versions/node/v22.14.0`); pnpm via Corepack. Hermit is gone.
 - Dev machine: Apple M4 Pro, 64 GB. Benchmark: 3 parallel whisper workers ≈ 47.6 audio-min per minute (large-v3-turbo). `transcriptionWorkers: 3` is set in `.local-files-config.json`; the code default is also 3.
-- 23 sites, 2 site AWS accounts. Automation credentials are file-based (`.env.automation`, `chmod 600`) and assume `browse-dot-show-automation-role` in each account; `bds doctor --aws` checks this.
+- 23 sites in 2 site AWS accounts, plus account 0 for the homepage and the automation user. Automation credentials are file-based (`.env.automation`, `chmod 600`) and assume `browse-dot-show-automation-role` in each account; `bds doctor --aws` checks this.
 - Run history: `scripts/automation-logs/ingestion-pipeline-runs.md`. Worker logs: `scripts/automation-logs/transcription/<timestamp>/`.

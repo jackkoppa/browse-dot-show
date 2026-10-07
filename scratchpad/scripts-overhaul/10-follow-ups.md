@@ -15,12 +15,12 @@ Captured from session 1 and from the review of the PR stack (#162–#168). Each 
 ## Before M5 (Mac automation)
 
 3. **Signal handling for unattended runs.** Fixed in #167: the lambda kills its whisper process on SIGINT/SIGTERM; `bds` forwards shutdown to its lambda children. Still worth testing under launchd: SIGTERM from `launchctl bootout`. ffmpeg chunking children aren't killed explicitly (they're short-lived; they die when their pipes close).
-4. **Indexing after out-of-band transcription.** Phase 4 only indexes sites where *this run* created files. After a manual `bds lambda run` (or the old multi-terminal runner), you need `--force-local-indexing`. Index any site whose transcripts are newer than its search index instead.
-5. **Lockfile robustness.** `transcripts/.processing-lock.json` is read-modify-write JSON (not atomic) and lives in a folder that's synced to S3. Removals are now verified (#167), and `bds` gives workers disjoint files, but per-file lock files (created atomically) outside synced folders would be sturdier.
+4. **✅ #171: Indexing after out-of-band transcription.** Phase 4 only indexes sites where *this run* created files. After a manual `bds lambda run` (or the old multi-terminal runner), you need `--force-local-indexing`. Index any site whose transcripts are newer than its search index instead.
+5. **✅ #175: Lockfile robustness.** `transcripts/.processing-lock.json` is read-modify-write JSON (not atomic) and lives in a folder that's synced to S3. Removals are now verified (#167), and `bds` gives workers disjoint files, but per-file lock files (created atomically) outside synced folders would be sturdier.
 
 ## Smaller
 
-6. **search-entries re-upload.** Re-indexing rewrites every `search-entries/*.json`, so `aws s3 sync` re-uploads all of them (405 files for 11 new on haveaword). Harmless but slow at scale; skip unchanged files (content hash) or only rewrite new entries. (An existing TODO in the pipeline.)
-7. **`bds validate sites`: 34 errors on `main`.** Every `site.config.json` is missing `appHeader.includeAIUseDisclosure`. Add the field, or make it optional in validation.
-8. **Worktree config files.** `bds worktree create` doesn't copy or symlink gitignored config (`.env.*`, `.site-account-mappings.json`, `.local-files-config.json`, sites' `.env.aws-sso`). Session 1 symlinked them by hand.
-9. **Pre-existing type error** in `packages/ingestion/process-audio-lambda/utils/ffmpeg-utils.ts:357` (`error` is `unknown`); the package has no `tsconfig.json`/typecheck script.
+6. **✅ #174: search-entries re-upload.** Re-indexing rewrites every `search-entries/*.json`, so `aws s3 sync` re-uploads all of them (405 files for 11 new on haveaword). Harmless but slow at scale; skip unchanged files (content hash) or only rewrite new entries. (An existing TODO in the pipeline.)
+7. **✅ #170: `bds validate sites`: 34 errors on `main`.** Every `site.config.json` is missing `appHeader.includeAIUseDisclosure`. Add the field, or make it optional in validation.
+8. **✅ #172: Worktree config files.** `bds worktree create` doesn't copy or symlink gitignored config (`.env.*`, `.site-account-mappings.json`, `.local-files-config.json`, sites' `.env.aws-sso`). Session 1 symlinked them by hand.
+9. **✅ #173: Pre-existing type error** in `packages/ingestion/process-audio-lambda/utils/ffmpeg-utils.ts:357` (`error` is `unknown`); the package has no `tsconfig.json`/typecheck script.
