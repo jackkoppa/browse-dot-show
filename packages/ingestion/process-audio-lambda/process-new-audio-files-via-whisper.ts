@@ -20,7 +20,7 @@ import {
   listDirectories,
   deleteFile,
 } from '@browse-dot-show/s3'
-import { transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
+import { killActiveWhisperProcess, transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
 
 
@@ -781,12 +781,19 @@ export async function handler(): Promise<void> {
     }
 
     log.info('\n❌ Process terminated by user.');
+    // Stop whisper first: Node doesn't kill child processes when it exits
+    killActiveWhisperProcess();
     // Release this process's lockfile entries so the next run doesn't skip those files
     removeOwnLockfileEntries().finally(() => process.exit(130));
   };
 
   process.on('SIGINT', logSummaryAndExit);
   process.on('SIGTERM', logSummaryAndExit);
+  // Remove these on every return path, so warm Lambda containers don't accumulate listeners
+  const removeSignalHandlers = () => {
+    process.removeListener('SIGINT', logSummaryAndExit);
+    process.removeListener('SIGTERM', logSummaryAndExit);
+  };
 
   log.info('Scanning S3 for audio files.');
   const allPodcastDirs = await listDirectories(AUDIO_DIR_PREFIX);
@@ -899,6 +906,7 @@ export async function handler(): Promise<void> {
       filesToProcess.slice(0, 10).forEach(f => log.warn(`   - ${path.basename(f)}`));
       if (filesToProcess.length > 10) log.warn(`   ... and ${filesToProcess.length - 10} more files`);
       logProgress('COMPLETE', 'No matching file to transcribe', { totalFiles: 0, completedFiles: 0, totalMinutes: 0, completedMinutes: 0, percentComplete: 100 });
+      removeSignalHandlers();
       return;
     }
   }
@@ -906,6 +914,7 @@ export async function handler(): Promise<void> {
   if (filesToProcess.length === 0) {
     log.info("No audio files found to process.");
     logProgress('COMPLETE', 'No audio files to transcribe', { totalFiles: 0, completedFiles: 0, totalMinutes: 0, completedMinutes: 0, percentComplete: 100 });
+    removeSignalHandlers();
     return;
   }
 
@@ -1010,9 +1019,8 @@ export async function handler(): Promise<void> {
   const totalSizeMB = totalBytesProcessed / (1024 * 1024);
   const secondsPer10MB = totalSizeMB > 0 ? (totalLambdaTime / totalSizeMB) * 10 : 0;
 
-  // Remove SIGINT handler since we're completing normally
-  process.removeListener('SIGINT', logSummaryAndExit);
-  process.removeListener('SIGTERM', logSummaryAndExit);
+  // Remove the signal handlers since we're completing normally
+  removeSignalHandlers();
 
   // Log summary with emojis and formatting
   log.info('\n📊 Transcription Process Summary:');

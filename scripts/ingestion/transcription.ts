@@ -148,7 +148,7 @@ export function groupBySite(files: AudioFile[]): { siteId: string; files: AudioF
 interface ProgressEvent {
   type: 'START' | 'PROGRESS' | 'COMPLETE' | 'ERROR';
   message: string;
-  data?: { completedMinutes?: number; currentFile?: string };
+  data?: { completedMinutes?: number; completedFiles?: number; currentFile?: string };
 }
 
 /** Parse the lambda's JSON progress events out of a chunk of stdout. */
@@ -320,6 +320,7 @@ export async function runParallelTranscription(options: ParallelTranscriptionOpt
           if (stopping) break;
           const batchMinutes = batch.files.reduce((sum, f) => sum + f.durationMinutes, 0);
           state.currentMinutes = 0;
+          let completedFiles: number | undefined;
           state.status = `[${batch.siteId}] ${batch.files.length} file(s), ${formatMinutes(batchMinutes)}`;
           display.event(state, `starting ${batch.siteId}: ${batch.files.length} file(s), ${formatMinutes(batchMinutes)}`);
           logStream.write(`\n===== ${new Date().toISOString()} ${batch.siteId}: ${batch.files.map(f => f.key).join(', ')}\n`);
@@ -337,6 +338,7 @@ export async function runParallelTranscription(options: ParallelTranscriptionOpt
             onStdout: chunk => {
               logStream.write(chunk);
               for (const event of parseProgressEvents(chunk)) {
+                if (event.type === 'COMPLETE') completedFiles = event.data?.completedFiles;
                 if (event.type === 'PROGRESS') {
                   state.currentMinutes = Math.min(event.data?.completedMinutes ?? state.currentMinutes, batchMinutes);
                   state.status = `[${batch.siteId}] done: ${event.data?.currentFile ?? ''}`;
@@ -349,8 +351,9 @@ export async function runParallelTranscription(options: ParallelTranscriptionOpt
 
           const siteResult = results.get(batch.siteId)!;
           siteResult.duration += result.duration;
+          // Prefer the structured COMPLETE event; fall back to the summary log line
           const transcribedMatch = result.stdout.match(/✅ Successfully Processed: (\d+)/);
-          siteResult.transcribed += transcribedMatch ? parseInt(transcribedMatch[1], 10) : 0;
+          siteResult.transcribed += completedFiles ?? (transcribedMatch ? parseInt(transcribedMatch[1], 10) : 0);
           if (!result.success) {
             siteResult.success = false;
             siteResult.errors.push(`Transcription (${state.plan.workerId}) failed: ${result.error}. See ${path.join(logDir, `${state.plan.workerId}.log`)}`);

@@ -89,12 +89,16 @@ describe('runParallelTranscription', () => {
       for (const key of options.files ?? []) {
         options.onStdout?.(JSON.stringify({ type: 'PROGRESS', message: 'done', data: { completedMinutes: 1, currentFile: key } }) + '\n');
       }
+      if (options.siteId !== 'broken') {
+        options.onStdout?.(JSON.stringify({ type: 'COMPLETE', message: 'done', data: { completedFiles: options.files?.length ?? 0 } }) + '\n');
+      }
       const broken = options.siteId === 'broken';
       return {
         success: !broken,
         exitCode: broken ? 1 : 0,
         duration: 5,
-        stdout: broken ? '' : `✅ Successfully Processed: ${options.files?.length ?? 0}`,
+        // No summary line: the count must come from the COMPLETE event
+        stdout: '',
         stderr: '',
         error: broken ? 'Exit code: 1' : undefined,
       };
