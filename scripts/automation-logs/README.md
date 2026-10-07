@@ -1,5 +1,5 @@
 # automation-logs
 
-Primarily for the logs for `pnpm ingestion:run-pipeline:triggered-by-schedule` - when scheduled via `sudo pnpm power:manage`
+Run summaries from the ingestion pipeline (`ingestion-pipeline-runs.md`, written by `scripts/utils/pipeline-result-logger.ts`).
 
-Logs themselves are gitignored
+Logs themselves are gitignored.

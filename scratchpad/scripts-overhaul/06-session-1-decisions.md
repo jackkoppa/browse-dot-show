@@ -24,3 +24,31 @@ Answers from the developer before starting session 1.
 - Node and pnpm currently come from nvm (`~/.nvm/versions/node/v22.14.0`), not Hermit.
 - `localFilesPath` is on an external volume (`/Volumes/4TB_SSD_…`). Background jobs need Full Disk Access to read removable volumes (03 §9).
 - Three root-owned plists in `~/Library/LaunchAgents/`; `power-management` was still firing (and failing) as of 2026-10-05.
+
+## Live transcription run (2026-10-06)
+
+- A multi-terminal transcription run was in progress in the main checkout when session 1 started (expected to finish around 7:15 PM). Each terminal starts a new `tsx trigger-individual-ingestion-lambda.ts` per site, which reads the scripts from that checkout.
+- So all overhaul work happens in the worktree `~/Workrees_Personal_Development/browse-dot-show--worktrees/scripts-overhaul`, with the gitignored config files (`.env.*`, `.site-account-mappings.json`, `.deployed-sites.json`, `.local-files-config.json`, each site's `.env.aws-sso`) symlinked from the main checkout. The main checkout stays on `jackkoppa/scripts-overhaul-m0-baseline`, untouched.
+- The **local-files location and layout must not change** in session 1. It could change later if really needed.
+- The whisper benchmark for the default `--parallel=N` waits until that run finishes, since it would compete for the GPU.
+
+## Developer actions from M1 (run these yourself)
+
+The three old LaunchAgents (`daily-pipeline`, `ingestion-automation`, `power-management`) are still loaded, and `power-management` still fires and fails. Unload and delete them; the plists are root-owned, so deleting needs `sudo`:
+
+```bash
+for n in daily-pipeline ingestion-automation power-management; do
+  launchctl bootout gui/$(id -u)/com.browse-dot-show.$n || sudo launchctl bootout gui/$(id -u)/com.browse-dot-show.$n
+  sudo rm -f ~/Library/LaunchAgents/com.browse-dot-show.$n.plist
+done
+launchctl list | grep browse-dot-show   # should print nothing
+```
+
+Then, in the main checkout, delete the old (gitignored) logs. Keep `ingestion-pipeline-runs.md`:
+
+```bash
+cd ~/Personal_Development/browse-dot-show/scripts/automation-logs
+rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-error.log power-management.log power-management-error.log
+```
+
+`.automation-config` didn't exist in the main checkout, so there's nothing to delete.

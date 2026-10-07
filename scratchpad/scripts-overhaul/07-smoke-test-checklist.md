@@ -6,8 +6,8 @@ Items 4–7 touch real AWS. Get the developer's go-ahead each time.
 
 ## Every milestone (local only, no AWS)
 
-1. **Typecheck:** `pnpm --filter @browse-dot-show/scripts typecheck` passes. It also runs in the pre-commit hook (lint-staged) whenever `scripts/**/*.ts` changes.
-2. **Lint:** `pnpm all:lint` shows 0 errors. The baseline had 64 warnings; the count shouldn't grow.
+1. **Typecheck:** `pnpm --filter @browse-dot-show/scripts typecheck` passes. In a fresh clone or worktree, first build the workspace packages it depends on: `pnpm --filter "@browse-dot-show/scripts^..." build`. It also runs in the pre-commit hook (lint-staged) whenever `scripts/**/*.ts` changes.
+2. **Lint:** `pnpm all:lint` shows 0 errors. The baseline had 64 warnings (53 after M1); the count shouldn't grow.
 3. **Tests:** `pnpm all:test` passes. Baseline: spelling 10, client 33, s3 22, validation 24, rss-retrieval 28, scripts 26, process-audio 10.
 4. **Pipeline dry run, all sites:**
    `NODE_OPTIONS=--max-old-space-size=9728 pnpm tsx scripts/run-ingestion-pipeline.ts --dry-run`
