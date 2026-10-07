@@ -7,5 +7,5 @@ This directory is where you create and configure your own podcast archive sites.
 Use the browse.show Site Creator
 
 ```bash
-pnpm site:create
+pnpm bds site create
 ```

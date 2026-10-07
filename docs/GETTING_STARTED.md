@@ -4,6 +4,9 @@
 
 Start your own podcast archive and search engine with our interactive setup wizard.
 
+> [!NOTE]
+> **Using this repo from before October 6, 2026?** Commands and scripts were reorganized into the `pnpm bds` CLI. If your local scripts and deployments already work, you can stay on the [`v0.0.1` tag](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1). See the [changelog](../CHANGELOG.md) for what changed.
+
 ## 🚀 Quick Start
 
 ### 1. Fork & Clone
@@ -17,42 +20,28 @@ cd browse-dot-show
 
 ### 2. Set Up Development Tools
 
-This project uses [Hermit](https://cashapp.github.io/hermit) to automatically manage Node.js and pnpm versions. See the [Local Development Guide](./local-development.md#tool-management-with-hermit) for detailed setup instructions.
-
-**Quick setup:**
+You need Node.js 22 and pnpm (via Corepack), plus ffmpeg and whisper.cpp for transcription. See the [Local Development Guide](./local-development.md#1-tools) for details.
 
 ```bash
-# Install Hermit (installs to ~/bin)
-curl -fsSL https://github.com/cashapp/hermit/releases/download/stable/install.sh | /bin/bash
-
-# Add ~/bin to PATH and reload shell config
-echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc  # or ~/.bashrc for Bash
-source ~/.zshrc
-
-# Install shell hooks for automatic activation
-hermit shell-hooks
-
-# Restart your shell, then cd into the project
-# Tools are automatically available!
-
-# Verify setup
-./scripts/prereqs.sh
+brew install node@22 ffmpeg awscli   # or use nvm for Node: `nvm install` reads .nvmrc
+corepack enable                      # provides the pnpm version pinned in package.json
 ```
-
-> **Note:** You can also use nvm/Corepack if you prefer manual tool management. See [alternatives](./local-development.md#alternative-using-nvmcorepack).
 
 ### 3. Install Dependencies
 
 ```bash
 # Install dependencies & build initial packages
 pnpm i && pnpm all:build
+
+# Check your setup
+pnpm bds doctor
 ```
 
 ### 4. Create Your Site
 
 ```bash
 # Run the interactive site creation wizard
-pnpm site:create
+pnpm bds site create
 ```
 
 ![Site Creator CLI](./site-creator.png "Site Creator")
@@ -75,10 +64,10 @@ You can complete phases all at once or return anytime to continue where you left
 
 ```bash
 # See progress on all your sites
-pnpm site:create --review
+pnpm bds site create --review
 
 # Continue setup for any site
-pnpm site:create
+pnpm bds site create
 ```
 
 ## 📚 Next Steps
@@ -91,4 +80,4 @@ After running the wizard, you may want to explore:
 
 ---
 
-**Ready to get started?** Run `pnpm site:create` and follow the prompts!
+**Ready to get started?** Run `pnpm bds site create` and follow the prompts!

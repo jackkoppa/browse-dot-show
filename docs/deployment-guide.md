@@ -2,6 +2,9 @@
 
 This guide will walk you through deploying your podcast site to AWS using the automated deployment scripts.
 
+> [!NOTE]
+> **Using this repo from before October 6, 2026?** Commands and scripts were reorganized into the `pnpm bds` CLI. If your local scripts and deployments already work, you can stay on the [`v0.0.1` tag](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1). See the [changelog](../CHANGELOG.md) for what changed.
+
 ## 🎯 Overview
 
 Your site will be deployed to AWS with:
@@ -86,23 +89,9 @@ Your site will automatically be configured with a `*.browse.show` subdomain:
 
 If you want to use a custom domain later, you can modify the site configuration after deployment.
 
-## 🚀 Step 3: Bootstrap Terraform State
+## 🚀 Step 3: Terraform State
 
-Before deploying for the first time, you need to set up the Terraform state management:
-
-```bash
-# Bootstrap the Terraform state for your site
-pnpm run automation:bootstrap-state
-
-# When prompted, select your site
-# This creates the S3 bucket and DynamoDB table for Terraform state
-```
-
-This step:
-- Creates S3 bucket for Terraform state storage
-- Sets up DynamoDB table for state locking
-- Configures remote state backend
-- Only needs to be run once per site
+Nothing to do: `bds site deploy` creates the site's Terraform state bucket (`<site-id>-browse-dot-show-tf-state`) on first deploy, and reuses it after that.
 
 ## 📦 Step 4: Deploy Site Infrastructure
 
@@ -110,9 +99,9 @@ Deploy your site to AWS using the automated deployment script:
 
 ```bash
 # Deploy your site infrastructure and content
-pnpm run site:deploy
+pnpm bds site deploy --site=<your-site>
 
-# When prompted, select your site
+# Add --interactive to choose optional steps and confirm the Terraform plan
 # This will:
 # - Create all AWS resources (S3, CloudFront, Lambda functions)
 # - Build and upload your site content
@@ -143,13 +132,10 @@ Test that:
 After your site is deployed, run the ingestion pipeline to populate it with podcast content:
 
 ```bash
-# Run the complete ingestion pipeline
-pnpm run ingestion:run-pipeline:interactive
+# Run the complete ingestion pipeline for your site
+pnpm bds ingest --sites=<your-site>
 
-# When prompted:
-# 1. Select your site
-# 2. Choose "Full pipeline" for initial setup
-# 3. Confirm you want to proceed
+# Or run `pnpm bds ingest` with no flags to choose sites and phases interactively
 ```
 
 ### What the Ingestion Pipeline Does
@@ -205,41 +191,31 @@ Visit `https://[your-site].browse.show` and verify:
 - [ ] **Images and assets load** properly
 - [ ] **CDN delivers** content globally
 
-## 🔄 Step 7: Set Up Ongoing Updates
+## 🔄 Step 7: Ongoing Updates
 
-### Automatic Updates (Optional)
+### New episodes
 
-Set up scheduled processing for new episodes:
+Run the pipeline whenever you want new episodes on your site:
 
-**Option 1: Scheduled local runs on a Mac (in progress)**
-
-Unattended, scheduled runs of the local pipeline on a Mac are being rebuilt (see `scratchpad/scripts-overhaul/03-mac-automation.md`). Until then, run the pipeline manually (see below).
-
-**Option 2: Cloud-Based Automation (Production - Higher Cost)**
 ```bash
-# Enable scheduled Lambda execution (uses paid Whisper API)
-# This is NOT recommended due to cost, but available if needed
-
-# To enable during deployment, set terraform variable:
-# enable_rss_processing_schedule = true
-
-# This creates EventBridge scheduled events to:
-# - Check for new episodes daily (or custom schedule)
-# - Process content using OpenAI Whisper API ($0.006/minute)
-# - Update search index automatically
-
-# Note: This will incur ongoing costs for transcription
+pnpm bds ingest --sites=<your-site>         # one site
+pnpm bds ingest --all-sites --parallel=3    # every site, 3 transcription workers
 ```
 
-### Manual Updates
+It downloads anything missing locally from S3, fetches new episodes, transcribes them with local whisper.cpp, rebuilds the search index, uploads the new files to S3, refreshes the search lambda and invalidates CloudFront. See [Running ingestion](./local-development.md#4-running-ingestion) for flags.
 
-When you want to add new episodes manually:
+**Scheduled runs on a Mac:** unattended, scheduled runs of `bds ingest` (a LaunchDaemon plus a wake schedule, with no user logged in) are planned as `bds schedule`. Until then, run it manually.
+
+**Cloud-based transcription (not recommended):** setting the Terraform variable `enable_rss_processing_schedule = true` creates EventBridge schedules that run the ingestion lambdas in AWS using the paid OpenAI Whisper API ($0.006/minute). It's off by default.
+
+### Code changes
+
+After changing site config, the client or lambdas:
 
 ```bash
-# Run incremental update
-pnpm run ingestion:run-pipeline:interactive
-
-# Select "Incremental update" to process only new episodes
+pnpm bds site deploy --site=<your-site>          # infrastructure + lambdas + client
+pnpm bds site upload-client --site=<your-site>   # client only
+pnpm bds site upload-client --all-sites          # every site's client (automation credentials)
 ```
 
 ## 🔧 Troubleshooting
@@ -257,8 +233,8 @@ aws sso login --profile your-podcast-site
 
 **Site Not Loading**
 ```bash
-# Check deployment status
-pnpm run site:deploy
+# Re-run the deployment
+pnpm bds site deploy --site=<your-site>
 
 # Verify resources in AWS console
 # Look for CloudFront distribution and S3 bucket
@@ -267,7 +243,7 @@ pnpm run site:deploy
 **Missing Content**
 ```bash
 # Re-run the ingestion pipeline
-pnpm run ingestion:run-pipeline:interactive
+pnpm bds ingest --sites=<your-site>
 
 # Check local data directory (configured via .local-files-config.json)
 ls -la [local-files-path]/s3/sites/[your-site]/
@@ -290,7 +266,7 @@ ls -la [local-files-path]/s3/sites/[your-site]/
 ### Regular Tasks
 
 **Weekly:**
-- Check for new episodes: `pnpm run ingestion:run-pipeline:interactive`
+- Check for new episodes: `pnpm bds ingest --all-sites`
 - Monitor AWS costs in the billing console
 - Verify site performance and uptime
 
@@ -365,8 +341,9 @@ Typical monthly costs for a medium-sized podcast site:
    - AWS resources: Check AWS console
 
 3. **Re-run processes**:
-   - Deployment: `pnpm run site:deploy`
-   - Content: `pnpm run ingestion:run-pipeline:interactive`
+   - Deployment: `pnpm bds site deploy --site=<your-site>`
+   - Content: `pnpm bds ingest --sites=<your-site>`
+   - Setup check: `pnpm bds doctor`
 
 ### Getting Additional Help
 
@@ -382,19 +359,23 @@ Typical monthly costs for a medium-sized podcast site:
 
 ### Essential Commands
 ```bash
-# Initial deployment
-pnpm run automation:bootstrap-state  # One-time setup
-pnpm run site:deploy                 # Deploy infrastructure & content
+# Deployment
+pnpm bds site deploy --site=<your-site>       # infrastructure, lambdas & client
+pnpm bds site upload-client --site=<id>       # client only
 
-# Content management  
-pnpm run ingestion:run-pipeline:interactive  # Add/update episodes
+# Content
+pnpm bds ingest --sites=<your-site>           # add new episodes
 
-# Maintenance
-pnpm run automation:deploy           # Set up automatic updates
-pnpm validate:sites                  # Verify configuration
+# Shared infrastructure (one-time / rare)
+pnpm bds infra automation bootstrap-state     # state bucket for the automation stack
+pnpm bds infra automation deploy              # automation IAM user + cross-account access (used by bds ingest)
+
+# Checks
+pnpm bds doctor                               # tools and config
+pnpm validate:sites                           # site configs
 ```
 
 ### Important Files
 - **Site config**: `sites/my-sites/[your-site]/site.config.json`
 - **Terraform state**: Managed automatically in S3
-- **Local data**: Configured local files directory (default: `aws-local-dev/s3/sites/[your-site]/`)
+- **Local data**: `<localFilesPath>/s3/sites/[your-site]/` (`localFilesPath` is set in `.local-files-config.json`)

@@ -23,27 +23,23 @@ The site creator is broken down into focused modules:
 ## Design Principles
 
 - **Modularity**: Each file focuses on a specific concern
-- **Deduplication**: Reuses existing utilities from `../utils/`
+- **Deduplication**: Reuses shared modules from `../lib/`
 - **Maintainability**: Each file is under 500 lines for readability
-- **Backwards Compatibility**: The original `../create-site.ts` still works
 
 ## Dependencies
 
 The site creator modules depend on shared utilities:
-- `../utils/shell-exec.ts` - Shell command execution
-- `../utils/file-operations.ts` - File system operations
-- `../utils/logging.ts` - Logging and output formatting
+- `../lib/shell-exec.ts` - Shell command execution
+- `../lib/file-operations.ts` - File system operations
+- `../lib/logging.ts` - Logging and output formatting
+- `../lib/lambda.ts` - Running ingestion lambdas locally
+- `../ingestion/transcription.ts` - Parallel transcription
 
 ## Usage
 
-The tool can be used either through the original entry point:
 ```bash
-pnpm tsx scripts/create-site.ts
-```
-
-Or directly through the new main module:
-```bash
-pnpm tsx scripts/site-creator/main.ts
+pnpm bds site create            # start or continue setup
+pnpm bds site create --review   # progress for every site
 ```
 
 See [Getting Started guide](../../docs/GETTING_STARTED.md) for full documentation.

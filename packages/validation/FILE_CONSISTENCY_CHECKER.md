@@ -28,7 +28,7 @@ pnpm build
 ### Check a specific site (from anywhere in the project):
 ```bash
 # From project root - skips site selection prompt
-pnpm validate:consistency --site=naddpod
+pnpm bds validate consistency --site=naddpod
 
 # Or from validation package directory
 cd packages/validation
@@ -38,7 +38,7 @@ pnpm run check-consistency --site=naddpod
 ### Interactive site selection:
 ```bash
 # From project root - shows site selection prompt
-pnpm validate:consistency
+pnpm bds validate consistency
 
 # Or from validation package directory
 cd packages/validation
@@ -47,7 +47,7 @@ pnpm run check-consistency --all
 
 ### JSON output for scripting:
 ```bash
-pnpm validate:consistency --site=naddpod --format=json
+pnpm bds validate consistency --site=naddpod -- --format=json
 # or
 cd packages/validation
 pnpm run check-consistency --site=naddpod --format=json
@@ -55,7 +55,7 @@ pnpm run check-consistency --site=naddpod --format=json
 
 ### Verbose logging:
 ```bash
-pnpm validate:consistency --site=naddpod --verbose
+pnpm bds validate consistency --site=naddpod -- --verbose
 # or
 cd packages/validation
 pnpm run check-consistency --site=naddpod --verbose

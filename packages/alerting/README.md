@@ -1,6 +1,6 @@
 # alerting
 
-This package will be used by the 3 `/packages/ingestion` Lambdas to send messages to Slack, when there are errors either locally (e.g. from running `ingestion:run-pipeline:triggered-by-schedule`), or on AWS (e.g. one of the ingestion Lambdas encountering an error).
+This package will be used by the 3 `/packages/ingestion` Lambdas to send messages to Slack, when there are errors either locally (e.g. from running `pnpm bds ingest`), or on AWS (e.g. one of the ingestion Lambdas encountering an error).
 
 Dev will provide necessary Slack API keys or setup for their Slack instance (currently using http://you-can-sit-with-us.slack.com/, but both the domain & API keys will of course eventually need to be in `.env` files)
 

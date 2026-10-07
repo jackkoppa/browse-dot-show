@@ -75,3 +75,11 @@ rm -f automation.log automation-error.log daily-pipeline.log daily-pipeline-erro
 - process-audio lambda changes (these also ship to AWS on the next deploy; all are no-ops there): the file list now comes from `FILE_LIST_PATH` (the `TERMINAL_*` env vars, the legacy `TERMINAL_FILE_LIST` and the broken `LOG_FILE` writer are gone); progress reports actual per-file durations; `COMPLETE` is always emitted; on SIGINT/SIGTERM it releases its lockfile entries.
 - Removed `run-local-transcriptions-multi-terminal.ts` and `utils/multi-terminal-runner.ts`. The site creator's "complete transcriptions" step uses the parallel runner. The platform-support feature row is renamed to `episode-transcription-parallel`.
 - Observed, not changed: the lambda's lockfile lives at `transcripts/.processing-lock.json`, inside a synced folder, and its read-modify-write isn't atomic. Workers get disjoint files, so this is harmless for `bds ingest`.
+
+## Notes from M6
+
+- Hermit removed (`bin/`, `.gitignore` entries, `scripts/prereqs.sh`; `bds doctor` replaces it). Added `.nvmrc` (22) and `engines.node >=22`. Hermit had pinned Node **20.0.0**, while this machine actually ran Node 22 via nvm. **Developer action:** after checking out these branches in the main checkout, `rm -rf .hermit` there (it's no longer gitignored).
+- Docs rewritten: `docs/local-development.md` (setup, config files, CLI reference, ingestion, worktrees, scripts layout), `AGENTS.md`, `docs/GETTING_STARTED.md`, the deployment guide's commands and "Ongoing Updates", `scripts/deploy/README.md` (was stale: "Listen Fair Play", `deploy.ts`, Node 20, pnpm 8), plus command references in package READMEs and guides.
+- The deployment guide's "Step 3: Bootstrap Terraform State" pointed at the *automation* state command; `site deploy` already bootstraps the site's state bucket itself, so that step now says so.
+- `bds validate <check> -- <args>` passes extra args through (e.g. `--format=json` for the consistency checker).
+- A placeholder milestone for GitHub Actions code deploys was added ([08](./08-github-actions-deploys.md)), ordered before Mac scheduling.

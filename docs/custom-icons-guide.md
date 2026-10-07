@@ -114,13 +114,13 @@ Key elements to include:
 pnpm validate:sites
 
 # Start local development to preview
-pnpm client:dev
+pnpm bds dev client
 ```
 
 ### Step 4: Deploy Updates
 ```bash
 # Deploy your updated site
-pnpm site:deploy
+pnpm bds site deploy
 ```
 
 ## ✅ Quality Checklist
