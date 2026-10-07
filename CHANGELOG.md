@@ -42,6 +42,8 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Changed (deploys)
 
+- `bds ci affected` / `ci terraform` / `ci plan-comment` / `ci upload-homepage`: building blocks for GitHub Actions deploys (what changed, plan summaries, plan/approve/apply).
+- `bds site deploy` passes the OpenAI key to Terraform as `TF_VAR_openai_api_key` instead of a `-var` argument, so it no longer appears in logs or in the saved plan file.
 - `.site-account-mappings.json` is now committed (GitHub Actions deploys read it). `bds site deploy` still updates it after an apply; commit the change.
 
 ### Removed

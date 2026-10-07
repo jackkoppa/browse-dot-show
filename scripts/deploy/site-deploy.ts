@@ -5,6 +5,7 @@ import * as path from 'path';
 import { execCommandOrThrow, execCommand, execCommandLiveOrThrow } from '../lib/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { checkAwsCredentials } from '../lib/aws-utils.js';
+import { siteInitArgs, sitePlanArgs, siteTerraformEnv } from '../lib/site-terraform.js';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 
@@ -177,6 +178,10 @@ async function validateEnvironment(): Promise<void> {
 
   // Set AWS region if not already set
   process.env.AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+
+  // Pass the OpenAI key to Terraform via the environment (TF_VAR_openai_api_key), not as an
+  // argument, so it isn't logged or written to the saved plan output
+  Object.assign(process.env, siteTerraformEnv(process.env.OPENAI_API_KEY));
 }
 
 async function checkPrerequisites(): Promise<void> {
@@ -411,9 +416,6 @@ async function updateSiteAccountMappingsWithOutputs(siteId: string): Promise<voi
 }
 
 async function runTerraformDeployment(siteId: string, skipPrompts: boolean = false): Promise<boolean> {
-  // Relative paths from terraform/sites directory
-  const BACKEND_CONFIG_FILE = `../../sites/origin-sites/${siteId}/terraform/backend.tfbackend`;
-  const TFVARS_FILE = `../../sites/origin-sites/${siteId}/terraform/prod.tfvars`;
   const TF_DIR = 'terraform/sites';
 
   printInfo(`Navigating to Terraform directory: ${TF_DIR}`);
@@ -428,25 +430,17 @@ async function runTerraformDeployment(siteId: string, skipPrompts: boolean = fal
     await execCommandOrThrow('tsx', ['../../scripts/deploy/bootstrap-site-state.ts', siteId, process.env.AWS_PROFILE || '']);
 
     // Initialize Terraform with site-specific backend config
-    printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+    const initArgs = siteInitArgs(siteId);
+    printInfo(`Initializing Terraform with backend config: ${initArgs[2]}`);
+    await execCommandOrThrow('terraform', initArgs);
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
     await execCommandOrThrow('terraform', ['validate']);
 
-    // Set up Terraform plan arguments
-    const terraformArgs = [
-      'plan',
-      `-var-file=${TFVARS_FILE}`,
-      `-var=openai_api_key=${process.env.OPENAI_API_KEY}`,
-      `-var=site_id=${siteId}`,
-      '-out=tfplan'
-    ];
-
-    if (process.env.AWS_PROFILE) {
-      terraformArgs.splice(-1, 0, `-var=aws_profile=${process.env.AWS_PROFILE}`);
-    }
+    // Plan arguments (shared with `bds ci terraform`); without AWS_PROFILE, Terraform uses
+    // the environment's credentials
+    const terraformArgs = sitePlanArgs(siteId, { awsProfile: process.env.AWS_PROFILE });
 
     // Plan the deployment and capture output
     printInfo('Planning deployment changes...');

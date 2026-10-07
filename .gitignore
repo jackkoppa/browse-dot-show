@@ -78,3 +78,6 @@ aws-local-dev-TEMP/
 
 # Site setup progress tracking
 sites/my-sites/**/.setup-progress.json
+
+# Terraform plan summaries from `bds ci terraform`
+.terraform-plans/
