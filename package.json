@@ -48,7 +48,8 @@
     "tsx": "catalog:"
   },
   "lint-staged": {
-    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint"
+    "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}": "oxlint",
+    "scripts/**/*.ts": "bash -c 'pnpm --filter @browse-dot-show/scripts typecheck'"
   },
   "packageManager": "pnpm@10.15.1"
 }

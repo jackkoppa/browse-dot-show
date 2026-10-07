@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 
 import * as path from 'path';
-import { execCommand, execCommandOrThrow, commandExists, ShellExecOptions } from './shell-exec';
-import { exists } from './file-operations';
-import { logInfo, logError, logStep } from './logging';
+import { execCommand, execCommandOrThrow, commandExists, ShellExecOptions } from './shell-exec.js';
+import { exists } from './file-operations.js';
+import { logInfo, logError, logStep } from './logging.js';
 
 export interface TerraformOptions extends ShellExecOptions {
   workingDir?: string;

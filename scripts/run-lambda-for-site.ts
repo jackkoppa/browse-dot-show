@@ -1,10 +1,10 @@
 #!/usr/bin/env tsx
 
 import * as path from 'path';
-import { execCommandOrThrow } from './utils/shell-exec';
-import { exists, isDirectory } from './utils/file-operations';
-import { logError, printInfo, printError, logProgress, logSuccess } from './utils/logging';
-import { getLambdaDirectory } from './utils/lambda-utils';
+import { execCommandOrThrow } from './utils/shell-exec.js';
+import { exists, isDirectory } from './utils/file-operations.js';
+import { logError, printInfo, printError, logProgress, logSuccess } from './utils/logging.js';
+import { getLambdaDirectory } from './utils/lambda-utils.js';
 
 /**
  * Run a lambda for a specific site

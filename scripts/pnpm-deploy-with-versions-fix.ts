@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
-import { execCommandOrThrow } from './utils/shell-exec';
-import { logInfo, logError, printInfo, printError } from './utils/logging';
-import { removeDir } from './utils/file-operations';
+import { execCommandOrThrow } from './utils/shell-exec.js';
+import { logInfo, logError, printInfo, printError } from './utils/logging.js';
+import { removeDir } from './utils/file-operations.js';
 
 /**
  * pnpm deploy with versions fix
