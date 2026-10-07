@@ -3,6 +3,7 @@
 import { execCommandOrThrow } from './lib/shell-exec.js';
 import { logInfo, logError, printInfo, printError } from './lib/logging.js';
 import { removeDir } from './lib/file-operations.js';
+import { readFileSync, writeFileSync } from 'fs';
 
 /**
  * pnpm deploy with versions fix
@@ -13,6 +14,21 @@ import { removeDir } from './lib/file-operations.js';
  * Usage: tsx pnpm-deploy-with-versions-fix.ts <package-name>
  * Example: tsx pnpm-deploy-with-versions-fix.ts @browse-dot-show/rss-retrieval-lambda
  */
+
+/**
+ * `pnpm pack` doesn't always order dependencies the same way. Sort them, so unchanged lambda
+ * code gives an identical aws-dist/ (and the same zip hash in Terraform's archive_file).
+ */
+function sortDependencyKeys(packageJsonPath: string): void {
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  for (const field of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    const deps = packageJson[field];
+    if (deps && typeof deps === 'object') {
+      packageJson[field] = Object.fromEntries(Object.entries(deps).sort(([a], [b]) => a.localeCompare(b)));
+    }
+  }
+  writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+}
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -40,6 +56,7 @@ async function main(): Promise<void> {
     await execCommandOrThrow('tar', ['-zxvf', '*.tgz', 'package/package.json']);
 
     await execCommandOrThrow('mv', ['package/package.json', 'aws-dist/package.json']);
+    sortDependencyKeys('aws-dist/package.json');
 
     // Cleanup
     await removeDir('temp-packed-dist');

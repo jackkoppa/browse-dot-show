@@ -110,7 +110,7 @@ async function createWorktree(branchName: string) {
   console.log(`   pnpm install && pnpm all:build`);
 }
 
-/** Symlink the main checkout's gitignored config files (.env.*, .site-account-mappings.json, ...) into a worktree. */
+/** Symlink the main checkout's gitignored config files (.env.*, .local-files-config.json, ...) into a worktree. */
 async function linkConfig(worktreePath: string) {
   const mainPath = await mainWorktreePath(REPO_ROOT);
   if (path.resolve(worktreePath) === path.resolve(mainPath)) {

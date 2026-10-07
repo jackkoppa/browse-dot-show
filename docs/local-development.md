@@ -42,7 +42,7 @@ The transcription code expects `build/bin/whisper-cli` and `models/ggml-<model>.
 
 ## 2. Configuration files
 
-All of these are gitignored.
+All of these are gitignored, except `.site-account-mappings.json`.
 
 | File | Purpose |
 | --- | --- |
@@ -50,7 +50,7 @@ All of these are gitignored.
 | `.local-files-config.json` | Where audio, transcripts and search indexes live (`localFilesPath`, potentially hundreds of GB), plus optional `worktreeDirectory` and `transcriptionWorkers`. You're prompted to create it on first use. |
 | `sites/<my-sites or origin-sites>/<site>/.env.aws-sso` | A site's `AWS_PROFILE` (AWS SSO), used for interactive deploys. |
 | `.env.automation` | Credentials for the automation IAM user (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `SCHEDULED_RUN_MAIN_AWS_PROFILE`). Used by the ingestion pipeline's S3 phases and by `bds site upload-client --all-sites`. Keep it `chmod 600`. |
-| `.site-account-mappings.json` | Each site's AWS account ID, bucket, CloudFront ID and search API URL. Written by `bds site deploy`. |
+| `.site-account-mappings.json` | Each site's AWS account ID, bucket, CloudFront ID and search API URL. **Committed** (GitHub Actions deploys read it); `bds site deploy` updates it after an apply, so commit the change. |
 
 Check everything at once:
 
@@ -126,7 +126,7 @@ pnpm bds worktree prune
 pnpm bds worktree link-config <path>          # symlink config into an existing worktree
 ```
 
-`create` symlinks the main checkout's gitignored config files (`.env.*`, sites' `.env.aws-sso`, `.site-account-mappings.json`, `.local-files-config.json`, `.deployed-sites.json`, Terraform `*.tfvars`, custom spelling corrections) into the new worktree, so it shares your credentials and local files path. Then run `pnpm install` and `pnpm all:build` in it.
+`create` symlinks the main checkout's gitignored config files (`.env.*`, sites' `.env.aws-sso`, `.local-files-config.json`, `.deployed-sites.json`, Terraform `*.tfvars`, custom spelling corrections) into the new worktree, so it shares your credentials and local files path. Then run `pnpm install` and `pnpm all:build` in it.
 
 ## 6. Working on the scripts
 

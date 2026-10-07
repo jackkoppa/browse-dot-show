@@ -5,17 +5,6 @@ import { spawn } from 'child_process';
 import { execCommand, execCommandOrThrow } from './shell-exec.js';
 import { exists } from './file-operations.js';
 import { logInfo, logSuccess, logError, logProgress, } from './logging.js';
-import { terraformOutput } from './terraform-utils.js';
-
-/**
- * Terraform outputs interface
- */
-export interface TerraformOutputs {
-  bucketName: string;
-  cloudfrontDomain: string;
-  cloudfrontId: string;
-  searchApiUrl: string;
-}
 
 /**
  * Client build result interface
@@ -148,13 +137,18 @@ export async function validateBuildOutput(siteId: string): Promise<{ valid: bool
   };
 }
 
+/** `--profile <name>`, or nothing to use the environment's credentials (e.g. GitHub Actions OIDC). */
+function profileArgs(awsProfile: string | undefined): string[] {
+  return awsProfile ? ['--profile', awsProfile] : [];
+}
+
 /**
- * Upload client files to S3 using AWS profile
+ * Upload client files to S3 using an AWS profile (or the environment's credentials)
  */
 export async function uploadClientToS3WithProfile(
   siteId: string,
   bucketName: string,
-  awsProfile: string,
+  awsProfile: string | undefined,
   options: { silent?: boolean } = {}
 ): Promise<S3UploadResult> {
   const startTime = Date.now();
@@ -172,7 +166,7 @@ export async function uploadClientToS3WithProfile(
       's3', 'cp',
       join(clientDistDir, 'index.html'),
       `s3://${bucketName}/index.html`,
-      '--profile', awsProfile
+      ...profileArgs(awsProfile)
     ], { silent });
 
     // Upload favicon.ico to root (if it exists)
@@ -182,7 +176,7 @@ export async function uploadClientToS3WithProfile(
         's3', 'cp',
         faviconPath,
         `s3://${bucketName}/favicon.ico`,
-        '--profile', awsProfile
+        ...profileArgs(awsProfile)
       ], { silent });
     }
 
@@ -192,7 +186,7 @@ export async function uploadClientToS3WithProfile(
       join(clientDistDir, 'assets/'),
       `s3://${bucketName}/assets/`,
       '--delete',
-      '--profile', awsProfile
+      ...profileArgs(awsProfile)
     ], { silent });
 
     const duration = Date.now() - startTime;
@@ -291,11 +285,11 @@ export async function uploadClientToS3WithCredentials(
 }
 
 /**
- * Invalidate CloudFront cache using AWS profile
+ * Invalidate CloudFront cache using an AWS profile (or the environment's credentials)
  */
 export async function invalidateCloudFrontWithProfile(
   cloudfrontId: string,
-  awsProfile: string,
+  awsProfile: string | undefined,
   options: { silent?: boolean } = {}
 ): Promise<CloudFrontInvalidationResult> {
   const startTime = Date.now();
@@ -310,7 +304,7 @@ export async function invalidateCloudFrontWithProfile(
       'cloudfront', 'create-invalidation',
       '--distribution-id', cloudfrontId,
       '--paths', '/index.html', '/assets/*',
-      '--profile', awsProfile,
+      ...profileArgs(awsProfile),
       '--no-cli-pager'
     ], { silent });
 
@@ -389,103 +383,3 @@ export async function invalidateCloudFrontWithCredentials(
     return { success: false, duration, error: error.message };
   }
 }
-
-/**
- * Get terraform outputs using AWS profile
- */
-export async function getTerraformOutputsWithProfile(
-  options: { silent?: boolean } = {}
-): Promise<TerraformOutputs> {
-  const { silent = false } = options;
-  
-  if (!silent) {
-    logInfo('Getting deployment details from Terraform...');
-  }
-  
-  // Change to terraform directory
-  const originalCwd = process.cwd();
-  process.chdir(join(originalCwd, 'terraform/sites'));
-
-  try {
-    const bucketName = await terraformOutput('s3_bucket_name');
-    const cloudfrontDomain = await terraformOutput('cloudfront_distribution_domain_name');
-    const cloudfrontId = await terraformOutput('cloudfront_distribution_id');
-    const searchApiUrl = await terraformOutput('search_api_invoke_url');
-
-    return {
-      bucketName: bucketName.value || bucketName,
-      cloudfrontDomain: cloudfrontDomain.value || cloudfrontDomain,
-      cloudfrontId: cloudfrontId.value || cloudfrontId,
-      searchApiUrl: searchApiUrl.value || searchApiUrl
-    };
-  } finally {
-    // Return to original directory
-    process.chdir(originalCwd);
-  }
-}
-
-/**
- * Get terraform outputs using temporary credentials
- */
-export async function getTerraformOutputsWithCredentials(
-  credentials: {
-    AWS_ACCESS_KEY_ID: string;
-    AWS_SECRET_ACCESS_KEY: string;
-    AWS_SESSION_TOKEN: string;
-    AWS_REGION: string;
-  },
-  options: { silent?: boolean } = {}
-): Promise<TerraformOutputs> {
-  const { silent = false } = options;
-  
-  if (!silent) {
-    logInfo('Getting deployment details from Terraform...');
-  }
-  
-  // Change to terraform directory
-  const originalCwd = process.cwd();
-  const originalEnv = { ...process.env };
-  process.chdir('terraform/sites');
-  
-  try {
-    // Set up environment with temporary credentials for terraform
-    process.env.AWS_ACCESS_KEY_ID = credentials.AWS_ACCESS_KEY_ID;
-    process.env.AWS_SECRET_ACCESS_KEY = credentials.AWS_SECRET_ACCESS_KEY;
-    process.env.AWS_SESSION_TOKEN = credentials.AWS_SESSION_TOKEN;
-    process.env.AWS_REGION = credentials.AWS_REGION;
-
-    // Get terraform outputs using the terraform command
-    const bucketNameOutput = await terraformOutput('s3_bucket_name', { 
-      workingDir: process.cwd()
-    });
-    
-    const cloudfrontDomainOutput = await terraformOutput('cloudfront_distribution_domain_name', { 
-      workingDir: process.cwd()
-    });
-    
-    const cloudfrontIdOutput = await terraformOutput('cloudfront_distribution_id', { 
-      workingDir: process.cwd()
-    });
-    
-    const searchApiUrlOutput = await terraformOutput('search_api_invoke_url', { 
-      workingDir: process.cwd()
-    });
-
-    return {
-      bucketName: bucketNameOutput.value || bucketNameOutput,
-      cloudfrontDomain: cloudfrontDomainOutput.value || cloudfrontDomainOutput,
-      cloudfrontId: cloudfrontIdOutput.value || cloudfrontIdOutput,
-      searchApiUrl: searchApiUrlOutput.value || searchApiUrlOutput
-    };
-
-  } finally {
-    // Restore original environment variables
-    process.env.AWS_ACCESS_KEY_ID = originalEnv.AWS_ACCESS_KEY_ID;
-    process.env.AWS_SECRET_ACCESS_KEY = originalEnv.AWS_SECRET_ACCESS_KEY;
-    process.env.AWS_SESSION_TOKEN = originalEnv.AWS_SESSION_TOKEN;
-    process.env.AWS_REGION = originalEnv.AWS_REGION;
-    
-    // Return to original directory
-    process.chdir(originalCwd);
-  }
-} 

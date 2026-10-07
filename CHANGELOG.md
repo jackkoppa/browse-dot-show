@@ -40,6 +40,10 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - **Tools:** Hermit is gone. Use Node.js 22 (`.nvmrc`) and pnpm via Corepack (`corepack enable`).
 - **Scripts layout:** `scripts/cli/` (commands), `scripts/ingestion/` (pipeline), `scripts/lib/` (shared modules). `scripts/utils/` is gone.
 
+### Changed (deploys)
+
+- `.site-account-mappings.json` is now committed (GitHub Actions deploys read it). `bds site deploy` still updates it after an apply; commit the change.
+
 ### Removed
 
 - The LaunchAgent-based "run on login" automation (`ingestion:automation:manage`). Scheduled runs are planned as `bds schedule`.
@@ -51,9 +55,11 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - `automation:deploy` (now `bds infra automation deploy`) looked for `.site-account-mappings.json` relative to the Terraform directory. (The automation deploy still needs a Terraform fix before it can plan: its `site_account_ids` tfvars map is incomplete.)
 - Reapplying spelling corrections processed every transcript twice.
 - `bds ingest` now re-indexes sites whose transcripts are newer than their search index, so episodes transcribed outside the pipeline (e.g. `bds lambda run`) get indexed without `--force-local-indexing`.
-- `bds worktree create` symlinks the main checkout's gitignored config (`.env.*`, sites' `.env.aws-sso`, `.site-account-mappings.json`, `.local-files-config.json`, …) into the new worktree. `bds worktree link-config <path>` does the same for an existing worktree.
+- `bds worktree create` symlinks the main checkout's gitignored config (`.env.*`, sites' `.env.aws-sso`, `.local-files-config.json`, …) into the new worktree. `bds worktree link-config <path>` does the same for an existing worktree.
 - Local indexing rewrote every `search-entries/*.json` on each run (local `listFiles` isn't recursive, so existing files were never found), so every run re-uploaded all of them to S3. It now rewrites only missing files and files whose transcript changed.
 - Local transcription locks are now one file per episode, created atomically, in `{localFilesPath}/locks/transcription/<site>/`, instead of a read-modify-write `transcripts/.processing-lock.json` in a folder that's synced to S3. Locks whose process has exited are taken over. (Runs in AWS still use the JSON lockfile.)
+- `bds site upload-client --site=<id>` read the bucket and CloudFront ID from `terraform output`, i.e. from whichever site `terraform/sites` was last initialized for, so it could upload to another site's bucket. It now reads them from `.site-account-mappings.json`, and uses environment credentials when `AWS_PROFILE` isn't set.
+- Lambda `aws-dist/package.json` lists dependencies in a stable order, so unchanged code builds an identical zip.
 
 ## v0.0.1 (2026-10-06)
 
