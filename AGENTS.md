@@ -20,6 +20,7 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `sit
 
 - `pnpm --filter @browse-dot-show/scripts typecheck` (also runs on commit for `scripts/**/*.ts`)
 - `pnpm --filter @browse-dot-show/process-audio-lambda typecheck` (also runs on commit for that package)
+- `pnpm all:typecheck`: every TypeScript project (after `pnpm all:build`); required on PRs (the `checks` workflow)
 - `pnpm all:test`, `pnpm all:lint`
 
 ## Current work
