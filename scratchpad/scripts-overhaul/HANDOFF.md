@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | Session 1: scripts cleanup (M0–M4, M6) | #162–#168 | The `pnpm bds` CLI (`scripts/cli/`), shared modules (`scripts/lib/`), parallel transcription (`bds ingest --parallel=N`), docs rewrite, Hermit removed |
 | Follow-ups | #170–#175, #183–#185 | `validate sites` passes; index sites whose transcripts are newer than their index; worktrees get config symlinked (`bds worktree link-config`); process-audio typecheck; unchanged search-entries not re-uploaded; atomic per-file transcription locks; lockfiles never synced; NFC file names; RSS User-Agent (Buzzsprout 403s) |
-| M4b: deploys from GitHub Actions | #176–#181, #187–#192 | Plans on PRs (one job per AWS account), approval for every Terraform plan, apply + client uploads on merge. Verified end to end on 2026-10-08 |
+| M4b: deploys from GitHub Actions | #176–#181, #187–#192 | Plans on PRs (one job per AWS account), approval for every plan with changes, apply + client uploads on merge. Verified end to end on 2026-10-08 |
 
 How things work now:
 
