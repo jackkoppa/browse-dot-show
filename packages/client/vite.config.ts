@@ -306,7 +306,8 @@ function findSrtFiles(dir: string): string[] {
 // https://vite.dev/config/
 export default defineConfig(() => {
   // Load site configuration and inject as environment variables
-  let siteEnvVars: Record<string, string> = {};
+  // VITE_SITE_TRACKING_SCRIPT is undefined for sites without one
+  let siteEnvVars: Record<string, string | undefined> = {};
   try {
     siteEnvVars = loadSiteConfig();
     console.log(`Building client for site: ${siteEnvVars.VITE_SITE_ID}`);
