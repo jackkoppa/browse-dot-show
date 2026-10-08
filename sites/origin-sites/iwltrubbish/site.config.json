@@ -3,7 +3,7 @@
   "domain": "iwantlistenthisrubbish.com",
   "appHeader": {
       "primaryTitle": "I Want Listen This Rubbish",
-      "includeTitlePrefix": true,
+      "includeTitlePrefix": false,
       "extraHeightForLongTitle": true,
       "taglinePrimaryPodcastName": "Elis James and John Robins",
       "taglinePrimaryPodcastExternalURL": "http://www.bbc.co.uk/programmes/m0005fdz",
