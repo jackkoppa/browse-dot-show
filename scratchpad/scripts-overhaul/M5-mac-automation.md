@@ -23,14 +23,20 @@ M5 is only about ingestion (download → transcribe → index → upload to S3 �
 - **Pipeline order:** pre-sync S3→local first, so a machine that's been off catches up correctly. Keep it.
 - **Already cleaned up on the dev machine:** the old LaunchAgents are gone and `.env.automation` is `chmod 600`.
 
-## Decisions to ask the developer (batch them, multiple choice, with a recommendation)
+## Decisions (made with the developer, 2026-10-07)
 
-1. **Which machine:** the dev MacBook (best effort) or a dedicated always-on Mac mini (recommended; see fact 5)? Where do local files live there (external SSD → Full Disk Access)?
-2. **FileVault** (fact 6): (a) accept and warn, (b) `fdesetup authrestart` for planned restarts plus no automatic macOS update installs, or (c) turn it off on a dedicated machine. Don't pick silently.
-3. **Failure notifications:** desktop notifications are invisible with nobody logged in. Options: email via SES/SNS, a push service (ntfy, Pushover), or opening a GitHub issue (the repo is public, so keep details out).
-4. **Schedule:** time(s) of day and how often (once nightly? twice?).
-5. **Logs:** move to `~/Library/Logs/browse-dot-show/`, or keep under `scripts/automation-logs/`?
-6. **whisper.cpp:** keep the source checkout, or switch to Homebrew `whisper-cpp` (small code change)?
+Machines found: the dev machine is a **Mac mini M4 Pro, 64 GB** (`Mac16,11`, macOS 26.6.2, `sleep 0`, FileVault on, nvm Node). The local files are on a 4 TB Thunderbolt APFS SSD (`/Volumes/4TB_SSD_jackkoppa_1`, fixed, not encrypted).
+
+1. **Machine:** the runner will be a **second Mac mini M4, 16 GB**, dedicated, with the same SSD moved over and left attached. It may later host other services (e.g. an LLM request server). Other developers matter only as far as good docs (assume ≤16 GB Macs). Development keeps happening on the 64 GB Mac.
+2. **Rollout:** build and run the launchd acceptance tests **on the 64 GB dev Mac** with the SSD attached (scheduled minutes out, logged out, `bootout`/SIGTERM), **uninstall there**, then move the SSD and do the real install + benchmark on the 16 GB Mac.
+3. **Code source:** a **dedicated runner checkout** (separate clone/worktree) that fast-forwards to `origin/main` before each run and rebuilds when it changed. Branch work in the main checkout never affects scheduled runs. It shares `.local-files-config.json`, `.env.local` and `.env.automation` (e.g. via `bds worktree link-config` or copies).
+4. **FileVault:** **off on the 16 GB runner** (boots unattended after outages); `pmset autorestart 1`; macOS updates manual/deferred. Dev Mac unchanged. `schedule status` still reports the FileVault state.
+5. **Notifications:** **Slack incoming webhook** (failures, skips, optional short success summary; URL in `.env.automation`) **plus a dead-man's switch** (healthchecks.io ping per run, alerting via Slack if no run by the expected time). No AWS/Terraform changes.
+6. **Schedule:** **nightly at 03:00** (`pmset repeat wakeorpoweron` a few minutes before).
+7. **Toolchain:** **Homebrew for everything** (Brewfile: `node@22`, `ffmpeg`, `awscli`, `whisper-cpp`, …) for stable absolute paths; small code change so `whisper-cli` can come from Homebrew, keeping the source-checkout path working on the dev Mac. Model file location TBD in implementation.
+8. **Run-as user:** the developer's **normal user** (LaunchDaemon with `UserName`), not a service user.
+9. **Logs:** **`~/Library/Logs/browse-dot-show/`**: one log per run + JSON summary, rotated, plus launchd stdout/stderr; `schedule status` reads the summaries.
+10. **Workers:** **benchmark 1–4 workers on the runner during setup**, the developer picks, stored as `transcriptionWorkers` in `.local-files-config.json`.
 
 ## How the pieces fit (macOS facts to design around)
 
