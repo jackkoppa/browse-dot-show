@@ -1,11 +1,12 @@
 import { commandName, type Command } from './command.js';
 import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciTerraformGroupCommand, ciUploadHomepageCommand } from './commands/ci.js';
-import { scheduleCommand, setupMachineCommand } from './commands/coming-soon.js';
+import { scheduleInstallCommand, setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
 import { infraAutomationCommand, infraGithubActionsCommand, infraHomepageCommand } from './commands/infra.js';
 import { ingestCommand } from './commands/ingest.js';
 import { lambdaRunCommand } from './commands/lambda.js';
+import { scheduleRunCommand, scheduleRunNowCommand, scheduleTestNotificationsCommand } from './commands/schedule.js';
 import { siteCreateCommand, siteDeployCommand, siteDestroyCommand, siteUploadClientCommand } from './commands/site.js';
 import { validateCommand } from './commands/validate.js';
 
@@ -14,7 +15,15 @@ export type MenuNode = { label: string; command: Command } | { label: string; ch
 /** The interactive menu. Every command appears here exactly once (enforced by a test). */
 export const MENU: MenuNode[] = [
   { label: 'Run ingestion pipeline', command: ingestCommand },
-  { label: 'Automation (scheduled runs on this Mac) — coming soon', command: scheduleCommand },
+  {
+    label: 'Scheduled runs on this Mac',
+    children: [
+      { label: 'Install the schedule — coming soon', command: scheduleInstallCommand },
+      { label: 'Run the scheduled job now (in this terminal)', command: scheduleRunNowCommand },
+      { label: 'Send test notifications (Slack, healthcheck)', command: scheduleTestNotificationsCommand },
+      { label: 'One scheduled run, as launchd starts it', command: scheduleRunCommand },
+    ],
+  },
   { label: 'Set up this machine — coming soon', command: setupMachineCommand },
   {
     label: 'Sites',
