@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { REPO_ROOT } from './paths.js';
+import { repoPath } from './paths.js';
+import { logsDir } from './user-dirs.js';
+
+/** Where run history was written before it moved to the logs folder; copied over once. */
+const LEGACY_LOG_PATH = repoPath('scripts/automation-logs/ingestion-pipeline-runs.md');
 
 interface SiteProcessingResult {
   siteId: string;
@@ -51,8 +55,8 @@ interface PipelineRunLog {
 export class PipelineResultLogger {
   private readonly logFilePath: string;
 
-  constructor(projectRoot: string = REPO_ROOT) {
-    this.logFilePath = path.join(projectRoot, 'scripts/automation-logs/ingestion-pipeline-runs.md');
+  constructor(logFilePath: string = path.join(logsDir(), 'ingestion-runs.md')) {
+    this.logFilePath = logFilePath;
   }
 
   /**
@@ -96,6 +100,11 @@ export class PipelineResultLogger {
   private appendLogEntry(runLog: PipelineRunLog): void {
     const newEntry = this.formatLogEntry(runLog);
     
+    fs.mkdirSync(path.dirname(this.logFilePath), { recursive: true });
+    if (!fs.existsSync(this.logFilePath) && fs.existsSync(LEGACY_LOG_PATH)) {
+      fs.copyFileSync(LEGACY_LOG_PATH, this.logFilePath);
+    }
+
     let existingContent = '';
     if (fs.existsSync(this.logFilePath)) {
       existingContent = fs.readFileSync(this.logFilePath, 'utf8');

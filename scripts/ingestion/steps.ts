@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { invalidateCloudFrontWithCredentials } from '../lib/client-deployment.js';
 import { loadSiteEnv, type AutomationCredentials } from '../lib/env.js';
 import { runLambdaLocally } from '../lib/lambda.js';
@@ -34,6 +37,10 @@ export async function triggerSearchApiLambdaRefresh(
     
     // https://stackoverflow.com/a/64922434/4167438
     const encodedPayload = Buffer.from(payload).toString('base64');
+
+    // A per-run file: a shared /tmp path fails when another user created it first
+    // (e.g. scheduled runs and manual runs as different users)
+    const outputPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'bds-lambda-invoke-')), 'output.json');
     
     // Invoke the search-api lambda function using the assumed role credentials
     const invokeResult = await execCommand('aws', [
@@ -41,7 +48,7 @@ export async function triggerSearchApiLambdaRefresh(
       '--function-name', searchLambdaName,
       '--invocation-type', 'Event', // Async invocation
       '--payload', encodedPayload,
-      '/tmp/lambda-invoke-output.json'
+      outputPath
     ], {
       silent: true,
       env: {
@@ -52,9 +59,8 @@ export async function triggerSearchApiLambdaRefresh(
         AWS_REGION: credentials.AWS_REGION
       }
     });
+    fs.rmSync(path.dirname(outputPath), { recursive: true, force: true });
 
-    
-    
     const duration = Date.now() - startTime;
     
     if (invokeResult.exitCode === 0) {

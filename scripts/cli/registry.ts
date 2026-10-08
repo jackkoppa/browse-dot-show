@@ -91,6 +91,6 @@ USAGE
 COMMANDS
 ${COMMANDS.map(c => `  ${commandName(c).padEnd(width)}${c.summary}`).join('\n')}
 
-Exit codes: 0 success, 1 failure, 2 usage error, 130 cancelled.
+Exit codes: 0 success, 1 failure, 2 usage error, 75 another ingestion run in progress, 130 cancelled.
 `;
 }

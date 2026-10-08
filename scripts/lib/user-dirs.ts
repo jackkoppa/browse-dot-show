@@ -10,3 +10,15 @@ import * as path from 'path';
 export function appSupportDir(): string {
   return process.env.BDS_APP_SUPPORT_DIR || path.join(os.homedir(), 'Library', 'Application Support', 'browse-dot-show');
 }
+
+/**
+ * Logs from ingestion runs, manual and scheduled (override: `BDS_LOGS_DIR`):
+ * `~/Library/Logs/browse-dot-show` on macOS (Console.app shows it), else
+ * `~/.local/state/browse-dot-show/logs`.
+ */
+export function logsDir(): string {
+  if (process.env.BDS_LOGS_DIR) return process.env.BDS_LOGS_DIR;
+  return process.platform === 'darwin'
+    ? path.join(os.homedir(), 'Library', 'Logs', 'browse-dot-show')
+    : path.join(os.homedir(), '.local', 'state', 'browse-dot-show', 'logs');
+}
