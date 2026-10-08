@@ -317,16 +317,11 @@ AWS_REGION=us-east-1
 async function displayNextSteps(): Promise<void> {
   printSuccess('🎉 Automation infrastructure deployment completed!');
   printInfo('');
-  printInfo('Next steps:');
-  printInfo('  1. The automation IAM user has been created with cross-account assume role permissions');
-  printInfo('  2. You can now add automation roles to individual site terraform configurations');
-  printInfo('  3. Test the cross-account access by running the scheduled automation script');
+  printInfo('The automation user can assume browse-dot-show-automation-role in every site account');
+  printInfo('listed in .site-account-mappings.json (each site\'s Terraform creates that role).');
+  printInfo('bds ingest uses .env.automation for its S3 sync and CloudFront phases.');
   printInfo('');
-  printInfo('To add automation roles to sites:');
-  printInfo('  - Update terraform/sites/main.tf to include automation role resources');
-  printInfo('  - Deploy the updated site terraform configurations');
-  printInfo('');
-  printInfo('Documentation: .cursor/NEW_LOCAL_RUN_SCHEDULING_INFRA.md');
+  printInfo('Documentation: docs/deployment-guide.md');
 }
 
 async function main(): Promise<void> {
