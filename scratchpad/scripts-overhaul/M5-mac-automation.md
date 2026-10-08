@@ -69,7 +69,7 @@ The developer wants a few days of evidence before marking M5 done. The runner (1
 | --- | --- | --- |
 | 3+ nightly runs in a row succeed, with nobody logged in | Slack each morning (posts on every run); `bds schedule status` on the runner | |
 | A run that transcribes new episodes moves the runner to `main` cleanly | The first run after `install --track=main`: its log shows the runner update | |
-| A failure reaches Slack and healthchecks.io, with a log to read | Planned with the developer, a few days in: e.g. eject the SSD, then `bds schedule run-now` on the runner (skipped: "is the drive mounted?") or a real run with it ejected; Slack shows the failed check and the log path; the healthcheck goes red until the next success | |
+| A failure reaches Slack and healthchecks.io, with a log to read | **Only after #204 is merged and on the runner** (before it, a missing SSD falls back to `<runner>/aws-local-dev` and the pre-sync downloads every site). Planned with the developer, a few days in: e.g. eject the SSD, then `bds schedule run-now` on the runner (skipped: "is the drive mounted?") or a real run with it ejected; Slack shows the failed check and the log path; the healthcheck goes red until the next success | |
 | SIGTERM while transcribing | On a day with new episodes, during a run's transcription phase: `sudo launchctl kill SIGTERM system/com.browse-dot-show.ingest`. Expect `interrupted`, Slack + healthcheck failure notices, no `whisper-cli` left, no locks from that pid; a later run transcribes those episodes ([runner checklist step 10](./M5-RUNNER-SESSION.md#5-test-checklist)) | |
 | A missed run alerts | Optional: the healthcheck alerts when no ping arrives within its 8 h grace (e.g. the Mac is off) | |
 
@@ -77,7 +77,6 @@ Then: move the changelog's "Unreleased" section under `## v1.0.0 (<date>)` in a 
 
 ## Remaining work
 
-- The runner setup and tests ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)), merging the stack, then tag `v1.0.0` (move the changelog's "Unreleased" section under it).
 - [Watching the runner](#watching-the-runner-before-calling-m5-done), including SIGTERM while transcribing and a failure test.
 - The dry-run summary marks every phase ❌ although nothing failed (cosmetic, pipeline summary).
 - Possible follow-up: Slack thread replies need a Slack app with a bot token (incoming webhooks can't thread).
