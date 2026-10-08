@@ -86,9 +86,12 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds worktree <create\|list\|remove\|prune\|link-config>` | Git worktrees (see below) |
 | `bds doctor` | Check this machine and config |
 | `bds ci <affected\|terraform\|terraform-group\|plan-comment\|upload-homepage>` | Used by GitHub Actions ([how deploys work](./github-actions-deploys.md)). `bds ci affected --base=origin/main` shows what your branch would deploy; `bds ci terraform --target=site:<id> --mode=plan` runs a read-only plan and prints a summary |
-| `bds schedule`, `bds setup machine` | Coming soon: scheduled unattended runs on a Mac |
+| `bds setup machine` | Set up this Mac: local files, whisper.cpp + model, env files, then `doctor` ([scheduled ingestion](./scheduled-ingestion.md)) |
+| `bds setup benchmark` | Benchmark 1–4 parallel transcription workers and save `transcriptionWorkers` |
+| `bds schedule <install\|status\|run-now\|uninstall\|test-notifications>` | Nightly unattended ingestion on this Mac ([scheduled ingestion](./scheduled-ingestion.md)) |
+| `bds schedule run` | What the LaunchDaemon runs: checks, runner update, `ingest --all-sites`, notifications |
 
-Every command runs without prompts when its required flags are given. If something required is missing and there's no terminal (e.g. a scheduled job), it exits with code 2 instead of waiting for input. Exit codes: `0` success, `1` failure, `2` usage error, `130` cancelled.
+Every command runs without prompts when its required flags are given. If something required is missing and there's no terminal (e.g. a scheduled job), it exits with code 2 instead of waiting for input. Exit codes: `0` success, `1` failure, `2` usage error, `75` another ingestion run is in progress, `130` cancelled.
 
 ## 4. Running ingestion
 

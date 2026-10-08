@@ -40,6 +40,17 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - **Tools:** Hermit is gone. Use Node.js 22 (`.nvmrc`) and pnpm via Corepack (`corepack enable`).
 - **Scripts layout:** `scripts/cli/` (commands), `scripts/ingestion/` (pipeline), `scripts/lib/` (shared modules). `scripts/utils/` is gone.
 
+### Added (scheduled ingestion)
+
+- **Nightly ingestion on a Mac with nobody logged in** ([docs](docs/scheduled-ingestion.md)): `bds schedule install` sets up a LaunchDaemon, a wake schedule and a runner checkout that follows `origin/main`; `bds schedule status | run-now | uninstall | test-notifications`; `bds schedule run` is what launchd runs (checks, runner update, `ingest --all-sites`, run records, Slack and healthchecks.io notifications).
+- **Setting up a Mac:** `Brewfile` + `./scripts/bootstrap.sh`, `bds setup machine` (local files, whisper.cpp + model, env files, Mac settings, doctor) and `bds setup benchmark` (picks `transcriptionWorkers`). Homebrew's `whisper-cli` is supported through a checkout-like folder, so the transcription lambda is unchanged.
+- **One ingestion run at a time:** `bds ingest` holds `<localFilesPath>/locks/ingestion-run.lock`; a second run exits with code 75.
+- `bds ingest --summary-json=<path>`: a machine-readable run summary.
+
+### Changed (scheduled ingestion)
+
+- Run history and transcription worker logs moved from `scripts/automation-logs/` to `~/Library/Logs/browse-dot-show/` (the old run history is copied over on the first run).
+
 ### Changed (deploys)
 
 - **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`; [docs](docs/github-actions-deploys.md)): read-only plans on PRs (one job per AWS account) with a PR comment, an approval for every plan with changes, and deploys of what changed on merge (Terraform applies, then client uploads). On since 2026-10-08.
@@ -51,7 +62,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Removed
 
-- The LaunchAgent-based "run on login" automation (`ingestion:automation:manage`). Scheduled runs are planned as `bds schedule`.
+- The LaunchAgent-based "run on login" automation (`ingestion:automation:manage`), replaced by `bds schedule` (a LaunchDaemon: no login needed).
 - The Terminal.app multi-terminal transcription runner, replaced by `bds ingest --parallel=N`.
 - One-off migration scripts and other unused scripts.
 
@@ -66,6 +77,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - Local transcription locks are now one file per episode, created atomically, in `{localFilesPath}/locks/transcription/<site>/`, instead of a read-modify-write `transcripts/.processing-lock.json` in a folder that's synced to S3. Locks whose process has exited are taken over. (Runs in AWS still use the JSON lockfile.)
 - `bds site upload-client --site=<id>` read the bucket and CloudFront ID from `terraform output`, i.e. from whichever site `terraform/sites` was last initialized for, so it could upload to another site's bucket. It now reads them from `.site-account-mappings.json`, and uses environment credentials when `AWS_PROFILE` isn't set.
 - Lambda `aws-dist/package.json` lists dependencies in a stable order, so unchanged code builds an identical zip.
+- The search-lambda refresh wrote to a fixed `/tmp/lambda-invoke-output.json`, which failed ("Permission denied") when another user had created it; it now uses a per-run temp folder.
 
 ## v0.0.1 (2026-10-06)
 
