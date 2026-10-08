@@ -1,6 +1,6 @@
 # GitHub Actions → AWS via OIDC, in each of the three accounts. Applied once, locally, by the
 # developer (`pnpm bds infra github-actions deploy`) with the admin SSO profiles below.
-# See scratchpad/scripts-overhaul/08-github-actions-deploys.md.
+# See docs/github-actions-deploys.md.
 
 terraform {
   required_providers {

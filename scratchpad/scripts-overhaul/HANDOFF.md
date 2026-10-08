@@ -1,64 +1,67 @@
-# Handoff: after the scripts overhaul (2026-10-06)
+# Handoff: developer tooling (updated 2026-10-08)
 
-**Start here** if you're picking up browse-dot-show developer tooling work. This page says what's done, what's next (in order), and how to work with the developer. Details live in the numbered docs in this folder.
+**Start here** if you're picking up browse-dot-show developer-tooling work. **Next up: M5, unattended ingestion on a Mac: [M5-mac-automation.md](./M5-mac-automation.md).**
 
-## State of the repo
+## What's done
 
-Session 1 of the scripts overhaul is **done and merged** into `main`:
+| Milestone | PRs | Result |
+| --- | --- | --- |
+| Session 1: scripts cleanup (M0–M4, M6) | #162–#168 | The `pnpm bds` CLI (`scripts/cli/`), shared modules (`scripts/lib/`), parallel transcription (`bds ingest --parallel=N`), docs rewrite, Hermit removed |
+| Follow-ups | #170–#175, #183–#185 | `validate sites` passes; index sites whose transcripts are newer than their index; worktrees get config symlinked (`bds worktree link-config`); process-audio typecheck; unchanged search-entries not re-uploaded; atomic per-file transcription locks; lockfiles never synced; NFC file names; RSS User-Agent (Buzzsprout 403s) |
+| M4b: deploys from GitHub Actions | #176–#181, #187–#192 | Plans on PRs (one job per AWS account), approval for every Terraform plan, apply + client uploads on merge. Verified end to end on 2026-10-08 |
 
-| PR | What |
-| --- | --- |
-| [#162](https://github.com/jackkoppa/browse-dot-show/pull/162) | Plan and decisions (this folder) |
-| [#163](https://github.com/jackkoppa/browse-dot-show/pull/163) | M0: scripts typecheck passes; runs on commit via lint-staged |
-| [#164](https://github.com/jackkoppa/browse-dot-show/pull/164) | M1: deleted dead scripts and the old LaunchAgent automation |
-| [#165](https://github.com/jackkoppa/browse-dot-show/pull/165) | M2: shared modules in `scripts/lib/` |
-| [#166](https://github.com/jackkoppa/browse-dot-show/pull/166) | M3: the `pnpm bds` CLI (`scripts/cli/`) |
-| [#167](https://github.com/jackkoppa/browse-dot-show/pull/167) | M4: parallel transcription (`bds ingest --parallel=N`, default 3) + process-audio lambda fixes |
-| [#168](https://github.com/jackkoppa/browse-dot-show/pull/168) | M6: docs rewrite, Hermit removed (Node 22 via `.nvmrc`), `CHANGELOG.md` |
+How things work now:
 
-- **Tag [`v0.0.1`](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1)** = `main` before the overhaul (`999e345`). The README, Getting Started, Local Development and Deployment guides and `CHANGELOG.md` point pre-2026-10-06 users to it.
-- **`v1.0.0`** gets tagged once M4b (GitHub Actions deploys) and M5 (Mac automation) both work. Then move the changelog's "Unreleased" section under it.
-- Verified after merging: `pnpm install && pnpm all:build` ok, `pnpm bds doctor` 0 failures, `pnpm bds ingest --all-sites --dry-run` exit 0, scripts typecheck ok. Before merging: a real haveaword end-to-end run, real parallel transcription, Ctrl+C/SIGTERM tests, and lambda packaging compared against `v0.0.1`. Results are in [06](./06-session-1-decisions.md) ("Test results").
+- Day-to-day commands: [docs/local-development.md](../../docs/local-development.md) and [AGENTS.md](../../AGENTS.md).
+- Deploys from GitHub Actions (how they work, setup, troubleshooting): [docs/github-actions-deploys.md](../../docs/github-actions-deploys.md).
+- What must not break, and the smoke tests to run: [docs/deployed-sites-invariants.md](../../docs/deployed-sites-invariants.md).
+- Changes since `v0.0.1`: [CHANGELOG.md](../../CHANGELOG.md).
 
-Orientation: [`docs/local-development.md`](../../docs/local-development.md) (setup, config files, the full `bds` command reference, scripts layout) and [`AGENTS.md`](../../AGENTS.md).
+## What's next
 
-## What's next, in order
-
-The developer chose this order on 2026-10-06. No dates.
-
-### 1. Small follow-ups ([10](./10-follow-ups.md)): ✅ PRs open (2026-10-07)
-
-Stacked on #169, in order: [#170](https://github.com/jackkoppa/browse-dot-show/pull/170) `validate sites` passes (10 §7) → [#171](https://github.com/jackkoppa/browse-dot-show/pull/171) index sites whose transcripts are newer than their index (10 §4) → [#172](https://github.com/jackkoppa/browse-dot-show/pull/172) worktrees get gitignored config symlinked (10 §8) → [#173](https://github.com/jackkoppa/browse-dot-show/pull/173) process-audio typecheck (10 §9) → [#174](https://github.com/jackkoppa/browse-dot-show/pull/174) search-entries no longer all rewritten/re-uploaded (10 §6) → [#175](https://github.com/jackkoppa/browse-dot-show/pull/175) atomic per-file transcription locks (10 §5).
-
-After merging: the next real `bds ingest --all-sites` indexes and uploads ~300 episodes on 17 sites that were transcribed but never indexed (see #171). celebritymemoirbookclub and iwltrubbish need a client redeploy for #170.
-
-Leave for later: **10 §1** (automation Terraform), done as part of M4b; **10 §2** (Node 24), when draft [#156](https://github.com/jackkoppa/browse-dot-show/pull/156) is rebased onto `main`; **10 §3** (launchd signal testing), part of M5.
-
-### 2. M4b: deploy code changes from GitHub Actions ([08](./08-github-actions-deploys.md))
-
-Goal: when a PR merges to `main`, Actions deploys **only what changed** (a site's frontend/config, the lambdas, or the homepage), using AWS credentials stored in the repo. Deploying locally must stay just as easy. **Never** run transcription or ingestion in Actions; that stays on the Mac (whisper.cpp).
-
-**The plan is in [08](./08-github-actions-deploys.md)** (decisions, survey of today's deploy scripts, design, PR sequence). Decided: automatic deploys on merge; **GitHub OIDC → a deploy role per AWS account** (there are **3** accounts: homepage/automation, and 2 for sites); Terraform plans are **computed on the PR, posted as a comment, approved, then applied on merge**; `.site-account-mappings.json` gets committed. Fix **10 §1** as part of it.
-
-### 3. M5: unattended scheduled ingestion on a Mac ([03](./03-mac-automation.md))
-
-A LaunchDaemon plus a `pmset` wake schedule run `bds ingest --all-sites` with nobody logged in. The command names `bds schedule` and `bds setup machine` are reserved (`scripts/cli/commands/coming-soon.ts`). 03 starts with session-1 notes: PATH under launchd, signals, logs, Full Disk Access for the external SSD, FileVault options to present, and the whisper.cpp layout.
+1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Starts with a batch of decisions for the developer (machine, FileVault, notifications, schedule). Includes testing SIGTERM under launchd.
+2. **Tag `v1.0.0`** once M5 works: move the changelog's "Unreleased" section under it.
+3. Smaller items, any time (ask before starting):
+   - **Node 24:** draft #156 moves the lambdas to Node 24. When rebasing it, bump `.nvmrc`, `engines.node` and the docs (`docs/local-development.md`, `AGENTS.md`, `CHANGELOG.md`).
+   - **Tighten `browse-dot-show-gha-deploy`** from `AdministratorAccess` once deploys have a track record (`terraform/github-actions/modules/github-oidc`).
+   - **Search with very common words** (`the`): 10–28 s on the big sites (200k–330k hits), and a cold start plus one can hit API Gateway's 30 s limit (a 503). Normal queries take < 0.5 s. Pre-existing; a search-lambda change (e.g. cap or skip stop-word matches).
+   - **Libero's extra domain:** `libero.jackkoppa.com` was removed by the #188 deploy (approved). The unmerged WIP branch `jackkoppa/libero-domain-updates` adds extra aliases; re-adding it goes through a normal PR + plan approval.
+   - `terraform fmt -check` already fails on `terraform/sites/main.tf` (pre-existing formatting).
 
 ## Working with the developer
 
-These preferences came up during session 1; please keep them:
-
 - **Ask questions as interactive prompts** (multiple choice with a recommendation), batched, not as a long list in chat.
-- **AWS:** anything that touches AWS needs a go-ahead (see `AGENTS.md`). The developer often prefers to **run AWS commands themselves**: give the exact command, the expected output, and what to watch for.
-- **Never break the deployed sites.** Read [05](./05-deployed-sites-invariants.md) before touching AWS names, the S3 layout, Terraform or lambda packaging. Run the smoke-test checklist [07](./07-smoke-test-checklist.md) before finishing.
-- **Live runs:** if a transcription or ingestion run is going in the main checkout, work in a separate git worktree (symlink the gitignored config in) so you don't change files under it.
-- **Don't touch local files layout** (`localFilesPath`, on an external SSD, hundreds of GB) without asking.
-- **Branches and PRs:** one PR per milestone; stacked local branches are fine. The developer reviews before pushing, and has used rebase merges (so a stacked PR needs rebasing onto `main` after each merge; merge commits avoid that).
-- Machine-level changes (`sudo`, `pmset`, `/Library/LaunchDaemons`) are run by or with the developer.
+- **AWS:** anything that touches AWS needs a go-ahead (see `AGENTS.md`). The developer often prefers to **run AWS commands themselves**: give the exact command, the expected output and what to watch for. Read-only checks (listing, `iam simulate-principal-policy`, CloudWatch metrics) with their SSO session have been fine.
+- **Never break the deployed sites** ([invariants](../../docs/deployed-sites-invariants.md)). Run the smoke tests before finishing.
+- **Terraform plans:** review every PR plan comment before telling the developer to approve. Unexpected creates/replaces/destroys usually mean drift (a site last deployed from another branch, or before a default changed): find out why first, and present it as a decision.
+- **Live runs:** if an ingestion run is going in the main checkout, work in a separate git worktree (`bds worktree create`, then `bds worktree link-config`).
+- **Don't touch the local files** (`localFilesPath`, external SSD, hundreds of GB) without asking. Machine-level changes (`sudo`, `pmset`, `/Library/LaunchDaemons`) are run by or with the developer.
+- **Branches and PRs:** one PR per change. `main` uses **rebase merges** and branch protection requires **up-to-date branches**, so stacked PRs need rebasing onto `main` after each merge (`git rebase --update-refs origin/main`). Don't check stacked branches out in the developer's main folder; use a worktree.
+- The repo is **public**: PR comments, Actions logs and artifacts are public.
 
 ## Key facts
 
-- Node 22 via nvm on the dev machine (`~/.nvm/versions/node/v22.14.0`); pnpm via Corepack. Hermit is gone.
-- Dev machine: Apple M4 Pro, 64 GB. Benchmark: 3 parallel whisper workers ≈ 47.6 audio-min per minute (large-v3-turbo). `transcriptionWorkers: 3` is set in `.local-files-config.json`; the code default is also 3.
-- 23 sites in 2 site AWS accounts, plus account 0 for the homepage and the automation user. Automation credentials are file-based (`.env.automation`, `chmod 600`) and assume `browse-dot-show-automation-role` in each account; `bds doctor --aws` checks this.
+- Node 22 (`.nvmrc`; nvm on the dev machine), pnpm via Corepack. Dev machine: Apple M4 Pro, 64 GB.
+- 23 sites in 2 site AWS accounts (`152849157974`: 11, `927984855345`: 12); account `297202224084` has the homepage, the automation IAM user and shared Terraform state. SSO profiles: `browse.show-<0|1|2>_admin-permissions-<account>`.
+- `.site-account-mappings.json` is committed; `bds site deploy` updates it.
+- GitHub Actions: workflows are on (`GHA_DEPLOYS_ENABLED=true`); `terraform-approval` environment (developer as reviewer); `main` requires `terraform-plan-result`.
 - Run history: `scripts/automation-logs/ingestion-pipeline-runs.md`. Worker logs: `scripts/automation-logs/transcription/<timestamp>/`.
+
+## History: removed planning docs
+
+The planning docs for the work above were removed once it was done; their content is either in the code and `docs/` now, or no longer needed. To read why something was decided, see them at [`4712e82acf`](https://github.com/jackkoppa/browse-dot-show/tree/4712e82acf/scratchpad/scripts-overhaul) (or `git show 4712e82acf:scratchpad/scripts-overhaul/<file>`):
+
+| File | What it was |
+| --- | --- |
+| `README.md` | The original brief: goals, milestones M0–M6, timeline |
+| `01-scripts-inventory.md` | Every script before the cleanup: keep / merge / delete |
+| `02-unified-cli.md` | The `bds` menu tree design |
+| `03-mac-automation.md` | M5 design (now [M5-mac-automation.md](./M5-mac-automation.md), updated) |
+| `04-parallel-transcription.md` | Design for `bds ingest --parallel=N` |
+| `05-deployed-sites-invariants.md`, `07-smoke-test-checklist.md` | Now [docs/deployed-sites-invariants.md](../../docs/deployed-sites-invariants.md) |
+| `06-session-1-decisions.md` | Session 1 decisions, test results, the whisper benchmark (summarized in the M5 doc) |
+| `08-github-actions-deploys.md` | M4b decisions and design (now [docs/github-actions-deploys.md](../../docs/github-actions-deploys.md)) |
+| `09-tonight-runbook.md` | Session 1's evening test runbook (done) |
+| `10-follow-ups.md` | Follow-ups from session 1 (all done or listed above) |
+
+The PRs listed above have the full context for each change.

@@ -1,5 +1,5 @@
 # scratchpad
 
-TODO: eventually delete this directory
+Working notes for in-progress work, removed once the work is done (durable docs live in `docs/`).
 
-For now, adding prompts / descriptions that may be temporarily useful, but not yet refinded for a Cursor rule.
+- [`scripts-overhaul/`](./scripts-overhaul/HANDOFF.md): developer tooling. Next up: M5, unattended ingestion on a Mac.

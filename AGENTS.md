@@ -25,9 +25,15 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `sit
 
 ## Current work
 
-Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer.
+Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next (M5: unattended ingestion on a Mac), and how to work with the developer.
+
+## Deploys
+
+Merged PRs deploy from GitHub Actions. A PR that changes Terraform (including any lambda code) gets a plan comment and needs the developer's approval in the `terraform-approval` environment before it can merge; review the comment for unexpected creates, replaces or destroys. Branch protection requires up-to-date branches (rebase merges). See [GitHub Actions deploys](docs/github-actions-deploys.md).
 
 ## Guides
 
 - [Local Development Guide](docs/local-development.md): setup, config files, CLI reference, ingestion, worktrees, scripts layout
 - [Deployment Guide](docs/deployment-guide.md)
+- [GitHub Actions deploys](docs/github-actions-deploys.md)
+- [Deployed-sites invariants and smoke tests](docs/deployed-sites-invariants.md): read before touching AWS names, the S3 layout, Terraform or lambda packaging

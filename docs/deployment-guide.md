@@ -218,15 +218,15 @@ pnpm bds site upload-client --site=<your-site>   # client only
 pnpm bds site upload-client --all-sites          # every site's client (automation credentials)
 ```
 
-### Deploys from GitHub Actions (optional)
+### Deploys from GitHub Actions
 
-The repo's workflows can deploy code changes for you when a PR merges to `main`, deploying only what changed: each affected site's Terraform stack (infrastructure + lambdas) and client, and the homepage. Transcription and ingestion never run in Actions.
+When a PR merges to `main`, the repo's workflows deploy only what changed: each affected site's Terraform stack (infrastructure + lambdas) and client, and the homepage. Transcription and ingestion never run in Actions.
 
-- **PRs (`terraform-plan.yml`):** for every Terraform stack a PR affects, a read-only plan runs and a summary is posted as a PR comment (flagging anything created, replaced or destroyed). The PR then waits for your approval in the `terraform-approval` environment ("Review deployments" in the PR's checks).
-- **Merges (`deploy.yml`):** applies a fresh plan for each stack whose plan was approved on the PR (refusing creates/replaces/destroys that weren't in it), then uploads the affected clients. `workflow_dispatch` can redeploy everything, applying in-place Terraform updates only.
+- **PRs:** every Terraform stack the PR affects gets a read-only plan (one job per AWS account), summarized in a PR comment that flags anything created, replaced or destroyed. Every plan needs your approval ("Review deployments" in the PR's checks) before the PR can merge.
+- **Merges:** a fresh plan is applied for each stack whose plan was approved (refusing creates/replaces/destroys that weren't in it), then the affected clients are uploaded. A manual run of the `deploy` workflow applies in-place updates only.
 - **Locally:** `pnpm bds ci affected --base=origin/main` shows what your branch would deploy; `pnpm bds ci terraform --target=site:<id> --mode=plan` runs the same read-only plan.
 
-AWS access is through GitHub OIDC roles (`terraform/github-actions/`, deployed with `pnpm bds infra github-actions deploy`). The workflows do nothing until the repository variable `GHA_DEPLOYS_ENABLED` is `true`. Setup steps: [`scratchpad/scripts-overhaul/08-github-actions-deploys.md`](../scratchpad/scripts-overhaul/08-github-actions-deploys.md#setup-in-order).
+How it works, setup and troubleshooting: [GitHub Actions deploys](./github-actions-deploys.md).
 
 ## 🔧 Troubleshooting
 
