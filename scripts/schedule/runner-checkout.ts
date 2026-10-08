@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { onShutdown } from '../lib/shutdown.js';
+import { linkWorktreeConfig } from '../lib/worktree-config.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -127,7 +128,42 @@ async function updateMarkerPath(runnerDir: string): Promise<string> {
   return path.join(gitDir, 'bds-update-in-progress');
 }
 
-export async function installAndBuild(cwd: string, log: Log): Promise<void> {
-  await runLogged('pnpm', ['install', '--frozen-lockfile'], cwd, log);
-  await runLogged('pnpm', ['all:build'], cwd, log);
+export async function installAndBuild(cwd: string, log: Log, env: NodeJS.ProcessEnv = process.env): Promise<void> {
+  await runLogged('pnpm', ['install', '--frozen-lockfile'], cwd, log, env);
+  await runLogged('pnpm', ['all:build'], cwd, log, env);
+}
+
+/**
+ * Create the runner checkout: a worktree of `mainRoot`, detached at origin/main, with the
+ * main checkout's gitignored config symlinked in (`bds worktree link-config`), then install
+ * and build with `nodePath`'s node (and pnpm).
+ */
+export async function createRunnerCheckout(mainRoot: string, runnerDir: string, nodePath: string, log: Log, { branch = 'main' } = {}): Promise<void> {
+  await fetchBranch(mainRoot, branch);
+  await runLogged('git', ['worktree', 'add', '--detach', runnerDir, `origin/${branch}`], mainRoot, log);
+  const { linked } = await linkWorktreeConfig(mainRoot, runnerDir);
+  log(`🔗 Linked ${linked.length} config file(s) from ${mainRoot}`);
+  await installAndBuild(runnerDir, log, envWithNode(nodePath));
+}
+
+/** `process.env` with `nodePath`'s folder first on PATH, so pnpm runs with that node. */
+export function envWithNode(nodePath: string): NodeJS.ProcessEnv {
+  return { ...process.env, PATH: `${path.dirname(nodePath)}:${process.env.PATH ?? ''}`, COREPACK_ENABLE_DOWNLOAD_PROMPT: '0' };
+}
+
+/** Whether `dir` is a git worktree of the repo at `mainRoot`. */
+export async function isWorktreeOf(mainRoot: string, dir: string): Promise<boolean> {
+  try {
+    const list = await git(mainRoot, ['worktree', 'list', '--porcelain']);
+    const real = (p: string) => {
+      try {
+        return fs.realpathSync(p);
+      } catch {
+        return path.resolve(p);
+      }
+    };
+    return list.split('\n').some(line => line.startsWith('worktree ') && real(line.slice('worktree '.length)) === real(dir));
+  } catch {
+    return false;
+  }
 }

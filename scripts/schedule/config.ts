@@ -20,8 +20,10 @@ export type NotifyOnSuccess = (typeof NOTIFY_ON_SUCCESS)[number];
 
 export interface ScheduleConfig {
   version: 1;
-  /** The runner checkout: a worktree that `bds schedule run` fast-forwards to origin/main. */
+  /** The runner checkout: a worktree that `bds schedule run` fast-forwards to origin/<branch>. */
   runnerDir: string;
+  /** The branch the runner follows: `main`, or a pushed branch while testing changes to scheduling itself. */
+  branch: string;
   /** Daily start time, local time. */
   hour: number;
   minute: number;
@@ -30,8 +32,10 @@ export interface ScheduleConfig {
   /** macOS user the job runs as. */
   userName: string;
   notifyOnSuccess: NotifyOnSuccess;
-  /** Minutes before the run to wake the Mac (`pmset repeat wakeorpoweron`). */
-  wakeMinutesBefore: number;
+  /** Minutes before the run to wake the Mac (`pmset repeat wakeorpoweron`); null: no wake schedule. */
+  wakeMinutesBefore: number | null;
+  /** ISO timestamp of the last `bds schedule install`. */
+  installedAt: string;
 }
 
 export const DEFAULT_NOTIFY_ON_SUCCESS: NotifyOnSuccess = 'always';

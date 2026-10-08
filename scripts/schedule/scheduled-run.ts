@@ -160,7 +160,7 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
     if (options.update && isRunner) {
       log('\n🔄 Updating the runner checkout');
       try {
-        const update = await updateRunnerCheckout(REPO_ROOT, log);
+        const update = await updateRunnerCheckout(REPO_ROOT, log, { branch: config.branch ?? 'main' });
         record.commit = update.to;
         if (update.changed) record.updatedFrom = update.from;
       } catch (error) {
