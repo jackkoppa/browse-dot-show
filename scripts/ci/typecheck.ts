@@ -35,8 +35,12 @@ export const TYPECHECK_PROJECTS: { dir: string; config: string }[] = [
   { dir: 'packages/ingestion/process-audio-lambda', config: 'tsconfig.json' },
   { dir: 'packages/ingestion/srt-indexing-lambda', config: 'tsconfig.json' },
   { dir: 'packages/search/search-lambda', config: 'tsconfig.json' },
-  // Not yet: packages/client and packages/homepage (their tsconfig.app.json fails on
-  // packages/ui, which is imported from source without @types/react), packages/ui (no tsconfig).
+  // client and homepage: tsconfig.json only holds project references (`files: []`), so check
+  // the app and node configs. The app configs also cover packages/ui (imported from source).
+  { dir: 'packages/client', config: 'tsconfig.app.json' },
+  { dir: 'packages/client', config: 'tsconfig.node.json' },
+  { dir: 'packages/homepage', config: 'tsconfig.app.json' },
+  { dir: 'packages/homepage', config: 'tsconfig.node.json' },
 ];
 
 interface Result {

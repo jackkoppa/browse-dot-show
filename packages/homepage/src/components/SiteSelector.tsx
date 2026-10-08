@@ -93,7 +93,9 @@ export default function SiteSelector({ sites, selectedSite, onSiteSelect }: Site
           <PopoverContent 
             className="w-(--radix-popover-trigger-width) p-0" 
             align="start" 
-            onOpenAutoFocus={(e: MouseEvent) => !isDesktop && e.preventDefault()}
+            onOpenAutoFocus={(e: Event) => {
+              if (!isDesktop) e.preventDefault()
+            }}
           >
             <Command>
               <CommandInput placeholder="Search podcasts..." />
