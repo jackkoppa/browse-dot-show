@@ -53,6 +53,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Changed (deploys)
 
+- PRs run every package's tests (`pnpm all:test`, the `checks` workflow's `test` job) alongside `typecheck`.
 - **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`; [docs](docs/github-actions-deploys.md)): read-only plans on PRs (one job per AWS account) with a PR comment, an approval for every plan with changes, and deploys of what changed on merge (Terraform applies, then client uploads). On since 2026-10-08.
 - `terraform/github-actions/` + `bds infra github-actions deploy`: GitHub's OIDC provider and two roles per AWS account (`browse-dot-show-gha-plan`, read-only, for PRs; `browse-dot-show-gha-deploy`, for `main`).
 - `bds ci affected` / `ci terraform` / `ci terraform-group` / `ci plan-comment` / `ci upload-homepage`: building blocks for GitHub Actions deploys (what changed, plan summaries, plan/approve/apply). CI downloads each site's deployed lambda layer zips, since they aren't in git; change a layer with a local deploy.
