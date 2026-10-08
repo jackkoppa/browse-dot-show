@@ -104,7 +104,7 @@ async function main(): Promise<void> {
   # The process-audio lambda's environment, passed to Terraform
   gh secret set OPENAI_API_KEY
 
-  # Approval gate for plans that create, replace or destroy resources
+  # Approval gate: every Terraform plan on a PR needs your approval before merging
   gh api -X PUT repos/jackkoppa/browse-dot-show/environments/terraform-approval \\
     -F "reviewers[][type]=User" -F "reviewers[][id]=$(gh api user -q .id)"
 `);
