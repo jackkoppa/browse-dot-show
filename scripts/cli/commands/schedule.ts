@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import prompts from 'prompts';
-import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { oneOf, parseFlags, positiveInt, UsageError } from '../../lib/args.js';
 import { REPO_ROOT } from '../../lib/paths.js';
 import { currentRunLockHolder, defaultLockEnvironment, runLockPath } from '../../lib/run-lock.js';
@@ -25,6 +24,7 @@ import { git, uncommittedChanges } from '../../schedule/runner-checkout.js';
 import { runScheduled } from '../../schedule/scheduled-run.js';
 import { renderStatus, type StatusFacts } from '../../schedule/status.js';
 import { runProcess, type Command } from '../command.js';
+import { localFilesBase } from '../../lib/machine-config.js';
 
 const RUN_FLAGS = {
   'no-update': { type: 'boolean' },
@@ -373,7 +373,7 @@ async function gatherStatusFacts(runs: number): Promise<StatusFacts> {
   const config = readScheduleConfig();
   let base: string | null = null;
   try {
-    base = getLocalFilesBasePath();
+    base = localFilesBase();
   } catch {
     // reported by the local files check
   }

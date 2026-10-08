@@ -1,7 +1,7 @@
+import * as fs from 'fs';
 import prompts from 'prompts';
-import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { csv, parseFlags, positiveInt, UsageError } from '../../lib/args.js';
-import { DEFAULT_TRANSCRIPTION_WORKERS, getDefaultTranscriptionWorkers } from '../../lib/machine-config.js';
+import { DEFAULT_TRANSCRIPTION_WORKERS, getDefaultTranscriptionWorkers, localFilesBase } from '../../lib/machine-config.js';
 import { REPO_ROOT } from '../../lib/paths.js';
 import { acquireRunLock, describeRunLockHolder, EXIT_RUN_LOCKED, runLockPath } from '../../lib/run-lock.js';
 import { onShutdown } from '../../lib/shutdown.js';
@@ -169,6 +169,10 @@ EXAMPLES
       ]);
     }
 
+    if (!options.dryRun && !fs.existsSync(localFilesBase())) {
+      console.error(`❌ Local files folder not found: ${localFilesBase()} (is the drive mounted? set in .local-files-config.json)`);
+      return 1;
+    }
     const release = options.dryRun ? () => {} : takeRunLock();
     if (!release) return EXIT_RUN_LOCKED;
     const unregister = onShutdown(release);
@@ -191,7 +195,7 @@ EXAMPLES
 
 /** Take the run-level lock; returns its release function, or null if another run holds it. */
 function takeRunLock(): (() => void) | null {
-  const lockPath = runLockPath(getLocalFilesBasePath());
+  const lockPath = runLockPath(localFilesBase());
   const result = acquireRunLock(lockPath, { trigger: process.env.BDS_RUN_TRIGGER || 'manual', repoRoot: REPO_ROOT });
   if (result.acquired) return result.release;
   console.error(`❌ Another ingestion run is in progress: ${describeRunLockHolder(result.holder)}`);

@@ -51,6 +51,8 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 - Run history and transcription worker logs moved from `scripts/automation-logs/` to `~/Library/Logs/browse-dot-show/` (the old run history is copied over on the first run).
 
+- **A missing local files folder stops the run.** When the configured `localFilesPath` doesn't exist (e.g. the SSD isn't mounted), `bds ingest` (not `--dry-run`) exits, a scheduled run is skipped, and `bds doctor` / `schedule status` say so, instead of falling back to the repo's `aws-local-dev` (where a run would download every site from S3).
+
 ### Changed (deploys)
 
 - **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`; [docs](docs/github-actions-deploys.md)): read-only plans on PRs (one job per AWS account) with a PR comment, an approval for every plan with changes, and deploys of what changed on merge (Terraform applies, then client uploads). On since 2026-10-08.
