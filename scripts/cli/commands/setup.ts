@@ -298,7 +298,9 @@ whisper-cli workers and reports audio minutes per minute for each. Recommends th
 smallest worker count within 7% of the best, and offers to save it as
 "transcriptionWorkers" in .local-files-config.json. Transcripts go to a temp folder.
 
-Takes a while: with --minutes=60 and 4 settings, roughly 5–15 minutes on an M4.
+Takes a while: it prefers episodes under 40 minutes, but needs 2 per worker (8 for 4
+workers), so with 4 settings expect roughly 30–60 minutes on a base M4. With only
+hour-long episodes it takes about 2 hours.
 
 OPTIONS
   --workers=a,b,...   Worker counts to try (default: 1,2,3,4)
@@ -325,17 +327,21 @@ OPTIONS
     const sitesDir = path.join(getLocalFilesBasePath(), 's3', 'sites');
     // Two files per worker at the most workers, so every worker stays busy
     const minFiles = Math.max(...workerCounts) * 2;
+    // Prefer shorter episodes: with 2 per worker, hour-long ones make each setting take 30+ min
+    const SHORT_EPISODE_MINUTES = 40;
+    const pick = (candidates: AudioFile[], maxMinutes?: number) => pickFiles(candidates, targetMinutes, minFiles, maxMinutes);
     const enough = (picked: AudioFile[]) => picked.length >= minFiles && picked.reduce((sum, f) => sum + f.minutes, 0) >= targetMinutes;
     const candidates: AudioFile[] = [];
-    for (const file of findMp3s(sitesDir, 200)) {
+    for (const file of findMp3s(sitesDir, 500)) {
       try {
         candidates.push({ path: file, minutes: await audioMinutes(file) });
       } catch {
         // unreadable file: skip
       }
-      if (enough(pickFiles(candidates, targetMinutes, minFiles))) break;
+      if (enough(pick(candidates, SHORT_EPISODE_MINUTES))) break;
     }
-    const files = pickFiles(candidates, targetMinutes, minFiles);
+    const short = pick(candidates, SHORT_EPISODE_MINUTES);
+    const files = enough(short) ? short : pick(candidates);
     const total = files.reduce((sum, file) => sum + file.minutes, 0);
     if (files.length === 0) throw new UsageError(`No episodes found under ${sitesDir}; run an ingestion first (or a pre-sync).`);
     if (files.length < minFiles) console.log(`⚠️  Only ${files.length} episode(s) found; results for more workers than that aren't meaningful`);

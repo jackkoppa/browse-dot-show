@@ -9,6 +9,7 @@ describe('transcription benchmark', () => {
     const files = [file('trailer', 2), file('a', 40), file('marathon', 300), file('b', 50), file('c', 30)];
     expect(pickFiles(files, 60).map(f => f.path)).toEqual(['/a.mp3', '/b.mp3']);
     expect(pickFiles(files, 10, 3).map(f => f.path)).toEqual(['/a.mp3', '/b.mp3', '/c.mp3']);
+    expect(pickFiles(files, 10, 2, 40).map(f => f.path)).toEqual(['/a.mp3', '/c.mp3']);
   });
 
   it('balances files across workers by duration', () => {

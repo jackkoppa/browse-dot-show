@@ -57,14 +57,14 @@ export async function audioMinutes(file: string): Promise<number> {
 
 /**
  * Pick files, in order, until their total reaches `targetMinutes` and there are at least
- * `minFiles` (so every worker has work), skipping very short or long ones.
+ * `minFiles` (so every worker has work), skipping very short ones and ones over `maxMinutes`.
  */
-export function pickFiles(files: AudioFile[], targetMinutes: number, minFiles = 1): AudioFile[] {
+export function pickFiles(files: AudioFile[], targetMinutes: number, minFiles = 1, maxMinutes = 180): AudioFile[] {
   const picked: AudioFile[] = [];
   let total = 0;
   for (const file of files) {
     if (total >= targetMinutes && picked.length >= minFiles) break;
-    if (file.minutes < 5 || file.minutes > 180) continue;
+    if (file.minutes < 5 || file.minutes > maxMinutes) continue;
     picked.push(file);
     total += file.minutes;
   }
