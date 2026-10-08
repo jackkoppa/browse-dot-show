@@ -25,5 +25,4 @@ planned; see scratchpad/scripts-overhaul/M5-mac-automation.md. Until then, run
   };
 }
 
-export const scheduleInstallCommand = comingSoon(['schedule', 'install'], 'Install the nightly LaunchDaemon and wake schedule on this Mac');
 export const setupMachineCommand = comingSoon(['setup', 'machine'], 'Set up this Mac: tools, whisper model, local files, credentials');

@@ -1,12 +1,19 @@
 import { commandName, type Command } from './command.js';
 import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciTerraformGroupCommand, ciUploadHomepageCommand } from './commands/ci.js';
-import { scheduleInstallCommand, setupMachineCommand } from './commands/coming-soon.js';
+import { setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
 import { infraAutomationCommand, infraGithubActionsCommand, infraHomepageCommand } from './commands/infra.js';
 import { ingestCommand } from './commands/ingest.js';
 import { lambdaRunCommand } from './commands/lambda.js';
-import { scheduleRunCommand, scheduleRunNowCommand, scheduleTestNotificationsCommand } from './commands/schedule.js';
+import {
+  scheduleInstallCommand,
+  scheduleRunCommand,
+  scheduleRunNowCommand,
+  scheduleStatusCommand,
+  scheduleTestNotificationsCommand,
+  scheduleUninstallCommand,
+} from './commands/schedule.js';
 import { siteCreateCommand, siteDeployCommand, siteDestroyCommand, siteUploadClientCommand } from './commands/site.js';
 import { validateCommand } from './commands/validate.js';
 
@@ -18,9 +25,11 @@ export const MENU: MenuNode[] = [
   {
     label: 'Scheduled runs on this Mac',
     children: [
-      { label: 'Install the schedule — coming soon', command: scheduleInstallCommand },
-      { label: 'Run the scheduled job now (in this terminal)', command: scheduleRunNowCommand },
+      { label: 'Status: schedule, recent runs, warnings', command: scheduleStatusCommand },
+      { label: 'Install (or change) the nightly schedule', command: scheduleInstallCommand },
+      { label: 'Run the scheduled job now', command: scheduleRunNowCommand },
       { label: 'Send test notifications (Slack, healthcheck)', command: scheduleTestNotificationsCommand },
+      { label: 'Uninstall the schedule', command: scheduleUninstallCommand },
       { label: 'One scheduled run, as launchd starts it', command: scheduleRunCommand },
     ],
   },
