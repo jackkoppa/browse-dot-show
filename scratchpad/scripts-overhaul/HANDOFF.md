@@ -20,8 +20,14 @@ How things work now:
 ## What's next
 
 1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Starts with a batch of decisions for the developer (machine, FileVault, notifications, schedule). Includes testing SIGTERM under launchd.
-2. **Tag `v1.0.0`** once M5 works: move the changelog's "Unreleased" section under it.
-3. Smaller items, any time (ask before starting):
+2. **Alongside M5: typecheck client and homepage.** #194 added the required `typecheck` check (`pnpm all:typecheck`, `scripts/ci/typecheck.ts`), covering 16 projects but not these two:
+   - Their `tsconfig.json` uses project references (`files: []`), so `tsc -p tsconfig.json` checks nothing; check `tsconfig.app.json` and `tsconfig.node.json` instead.
+   - `tsconfig.app.json` fails with ~62 errors (client and homepage alike), all in `packages/ui` components (`TS7016`/`TS7026`: no types for `react`). `packages/ui` is imported from source and doesn't depend on `@types/react`. Fix: add `@types/react` (matching the client's version) to `packages/ui` devDependencies.
+   - `packages/client/tsconfig.node.json`: 1 real error in `vite.config.ts` (~line 311, an env object with `string | undefined` assigned to `Record<string, string>`).
+   - The `@types/react` change edits `pnpm-lock.yaml`, which `ci affected` treats as "deploy everything": the merge plans every site (no changes expected, so no approval) and re-uploads every client and the homepage. Harmless, but expect a long deploy run.
+   - Then add both configs to `TYPECHECK_PROJECTS`. Don't add `typecheck` scripts to lambda packages: their `package.json` scripts and devDependencies are copied into `aws-dist`, changing every lambda zip.
+3. **Tag `v1.0.0`** once M5 works: move the changelog's "Unreleased" section under it.
+4. Smaller items, any time (ask before starting):
    - **Node 24:** draft #156 moves the lambdas to Node 24. When rebasing it, bump `.nvmrc`, `engines.node` and the docs (`docs/local-development.md`, `AGENTS.md`, `CHANGELOG.md`).
    - **Tighten `browse-dot-show-gha-deploy`** from `AdministratorAccess` once deploys have a track record (`terraform/github-actions/modules/github-oidc`).
    - **Search with very common words** (`the`): 10–28 s on the big sites (200k–330k hits), and a cold start plus one can hit API Gateway's 30 s limit (a 503). Normal queries take < 0.5 s. Pre-existing; a search-lambda change (e.g. cap or skip stop-word matches).
@@ -44,7 +50,7 @@ How things work now:
 - Node 22 (`.nvmrc`; nvm on the dev machine), pnpm via Corepack. Dev machine: Apple M4 Pro, 64 GB.
 - 23 sites in 2 site AWS accounts (`152849157974`: 11, `927984855345`: 12); account `297202224084` has the homepage, the automation IAM user and shared Terraform state. SSO profiles: `browse.show-<0|1|2>_admin-permissions-<account>`.
 - `.site-account-mappings.json` is committed; `bds site deploy` updates it.
-- GitHub Actions: workflows are on (`GHA_DEPLOYS_ENABLED=true`); `terraform-approval` environment (developer as reviewer); `main` requires `terraform-plan-result`.
+- GitHub Actions: workflows are on (`GHA_DEPLOYS_ENABLED=true`); `terraform-approval` environment (developer as reviewer); `main` requires `terraform-plan-result` and (after #194) `typecheck`.
 - Run history: `scripts/automation-logs/ingestion-pipeline-runs.md`. Worker logs: `scripts/automation-logs/transcription/<timestamp>/`.
 
 ## History: removed planning docs
