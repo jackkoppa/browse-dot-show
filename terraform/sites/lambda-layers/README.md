@@ -76,3 +76,8 @@ The ffmpeg utilities are automatically available in Lambda functions that includ
 - `ffmpeg` and `ffprobe` binaries are accessible via `/opt/bin/`
 - Our `ffmpeg-utils.ts` handles path detection automatically
 - No additional configuration needed in function code 
+## In GitHub Actions
+
+The zips aren't in git, so `bds ci terraform` downloads each site's latest deployed layer version (`ffmpeg-<site>`, `compress-encode-<site>`) before planning, and checks it against the `CodeSha256` Lambda reports (`scripts/ci/lambda-layers.ts`). The bytes are identical, so CI plans show no layer change. A zip already in this folder is used as is.
+
+To change a layer: build the new zip here and deploy one site locally (`pnpm bds site deploy --site=<id>`), then the rest. CI picks up whatever version each site has deployed.

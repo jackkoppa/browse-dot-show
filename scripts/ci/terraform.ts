@@ -4,6 +4,7 @@ import * as path from 'path';
 import { repoPath } from '../lib/paths.js';
 import { getSiteAccountMapping } from '../lib/site-accounts.js';
 import { SITES_TERRAFORM_DIR, siteInitArgs, sitePlanArgs, siteTerraformEnv } from '../lib/site-terraform.js';
+import { ensureSiteLayerZips } from './lambda-layers.js';
 import { renderPlanComment, riskyChanges, summarizePlan, unapprovedChanges, type PlanSummary } from './plan-summary.js';
 
 /**
@@ -36,6 +37,8 @@ interface TargetConfig {
   env: NodeJS.ProcessEnv;
   initArgs: string[];
   planArgs: (lock: boolean) => string[];
+  /** Runs before init (e.g. fetching files Terraform reads that aren't in git) */
+  prepare?: () => Promise<void>;
 }
 
 function targetConfig(target: string): TargetConfig {
@@ -57,6 +60,7 @@ function targetConfig(target: string): TargetConfig {
     env: { ...siteTerraformEnv(process.env.OPENAI_API_KEY), ...env },
     initArgs: siteInitArgs(siteId),
     planArgs: lock => sitePlanArgs(siteId, { awsProfile: process.env.AWS_PROFILE, lock }),
+    prepare: () => ensureSiteLayerZips(siteId, path.join(SITES_TERRAFORM_DIR, 'lambda-layers')),
   };
 }
 
@@ -102,6 +106,7 @@ export async function runCiTerraform(options: CiTerraformOptions): Promise<numbe
   const summaryPath = path.join(options.outDir, 'summary.json');
 
   try {
+    await config.prepare?.();
     if ((await runLive(config.initArgs, config)) !== 0) return 1;
     // PR plans run with a read-only role, so they can't take the state lock
     if ((await runLive(config.planArgs(options.mode === 'apply'), config)) !== 0) return 1;
