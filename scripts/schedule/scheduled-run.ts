@@ -60,7 +60,7 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
   const logFile = runLogPath(dir, id);
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
   const write = (text: string) => {
-    logStream.write(text);
+    if (!logStream.writableEnded) logStream.write(text);
     if (options.echo) process.stdout.write(text);
   };
   const log = (message: string) => write(`${message}\n`);
@@ -90,22 +90,28 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
 
   let child: ChildProcess | null = null;
   let interrupted = false;
+  const interruption = { outcome: 'interrupted', reason: 'Stopped by a signal (launchctl bootout/kill, or Ctrl+C)' } as const;
   const unregister = onShutdown(async () => {
     interrupted = true;
     log('⚠️  Stopping (received a signal)…');
+    // Record it right away: the shutdown has a time limit, and stopping whisper takes a while
+    if (!finishing) writeRecord(dir, { ...record, ...interruption });
     if (child && child.exitCode === null) {
       await new Promise<void>(resolve => {
         child!.once('close', () => resolve());
         child!.kill('SIGTERM');
       });
     }
-    await finish({ outcome: 'interrupted', reason: 'Stopped by a signal (launchctl bootout/kill, or Ctrl+C)' });
+    await finish(interruption);
   });
 
-  let finished = false;
-  const finish = async (result: Partial<ScheduledRunRecord> & Pick<ScheduledRunRecord, 'outcome'>): Promise<void> => {
-    if (finished) return;
-    finished = true;
+  // The first call wins; later calls (e.g. the signal handler and the main flow) wait for it
+  let finishing: Promise<void> | null = null;
+  const finish = (result: Partial<ScheduledRunRecord> & Pick<ScheduledRunRecord, 'outcome'>): Promise<void> => {
+    finishing ??= finishRun(result);
+    return finishing;
+  };
+  const finishRun = async (result: Partial<ScheduledRunRecord> & Pick<ScheduledRunRecord, 'outcome'>): Promise<void> => {
     const endedAt = new Date();
     Object.assign(record, result, { endedAt: endedAt.toISOString(), durationMs: endedAt.getTime() - Date.parse(record.startedAt) });
     const summary = readRunSummary(pipelineSummaryPath(dir, id));
@@ -188,7 +194,10 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
       });
       child.on('close', code => resolve(code ?? 1));
     });
-    if (interrupted) return 130;
+    if (interrupted) {
+      await finish(interruption);
+      return 130;
+    }
 
     record.ingestExitCode = exitCode;
     if (exitCode === 0) {

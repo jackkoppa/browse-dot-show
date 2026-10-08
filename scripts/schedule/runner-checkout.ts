@@ -1,4 +1,5 @@
 import { execFile, spawn } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { onShutdown } from '../lib/shutdown.js';
@@ -71,8 +72,11 @@ export function runLogged(command: string, args: string[], cwd: string, log: Log
 }
 
 /**
- * Fast-forward `runnerDir` to origin/main (detached), then `pnpm install` and build if
+ * Fast-forward `runnerDir` to origin/<branch> (detached), then `pnpm install` and build if
  * anything changed. Refuses if the checkout has uncommitted changes.
+ *
+ * A marker in the worktree's git folder records an update in progress, so an update that
+ * was interrupted (e.g. the run was stopped mid-install) is finished by the next run.
  */
 export async function updateRunnerCheckout(
   runnerDir: string,
@@ -84,26 +88,43 @@ export async function updateRunnerCheckout(
     throw new Error(`the runner checkout has uncommitted changes (${dirty.slice(0, 3).join('; ')}${dirty.length > 3 ? '; …' : ''}); clean it up or recreate it with \`bds schedule install\``);
   }
 
+  const marker = await updateMarkerPath(runnerDir);
   const from = await currentCommit(runnerDir);
   await fetchBranch(runnerDir, branch);
   const to = await git(runnerDir, ['rev-parse', `origin/${branch}`]);
-  if (from === to) {
+  if (from === to && !fs.existsSync(marker)) {
     log(`✅ Runner checkout is up to date (${to.slice(0, 7)})`);
     return { from, to, changed: false };
   }
 
-  log(`🔄 Updating the runner checkout: ${from.slice(0, 7)} → ${to.slice(0, 7)}`);
+  if (from === to) {
+    log(`🔄 Finishing an interrupted update of the runner checkout (${to.slice(0, 7)})`);
+  } else {
+    log(`🔄 Updating the runner checkout: ${from.slice(0, 7)} → ${to.slice(0, 7)}`);
+  }
+  fs.writeFileSync(marker, `${from} → ${to}\n`);
   await git(runnerDir, ['checkout', '--quiet', '--detach', to]);
   try {
     await install(runnerDir, log);
   } catch (error) {
     // Go back to the commit that worked, so tonight's failure doesn't break tomorrow's run
-    log(`❌ Update failed; going back to ${from.slice(0, 7)}`);
-    await git(runnerDir, ['checkout', '--quiet', '--detach', from]);
-    await install(runnerDir, log).catch(rollbackError => log(`❌ Restoring ${from.slice(0, 7)} failed too: ${rollbackError.message}`));
+    if (from !== to) {
+      log(`❌ Update failed; going back to ${from.slice(0, 7)}`);
+      await git(runnerDir, ['checkout', '--quiet', '--detach', from]);
+      await install(runnerDir, log)
+        .then(() => fs.rmSync(marker, { force: true }))
+        .catch(rollbackError => log(`❌ Restoring ${from.slice(0, 7)} failed too: ${rollbackError.message}`));
+    }
     throw error;
   }
+  fs.rmSync(marker, { force: true });
   return { from, to, changed: true };
+}
+
+/** `<worktree git dir>/bds-update-in-progress` (not in the working tree, so it never shows as a change). */
+async function updateMarkerPath(runnerDir: string): Promise<string> {
+  const gitDir = await git(runnerDir, ['rev-parse', '--absolute-git-dir']);
+  return path.join(gitDir, 'bds-update-in-progress');
 }
 
 export async function installAndBuild(cwd: string, log: Log): Promise<void> {
