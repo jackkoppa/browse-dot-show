@@ -17,6 +17,13 @@ log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logg
 // since ~March 2026), so identify ourselves the way podcast clients do
 const FETCH_HEADERS = { 'User-Agent': 'browse.show/1.0 (+https://browse.show)' };
 
+/** e.g. "HTTP 403 Forbidden from www.buzzsprout.com" (the host only: URLs can carry tokens) */
+function httpErrorMessage(response: Response, url: string): string {
+  let host = 'unknown host';
+  try { host = new URL(response.url || url).host; } catch { /* keep the fallback */ }
+  return `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''} from ${host}`;
+}
+
 // Types
 interface RssEpisode { // Renamed from Episode to avoid conflict with EpisodeInManifest
   title: string;
@@ -55,7 +62,7 @@ async function fetchRSSFeed(url: string): Promise<string> {
   try {
     const response = await fetch(url, { headers: FETCH_HEADERS });
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(httpErrorMessage(response, url));
     }
     return await response.text();
   } catch (error) {
@@ -346,7 +353,7 @@ async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string>
     log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${url}`);
     const response = await fetch(url, { headers: FETCH_HEADERS });
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(httpErrorMessage(response, url));
     }
     
     const arrayBuffer = await response.arrayBuffer();
