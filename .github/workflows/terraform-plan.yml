@@ -1,4 +1,4 @@
-# Terraform plans for PRs (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
+# Terraform plans for PRs (see docs/github-actions-deploys.md).
 #
 # For every Terraform target a PR affects (a site's stack, or the homepage), run a read-only
 # plan (one job per AWS account; its targets run in parallel) and post a summary comment.

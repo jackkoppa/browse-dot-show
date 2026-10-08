@@ -10,7 +10,7 @@ describe('computeAffected', () => {
   it('deploys nothing for docs, scripts, tests, workflows and scratchpad', () => {
     expect(affected(
       'docs/local-development.md',
-      'scratchpad/scripts-overhaul/08-github-actions-deploys.md',
+      'scratchpad/scripts-overhaul/HANDOFF.md',
       'scripts/ingestion/pipeline.ts',
       'packages/client/src/components/AppHeader.spec.tsx',
       '.github/workflows/deploy.yml',

@@ -42,9 +42,10 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 
 ### Changed (deploys)
 
-- **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`): plans on PRs with an approval gate for creates/replaces/destroys, and deploys of what changed on merge. Off until the `GHA_DEPLOYS_ENABLED` repo variable is `true`; see the Deployment Guide.
+- **GitHub Actions deploys** (`.github/workflows/terraform-plan.yml`, `deploy.yml`; [docs](docs/github-actions-deploys.md)): read-only plans on PRs (one job per AWS account) with a PR comment, an approval for every Terraform plan, and deploys of what changed on merge (Terraform applies, then client uploads). On since 2026-10-08.
 - `terraform/github-actions/` + `bds infra github-actions deploy`: GitHub's OIDC provider and two roles per AWS account (`browse-dot-show-gha-plan`, read-only, for PRs; `browse-dot-show-gha-deploy`, for `main`).
-- `bds ci affected` / `ci terraform` / `ci plan-comment` / `ci upload-homepage`: building blocks for GitHub Actions deploys (what changed, plan summaries, plan/approve/apply).
+- `bds ci affected` / `ci terraform` / `ci terraform-group` / `ci plan-comment` / `ci upload-homepage`: building blocks for GitHub Actions deploys (what changed, plan summaries, plan/approve/apply). CI downloads each site's deployed lambda layer zips, since they aren't in git; change a layer with a local deploy.
+- The 18 leftover cloud RSS schedules (`daily-rss-processing-<site>`, off by default since Sep 2025) were removed; ingestion runs locally.
 - `bds site deploy` passes the OpenAI key to Terraform as `TF_VAR_openai_api_key` instead of a `-var` argument, so it no longer appears in logs or in the saved plan file.
 - `.site-account-mappings.json` is now committed (GitHub Actions deploys read it). `bds site deploy` still updates it after an apply; commit the change.
 

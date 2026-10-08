@@ -83,7 +83,7 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds infra github-actions deploy` | The OIDC roles GitHub Actions deploys with, in all 3 AWS accounts (plan shown, then confirm) |
 | `bds worktree <create\|list\|remove\|prune\|link-config>` | Git worktrees (see below) |
 | `bds doctor` | Check this machine and config |
-| `bds ci <affected\|terraform\|plan-comment\|upload-homepage>` | Used by GitHub Actions. `bds ci affected --base=origin/main` shows what your branch would deploy; `bds ci terraform --target=site:<id> --mode=plan` runs a read-only plan and prints a summary |
+| `bds ci <affected\|terraform\|terraform-group\|plan-comment\|upload-homepage>` | Used by GitHub Actions ([how deploys work](./github-actions-deploys.md)). `bds ci affected --base=origin/main` shows what your branch would deploy; `bds ci terraform --target=site:<id> --mode=plan` runs a read-only plan and prints a summary |
 | `bds schedule`, `bds setup machine` | Coming soon: scheduled unattended runs on a Mac |
 
 Every command runs without prompts when its required flags are given. If something required is missing and there's no terminal (e.g. a scheduled job), it exits with code 2 instead of waiting for input. Exit codes: `0` success, `1` failure, `2` usage error, `130` cancelled.
@@ -138,9 +138,10 @@ scripts/
   ingestion/      the pipeline: phases, steps, parallel transcription, spelling corrections
   lib/            shared modules: sites, env, args, lambda runner, S3 sync, site accounts, paths
   deploy/         Terraform-based deploy/destroy/upload scripts (run by bds commands)
+  ci/             GitHub Actions building blocks: affected targets, plan summaries, Terraform runs
   site-creator/   the `bds site create` wizard
 ```
 
 - Add a command: create `scripts/cli/commands/<name>.ts` exporting a `Command`, and add it to `MENU` in `scripts/cli/registry.ts`.
 - Typecheck: `pnpm --filter @browse-dot-show/scripts typecheck` (also runs on commit). Tests: `pnpm --filter @browse-dot-show/scripts test`.
-- Before changing anything that touches AWS resource names, the S3 key layout, Terraform or lambda packaging, read [the deployed-sites invariants](../scratchpad/scripts-overhaul/05-deployed-sites-invariants.md).
+- Before changing anything that touches AWS resource names, the S3 key layout, Terraform or lambda packaging, read [the deployed-sites invariants](./deployed-sites-invariants.md).

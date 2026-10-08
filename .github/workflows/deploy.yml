@@ -1,4 +1,4 @@
-# Deploys on merge to main (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
+# Deploys on merge to main (see docs/github-actions-deploys.md).
 #
 # Deploys only what the pushed commits affect (`bds ci affected`): each affected site's
 # Terraform stack (infrastructure + lambdas) and client, and the homepage. Terraform applies
