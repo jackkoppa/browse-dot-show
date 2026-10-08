@@ -64,6 +64,21 @@ describe('updateRunnerCheckout', () => {
     expect(await currentCommit(runner)).toBe(before);
   });
 
+  it('finishes an interrupted update on the next run', async () => {
+    const head = commitOnOrigin('b');
+    await expect(updateRunnerCheckout(runner, log, { install: async () => { throw new Error('killed mid-install'); } })).rejects.toThrow();
+    // Simulate a run stopped before the rollback: at the new commit, marker still there
+    git(runner, 'checkout', '-q', '--detach', head);
+    const gitDir = git(runner, 'rev-parse', '--absolute-git-dir');
+    fs.writeFileSync(path.join(gitDir, 'bds-update-in-progress'), '');
+    let installs = 0;
+    const result = await updateRunnerCheckout(runner, log, { install: async () => void installs++ });
+    expect(result).toMatchObject({ from: head, to: head, changed: true });
+    expect(installs).toBe(1);
+    expect(fs.existsSync(path.join(gitDir, 'bds-update-in-progress'))).toBe(false);
+    expect((await updateRunnerCheckout(runner, log, { install: async () => void installs++ })).changed).toBe(false);
+  });
+
   it('refuses when the checkout has uncommitted changes', async () => {
     fs.writeFileSync(path.join(runner, 'a'), 'edited');
     await expect(updateRunnerCheckout(runner, log, { install: async () => {} })).rejects.toThrow('uncommitted changes');
