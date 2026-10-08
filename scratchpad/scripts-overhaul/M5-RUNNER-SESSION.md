@@ -1,5 +1,7 @@
 # M5 on the 16 GB runner Mac: brief for a new session
 
+> **Update (2026-10-08): done.** The stack is merged and the runner follows `main` at 03:00. The results are in [section 8](#8-runner-test-results); what's still being watched is in [M5-mac-automation.md](./M5-mac-automation.md#watching-the-runner-before-calling-m5-done). Sections 3–6 still describe the setup on this Mac, if it's ever redone. On the runner, the repo is at `~/Personal_Development/browse-dot-show` (runner checkout: `~/Personal_Development/browse-dot-show-runner`).
+
 **If you're an agent starting a session on the 16 GB Mac mini, start here.** This brief is self-contained. The session that built M5 ran on the developer's 64 GB Mac and can't be resumed here; its memory files stay on that Mac too. The developer will go back to that session only once everything below is done and merged, so **write down what you find** (see [Wrap-up](#7-wrap-up-leave-a-report-for-the-dev-mac-session)).
 
 Background, read as needed:
@@ -254,7 +256,7 @@ Filled in on the runner, 2026-10-08.
 | 8 real run logged out; Full Disk Access? | ✅ (2nd try) | **1st (11:15): skipped**: EPERM on the SSD (**Full Disk Access is needed**) *and* no network (the only Ethernet is via a hub that was unplugged; Wi-Fi had no network joined), so Slack/healthcheck couldn't send either. Fixes: FDA for `/opt/homebrew/Cellar/node@22/22.23.3_1/bin/node` + `brew pin node@22`; joined Wi-Fi. **2nd (12:35, logged out, hub unplugged): succeeded**, 1 h 3 min: pre-sync 0 downloads, 8 episodes transcribed (2 workers), 59 files uploaded, CloudFront for 23 sites. It finished 2 min after the developer logged in; logs and the power log show steady progress and no sleep throughout, so not waiting on the login. At the next login macOS asked "Allow node to find devices on local networks"; "Don't Allow" is fine (the run went on to upload and notify after it) |
 | 9 indexing peak memory | ✅ | limitedresources (largest: 158 MB transcripts, 535,813 entries): 102 s, **max RSS 9.98 GB**, free memory ≥ 40%, no swap growth. The 9.5 GB heap is fine on 16 GB (indexing runs after transcription), and can't go lower without failing the largest site |
 | 10 SIGTERM while transcribing | ⏳ | Not done: no untranscribed episodes after the real run. Test on a day with new episodes |
-| Merged | | |
+| Merged | ✅ | #195–#200 merged 2026-10-08 (GitHub's stacked PRs). Then `schedule install --at=03:00 --track=main` |
 
 Fixes made here (each a commit on its PR; the stack was restacked):
 

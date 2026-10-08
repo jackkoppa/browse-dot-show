@@ -27,7 +27,7 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run
 
 ## Current work
 
-Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer. **Current: M5 (scheduled ingestion) is built as PR stack #195–#200 and is being tested on the 16 GB runner Mac before merging. On that Mac, start with [M5-RUNNER-SESSION.md](scratchpad/scripts-overhaul/M5-RUNNER-SESSION.md).**
+Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer. **Current: M5 (scheduled ingestion) is merged (#195–#200) and runs nightly on the 16 GB runner Mac mini; it's being watched for a few days before it's called done ([M5-mac-automation.md](scratchpad/scripts-overhaul/M5-mac-automation.md#watching-the-runner-before-calling-m5-done)). The SSD with the local files is on the runner now: don't run a real `bds ingest` on another Mac without asking (see HANDOFF).**
 
 ## Deploys
 
