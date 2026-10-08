@@ -1,6 +1,10 @@
 # Handoff: developer tooling (updated 2026-10-08, M5 built)
 
-**Start here** if you're picking up browse-dot-show developer-tooling work. **In progress: M5, unattended ingestion on a Mac: [M5-mac-automation.md](./M5-mac-automation.md)** (built as a PR stack; next: set up and test on the 16 GB runner before merging).
+**Start here** if you're picking up browse-dot-show developer-tooling work.
+
+> **On the 16 GB runner Mac mini?** Start with **[M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)**: setting up, testing and merging the M5 stack (#195–#200) on that Mac.
+
+**In progress: M5, unattended ingestion on a Mac: [M5-mac-automation.md](./M5-mac-automation.md)** (built as a PR stack; next: set up and test on the 16 GB runner before merging).
 
 ## What's done
 
@@ -20,7 +24,7 @@ How things work now:
 
 ## What's next
 
-1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Decisions made and the code built (PR stack). The developer answered the open questions (in the M5 doc). Next: set up the 16 GB runner from the unmerged stack (`--track`), run the tests there (runbook in the M5 doc), then merge.
+1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Decisions made and the code built (PR stack). The developer answered the open questions (in the M5 doc). Next: set up the 16 GB runner from the unmerged stack (`--track`), run the tests there, then merge, all in a new session on the runner ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)). The dev-Mac session resumes only after that, from the runner session's report (section 8 there).
 2. **Alongside M5: typecheck client and homepage: done in #201 (open)**, independent of the M5 stack. Its lockfile change plans all 23 sites (no changes expected) and re-uploads every client on merge. The notes below are what it addressed. #194 added the required `typecheck` check (`pnpm all:typecheck`, `scripts/ci/typecheck.ts`), covering 16 projects but not these two:
    - Their `tsconfig.json` uses project references (`files: []`), so `tsc -p tsconfig.json` checks nothing; check `tsconfig.app.json` and `tsconfig.node.json` instead.
    - `tsconfig.app.json` fails with ~62 errors (client and homepage alike), all in `packages/ui` components (`TS7016`/`TS7026`: no types for `react`). `packages/ui` is imported from source and doesn't depend on `@types/react`. Fix: add `@types/react` (matching the client's version) to `packages/ui` devDependencies.

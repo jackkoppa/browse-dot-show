@@ -1,6 +1,6 @@
 # M5: Unattended Ingestion on a Mac
 
-> **Status (2026-10-08): built, not yet tested with launchd.** The code and docs are in a stack of PRs (below), tested as far as possible without sudo or AWS. Next (developer's call): skip testing on the dev Mac; set up the **16 GB runner Mac from the unmerged stack** and test there, then merge. Read [HANDOFF.md](./HANDOFF.md) first for how to work with the developer.
+> **Status (2026-10-08): built, not yet tested with launchd.** The code and docs are in a stack of PRs (below), tested as far as possible without sudo or AWS. Next (the developer's call): skip testing on the dev Mac, set up the **16 GB runner Mac from the unmerged stack** and test there, then merge. **A new session on the runner starts with [M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md).**
 
 ## Goal
 
@@ -27,7 +27,7 @@ Design notes worth knowing:
 
 - **Runner checkout:** a worktree of the main checkout, detached at `origin/<branch>` (default `main`), config symlinked from the main checkout. `bds schedule run` only updates the checkout when it *is* the configured runner (`schedule.json` `runnerDir`), so `run-now` in a dev checkout never moves it. The update runs in the old code; the ingest child runs the new code.
 - **Fetching under launchd:** no SSH agent or keychain, so the runner fetches the public repo over HTTPS (`anonymousFetchUrl`), with `GIT_TERMINAL_PROMPT=0`. Found by simulating launchd's environment (below).
-- **`ProcessType: Interactive`** in the plist: unset/Standard means "light resource limits" (CPU/IO throttling) per `launchd.plist(5)`. Worth confirming with a benchmark under launchd (open question).
+- **`ProcessType: Interactive`** in the plist: unset/Standard means "light resource limits" (CPU/IO throttling) per `launchd.plist(5)`. The developer chose to keep it.
 - **Skips vs failures:** guards and "another run in progress" skip (exit 0). Healthcheck: success for a success or "already running", `/fail` otherwise; a missing run is caught by the healthcheck's schedule.
 
 ## Tested so far (without sudo or AWS)
@@ -44,50 +44,24 @@ Design notes worth knowing:
 
 Not tested yet (needs the developer): anything with sudo (the real LaunchDaemon, `pmset`), a real (non-dry) scheduled run, logged out, asleep, SIGTERM via `launchctl` while transcribing (whisper workers and their locks), Full Disk Access for the SSD under launchd, Homebrew `whisper-cli` end to end, the 16 GB Mac.
 
-## Testing on the 16 GB runner, before merging (with the developer)
+## Testing on the 16 GB runner, before merging
 
-The developer chose to skip launchd tests on the dev Mac and test on the runner with the stack unmerged. So the runner's clone checks out the stack's top branch, and the runner worktree follows it (`--track`). Follow [docs/scheduled-ingestion.md](../../docs/scheduled-ingestion.md), with these differences:
-
-1. **macOS settings** (doc step 1): FileVault off, `sudo pmset -c sleep 0`, `sudo pmset autorestart 1`, no automatic macOS installs, and Remote Login on (so the agent can be run over SSH, or a session started there).
-2. **Clone at the stack's top branch:**
-   ```bash
-   git clone https://github.com/jackkoppa/browse-dot-show ~/browse-dot-show && cd ~/browse-dot-show
-   git checkout jackkoppa/m5-setup-machine
-   ./scripts/bootstrap.sh
-   ```
-   (An HTTPS clone needs no keys: the repo is public. Add an SSH remote later if you want to push from this Mac.)
-3. **Plug in the SSD**, copy `.env.automation` over, then run `pnpm bds setup machine --local-files=/Volumes/4TB_SSD_jackkoppa_1/browse-dot-show-local-files --automation-env=<copied file>`. Expect it to create `.env.local` (Homebrew whisper) and download the model (~1.6 GB). This is the first end-to-end test of the Homebrew `whisper-cli` path.
-4. **Notifications** (the developer creates both): the Slack webhook and the healthchecks.io check, put in `.env.automation`, then `pnpm bds schedule test-notifications` and `test-notifications --fail`.
-5. **Benchmark:** `pnpm bds setup benchmark` (about 10–20 min on a base M4; watch memory with 16 GB), and save the recommendation.
-6. **Install, following the branch:** `pnpm bds schedule install --at=<HH:MM, ~15 min from now> --track=jackkoppa/m5-setup-machine`. Expect the runner at `~/browse-dot-show-runner`, then 4 sudo steps. `pnpm bds schedule status` should show it loaded, with the wake listed, and warn only about the `--track` branch.
-7. `pnpm bds schedule run-now --dry-run`: runs in the runner and ends with `✅ … (dry run) succeeded`.
-8. **The real thing, logged out:** log out before the `--at` time and log back in after it. `pnpm bds schedule status` should show a `scheduled` run. This is a **real ingestion run**, the runner's first. Watch:
-   - **The run log's checks.** `Operation not permitted` on the local files means Full Disk Access is needed (the developer decides how after seeing this: `brew pin node@22` or a stable node copy).
-   - **Pre-sync.** The SSD already has the files, so it should download little.
-   - **Peak memory while indexing.** The open question about the 9.5 GB heap on 16 GB. Either keep Activity Monitor open in a session, or measure the biggest site directly: `/usr/bin/time -l pnpm bds lambda run --lambda=srt-indexing --sites=<biggest>`, and read "maximum resident set size".
-9. **SIGTERM while transcribing** (needs untranscribed episodes): `sudo launchctl kill SIGTERM system/com.browse-dot-show.ingest`. Expect:
-   - The record says `interrupted`, and `pgrep -fl whisper-cli` shows nothing.
-   - No locks from that pid are left in `<localFilesPath>/locks/transcription/*/`, and `ingestion-run.lock` is gone.
-10. **Asleep instead of logged out:** only relevant if the runner sleeps. With `sleep 0` it doesn't, so this can be skipped.
-11. **After the stack merges:**
-    - In the clone, run `git checkout main && git pull`.
-    - Run `pnpm bds schedule install --track=main`; the next run moves the runner to `main`.
-    - Tag `v1.0.0`.
+The checklist, the setup for a new session on the runner, fixing and merging the stack, and the results table are in **[M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)**.
 
 ## Open questions: answered 2026-10-08
 
-1. **Testing:** skip the dev Mac and test on the 16 GB runner before merging (runbook above).
-2. **Full Disk Access:** wait for the runner test (step 8) to see whether it's needed at all.
+1. **Testing:** skip the dev Mac and test on the 16 GB runner before merging ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)).
+2. **Full Disk Access:** wait for the runner test (runner checklist step 8) to see whether it's needed at all.
 3. **`ProcessType: Interactive`:** keep it.
-4. **Indexing memory on 16 GB:** measure on the runner first (step 8).
+4. **Indexing memory on 16 GB:** measure on the runner first (runner checklist step 8).
 5. **Success notifications:** `always` (a daily heartbeat). This is now the default.
-6. **Slack + healthchecks.io:** the developer creates both during runner setup (step 4).
-7. **Homebrew whisper.cpp:** test it on the runner only (step 3).
+6. **Slack + healthchecks.io:** the developer creates both during runner setup (runner checklist step 4).
+7. **Homebrew whisper.cpp:** test it on the runner only (runner checklist step 3).
 8. **Runner checkout on the 16 GB Mac:** a separate runner worktree, as designed.
 
 ## Remaining work
 
-- The runner setup and tests above, merging the stack, then tag `v1.0.0` (move the changelog's "Unreleased" section under it).
+- The runner setup and tests ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)), merging the stack, then tag `v1.0.0` (move the changelog's "Unreleased" section under it).
 - Full Disk Access handling and the indexing heap size depend on the runner test.
 - Client/homepage typecheck: #201 (independent of this stack).
 
@@ -96,7 +70,7 @@ The developer chose to skip launchd tests on the dev Mac and test on the runner 
 Machines found: the dev machine is a **Mac mini M4 Pro, 64 GB** (`Mac16,11`, macOS 26.6.2, `sleep 0`, FileVault on, nvm Node). The local files are on a 4 TB Thunderbolt APFS SSD (`/Volumes/4TB_SSD_jackkoppa_1`, fixed, not encrypted).
 
 1. **Machine:** the runner will be a **second Mac mini M4, 16 GB**, dedicated, with the same SSD moved over and left attached. It may later host other services (e.g. an LLM request server). Other developers matter only as far as good docs (assume ≤16 GB Macs). Development keeps happening on the 64 GB Mac.
-2. **Rollout:** build and run the launchd acceptance tests **on the 64 GB dev Mac** with the SSD attached (scheduled minutes out, logged out, `bootout`/SIGTERM), **uninstall there**, then move the SSD and do the real install + benchmark on the 16 GB Mac. *Changed on 2026-10-08: skip the dev Mac; test on the 16 GB runner before merging (runbook above).*
+2. **Rollout:** build and run the launchd acceptance tests **on the 64 GB dev Mac** with the SSD attached (scheduled minutes out, logged out, `bootout`/SIGTERM), **uninstall there**, then move the SSD and do the real install + benchmark on the 16 GB Mac. *Changed on 2026-10-08: skip the dev Mac; test on the 16 GB runner before merging ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)).*
 3. **Code source:** a **dedicated runner checkout** (separate clone/worktree) that fast-forwards to `origin/main` before each run and rebuilds when it changed. Branch work in the main checkout never affects scheduled runs. It shares `.local-files-config.json`, `.env.local` and `.env.automation` (e.g. via `bds worktree link-config` or copies).
 4. **FileVault:** **off on the 16 GB runner** (boots unattended after outages); `pmset autorestart 1`; macOS updates manual/deferred. Dev Mac unchanged. `schedule status` still reports the FileVault state.
 5. **Notifications:** **Slack incoming webhook** (failures, skips, optional short success summary; URL in `.env.automation`) **plus a dead-man's switch** (healthchecks.io ping per run, alerting via Slack if no run by the expected time). No AWS/Terraform changes.
