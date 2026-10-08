@@ -109,7 +109,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: terraform-approval
     steps:
-      - run: echo "Terraform plan approved for PR #${{ github.event.pull_request.number }} at ${{ github.event.pull_request.head.sha }}"
+      # A block scalar: in a plain `run: echo "... #..."`, YAML treats ` #` as a comment
+      - env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "Terraform plan approved for PR #$PR_NUMBER at $HEAD_SHA"
 
   # The one required check: fails if any plan failed or the approval was rejected
   terraform-plan-result:
