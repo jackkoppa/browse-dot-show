@@ -68,6 +68,18 @@ variable "enable_custom_domain_on_cloudfront" {
   default     = false
 }
 
+variable "additional_domain_names" {
+  description = "Extra domains that also serve the site (e.g. search.example.com), alongside custom_domain_name. Adding them creates a certificate pending DNS validation; see terraform/sites/CUSTOM_DOMAIN.md"
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_additional_domains_on_cloudfront" {
+  description = "Whether CloudFront serves additional_domain_names (set to true only after their certificate is validated)"
+  type        = bool
+  default     = false
+}
+
 variable "enable_search_lambda_warming" {
   description = "Whether to enable scheduled warming of the search lambda to reduce cold starts"
   type        = bool

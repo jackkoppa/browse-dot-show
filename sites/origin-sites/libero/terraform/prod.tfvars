@@ -11,6 +11,11 @@ custom_domain_name = "libero.browse.show"
 root_domain_name = "libero.browse.show"
 enable_custom_domain_on_cloudfront = true
 
+# Additional domains (see terraform/sites/CUSTOM_DOMAIN.md): set the flag to true once the
+# certificate is validated (the podcast's DNS has its validation record)
+additional_domain_names = ["search.liberopodcast.com"]
+enable_additional_domains_on_cloudfront = false
+
 # Lambda warming
 enable_search_lambda_warming = true
 search_lambda_warming_schedule = "rate(5 minutes)"

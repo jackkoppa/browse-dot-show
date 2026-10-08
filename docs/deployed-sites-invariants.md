@@ -4,7 +4,7 @@ Developer tooling (scripts, commands, docs, local config formats) can change fre
 
 ## Live sites
 
-23 sites (`sites/origin-sites/*/site.config.json`, deployable ones in `.site-account-mappings.json`): celebritymemoirbookclub, claretandblue, doublepivot, drivetowork, eggplant, fromtherookeryend, hardfork, haveaword, hiddenbrain, iwltrubbish (`iwantlistenthisrubbish.com`), libero, limitedresources, listenfairplay (`listenfairplay.com`), lordsoflimited, luckypaper, myfavoritemurder, naddpod, officeladies, pickleballstudio, screenrot, searchengine, spoutlore, wattsoccurring. The others are served at `<id>.browse.show`. Plus the homepage at `browse.show`.
+23 sites (`sites/origin-sites/*/site.config.json`, deployable ones in `.site-account-mappings.json`): celebritymemoirbookclub, claretandblue, doublepivot, drivetowork, eggplant, fromtherookeryend, hardfork, haveaword, hiddenbrain, iwltrubbish (`iwantlistenthisrubbish.com`), libero, limitedresources, listenfairplay (`listenfairplay.com`), lordsoflimited, luckypaper, myfavoritemurder, naddpod, officeladies, pickleballstudio, screenrot, searchengine, spoutlore, wattsoccurring. The others are served at `<id>.browse.show`; a site can also serve extra domains (`additional_domain_names`, see [Custom domains](../terraform/sites/CUSTOM_DOMAIN.md#additional-domains)). Plus the homepage at `browse.show`.
 
 3 AWS accounts: `297202224084` (homepage, automation IAM user, Terraform state for shared stacks), `152849157974` (11 sites), `927984855345` (12 sites).
 
