@@ -141,7 +141,7 @@ export async function prepareInstall(plan: InstallPlan, log: (line: string) => v
   } else if (!(await isWorktreeOf(REPO_ROOT, config.runnerDir))) {
     throw new Error(`${config.runnerDir} exists but isn't a worktree of this repo; pass --runner-dir=<new path>, or remove it`);
   } else {
-    log(`\n📁 Using the existing runner checkout at ${config.runnerDir} (scheduled runs keep it at origin/main)`);
+    log(`\n📁 Using the existing runner checkout at ${config.runnerDir} (scheduled runs keep it at origin/${config.branch})`);
   }
 
   // launchd opens the log as root before switching users; create it first so it stays ours
