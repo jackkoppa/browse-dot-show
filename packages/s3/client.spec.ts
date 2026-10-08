@@ -210,7 +210,11 @@ describe('S3 Client', () => {
         const listedFiles = await listFiles('');
         expect(listedFiles).toContain(nfc);
         expect(listedFiles).not.toContain(nfd);
-        expect((await getFile(nfc)).toString()).toBe('content');
+        // Opening the NFC name relies on APFS/HFS+ ignoring normalization (ingestion runs on
+        // Macs); Linux file systems (CI) compare names byte for byte
+        if (process.platform === 'darwin') {
+          expect((await getFile(nfc)).toString()).toBe('content');
+        }
       } finally {
         await fs.remove(getLocalFilePath(nfd));
       }
