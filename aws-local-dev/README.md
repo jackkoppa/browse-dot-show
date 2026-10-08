@@ -8,7 +8,7 @@ The location of local files is configurable via `.local-files-config.json` in th
 
 **Default**: Files are stored in `aws-local-dev/` relative to the project root.
 
-**Custom**: Create `.local-files-config.json` to use a different location:
+**Custom**: Run `pnpm bds setup machine --local-files=<path>`, or create `.local-files-config.json` yourself:
 ```json
 {
   "localFilesPath": "/Volumes/ExternalSSD/browse-dot-show-local-files"

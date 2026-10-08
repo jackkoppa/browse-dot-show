@@ -45,7 +45,8 @@ USAGE
 Run after ./scripts/bootstrap.sh (Homebrew packages, pnpm, build). Safe to re-run; each
 step only changes what's missing:
 
-  1. .local-files-config.json: where local files live (--local-files)
+  1. .local-files-config.json: where local files live (--local-files). Without one, they
+     go in the repo's aws-local-dev/ (gitignored)
   2. .env.local: from the .env template; local whisper.cpp settings. With Homebrew's
      whisper-cli, WHISPER_CPP_PATH points to a checkout-like folder in
      ~/Library/Application Support/browse-dot-show/whisper.cpp
@@ -57,7 +58,8 @@ step only changes what's missing:
   6. bds doctor (--aws also checks role assumption in every site account)
 
 OPTIONS
-  --local-files=<path>      Local files folder (e.g. /Volumes/<SSD>/browse-dot-show-local-files)
+  --local-files=<path>      Local files folder (e.g. /Volumes/<SSD>/browse-dot-show-local-files;
+                            default: aws-local-dev/ in the repo)
   --whisper-model=<name>    whisper model (default: ${DEFAULT_WHISPER_MODEL})
   --skip-model-download     Don't download the model; print the command instead
   --automation-env=<path>   Copy this file to .env.automation (chmod 600)
@@ -120,19 +122,23 @@ async function setupLocalFiles(
     // no config yet
   }
 
+  const inRepoDefault = repoPath('aws-local-dev');
   let target = flag ?? current;
   if (!target && interactive) {
     ({ target } = await prompts({
       type: 'text',
       name: 'target',
-      message: 'Where should local files live? (an external SSD is fine, e.g. /Volumes/<SSD>/browse-dot-show-local-files)',
+      message: 'Where should local files live? (potentially hundreds of GB; an external SSD is fine, e.g. /Volumes/<SSD>/browse-dot-show-local-files)',
+      initial: inRepoDefault,
     }));
+    if (target === undefined) return false;
   }
-  if (!target) {
-    log('❌ No local files folder: pass --local-files=<path>');
-    return false;
+  target = path.resolve(expandHome(target || inRepoDefault));
+  if (!current && target === inRepoDefault) {
+    // The default needs no config: packages/config uses aws-local-dev/ when none is set
+    log(`✅ ${target} (the default, gitignored; pass --local-files=<path> to use another folder)`);
+    return true;
   }
-  target = path.resolve(expandHome(target));
 
   if (target.startsWith('/Volumes/')) {
     const volume = target.split('/').slice(0, 3).join('/');

@@ -1,6 +1,5 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
-import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { parseFlags } from '../../lib/args.js';
 import { getSiteAwsEnvPath, loadAutomationCredentials, loadEnvFile } from '../../lib/env.js';
 import { repoPath } from '../../lib/paths.js';
@@ -8,6 +7,7 @@ import { assumeSiteRole, loadSiteAccountMappings } from '../../lib/site-accounts
 import { discoverSites } from '../../lib/sites.js';
 import { findHomebrewWhisperCli, whisperPaths } from '../../lib/whisper.js';
 import type { Command } from '../command.js';
+import { localFilesBase } from '../../lib/machine-config.js';
 
 type Status = 'ok' | 'warn' | 'fail';
 interface Check {
@@ -85,7 +85,7 @@ function checkWhisper(): Check[] {
 function checkLocalFiles(): Check[] {
   let base: string;
   try {
-    base = getLocalFilesBasePath();
+    base = localFilesBase();
   } catch (error) {
     return [{ status: 'fail', label: 'local files', detail: error instanceof Error ? error.message : String(error) }];
   }

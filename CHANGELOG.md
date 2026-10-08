@@ -39,6 +39,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - **Pipeline flags:** `--skip=<phase,...>` replaces the `--skip-*` flags. Phases: `pre-sync`, `rss`, `transcribe`, `index`, `s3-sync`, `cloudfront`.
 - **Tools:** Hermit is gone. Use Node.js 22 (`.nvmrc`) and pnpm via Corepack (`corepack enable`).
 - **Scripts layout:** `scripts/cli/` (commands), `scripts/ingestion/` (pipeline), `scripts/lib/` (shared modules). `scripts/utils/` is gone.
+- **Local files default:** `bds setup machine` offers the repo's `aws-local-dev/` (gitignored) as the default local files folder (and uses it when run without a terminal, instead of failing); `bds site create` prints where a site's files go.
 
 ### Added (scheduled ingestion)
 
@@ -50,6 +51,8 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 ### Changed (scheduled ingestion)
 
 - Run history and transcription worker logs moved from `scripts/automation-logs/` to `~/Library/Logs/browse-dot-show/` (the old run history is copied over on the first run).
+
+- **A missing local files folder stops the run.** When the configured `localFilesPath` doesn't exist (e.g. the SSD isn't mounted), `bds ingest` (not `--dry-run`) exits, a scheduled run is skipped, and `bds doctor` / `schedule status` say so, instead of falling back to the repo's `aws-local-dev` (where a run would download every site from S3).
 
 ### Changed (deploys)
 

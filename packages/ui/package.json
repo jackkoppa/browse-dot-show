@@ -28,5 +28,8 @@
     "exports": {
         ".": "./index.ts"
     },
-    "types": "./index.ts"
+    "types": "./index.ts",
+    "devDependencies": {
+        "@types/react": "^19.1.6"
+    }
 }
