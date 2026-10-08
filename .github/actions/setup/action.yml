@@ -1,5 +1,5 @@
 name: Setup
-description: Node (from .nvmrc), pnpm (from packageManager) and dependencies; optionally Terraform
+description: Node (from .nvmrc), pnpm (from packageManager), dependencies and the packages `pnpm bds` needs; optionally Terraform
 inputs:
   terraform:
     description: Also install Terraform
@@ -13,6 +13,10 @@ runs:
         node-version-file: .nvmrc
         cache: pnpm
     - run: pnpm install --frozen-lockfile
+      shell: bash
+    # `pnpm bds` imports workspace packages from their dist/ folders
+    - name: Build the CLI's workspace packages
+      run: pnpm --filter "@browse-dot-show/scripts^..." build
       shell: bash
     - if: inputs.terraform == 'true'
       uses: hashicorp/setup-terraform@v3
