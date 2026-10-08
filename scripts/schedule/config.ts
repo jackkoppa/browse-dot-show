@@ -34,7 +34,7 @@ export interface ScheduleConfig {
   wakeMinutesBefore: number;
 }
 
-export const DEFAULT_NOTIFY_ON_SUCCESS: NotifyOnSuccess = 'new-episodes';
+export const DEFAULT_NOTIFY_ON_SUCCESS: NotifyOnSuccess = 'always';
 
 export function scheduleConfigPath(): string {
   return path.join(appSupportDir(), 'schedule.json');

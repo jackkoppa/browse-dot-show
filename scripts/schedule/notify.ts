@@ -7,7 +7,7 @@ import type { ScheduledRunRecord } from './records.js';
  * Notifications for scheduled runs. Both are optional, configured in `.env.automation`:
  *
  * - `SLACK_WEBHOOK_URL`: a Slack incoming webhook. Failures and skips always post; successes
- *   per `notifyOnSuccess` in schedule.json.
+ *   per `notifyOnSuccess` in schedule.json (default `always`: a daily heartbeat).
  * - `HEALTHCHECK_PING_URL`: a healthchecks.io check (or anything compatible). Pinged at the
  *   start (`/start`), on success, and on failure or skip (`/fail`), so the check alerts when
  *   a run fails, and when no run happens at all (the Mac is off, asleep, or stuck at boot).
