@@ -1,6 +1,5 @@
 import { execFileSync } from 'child_process';
 import * as fs from 'fs';
-import * as path from 'path';
 import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { parseFlags } from '../../lib/args.js';
 import { getSiteAwsEnvPath, loadAutomationCredentials, loadEnvFile } from '../../lib/env.js';
