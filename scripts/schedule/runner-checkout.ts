@@ -11,8 +11,26 @@ const execFileAsync = promisify(execFile);
  */
 
 export async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync('git', args, { cwd, maxBuffer: 10 * 1024 * 1024 });
+  // Never prompt for credentials (there's no one to answer under launchd)
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+  const { stdout } = await execFileAsync('git', args, { cwd, env, maxBuffer: 10 * 1024 * 1024 });
   return stdout.trim();
+}
+
+/**
+ * The URL to fetch from without credentials. The repo is public, and under launchd there's
+ * no SSH agent or keychain, so an SSH `origin` (git@github.com:owner/repo.git) is fetched
+ * over HTTPS instead.
+ */
+export function anonymousFetchUrl(originUrl: string): string {
+  const ssh = originUrl.match(/^(?:ssh:\/\/)?git@([^:/]+)[:/](.+?)(?:\.git)?$/);
+  return ssh ? `https://${ssh[1]}/${ssh[2]}.git` : originUrl;
+}
+
+/** Fetch `branch` from origin (anonymously) into `refs/remotes/origin/<branch>`. */
+export async function fetchBranch(cwd: string, branch: string): Promise<void> {
+  const url = anonymousFetchUrl(await git(cwd, ['remote', 'get-url', 'origin']));
+  await git(cwd, ['fetch', '--quiet', url, `+refs/heads/${branch}:refs/remotes/origin/${branch}`]);
 }
 
 export async function currentCommit(cwd: string): Promise<string> {
@@ -61,7 +79,7 @@ export async function updateRunnerCheckout(
   }
 
   const from = await currentCommit(runnerDir);
-  await git(runnerDir, ['fetch', '--quiet', 'origin', branch]);
+  await fetchBranch(runnerDir, branch);
   const to = await git(runnerDir, ['rev-parse', `origin/${branch}`]);
   if (from === to) {
     log(`✅ Runner checkout is up to date (${to.slice(0, 7)})`);
