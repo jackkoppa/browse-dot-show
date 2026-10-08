@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderPlanComment, riskyChanges, summarizePlan, unapprovedChanges } from './plan-summary.js';
+import { planNeedsApproval, renderPlanComment, riskyChanges, summarizePlan, unapprovedChanges } from './plan-summary.js';
 
 const plan = {
   resource_changes: [
@@ -69,5 +69,18 @@ describe('renderPlanComment', () => {
     expect(comment).toContain('**Needs approval:**');
     expect(comment).toContain('Only in-place updates');
     expect(comment).not.toContain('⚠️');
+  });
+
+  it('needs no approval when no target changes', () => {
+    const noChanges = [summarizePlan('site:alpha', { resource_changes: [] }), summarizePlan('site:beta', { resource_changes: [] })];
+    expect(planNeedsApproval(noChanges)).toBe(false);
+    const comment = renderPlanComment(noChanges, { marker: '<!-- m -->' });
+    expect(comment).toContain('**No changes** in any of the 2 planned target(s), so no approval is needed.');
+    expect(comment).not.toContain('Needs approval');
+    expect(comment).not.toContain('| Target |');
+  });
+
+  it('needs approval when any target changes', () => {
+    expect(planNeedsApproval([summarizePlan('site:alpha', { resource_changes: [] }), summarizePlan('site:beta', { resource_changes: [plan.resource_changes[0]] })])).toBe(true);
   });
 });
