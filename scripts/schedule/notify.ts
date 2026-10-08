@@ -93,9 +93,19 @@ export function formatDuration(ms: number | undefined): string {
   return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
 
-/** A short message for Slack and the healthcheck body. */
-export function formatRunMessage(record: ScheduledRunRecord, { maxErrors = 5 } = {}): string {
+/**
+ * A short message for Slack and the healthcheck body: a bold headline, then bullets.
+ * Slack renders `*bold*` and `` `code` ``; elsewhere they read fine as plain text.
+ * With `siteDomains` (Slack only), sites with new episodes link to their deployed site.
+ */
+export function formatRunMessage(
+  record: ScheduledRunRecord,
+  { maxErrors = 5, siteDomains = {} }: { maxErrors?: number; siteDomains?: Record<string, string> } = {},
+): string {
   const lines: string[] = [];
+  const bullet = (text: string) => lines.push(`• ${text}`);
+  const subBullet = (text: string) => lines.push(`      ◦ ${text}`);
+
   const what = record.dryRun ? 'browse.show ingestion (dry run)' : 'browse.show ingestion';
   const headline = {
     running: 'is running',
@@ -104,25 +114,42 @@ export function formatRunMessage(record: ScheduledRunRecord, { maxErrors = 5 } =
     skipped: 'was skipped',
     interrupted: 'was interrupted',
   }[record.outcome];
-  lines.push(`${OUTCOME_ICONS[record.outcome]} ${what} ${headline} on ${record.host} (${formatDuration(record.durationMs)}, ${record.trigger})`);
-  if (record.reason) lines.push(record.reason);
+  lines.push(`${OUTCOME_ICONS[record.outcome]} *${what} ${headline}* on ${record.host}`);
+  bullet(`${formatDuration(record.durationMs)}, ${record.trigger === 'scheduled' ? 'scheduled run' : record.trigger}`);
+
+  if (record.failedChecks?.length) {
+    bullet('Checks that failed:');
+    record.failedChecks.forEach(subBullet);
+  } else if (record.reason) {
+    // The headline already says it was skipped
+    bullet(record.reason.replace(/^Skipped: /, ''));
+  }
 
   const totals = record.pipeline?.totals;
   if (totals) {
-    const updated = record.pipeline!.sites.filter(site => site.transcribed > 0).map(site => `${site.siteId} ${site.transcribed}`);
-    lines.push(
-      `${totals.transcribed} episode(s) transcribed${updated.length ? ` (${updated.join(', ')})` : ''}, ` +
-      `${totals.newAudioFiles} downloaded, ${totals.filesUploaded} file(s) uploaded across ${totals.sites} site(s)`,
-    );
+    if (totals.transcribed === 0) {
+      bullet(`No new episodes (${plural(totals.sites, 'site')} checked)`);
+    } else {
+      bullet(`*${plural(totals.transcribed, 'episode')} transcribed*:`);
+      for (const site of record.pipeline!.sites.filter(site => site.transcribed > 0)) {
+        const domain = siteDomains[site.siteId];
+        subBullet(`${domain ? `<https://${domain}|${site.siteId}>` : site.siteId}: ${site.transcribed}`);
+      }
+    }
+    bullet(`${plural(totals.newAudioFiles, 'audio file')} downloaded, ${plural(totals.filesUploaded, 'file')} uploaded`);
     const errors = record.pipeline!.sites.flatMap(site => site.errors.map(error => `${site.siteId}: ${truncate(error, 200)}`));
     if (errors.length > 0) {
-      lines.push(`${errors.length} error(s):`);
-      lines.push(...errors.slice(0, maxErrors).map(error => `• ${error}`));
-      if (errors.length > maxErrors) lines.push(`• …and ${errors.length - maxErrors} more`);
+      bullet(`*${plural(errors.length, 'error')}*:`);
+      errors.slice(0, maxErrors).forEach(subBullet);
+      if (errors.length > maxErrors) subBullet(`…and ${errors.length - maxErrors} more`);
     }
   }
-  if (record.outcome !== 'success') lines.push(`Log: ${record.logPath}`);
+  if (record.outcome !== 'success') bullet(`Log: \`${record.logPath}\``);
   return lines.join('\n');
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
 
 function truncate(text: string, max: number): string {

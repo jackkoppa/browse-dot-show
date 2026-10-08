@@ -89,9 +89,39 @@ describe('notifications', () => {
 
   it('formats a success', () => {
     expect(formatRunMessage(record({ pipeline: twoNew }))).toBe(
-      '✅ browse.show ingestion succeeded on runner (34 min, scheduled)\n' +
-      '2 episode(s) transcribed (a 2), 2 downloaded, 11 file(s) uploaded across 2 site(s)',
+      '✅ *browse.show ingestion succeeded* on runner\n' +
+      '• 34 min, scheduled run\n' +
+      '• *2 episodes transcribed*:\n' +
+      '      ◦ a: 2\n' +
+      '• 2 audio files downloaded, 11 files uploaded',
     );
+  });
+
+  it('links sites with new episodes to their deployed site, when given domains', () => {
+    expect(formatRunMessage(record({ pipeline: twoNew }), { siteDomains: { a: 'a.browse.show', b: 'b.browse.show' } }))
+      .toContain('      ◦ <https://a.browse.show|a>: 2');
+  });
+
+  it('formats a success with no new episodes', () => {
+    const none = pipeline([{ siteId: 'a', newAudioFiles: 0, transcribed: 0, filesUploaded: 1, errors: [] }]);
+    expect(formatRunMessage(record({ pipeline: none }))).toBe(
+      '✅ *browse.show ingestion succeeded* on runner\n' +
+      '• 34 min, scheduled run\n' +
+      '• No new episodes (1 site checked)\n' +
+      '• 0 audio files downloaded, 1 file uploaded',
+    );
+  });
+
+  it('lists each failed check of a skipped run', () => {
+    const message = formatRunMessage(record({
+      outcome: 'skipped',
+      reason: 'Skipped: local files: EPERM; network: unreachable',
+      failedChecks: ['local files: EPERM', 'network: unreachable'],
+    }));
+    expect(message).toContain('⏭️ *browse.show ingestion was skipped* on runner');
+    expect(message).toContain('• Checks that failed:\n      ◦ local files: EPERM\n      ◦ network: unreachable');
+    expect(message).not.toContain('Skipped:');
+    expect(message.endsWith('• Log: `/logs/run.log`')).toBe(true);
   });
 
   it('formats a failure with a capped error list and the log path', () => {
@@ -100,12 +130,12 @@ describe('notifications', () => {
       record({ outcome: 'failed', reason: 'bds ingest exited with code 1', pipeline: pipeline([{ siteId: 'a', newAudioFiles: 0, transcribed: 0, filesUploaded: 0, errors }]) }),
       { maxErrors: 2 },
     );
-    expect(message).toContain('❌ browse.show ingestion failed on runner');
-    expect(message).toContain('bds ingest exited with code 1');
-    expect(message).toContain('• a: error 0 with detail');
-    expect(message).toContain('• …and 5 more');
+    expect(message).toContain('❌ *browse.show ingestion failed* on runner');
+    expect(message).toContain('• bds ingest exited with code 1');
+    expect(message).toContain('• *7 errors*:\n      ◦ a: error 0 with detail');
+    expect(message).toContain('      ◦ …and 5 more');
     expect(message).not.toContain('error 2');
-    expect(message.endsWith('Log: /logs/run.log')).toBe(true);
+    expect(message.endsWith('• Log: `/logs/run.log`')).toBe(true);
   });
 
   it('formats durations', () => {

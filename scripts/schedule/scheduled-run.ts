@@ -6,6 +6,7 @@ import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { readRunSummary } from '../ingestion/run-summary.js';
 import { tsxCommand, LAMBDA_NODE_OPTIONS } from '../lib/lambda.js';
 import { REPO_ROOT, repoPath } from '../lib/paths.js';
+import { discoverSites } from '../lib/sites.js';
 import { currentRunLockHolder, describeRunLockHolder, EXIT_RUN_LOCKED, runLockPath } from '../lib/run-lock.js';
 import { onShutdown } from '../lib/shutdown.js';
 import { logsDir } from '../lib/user-dirs.js';
@@ -121,7 +122,7 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
     const message = formatRunMessage(record);
     log(`\n${message}`);
     const notifyOnSuccess = options.notifyOnSuccess ?? config?.notifyOnSuccess ?? DEFAULT_NOTIFY_ON_SUCCESS;
-    if (shouldPostToSlack(record, notifyOnSuccess)) await postToSlack(targets, message, log);
+    if (shouldPostToSlack(record, notifyOnSuccess)) await postToSlack(targets, formatRunMessage(record, { siteDomains: siteDomains() }), log);
     await pingHealthcheck(targets, healthcheckKind(record), message, log);
 
     rotateRunFiles(dir, RUNS_TO_KEEP);
@@ -141,7 +142,8 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
     for (const guard of guards) log(`   ${guard.ok ? '✅' : '❌'} ${guard.label}: ${guard.detail}`);
     const failed = guards.filter(guard => !guard.ok);
     if (failed.length > 0) {
-      await finish({ outcome: 'skipped', reason: `Skipped: ${failed.map(guard => `${guard.label}: ${guard.detail}`).join('; ')}` });
+      const failedChecks = failed.map(guard => `${guard.label}: ${guard.detail}`);
+      await finish({ outcome: 'skipped', reason: `Skipped: ${failedChecks.join('; ')}`, failedChecks });
       return 0;
     }
 
@@ -222,4 +224,13 @@ function keepAwake(log: (message: string) => void): ChildProcess | null {
   const caffeinate = spawn('/usr/bin/caffeinate', ['-i', '-s', '-m', '-w', String(process.pid)], { stdio: 'ignore' });
   caffeinate.on('error', error => log(`⚠️  caffeinate failed: ${error.message}`));
   return caffeinate;
+}
+
+/** Each site's deployed domain, for links in Slack. Never throws: links are optional. */
+function siteDomains(): Record<string, string> {
+  try {
+    return Object.fromEntries(discoverSites().map(site => [site.id, site.domain]));
+  } catch {
+    return {};
+  }
 }
