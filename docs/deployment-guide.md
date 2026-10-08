@@ -222,7 +222,7 @@ pnpm bds site upload-client --all-sites          # every site's client (automati
 
 When a PR merges to `main`, the repo's workflows deploy only what changed: each affected site's Terraform stack (infrastructure + lambdas) and client, and the homepage. Transcription and ingestion never run in Actions.
 
-- **PRs:** every Terraform stack the PR affects gets a read-only plan (one job per AWS account), summarized in a PR comment that flags anything created, replaced or destroyed. Every plan needs your approval ("Review deployments" in the PR's checks) before the PR can merge.
+- **PRs:** every Terraform stack the PR affects gets a read-only plan (one job per AWS account), summarized in a PR comment that flags anything created, replaced or destroyed. If anything would change, the plan needs your approval ("Review deployments" in the PR's checks) before the PR can merge; plans with no changes don't.
 - **Merges:** a fresh plan is applied for each stack whose plan was approved (refusing creates/replaces/destroys that weren't in it), then the affected clients are uploaded. A manual run of the `deploy` workflow applies in-place updates only.
 - **Locally:** `pnpm bds ci affected --base=origin/main` shows what your branch would deploy; `pnpm bds ci terraform --target=site:<id> --mode=plan` runs the same read-only plan.
 
