@@ -6,6 +6,9 @@
 
 # [browse.show](https://browse.show) - transcribe & search any podcast
 
+<!-- Project for jackkoppa-hosted sites: https://healthchecks.io/projects/c3f69f6f-4d67-4975-b1c8-e12f0412f302 -->
+![Automation health checks](https://healthchecks.io/b/2/70612846-a500-4f76-a21e-75127da316b9.svg)
+
 Search already-processed podcasts at [browse.show](https://browse.show)
 
 Use this repo to deploy & host your own podcast search engine, for any number of shows 🚀
