@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { currentCommit, updateRunnerCheckout } from './runner-checkout.js';
+import { anonymousFetchUrl, currentCommit, updateRunnerCheckout } from './runner-checkout.js';
 
 const git = (cwd: string, ...args: string[]) =>
   execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
@@ -67,5 +67,14 @@ describe('updateRunnerCheckout', () => {
   it('refuses when the checkout has uncommitted changes', async () => {
     fs.writeFileSync(path.join(runner, 'a'), 'edited');
     await expect(updateRunnerCheckout(runner, log, { install: async () => {} })).rejects.toThrow('uncommitted changes');
+  });
+});
+
+describe('anonymousFetchUrl', () => {
+  it('fetches SSH remotes over HTTPS, and leaves others alone', () => {
+    expect(anonymousFetchUrl('git@github.com:jackkoppa/browse-dot-show.git')).toBe('https://github.com/jackkoppa/browse-dot-show.git');
+    expect(anonymousFetchUrl('ssh://git@github.com/jackkoppa/browse-dot-show')).toBe('https://github.com/jackkoppa/browse-dot-show.git');
+    expect(anonymousFetchUrl('https://github.com/jackkoppa/browse-dot-show.git')).toBe('https://github.com/jackkoppa/browse-dot-show.git');
+    expect(anonymousFetchUrl('/tmp/origin.git')).toBe('/tmp/origin.git');
   });
 });
