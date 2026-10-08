@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { csv, oneOf, parseFlags, positiveInt, UsageError } from './args.js';
 import { parseEnv } from './env.js';
+import { localFilesBase } from './machine-config.js';
+import { repoPath } from './paths.js';
 import { resolveSites, type Site } from './sites.js';
 
 describe('parseEnv', () => {
@@ -90,5 +92,15 @@ describe('resolveSites', () => {
   it('enforces a single site when multiple is false', async () => {
     await expect(resolveSites({ sites: ['alpha', 'beta'], multiple: false, available, interactive: false })).rejects.toThrow(UsageError);
     await expect(resolveSites({ allSites: true, multiple: false, available, interactive: false })).rejects.toThrow(UsageError);
+  });
+});
+
+describe('localFilesBase', () => {
+  it('returns the configured folder even when it does not exist (no fallback to aws-local-dev)', () => {
+    expect(localFilesBase({ localFilesPath: '/Volumes/not-mounted/local-files' })).toBe('/Volumes/not-mounted/local-files');
+  });
+
+  it('resolves a relative folder against the repo root', () => {
+    expect(localFilesBase({ localFilesPath: 'some-folder' })).toBe(repoPath('some-folder'));
   });
 });

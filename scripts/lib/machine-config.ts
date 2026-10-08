@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import * as path from 'path';
+import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { repoPath } from './paths.js';
 
 /**
@@ -12,6 +14,7 @@ import { repoPath } from './paths.js';
 export const DEFAULT_TRANSCRIPTION_WORKERS = 3;
 
 interface MachineConfig {
+  localFilesPath?: string;
   transcriptionWorkers?: number;
 }
 
@@ -21,6 +24,16 @@ function readMachineConfig(): MachineConfig {
   } catch {
     return {};
   }
+}
+
+/**
+ * The local files folder for scripts: `localFilesPath` as configured, even when it doesn't
+ * exist. packages/config falls back to the repo's `aws-local-dev` when the configured
+ * folder is missing (e.g. the SSD isn't mounted); a run there would download every site
+ * from S3 into the repo, so scripts check this path instead and stop.
+ */
+export function localFilesBase(config: MachineConfig = readMachineConfig()): string {
+  return config.localFilesPath ? path.resolve(repoPath(), config.localFilesPath) : getLocalFilesBasePath();
 }
 
 /** Default number of parallel transcription workers on this machine. */

@@ -2,7 +2,6 @@ import { spawn, type ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { readRunSummary } from '../ingestion/run-summary.js';
 import { tsxCommand, LAMBDA_NODE_OPTIONS } from '../lib/lambda.js';
 import { REPO_ROOT, repoPath } from '../lib/paths.js';
@@ -23,6 +22,7 @@ import {
   type ScheduledRunRecord,
 } from './records.js';
 import { currentCommit, updateRunnerCheckout } from './runner-checkout.js';
+import { localFilesBase } from '../lib/machine-config.js';
 
 /**
  * One scheduled run (`bds schedule run`, what launchd starts):
@@ -134,7 +134,7 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
   try {
     // Guard rails
     log('\n🔎 Checks');
-    const base = getLocalFilesBasePath();
+    const base = localFilesBase();
     const guards: GuardResult[] = [checkLocalFiles(base)];
     if (guards[0].ok) guards.push(checkFreeDisk(base));
     guards.push(await checkPower());
