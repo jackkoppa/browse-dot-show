@@ -194,7 +194,8 @@ module "whisper_lambda" {
   layers               = [aws_lambda_layer_version.ffmpeg_layer.arn]
 }
 
-# EventBridge schedule for RSS processing (optional - local processing recommended)
+# EventBridge schedule for RSS processing. Off by default (enable_rss_processing_schedule):
+# ingestion runs locally (`bds ingest`), and the 18 schedules left from before were removed in Oct 2026.
 module "eventbridge_schedule" {
   count  = var.enable_rss_processing_schedule ? 1 : 0
   source = "./modules/eventbridge"

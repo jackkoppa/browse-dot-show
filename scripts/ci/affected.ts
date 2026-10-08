@@ -148,3 +148,10 @@ export function loadWorkspacePackages(root = REPO_ROOT): WorkspacePackage[] {
     return [{ name: packageJson.name, dir, workspaceDeps }];
   });
 }
+
+/** Group matrix items by AWS account, keeping the order accounts first appear in. */
+export function groupByAccount<T extends { account_id: string }>(items: T[]): { accountId: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const item of items) groups.set(item.account_id, [...(groups.get(item.account_id) ?? []), item]);
+  return [...groups].map(([accountId, grouped]) => ({ accountId, items: grouped }));
+}

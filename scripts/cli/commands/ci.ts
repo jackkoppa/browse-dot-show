@@ -6,9 +6,10 @@ import { loadHomepageEnv, loadSiteEnv } from '../../lib/env.js';
 import { uploadHomepageFiles } from '../../lib/homepage-deployment.js';
 import { REPO_ROOT, repoPath } from '../../lib/paths.js';
 import { loadSiteAccountMappings } from '../../lib/site-accounts.js';
-import { computeAffected, loadWorkspacePackages, type Affected } from '../../ci/affected.js';
+import { computeAffected, groupByAccount, loadWorkspacePackages, type Affected } from '../../ci/affected.js';
 import { renderPlanComment, riskyChanges, type PlanSummary } from '../../ci/plan-summary.js';
-import { runCiTerraform, type CiTerraformMode } from '../../ci/terraform.js';
+import { runCiTerraform, targetSlug, type CiTerraformMode } from '../../ci/terraform.js';
+import { renderGroupSummary, runTerraformGroup } from '../../ci/terraform-group.js';
 import type { Command } from '../command.js';
 
 /**
@@ -60,9 +61,12 @@ OPTIONS
   --all          Everything: every deployed site's Terraform and client, and the homepage
   --json         Print JSON only
 
-In GitHub Actions it also writes outputs: terraform_targets ([{target, slug, account_id}])
-and client_sites ([{site, account_id}]) for job matrices, and homepage, has_terraform and
-has_clients (true/false). The homepage's account comes from HOMEPAGE_AWS_ACCOUNT_ID.
+In GitHub Actions it also writes job-matrix outputs, one entry per AWS account (each job
+assumes that account's role):
+  terraform_groups  [{name, account_id, targets: "site:a,homepage", has_sites, has_homepage}]
+  client_groups     [{name, account_id, sites: "a,b"}]
+and homepage, has_terraform and has_clients (true/false). The homepage's account comes
+from HOMEPAGE_AWS_ACCOUNT_ID.
 `,
   async run(argv) {
     const flags = parseFlags(argv, {
@@ -90,19 +94,29 @@ has_clients (true/false). The homepage's account comes from HOMEPAGE_AWS_ACCOUNT
       throw new Error('HOMEPAGE_AWS_ACCOUNT_ID is not set (a repository variable).');
     }
     const terraformTargets = [
-      ...affected.terraformSites.map(site => ({ target: `site:${site}`, slug: `site-${site}`, account_id: mappings[site].accountId })),
+      ...affected.terraformSites.map(site => ({ target: `site:${site}`, slug: targetSlug(`site:${site}`), account_id: mappings[site].accountId })),
       ...(affected.homepage ? [{ target: 'homepage', slug: 'homepage', account_id: homepageAccountId }] : []),
     ];
-    const clientSites = affected.clientSites.map(site => ({ site, account_id: mappings[site].accountId }));
+    const terraformGroups = groupByAccount(terraformTargets).map(({ accountId, items }) => {
+      const sites = items.filter(item => item.target.startsWith('site:')).length;
+      const hasHomepage = items.some(item => item.target === 'homepage');
+      const parts = [sites > 0 ? `${sites} site${sites === 1 ? '' : 's'}` : '', hasHomepage ? 'homepage' : ''].filter(Boolean);
+      return { name: `${accountId}: ${parts.join(' + ')}`, account_id: accountId, targets: items.map(item => item.target).join(','), has_sites: sites > 0, has_homepage: hasHomepage };
+    });
+    const clientGroups = groupByAccount(affected.clientSites.map(site => ({ site, account_id: mappings[site].accountId }))).map(({ accountId, items }) => ({
+      name: `${accountId}: ${items.length} site${items.length === 1 ? '' : 's'}`,
+      account_id: accountId,
+      sites: items.map(item => item.site).join(','),
+    }));
     setGithubOutputs({
-      terraform_targets: JSON.stringify(terraformTargets),
-      client_sites: JSON.stringify(clientSites),
+      terraform_groups: JSON.stringify(terraformGroups),
+      client_groups: JSON.stringify(clientGroups),
       homepage: String(affected.homepage),
-      has_terraform: String(terraformTargets.length > 0),
-      has_clients: String(clientSites.length > 0),
+      has_terraform: String(terraformGroups.length > 0),
+      has_clients: String(clientGroups.length > 0),
     });
     appendStepSummary(describeAffected(affected));
-    console.log(flags.json ? JSON.stringify({ ...affected, terraformTargets }, null, 2) : describeAffected(affected));
+    console.log(flags.json ? JSON.stringify({ ...affected, terraformGroups, clientGroups }, null, 2) : describeAffected(affected));
     return 0;
   },
 };
@@ -153,6 +167,61 @@ sensitive values and is deleted.
       approvedSummaryPath: flags.approved && path.resolve(flags.approved),
       requireApproval: Boolean(flags['require-approval']),
     });
+  },
+};
+
+export const ciTerraformGroupCommand: Command = {
+  path: ['ci', 'terraform-group'],
+  summary: 'CI: plan or apply several Terraform targets in parallel (one job per AWS account)',
+  usage: `
+USAGE
+  pnpm bds ci terraform-group --targets=<t1,t2,...> --mode=<plan|apply> [--out=<dir>]
+                              [--approved-dir=<dir>] [--require-approval] [--concurrency=<n>]
+
+OPTIONS
+  --targets=<list>     Comma-separated site:<id> and/or homepage, all in one AWS account
+  --mode, --require-approval
+                       As for bds ci terraform, per target
+  --out=<dir>          Summaries go to <dir>/plan-summary-<slug>/summary.json (default: .terraform-plans)
+  --approved-dir=<dir> Approved summaries, in the same layout (apply mode)
+  --concurrency=<n>    Targets at a time after the first (default: 4)
+
+Each site runs in its own copy of terraform/sites (terraform/.ci-<slug>/, removed afterwards).
+Every target runs even if one fails; exits 1 if any failed. Credentials come from the
+environment (one account's OIDC role in CI).
+`,
+  async run(argv) {
+    const flags = parseFlags(argv, {
+      targets: { type: 'string' },
+      mode: { type: 'string' },
+      out: { type: 'string' },
+      'approved-dir': { type: 'string' },
+      'require-approval': { type: 'boolean' },
+      concurrency: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+    });
+    const mode = oneOf('mode', flags.mode, ['plan', 'apply'] as CiTerraformMode[]);
+    const targets = (flags.targets ?? '').split(',').map(target => target.trim()).filter(Boolean);
+    if (targets.length === 0 || !mode) throw new UsageError('Pass --targets=<site:<id>,...> and --mode=<plan|apply>.');
+    const concurrency = flags.concurrency ? Number(flags.concurrency) : 4;
+    if (!Number.isInteger(concurrency) || concurrency < 1) throw new UsageError('--concurrency must be a positive integer.');
+    if (!process.env.GITHUB_ACTIONS) {
+      // Locally, every target must share credentials; use the first site's (like `bds ci terraform`)
+      const siteId = targets[0].match(/^site:(.+)$/)?.[1];
+      Object.assign(process.env, siteId ? loadSiteEnv(siteId) : targets[0] === 'homepage' ? loadHomepageEnv() : {});
+    }
+    const { exitCode, results } = await runTerraformGroup({
+      targets,
+      mode,
+      outDir: path.resolve(flags.out ?? repoPath('.terraform-plans')),
+      approvedDir: flags['approved-dir'] && path.resolve(flags['approved-dir']),
+      requireApproval: Boolean(flags['require-approval']),
+      concurrency,
+    });
+    const summary = renderGroupSummary(results, mode);
+    appendStepSummary(summary);
+    console.log('\n' + summary);
+    return exitCode;
   },
 };
 

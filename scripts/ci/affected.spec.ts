@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeAffected, loadWorkspacePackages } from './affected.js';
+import { computeAffected, groupByAccount, loadWorkspacePackages } from './affected.js';
 
 const packages = loadWorkspacePackages();
 const deployableSites = ['alpha', 'beta', 'gamma'];
@@ -66,5 +66,21 @@ describe('loadWorkspacePackages', () => {
     expect(client?.dir).toBe('packages/client');
     expect(client?.workspaceDeps).toContain('@browse-dot-show/ui');
     expect(packages.find(pkg => pkg.dir === 'packages/ingestion/process-audio-lambda')?.name).toBe('@browse-dot-show/process-audio-lambda');
+  });
+});
+
+describe('groupByAccount', () => {
+  it('groups matrix items per AWS account, in first-seen order', () => {
+    const items = [
+      { target: 'site:a', account_id: '1' },
+      { target: 'site:b', account_id: '2' },
+      { target: 'site:c', account_id: '1' },
+      { target: 'homepage', account_id: '0' },
+    ];
+    expect(groupByAccount(items)).toEqual([
+      { accountId: '1', items: [items[0], items[2]] },
+      { accountId: '2', items: [items[1]] },
+      { accountId: '0', items: [items[3]] },
+    ]);
   });
 });
