@@ -49,7 +49,7 @@ All of these are gitignored, except `.site-account-mappings.json`.
 | File | Purpose |
 | --- | --- |
 | `.env.local` | Shared local settings. Copy the tracked `.env` template. For local transcription set `WHISPER_API_PROVIDER=local-whisper.cpp`, `WHISPER_CPP_PATH` and `WHISPER_CPP_MODEL` (e.g. `large-v3-turbo`). |
-| `.local-files-config.json` | Where audio, transcripts and search indexes live (`localFilesPath`, potentially hundreds of GB), plus optional `worktreeDirectory` and `transcriptionWorkers`. You're prompted to create it on first use. |
+| `.local-files-config.json` | Where audio, transcripts and search indexes live (`localFilesPath`, potentially hundreds of GB), plus optional `worktreeDirectory` and `transcriptionWorkers`. Optional: without it (or without `localFilesPath`), local files go in the repo's `aws-local-dev/` (gitignored). To use another folder, such as an external SSD, run `pnpm bds setup machine --local-files=<path>`. When `localFilesPath` is set but the folder is missing (the drive isn't mounted), scripts stop rather than use `aws-local-dev/`. |
 | `sites/<my-sites or origin-sites>/<site>/.env.aws-sso` | A site's `AWS_PROFILE` (AWS SSO), used for interactive deploys. |
 | `.env.automation` | Credentials for the automation IAM user (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `SCHEDULED_RUN_MAIN_AWS_PROFILE`). Used by the ingestion pipeline's S3 phases and by `bds site upload-client --all-sites`. Keep it `chmod 600`. |
 | `.site-account-mappings.json` | Each site's AWS account ID, bucket, CloudFront ID and search API URL. **Committed** (GitHub Actions deploys read it); `bds site deploy` updates it after an apply, so commit the change. |

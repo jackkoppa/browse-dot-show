@@ -39,6 +39,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - **Pipeline flags:** `--skip=<phase,...>` replaces the `--skip-*` flags. Phases: `pre-sync`, `rss`, `transcribe`, `index`, `s3-sync`, `cloudfront`.
 - **Tools:** Hermit is gone. Use Node.js 22 (`.nvmrc`) and pnpm via Corepack (`corepack enable`).
 - **Scripts layout:** `scripts/cli/` (commands), `scripts/ingestion/` (pipeline), `scripts/lib/` (shared modules). `scripts/utils/` is gone.
+- **Local files default:** `bds setup machine` offers the repo's `aws-local-dev/` (gitignored) as the default local files folder (and uses it when run without a terminal, instead of failing); `bds site create` prints where a site's files go.
 
 ### Added (scheduled ingestion)
 
