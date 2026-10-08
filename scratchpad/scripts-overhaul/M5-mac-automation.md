@@ -1,6 +1,6 @@
 # M5: Unattended Ingestion on a Mac
 
-> **Status (2026-10-08): tested on the 16 GB runner; merging.** A real scheduled run succeeded there under launchd, logged out (1 h 3 min, 8 episodes). Findings, fixes and decisions: [M5-RUNNER-SESSION.md, section 8](./M5-RUNNER-SESSION.md#8-runner-test-results). Left: SIGTERM while transcribing (needs new episodes).
+> **Status (2026-10-08): merged (#195–#200); running nightly on the 16 GB runner, being watched.** A real scheduled run succeeded there under launchd, logged out (1 h 3 min, 8 episodes). Findings, fixes and decisions: [M5-RUNNER-SESSION.md, section 8](./M5-RUNNER-SESSION.md#8-runner-test-results). M5 is done once the checklist in [Watching the runner](#watching-the-runner-before-calling-m5-done) is complete; then tag `v1.0.0`.
 
 ## Goal
 
@@ -61,10 +61,24 @@ The checklist, the setup for a new session on the runner, fixing and merging the
 7. **Homebrew whisper.cpp:** test it on the runner only (runner checklist step 3).
 8. **Runner checkout on the 16 GB Mac:** a separate runner worktree, as designed.
 
+## Watching the runner (before calling M5 done)
+
+The developer wants a few days of evidence before marking M5 done. The runner (16 GB Mac mini) runs `bds schedule run` at **03:00**, following `main`. Check each morning in Slack and healthchecks.io; on the runner, `pnpm bds schedule status` lists recent runs.
+
+| Check | How | Result |
+| --- | --- | --- |
+| 3+ nightly runs in a row succeed, with nobody logged in | Slack each morning (posts on every run); `bds schedule status` on the runner | |
+| A run that transcribes new episodes moves the runner to `main` cleanly | The first run after `install --track=main`: its log shows the runner update | |
+| A failure reaches Slack and healthchecks.io, with a log to read | **Only after #204 is merged and on the runner** (before it, a missing SSD falls back to `<runner>/aws-local-dev` and the pre-sync downloads every site). Planned with the developer, a few days in: e.g. eject the SSD, then `bds schedule run-now` on the runner (skipped: "is the drive mounted?") or a real run with it ejected; Slack shows the failed check and the log path; the healthcheck goes red until the next success | |
+| SIGTERM while transcribing | On a day with new episodes, during a run's transcription phase: `sudo launchctl kill SIGTERM system/com.browse-dot-show.ingest`. Expect `interrupted`, Slack + healthcheck failure notices, no `whisper-cli` left, no locks from that pid; a later run transcribes those episodes ([runner checklist step 10](./M5-RUNNER-SESSION.md#5-test-checklist)) | |
+| A missed run alerts | Optional: the healthcheck alerts when no ping arrives within its 8 h grace (e.g. the Mac is off) | |
+
+Then: move the changelog's "Unreleased" section under `## v1.0.0 (<date>)` in a small PR, merge, and tag the merge commit `v1.0.0`.
+
 ## Remaining work
 
-- The runner setup and tests ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)), merging the stack, then tag `v1.0.0` (move the changelog's "Unreleased" section under it).
-- SIGTERM while transcribing, on a day with new episodes.
+- [Watching the runner](#watching-the-runner-before-calling-m5-done), including SIGTERM while transcribing and a failure test.
+- The dry-run summary marks every phase ❌ although nothing failed (cosmetic, pipeline summary).
 - Possible follow-up: Slack thread replies need a Slack app with a bot token (incoming webhooks can't thread).
 - Client/homepage typecheck: #201 (independent of this stack).
 
