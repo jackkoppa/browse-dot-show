@@ -7,7 +7,7 @@ import { uploadHomepageFiles } from '../../lib/homepage-deployment.js';
 import { REPO_ROOT, repoPath } from '../../lib/paths.js';
 import { loadSiteAccountMappings } from '../../lib/site-accounts.js';
 import { computeAffected, groupByAccount, loadWorkspacePackages, type Affected } from '../../ci/affected.js';
-import { renderPlanComment, riskyChanges, type PlanSummary } from '../../ci/plan-summary.js';
+import { planNeedsApproval, renderPlanComment, riskyChanges, type PlanSummary } from '../../ci/plan-summary.js';
 import { runCiTerraform, targetSlug, type CiTerraformMode } from '../../ci/terraform.js';
 import { renderGroupSummary, runTerraformGroup } from '../../ci/terraform-group.js';
 import type { Command } from '../command.js';
@@ -241,8 +241,8 @@ USAGE
   pnpm bds ci plan-comment --dir=<dir> --out=<file> [--run-url=<url>]
 
 Reads every summary.json under --dir, writes the markdown comment to --out, and sets the
-GitHub outputs needs_approval (true whenever there's a plan: every Terraform plan needs
-approval) and has_risky_changes (any create, replace or destroy).
+GitHub outputs needs_approval (true when any target would change; plans with no changes
+need no approval) and has_risky_changes (any create, replace or destroy).
 `,
   async run(argv) {
     const flags = parseFlags(argv, {
@@ -255,8 +255,8 @@ approval) and has_risky_changes (any create, replace or destroy).
     const summaries = findSummaries(path.resolve(flags.dir));
     const comment = renderPlanComment(summaries, { marker: PLAN_COMMENT_MARKER, runUrl: flags['run-url'] });
     fs.writeFileSync(path.resolve(flags.out), comment);
-    // Every Terraform plan on a PR needs the developer's approval (08: decisions)
-    setGithubOutputs({ needs_approval: String(summaries.length > 0), has_risky_changes: String(summaries.some(summary => riskyChanges(summary).length > 0)) });
+    // Every plan with changes needs the developer's approval (docs/github-actions-deploys.md)
+    setGithubOutputs({ needs_approval: String(planNeedsApproval(summaries)), has_risky_changes: String(summaries.some(summary => riskyChanges(summary).length > 0)) });
     appendStepSummary(comment);
     console.log(comment);
     return 0;

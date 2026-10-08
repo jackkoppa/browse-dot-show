@@ -1,9 +1,11 @@
 # Terraform plans for PRs (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
 #
 # For every Terraform target a PR affects (a site's stack, or the homepage), run a read-only
-# plan (one job per AWS account; its targets run in parallel) and post a summary comment. Every plan needs approval: the `approve-plan` job waits in
-# the `terraform-approval` environment. Merging then applies the plans (deploy.yml), refusing
-# stacks without an approved plan and creates/replaces/destroys that weren't in it.
+# plan (one job per AWS account; its targets run in parallel) and post a summary comment.
+# If any target would change, the `approve-plan` job waits in the `terraform-approval`
+# environment (plans with no changes skip it). Merging then applies the plans (deploy.yml),
+# refusing stacks with changes but no approved plan, and creates/replaces/destroys that
+# weren't in it.
 #
 # Branch protection requires the `terraform-plan-result` check.
 name: terraform-plan

@@ -55,6 +55,12 @@ export function unapprovedChanges(fresh: PlanSummary, approved: PlanSummary | un
 
 const ACTION_LABELS: Record<PlanAction, string> = { create: '➕ create', update: '🔄 update', replace: '♻️ replace', delete: '🗑️ destroy' };
 
+/** A PR's plans need the developer's approval when any target would change. Plans with no changes
+ *  don't: if AWS drifts before the merge, the deploy refuses to apply those targets anyway. */
+export function planNeedsApproval(summaries: PlanSummary[]): boolean {
+  return summaries.some(summary => summary.changes.length > 0);
+}
+
 /** The sticky PR comment for a set of plans. */
 export function renderPlanComment(summaries: PlanSummary[], options: { runUrl?: string; marker: string }): string {
   const lines = [options.marker, '## Terraform plan', ''];
@@ -62,6 +68,10 @@ export function renderPlanComment(summaries: PlanSummary[], options: { runUrl?: 
 
   if (summaries.length === 0) {
     lines.push('No Terraform changes in this PR.');
+  } else if (!planNeedsApproval(summaries)) {
+    const targets = summaries.map(summary => `\`${summary.target}\``).join(', ');
+    lines.push(`**No changes** in any of the ${summaries.length} planned target(s), so no approval is needed. (If AWS changes before this merges, the deploy refuses to apply those targets.)`);
+    lines.push('', `<details><summary>Planned targets</summary>`, '', targets, '', '</details>');
   } else {
     lines.push(
       `**Needs approval:** review the plans below, then approve the \`terraform-approval\` deployment in this PR's checks. Merging applies them. ${

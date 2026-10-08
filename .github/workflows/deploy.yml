@@ -88,9 +88,10 @@ jobs:
           approval=$(gh api "repos/$REPO/actions/runs/$run_id/jobs" -q '.jobs[] | select(.name == "approve-plan") | .conclusion')
           echo "terraform-plan run $run_id; approve-plan: ${approval:-not run}"
           if gh run download "$run_id" --repo "$REPO" -n terraform-plan-summaries -D approved; then
-            # Every plan needs approval; summaries count only if approve-plan succeeded
+            # Summaries count only if approve-plan succeeded. It's skipped when no target had
+            # changes; then nothing is approved, and any target that changes now refuses to apply.
             if [ "$approval" != "success" ]; then
-              echo "approve-plan didn't succeed; ignoring these plans."
+              echo "approve-plan: ${approval:-not run} (skipped = the PR's plans had no changes); nothing is approved."
               rm -rf approved && mkdir approved
             fi
           fi
