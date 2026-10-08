@@ -1,0 +1,24 @@
+# Checks every PR must pass (branch protection requires the `typecheck` job).
+# Runs on every PR, with no path filters, so the required check always reports.
+name: checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Packages import each other's built dist/ types
+      - run: pnpm all:build
+      - run: pnpm all:typecheck

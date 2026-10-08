@@ -9,6 +9,7 @@
     "all:build:prod": "pnpm --filter @browse-dot-show/* build:prod",
     "all:test": "pnpm --filter @browse-dot-show/* test",
     "all:lint": "oxlint",
+    "all:typecheck": "tsx scripts/ci/typecheck.ts",
     "validate:sites": "pnpm --filter @browse-dot-show/sites validate",
     "prepare": "husky"
   },
