@@ -28,6 +28,8 @@ export interface ScheduledRunRecord {
   outcome: RunOutcome;
   /** Why it was skipped or failed. */
   reason?: string;
+  /** The checks that failed, when a run was skipped by them (`reason` joins them in one line). */
+  failedChecks?: string[];
   /** `bds ingest`'s exit code. */
   ingestExitCode?: number;
   /** Skipped because another ingestion run (e.g. a manual one) held the run lock. */
