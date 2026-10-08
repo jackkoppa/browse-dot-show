@@ -94,7 +94,10 @@ export async function runRssRetrieval(
     console.log(`   🔄 ${operation} in progress for ${siteId}... (${elapsed}s elapsed)`);
   }, 10000);
 
-  const result = await runLambdaLocally({ lambda: 'rss-retrieval', siteId });
+  // The new-audio count below comes from an info-level line; the lambda's default level
+  // (warn, when .env.local leaves LOG_LEVEL empty) would hide it and the count would read 0
+  const logLevel = ['trace', 'debug'].includes(process.env.LOG_LEVEL ?? '') ? process.env.LOG_LEVEL! : 'info';
+  const result = await runLambdaLocally({ lambda: 'rss-retrieval', siteId, env: { LOG_LEVEL: logLevel } });
   clearInterval(progressInterval);
 
   let newAudioFiles = 0;
