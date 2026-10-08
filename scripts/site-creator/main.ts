@@ -2,6 +2,7 @@
 
 import { join } from 'path';
 import { writeJsonFile } from '../lib/file-operations.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
 import { printInfo, printSuccess, logInColor } from '../lib/logging.js';
 import prompts from 'prompts';
 import { 
@@ -270,7 +271,8 @@ async function handleNewSiteCreation(): Promise<void> {
   
   printInfo(`\n🏗️  Creating site: ${siteId}`);
   printInfo(`📧 Domain: ${siteId}.browse.show`);
-  printInfo(`📡 RSS: ${rssUrl}\n`);
+  printInfo(`📡 RSS: ${rssUrl}`);
+  printInfo(`💾 Local files: ${getLocalS3SitePath(siteId)} (to use another folder, e.g. an external SSD: pnpm bds setup machine --local-files=<path>)\n`);
   
   // Step 6: Copy template and assets
   await copyTemplateAndAssets(siteId);
