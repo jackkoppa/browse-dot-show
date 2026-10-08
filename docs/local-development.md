@@ -27,9 +27,11 @@ pnpm install
 pnpm all:build
 ```
 
+Or do all of the above at once with Homebrew: `./scripts/bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@22`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. That's the recommended setup for a machine that runs scheduled ingestion ([Scheduled ingestion](scheduled-ingestion.md)).
+
 ### whisper.cpp
 
-Clone and build [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (Metal is enabled by default on Apple silicon), and download a model:
+Either install it with Homebrew (`brew install whisper.cpp`, included in the `Brewfile`), and let `pnpm bds setup machine` download the model and set `WHISPER_CPP_PATH`, or clone and build [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (Metal is enabled by default on Apple silicon), and download a model:
 
 ```bash
 git clone https://github.com/ggml-org/whisper.cpp ~/whisper.cpp
@@ -38,7 +40,7 @@ cmake -B build && cmake --build build -j --config Release
 ./models/download-ggml-model.sh large-v3-turbo
 ```
 
-The transcription code expects `build/bin/whisper-cli` and `models/ggml-<model>.bin` inside `WHISPER_CPP_PATH`.
+The transcription code expects `build/bin/whisper-cli` and `models/ggml-<model>.bin` inside `WHISPER_CPP_PATH`. For Homebrew, `bds setup machine` creates a folder with that layout (`~/Library/Application Support/browse-dot-show/whisper.cpp`, where `build/bin/whisper-cli` is a symlink to Homebrew's binary), so the transcription lambda doesn't change.
 
 ## 2. Configuration files
 

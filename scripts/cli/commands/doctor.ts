@@ -7,6 +7,7 @@ import { getSiteAwsEnvPath, loadAutomationCredentials, loadEnvFile } from '../..
 import { repoPath } from '../../lib/paths.js';
 import { assumeSiteRole, loadSiteAccountMappings } from '../../lib/site-accounts.js';
 import { discoverSites } from '../../lib/sites.js';
+import { findHomebrewWhisperCli, whisperPaths } from '../../lib/whisper.js';
 import type { Command } from '../command.js';
 
 type Status = 'ok' | 'warn' | 'fail';
@@ -64,13 +65,21 @@ function checkWhisper(): Check[] {
   }
 
   const dir = env.WHISPER_CPP_PATH;
-  if (!dir || !fs.existsSync(dir)) return [{ status: 'fail', label: 'whisper.cpp', detail: `WHISPER_CPP_PATH not found: ${dir || '(unset)'}` }];
+  if (!dir || !fs.existsSync(dir)) {
+    const homebrewCli = findHomebrewWhisperCli();
+    const hint = homebrewCli ? ` (Homebrew whisper-cli found; run: pnpm bds setup machine)` : '';
+    return [{ status: 'fail', label: 'whisper.cpp', detail: `WHISPER_CPP_PATH not found: ${dir || '(unset)'}${hint}` }];
+  }
 
-  const cli = path.join(dir, 'build/bin/whisper-cli');
-  const model = path.join(dir, 'models', `ggml-${env.WHISPER_CPP_MODEL}.bin`);
+  const { cli, model, cliLinkTarget } = whisperPaths(dir, env.WHISPER_CPP_MODEL);
+  const cliDetail = cliLinkTarget ? `${cli} → ${cliLinkTarget}` : cli;
   return [
-    fs.existsSync(cli) ? { status: 'ok', label: 'whisper-cli', detail: cli } : { status: 'fail', label: 'whisper-cli', detail: `not found: ${cli} (build whisper.cpp)` },
-    fs.existsSync(model) ? { status: 'ok', label: 'whisper model', detail: model } : { status: 'fail', label: 'whisper model', detail: `not found: ${model}` },
+    fs.existsSync(cli)
+      ? { status: 'ok', label: 'whisper-cli', detail: cliDetail }
+      : { status: 'fail', label: 'whisper-cli', detail: `not found: ${cliDetail} (build whisper.cpp, or run: pnpm bds setup machine)` },
+    fs.existsSync(model)
+      ? { status: 'ok', label: 'whisper model', detail: model }
+      : { status: 'fail', label: 'whisper model', detail: `not found: ${model} (run: pnpm bds setup machine)` },
   ];
 }
 
