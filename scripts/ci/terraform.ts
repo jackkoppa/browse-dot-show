@@ -30,6 +30,10 @@ export interface CiTerraformOptions {
   approvedSummaryPath?: string;
   /** Apply mode: refuse any change unless an approved summary exists (merged PRs). */
   requireApproval?: boolean;
+  /** Site targets: run in this copy of terraform/sites instead (parallel runs; see terraform-group.ts) */
+  workDir?: string;
+  /** Where output goes (default: this process's stdout/stderr) */
+  output?: NodeJS.WritableStream;
 }
 
 interface TargetConfig {
@@ -41,7 +45,12 @@ interface TargetConfig {
   prepare?: () => Promise<void>;
 }
 
-function targetConfig(target: string): TargetConfig {
+/** `site:haveaword` → `site-haveaword`: directory and artifact names */
+export function targetSlug(target: string): string {
+  return target.replace(':', '-');
+}
+
+function targetConfig(target: string, workDir?: string): TargetConfig {
   const env = { ...process.env, AWS_REGION: process.env.AWS_REGION || 'us-east-1', TF_IN_AUTOMATION: '1' };
   if (target === 'homepage') {
     // Same as scripts/deploy/deploy-homepage.ts; the provider falls back to environment credentials
@@ -55,22 +64,25 @@ function targetConfig(target: string): TargetConfig {
   const siteId = target.match(/^site:(.+)$/)?.[1];
   if (!siteId) throw new Error(`Unknown target "${target}": use site:<id> or homepage`);
   getSiteAccountMapping(siteId); // only deployed sites
+  const cwd = workDir ?? SITES_TERRAFORM_DIR;
   return {
-    cwd: SITES_TERRAFORM_DIR,
+    cwd,
     env: { ...siteTerraformEnv(process.env.OPENAI_API_KEY), ...env },
     initArgs: siteInitArgs(siteId),
     planArgs: lock => sitePlanArgs(siteId, { awsProfile: process.env.AWS_PROFILE, lock }),
-    prepare: () => ensureSiteLayerZips(siteId, path.join(SITES_TERRAFORM_DIR, 'lambda-layers')),
+    prepare: () => ensureSiteLayerZips(siteId, path.join(cwd, 'lambda-layers')),
   };
 }
 
-/** Run with live output; resolves with the exit code. */
-function runLive(args: string[], config: TargetConfig): Promise<number> {
-  console.log(`\n$ terraform ${args.join(' ')}`);
+/** Run with output streamed to `out`; resolves with the exit code. */
+function runLive(args: string[], config: TargetConfig, out: NodeJS.WritableStream): Promise<number> {
+  out.write(`\n$ terraform ${args.join(' ')}\n`);
   return new Promise(resolve => {
-    const child = spawn('terraform', args, { cwd: config.cwd, env: config.env, stdio: 'inherit' });
+    const child = spawn('terraform', args, { cwd: config.cwd, env: config.env, stdio: ['ignore', 'pipe', 'pipe'] });
+    child.stdout.pipe(out, { end: false });
+    child.stderr.pipe(out, { end: false });
     child.on('error', error => {
-      console.error(`Failed to start terraform: ${error.message}`);
+      out.write(`Failed to start terraform: ${error.message}\n`);
       resolve(1);
     });
     child.on('close', code => resolve(code ?? 1));
@@ -78,11 +90,12 @@ function runLive(args: string[], config: TargetConfig): Promise<number> {
 }
 
 /** `terraform show -json tfplan`, captured and never printed (it contains sensitive values). */
-function showPlanJson(config: TargetConfig): Promise<unknown> {
+function showPlanJson(config: TargetConfig, out: NodeJS.WritableStream): Promise<unknown> {
   return new Promise((resolve, reject) => {
-    const child = spawn('terraform', ['show', '-json', 'tfplan'], { cwd: config.cwd, env: config.env, stdio: ['ignore', 'pipe', 'inherit'] });
+    const child = spawn('terraform', ['show', '-json', 'tfplan'], { cwd: config.cwd, env: config.env, stdio: ['ignore', 'pipe', 'pipe'] });
     const chunks: Buffer[] = [];
     child.stdout.on('data', chunk => chunks.push(chunk));
+    child.stderr.pipe(out, { end: false });
     child.on('error', reject);
     child.on('close', code => {
       if (code !== 0) return reject(new Error(`terraform show -json exited with ${code}`));
@@ -101,41 +114,46 @@ export function readSummary(filePath: string | undefined): PlanSummary | undefin
 }
 
 export async function runCiTerraform(options: CiTerraformOptions): Promise<number> {
-  const config = targetConfig(options.target);
+  const config = targetConfig(options.target, options.workDir);
+  const out = options.output ?? process.stdout;
+  const log = (message: string) => out.write(message + '\n');
   fs.mkdirSync(options.outDir, { recursive: true });
   const summaryPath = path.join(options.outDir, 'summary.json');
 
   try {
     await config.prepare?.();
-    if ((await runLive(config.initArgs, config)) !== 0) return 1;
+    if ((await runLive(config.initArgs, config, out)) !== 0) return 1;
     // PR plans run with a read-only role, so they can't take the state lock
-    if ((await runLive(config.planArgs(options.mode === 'apply'), config)) !== 0) return 1;
+    if ((await runLive(config.planArgs(options.mode === 'apply'), config, out)) !== 0) return 1;
 
-    const summary = summarizePlan(options.target, (await showPlanJson(config)) as never);
+    const summary = summarizePlan(options.target, (await showPlanJson(config, out)) as never);
     fs.writeFileSync(summaryPath, JSON.stringify(summary, null, 2) + '\n');
-    console.log('\n' + renderPlanComment([summary], { marker: '' }).trim());
+    log('\n' + renderPlanComment([summary], { marker: '' }).trim());
 
     if (options.mode === 'plan') return 0;
 
     const approved = readSummary(options.approvedSummaryPath);
     if (options.requireApproval && !approved && summary.changes.length > 0) {
-      console.error(`\n❌ Not applying ${options.target}: no plan for it was approved on the PR.`);
-      console.error('   Approve it on a PR, or deploy locally (`bds site deploy` / `bds infra homepage deploy`).');
+      log(`\n❌ Not applying ${options.target}: no plan for it was approved on the PR.`);
+      log('   Approve it on a PR, or deploy locally (`bds site deploy` / `bds infra homepage deploy`).');
       return 1;
     }
     const unapproved = unapprovedChanges(summary, approved);
     if (unapproved.length > 0) {
-      console.error(`\n❌ Not applying ${options.target}: this plan has changes that weren't approved on the PR:`);
-      unapproved.forEach(change => console.error(`   ${change.action} ${change.address}`));
-      console.error('   Review the plan above, then deploy locally (`bds site deploy` / `bds infra homepage deploy`) or re-run after approval.');
+      log(`\n❌ Not applying ${options.target}: this plan has changes that weren't approved on the PR:`);
+      unapproved.forEach(change => log(`   ${change.action} ${change.address}`));
+      log('   Review the plan above, then deploy locally (`bds site deploy` / `bds infra homepage deploy`) or re-run after approval.');
       return 1;
     }
     if (summary.changes.length === 0) {
-      console.log(`\n✅ ${options.target}: no changes`);
+      log(`\n✅ ${options.target}: no changes`);
       return 0;
     }
-    if (riskyChanges(summary).length > 0) console.log(`\nApplying approved changes for ${options.target}`);
-    return await runLive(['apply', '-auto-approve', 'tfplan'], config);
+    if (riskyChanges(summary).length > 0) log(`\nApplying approved changes for ${options.target}`);
+    return await runLive(['apply', '-auto-approve', 'tfplan'], config, out);
+  } catch (error) {
+    log(`\n❌ ${options.target}: ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
   } finally {
     fs.rmSync(path.join(config.cwd, 'tfplan'), { force: true });
   }

@@ -38,8 +38,8 @@ jobs:
     if: vars.GHA_DEPLOYS_ENABLED == 'true'
     runs-on: ubuntu-latest
     outputs:
-      terraform_targets: ${{ steps.affected.outputs.terraform_targets }}
-      client_sites: ${{ steps.affected.outputs.client_sites }}
+      terraform_groups: ${{ steps.affected.outputs.terraform_groups }}
+      client_groups: ${{ steps.affected.outputs.client_groups }}
       has_terraform: ${{ steps.affected.outputs.has_terraform }}
       has_clients: ${{ steps.affected.outputs.has_clients }}
     steps:
@@ -101,16 +101,16 @@ jobs:
           path: approved
           if-no-files-found: ignore
 
+  # One job per AWS account; its targets apply in parallel (`bds ci terraform-group`)
   terraform:
     needs: [affected, approved-plans]
     if: needs.affected.outputs.has_terraform == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        include: ${{ fromJSON(needs.affected.outputs.terraform_targets) }}
-    name: terraform (${{ matrix.target }})
+        include: ${{ fromJSON(needs.affected.outputs.terraform_groups) }}
+    name: terraform (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -119,7 +119,8 @@ jobs:
       - name: Build
         run: |
           pnpm all:build
-          if [ "${{ matrix.target }}" = "homepage" ]; then pnpm --filter homepage build; else pnpm all:build:prod; fi
+          if [ "${{ matrix.has_sites }}" = "true" ]; then pnpm all:build:prod; fi
+          if [ "${{ matrix.has_homepage }}" = "true" ]; then pnpm --filter homepage build; fi
       - uses: actions/download-artifact@v4
         continue-on-error: true # none when nothing was approved
         with:
@@ -131,13 +132,14 @@ jobs:
           aws-region: us-east-1
           role-duration-seconds: 7200
       - name: Terraform apply
-        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=apply --out=plans/${{ matrix.slug }} --approved=approved/plan-summary-${{ matrix.slug }}/summary.json ${{ github.event_name == 'push' && '--require-approval' || '' }}
+        run: pnpm bds ci terraform-group --targets=${{ matrix.targets }} --mode=apply --out=plans --approved-dir=approved ${{ github.event_name == 'push' && '--require-approval' || '' }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       - name: Upload homepage
-        if: matrix.target == 'homepage'
+        if: matrix.has_homepage
         run: pnpm bds ci upload-homepage
 
+  # One job per AWS account; uploads its sites one after another
   client:
     needs: [affected, terraform]
     # After Terraform (a site's client may need its new infrastructure); skip if any apply failed
@@ -145,10 +147,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 6
       matrix:
-        include: ${{ fromJSON(needs.affected.outputs.client_sites) }}
-    name: client (${{ matrix.site }})
+        include: ${{ fromJSON(needs.affected.outputs.client_groups) }}
+    name: client (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -157,5 +158,18 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/browse-dot-show-gha-deploy
           aws-region: us-east-1
-      - name: Build and upload client
-        run: pnpm bds site upload-client --site=${{ matrix.site }}
+          role-duration-seconds: 7200
+      - name: Build and upload clients
+        env:
+          SITES: ${{ matrix.sites }}
+        run: |
+          failed=()
+          for site in ${SITES//,/ }; do
+            echo "::group::client $site"
+            if ! pnpm bds site upload-client --site="$site"; then failed+=("$site"); fi
+            echo "::endgroup::"
+          done
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "::error::Client upload failed for: ${failed[*]}"
+            exit 1
+          fi

@@ -1,7 +1,7 @@
 # Terraform plans for PRs (M4b; see scratchpad/scripts-overhaul/08-github-actions-deploys.md).
 #
 # For every Terraform target a PR affects (a site's stack, or the homepage), run a read-only
-# plan and post a summary comment. Every plan needs approval: the `approve-plan` job waits in
+# plan (one job per AWS account; its targets run in parallel) and post a summary comment. Every plan needs approval: the `approve-plan` job waits in
 # the `terraform-approval` environment. Merging then applies the plans (deploy.yml), refusing
 # stacks without an approved plan and creates/replaces/destroys that weren't in it.
 #
@@ -31,7 +31,7 @@ jobs:
     if: vars.GHA_DEPLOYS_ENABLED == 'true'
     runs-on: ubuntu-latest
     outputs:
-      terraform_targets: ${{ steps.affected.outputs.terraform_targets }}
+      terraform_groups: ${{ steps.affected.outputs.terraform_groups }}
       has_terraform: ${{ steps.affected.outputs.has_terraform }}
     steps:
       - uses: actions/checkout@v4
@@ -49,31 +49,33 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 6
       matrix:
-        include: ${{ fromJSON(needs.affected.outputs.terraform_targets) }}
-    name: plan (${{ matrix.target }})
+        include: ${{ fromJSON(needs.affected.outputs.terraform_groups) }}
+    name: plan (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
         with:
           terraform: 'true'
       - name: Build lambdas
-        if: matrix.target != 'homepage'
+        if: matrix.has_sites
         run: pnpm all:build && pnpm all:build:prod
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/browse-dot-show-gha-plan
           aws-region: us-east-1
       - name: Terraform plan
-        run: pnpm bds ci terraform --target=${{ matrix.target }} --mode=plan --out=plans/${{ matrix.slug }}
+        run: pnpm bds ci terraform-group --targets=${{ matrix.targets }} --mode=plan --out=plans
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      # Only the summary (resource addresses and actions); never the raw plan
+      # Only the summaries (resource addresses and actions); never the raw plans. Uploaded
+      # even if some targets failed, so the comment shows the ones that worked.
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: plan-summary-${{ matrix.slug }}
-          path: plans/${{ matrix.slug }}/summary.json
+          name: plan-summaries-${{ matrix.account_id }}
+          path: plans
+          if-no-files-found: ignore
 
   comment:
     needs: [affected, plan]
@@ -86,7 +88,8 @@ jobs:
       - uses: ./.github/actions/setup
       - uses: actions/download-artifact@v4
         with:
-          pattern: plan-summary-*
+          pattern: plan-summaries-*
+          merge-multiple: true
           path: plans
       - id: comment
         run: pnpm bds ci plan-comment --dir=plans --out=comment.md --run-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

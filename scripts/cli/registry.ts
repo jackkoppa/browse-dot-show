@@ -1,5 +1,5 @@
 import { commandName, type Command } from './command.js';
-import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciUploadHomepageCommand } from './commands/ci.js';
+import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciTerraformGroupCommand, ciUploadHomepageCommand } from './commands/ci.js';
 import { scheduleCommand, setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
@@ -50,6 +50,7 @@ export const MENU: MenuNode[] = [
     children: [
       { label: 'What a range of commits deploys', command: ciAffectedCommand },
       { label: 'Plan or apply one Terraform target', command: ciTerraformCommand },
+      { label: 'Plan or apply several targets (one AWS account)', command: ciTerraformGroupCommand },
       { label: 'Render the Terraform plan PR comment', command: ciPlanCommentCommand },
       { label: 'Upload the built homepage', command: ciUploadHomepageCommand },
     ],
