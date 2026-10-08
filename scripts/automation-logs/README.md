@@ -1,5 +1,7 @@
 # automation-logs
 
-Run summaries from the ingestion pipeline (`ingestion-pipeline-runs.md`, written by `scripts/lib/pipeline-result-logger.ts`).
+No longer used. Ingestion logs moved to `~/Library/Logs/browse-dot-show/` (`scripts/lib/user-dirs.ts`):
 
-Logs themselves are gitignored.
+- `ingestion-runs.md`: run history (the old `ingestion-pipeline-runs.md` here is copied there on the first run)
+- `transcription/<timestamp>/`: transcription worker logs
+- `scheduled/`: scheduled runs (`bds schedule`)

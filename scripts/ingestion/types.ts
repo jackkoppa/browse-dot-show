@@ -22,6 +22,8 @@ export interface PipelineConfig {
   /** Parallel transcription workers. */
   parallel: number;
   phases: Record<PipelinePhaseKey, boolean>;
+  /** Write a JSON summary of the run here (see run-summary.ts). */
+  summaryJsonPath?: string;
 }
 
 /** Phases enabled unless listed in `skip`. */

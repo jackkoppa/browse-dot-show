@@ -4,9 +4,9 @@ import * as path from 'path';
 import { promisify } from 'util';
 import { getLocalS3SitePath } from '@browse-dot-show/config';
 import { runLambdaLocally } from '../lib/lambda.js';
-import { repoPath } from '../lib/paths.js';
 import { onShutdown } from '../lib/shutdown.js';
 import type { Site } from '../lib/sites.js';
+import { logsDir } from '../lib/user-dirs.js';
 
 /**
  * Transcribe untranscribed audio for many sites at once, with N parallel workers.
@@ -292,7 +292,7 @@ export async function runParallelTranscription(options: ParallelTranscriptionOpt
   console.log(`📋 ${files.length} file(s), ${formatMinutes(totalMinutes)} of audio, across ${plans.length} worker(s):`);
   for (const [siteId, { count, minutes }] of perSite) console.log(`   ${siteId}: ${count} file(s), ${formatMinutes(minutes)}`);
 
-  const logDir = options.logDir ?? repoPath('scripts/automation-logs/transcription', new Date().toISOString().replace(/[:.]/g, '-'));
+  const logDir = options.logDir ?? path.join(logsDir(), 'transcription', new Date().toISOString().replace(/[:.]/g, '-'));
   fs.mkdirSync(logDir, { recursive: true });
   console.log(`📝 Worker logs: ${logDir}\n`);
 

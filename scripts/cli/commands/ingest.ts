@@ -1,6 +1,10 @@
 import prompts from 'prompts';
+import { getLocalFilesBasePath } from '@browse-dot-show/config';
 import { csv, parseFlags, positiveInt, UsageError } from '../../lib/args.js';
 import { DEFAULT_TRANSCRIPTION_WORKERS, getDefaultTranscriptionWorkers } from '../../lib/machine-config.js';
+import { REPO_ROOT } from '../../lib/paths.js';
+import { acquireRunLock, describeRunLockHolder, EXIT_RUN_LOCKED, runLockPath } from '../../lib/run-lock.js';
+import { onShutdown } from '../../lib/shutdown.js';
 import { discoverSites, resolveSites } from '../../lib/sites.js';
 import { runPipeline } from '../../ingestion/pipeline.js';
 import {
@@ -19,6 +23,7 @@ const FLAGS = {
   'dry-run': { type: 'boolean' },
   'force-local-indexing': { type: 'boolean' },
   'reapply-spelling-corrections': { type: 'boolean' },
+  'summary-json': { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 } as const;
 
@@ -108,12 +113,19 @@ OPTIONS
   --dry-run                        Show what would happen; no downloads, transcription, uploads or AWS calls
   --reapply-spelling-corrections   Also reapply spelling corrections to ALL existing transcripts
   --force-local-indexing           Re-index every selected site (by default: sites with new files or a stale index)
+  --summary-json=<path>            Also write a JSON summary of the run (used by scheduled runs)
 
 PHASES
 ${PIPELINE_PHASES.map(phase => `  ${phase.id.padEnd(12)} ${phase.title}`).join('\n')}
 
   S3 phases use .env.automation (the automation IAM user) and assume
   browse-dot-show-automation-role in each site's account.
+
+  Only one run at a time: a run (not a dry run) holds <localFilesPath>/locks/ingestion-run.lock,
+  shared by every checkout and the scheduled runner. If another run holds it, this exits
+  with code ${EXIT_RUN_LOCKED}.
+
+  Run history: ~/Library/Logs/browse-dot-show/ingestion-runs.md (worker logs in transcription/).
 
 EXAMPLES
   pnpm bds ingest --all-sites --parallel=3
@@ -157,13 +169,32 @@ EXAMPLES
       ]);
     }
 
-    return runPipeline({
-      sites,
-      dryRun: options.dryRun,
-      forceLocalIndexing: options.forceLocalIndexing,
-      reapplySpellingCorrections: options.reapplySpellingCorrections,
-      parallel: options.parallel,
-      phases: phasesExcept(options.skip),
-    });
+    const release = options.dryRun ? () => {} : takeRunLock();
+    if (!release) return EXIT_RUN_LOCKED;
+    const unregister = onShutdown(release);
+    try {
+      return await runPipeline({
+        sites,
+        dryRun: options.dryRun,
+        forceLocalIndexing: options.forceLocalIndexing,
+        reapplySpellingCorrections: options.reapplySpellingCorrections,
+        parallel: options.parallel,
+        phases: phasesExcept(options.skip),
+        summaryJsonPath: flags['summary-json'],
+      });
+    } finally {
+      unregister();
+      release();
+    }
   },
 };
+
+/** Take the run-level lock; returns its release function, or null if another run holds it. */
+function takeRunLock(): (() => void) | null {
+  const lockPath = runLockPath(getLocalFilesBasePath());
+  const result = acquireRunLock(lockPath, { trigger: process.env.BDS_RUN_TRIGGER || 'manual', repoRoot: REPO_ROOT });
+  if (result.acquired) return result.release;
+  console.error(`❌ Another ingestion run is in progress: ${describeRunLockHolder(result.holder)}`);
+  console.error(`   Lock file: ${lockPath} (removed automatically once that process exits)`);
+  return null;
+}

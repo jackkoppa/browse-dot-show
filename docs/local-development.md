@@ -112,9 +112,11 @@ Phases, in order (skip any with `--skip=<id,...>`):
 
 The S3 and CloudFront phases use `.env.automation` and assume `browse-dot-show-automation-role` in each site's account.
 
-**Parallel transcription.** Untranscribed files from every selected site are balanced across N workers by audio duration. Each worker runs whisper as a separate process, so they share the GPU, and each loads its own copy of the model. On a terminal you get one combined progress view; otherwise (e.g. when scheduled) periodic log lines. Full worker logs are written to `scripts/automation-logs/transcription/<timestamp>/`. Set this machine's default with `"transcriptionWorkers": N` in `.local-files-config.json`.
+**Parallel transcription.** Untranscribed files from every selected site are balanced across N workers by audio duration. Each worker runs whisper as a separate process, so they share the GPU, and each loads its own copy of the model. On a terminal you get one combined progress view; otherwise (e.g. when scheduled) periodic log lines. Full worker logs are written to `~/Library/Logs/browse-dot-show/transcription/<timestamp>/`. Set this machine's default with `"transcriptionWorkers": N` in `.local-files-config.json`.
 
-**Run history** is appended to `scripts/automation-logs/ingestion-pipeline-runs.md`.
+**Run history** is appended to `~/Library/Logs/browse-dot-show/ingestion-runs.md` (copied once from the old `scripts/automation-logs/ingestion-pipeline-runs.md`). `--summary-json=<path>` also writes a machine-readable summary.
+
+**One run at a time.** A run (not a dry run) holds `<localFilesPath>/locks/ingestion-run.lock`, shared by every checkout using the same local files, including the scheduled runner. A second run exits with code 75 and names the run holding the lock. The lock clears itself once that process exits, or when the drive moves to another Mac.
 
 To reapply spelling corrections to every existing transcript (e.g. after adding corrections to a site), add `--reapply-spelling-corrections`.
 

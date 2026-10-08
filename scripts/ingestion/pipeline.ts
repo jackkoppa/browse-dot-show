@@ -16,6 +16,7 @@ import {
   triggerSearchApiLambdaRefresh,
 } from './steps.js';
 import { sitesWithStaleSearchIndex } from './index-freshness.js';
+import { buildRunSummary, writeRunSummary } from './run-summary.js';
 import { printPipelineSummary } from './summary.js';
 import { runParallelTranscription } from './transcription.js';
 import type { PipelineConfig, SiteProcessingResult } from './types.js';
@@ -469,9 +470,18 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     console.warn(`⚠️  Failed to log pipeline results: ${error instanceof Error ? error.message : error}`);
   }
 
-  if (results.some(r => r.errors.length > 0)) {
+  const exitCode = results.some(r => r.errors.length > 0) ? 1 : 0;
+  if (config.summaryJsonPath) {
+    try {
+      writeRunSummary(config.summaryJsonPath, buildRunSummary(results, { startedAt: startTime, endedAt: endTime, dryRun: config.dryRun, exitCode }));
+    } catch (error) {
+      console.warn(`⚠️  Failed to write the run summary: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  if (exitCode !== 0) {
     console.log('\n⚠️  Some operations failed. Check the errors above.');
-    return 1;
+    return exitCode;
   }
   console.log('\n🎉 All operations completed successfully!');
   return 0;
