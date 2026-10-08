@@ -1,6 +1,6 @@
 # M5: Unattended Ingestion on a Mac
 
-> **Status (2026-10-08): built, not yet tested with launchd.** The code and docs are in a stack of PRs (below), tested as far as possible without sudo or AWS. Next (the developer's call): skip testing on the dev Mac, set up the **16 GB runner Mac from the unmerged stack** and test there, then merge. **A new session on the runner starts with [M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md).**
+> **Status (2026-10-08): tested on the 16 GB runner; merging.** A real scheduled run succeeded there under launchd, logged out (1 h 3 min, 8 episodes). Findings, fixes and decisions: [M5-RUNNER-SESSION.md, section 8](./M5-RUNNER-SESSION.md#8-runner-test-results). Left: SIGTERM while transcribing (needs new episodes).
 
 ## Goal
 
@@ -42,7 +42,9 @@ Design notes worth knowing:
 - **SIGTERM during a runner update** (launchd-like environment, `kill -TERM` mid-`pnpm all:build`): record `interrupted`, exit 130, no `pnpm`/build processes left; the next run printed "Finishing an interrupted update", installed + built, then succeeded.
 - `bds setup benchmark --workers=1,2`: 1 worker 25.2, 2 workers 38.9 audio-min/min on the M4 Pro (1.54×; session 1: 24.7 / 35.2). A first try with a single episode made 2 workers look no faster, so it now uses ≥ 2 episodes per worker.
 
-Not tested yet (needs the developer): anything with sudo (the real LaunchDaemon, `pmset`), a real (non-dry) scheduled run, logged out, asleep, SIGTERM via `launchctl` while transcribing (whisper workers and their locks), Full Disk Access for the SSD under launchd, Homebrew `whisper-cli` end to end, the 16 GB Mac.
+**On the 16 GB runner (2026-10-08):** the real LaunchDaemon and `pmset` wake, a real scheduled run logged out (after granting Full Disk Access and joining Wi-Fi), Homebrew `whisper-cli`, the benchmark and indexing memory. Results: [M5-RUNNER-SESSION.md, section 8](./M5-RUNNER-SESSION.md#8-runner-test-results).
+
+Not tested yet: SIGTERM via `launchctl` while transcribing (whisper workers and their locks); it needs untranscribed episodes.
 
 ## Testing on the 16 GB runner, before merging
 
@@ -51,9 +53,9 @@ The checklist, the setup for a new session on the runner, fixing and merging the
 ## Open questions: answered 2026-10-08
 
 1. **Testing:** skip the dev Mac and test on the 16 GB runner before merging ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)).
-2. **Full Disk Access:** wait for the runner test (runner checklist step 8) to see whether it's needed at all.
+2. **Full Disk Access:** wait for the runner test (runner checklist step 8) to see whether it's needed at all. *Result: needed; granted to the Cellar node binary, with `brew pin node@22`.*
 3. **`ProcessType: Interactive`:** keep it.
-4. **Indexing memory on 16 GB:** measure on the runner first (runner checklist step 8).
+4. **Indexing memory on 16 GB:** measure on the runner first (runner checklist step 8). *Result: the largest site peaks at 9.98 GB RSS; the 9.5 GB heap stays.*
 5. **Success notifications:** `always` (a daily heartbeat). This is now the default.
 6. **Slack + healthchecks.io:** the developer creates both during runner setup (runner checklist step 4).
 7. **Homebrew whisper.cpp:** test it on the runner only (runner checklist step 3).
@@ -62,7 +64,8 @@ The checklist, the setup for a new session on the runner, fixing and merging the
 ## Remaining work
 
 - The runner setup and tests ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)), merging the stack, then tag `v1.0.0` (move the changelog's "Unreleased" section under it).
-- Full Disk Access handling and the indexing heap size depend on the runner test.
+- SIGTERM while transcribing, on a day with new episodes.
+- Possible follow-up: Slack thread replies need a Slack app with a bot token (incoming webhooks can't thread).
 - Client/homepage typecheck: #201 (independent of this stack).
 
 ## Decisions (made with the developer, 2026-10-07)

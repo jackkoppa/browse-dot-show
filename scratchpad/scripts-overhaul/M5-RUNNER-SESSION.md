@@ -241,23 +241,40 @@ The developer goes back to the original session on the 64 GB Mac afterwards. Tha
 
 ## 8. Runner test results
 
-*(Fill in on the runner.)*
+Filled in on the runner, 2026-10-08.
 
 | Step | Result | Notes |
 | --- | --- | --- |
-| 1 Mac / macOS version | | |
-| 3 setup machine, Homebrew whisper | | |
-| 4 notifications | | |
-| 5 benchmark (workers → audio-min/min, memory) | | |
-| 6 install | | |
-| 7 status, dry run | | |
-| 8 real run logged out; Full Disk Access? | | |
-| 9 indexing peak memory | | |
-| 10 SIGTERM while transcribing | | |
+| 1 Mac / macOS version | ✅ | Mac mini M4 (Mac16,10), 16 GB, macOS 26.3 (25D125). **FileVault was on**; the developer turned it off. `sleep 0`, `autorestart 1` were already set |
+| 3 setup machine, Homebrew whisper | ✅ | Repo at `~/Personal_Development/browse-dot-show` (not `~/browse-dot-show`), runner at `~/Personal_Development/browse-dot-show-runner`. Homebrew `whisper-cli` 1.9.5 via the symlink works; model downloaded. `doctor --aws`: both accounts assume, all 23 sites |
+| 4 notifications | ✅ | Slack + healthchecks.io: success and `--fail` both arrived |
+| 5 benchmark (workers → audio-min/min, memory) | ✅ | 1 → 14.1, 2 → 16.5, 3 → 16.4, 4 → 16.9. Peak whisper RSS 2.8 / 5.1 / 6.3 / 8.4 GB; min free memory 65 / 45 / 24 / 16%; swap < 1 GB. **Saved 2.** Took 2 h 10 min (8 hour-long episodes): fixed, see below |
+| 6 install | ✅ | First install as expected (`Boot-out failed: 3` on the first install only). Node `/opt/homebrew/opt/node@22/bin/node` |
+| 7 status, dry run | ✅ | Job loaded, wake set; `run-now --dry-run` succeeded through the runner |
+| 8 real run logged out; Full Disk Access? | ✅ (2nd try) | **1st (11:15): skipped**: EPERM on the SSD (**Full Disk Access is needed**) *and* no network (the only Ethernet is via a hub that was unplugged; Wi-Fi had no network joined), so Slack/healthcheck couldn't send either. Fixes: FDA for `/opt/homebrew/Cellar/node@22/22.23.3_1/bin/node` + `brew pin node@22`; joined Wi-Fi. **2nd (12:35, logged out, hub unplugged): succeeded**, 1 h 3 min: pre-sync 0 downloads, 8 episodes transcribed (2 workers), 59 files uploaded, CloudFront for 23 sites. It finished 2 min after the developer logged in; logs and the power log show steady progress and no sleep throughout, so not waiting on the login. At the next login macOS asked "Allow node to find devices on local networks"; "Don't Allow" is fine (the run went on to upload and notify after it) |
+| 9 indexing peak memory | ✅ | limitedresources (largest: 158 MB transcripts, 535,813 entries): 102 s, **max RSS 9.98 GB**, free memory ≥ 40%, no swap growth. The 9.5 GB heap is fine on 16 GB (indexing runs after transcription), and can't go lower without failing the largest site |
+| 10 SIGTERM while transcribing | ⏳ | Not done: no untranscribed episodes after the real run. Test on a day with new episodes |
 | Merged | | |
 
-Fixes made here:
+Fixes made here (each a commit on its PR; the stack was restacked):
+
+- #197 `fix(ingest): Count new audio files when LOG_LEVEL is unset`: every run reported "0 downloaded" (the count is parsed from an info-level line, hidden at the default `warn`).
+- #198 `feat(schedule): Easier-to-read Slack messages: bullets, linked sites` (the developer asked): bold headline, bullets, failed checks one per line (`failedChecks` in the record), episodes per site linked to the deployed site.
+- #199 `fix(schedule): Name the branch the runner follows when reusing it`: install said "keep it at origin/main" with `--track`.
+- #200 `fix(setup): Benchmark with shorter episodes; a realistic time estimate`; docs: network with nobody logged in, FDA is needed for an external SSD, the Local Network prompt, keg-only node and fnm/nvm prompts, the 16 GB benchmark table; `setup machine --help` says it doesn't ask without a terminal.
 
 Decisions made here:
 
+- FileVault off on the runner (it was on).
+- Full Disk Access: grant it to the Cellar node binary and `brew pin node@22` (over copying node to a stable path).
+- `transcriptionWorkers: 2` on the runner.
+- Keep the 9.5 GB indexing heap.
+- Network: Wi-Fi joined as the always-there network; the developer may add an Ethernet cable to the Mac itself later.
+- Local Network permission for node: denied, not needed.
+- Slack thread replies: not possible with an incoming webhook (no message `ts` to reply to); the site links went into the message instead. Threads would need a Slack app with a bot token (`chat.postMessage`): a possible follow-up.
+
 Left open:
+
+- Step 10 (SIGTERM while transcribing).
+- Tailscale is installed on the runner (Homebrew `tailscaled` as root, plus the app's network extension), unused. It didn't affect the runs; uninstall if it ever gets in the way.
+- The dry-run summary marks every phase ❌ although nothing failed (cosmetic, in the pipeline summary).

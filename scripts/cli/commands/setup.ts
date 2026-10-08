@@ -62,7 +62,7 @@ OPTIONS
   --skip-model-download     Don't download the model; print the command instead
   --automation-env=<path>   Copy this file to .env.automation (chmod 600)
   --aws                     Also run the AWS checks in doctor (read-only: sts:AssumeRole)
-  --yes, -y                 Don't ask before each change
+  --yes, -y                 Don't ask before each change (without a terminal, it doesn't ask either)
 
 Then: pnpm bds setup benchmark, and pnpm bds schedule install.
 `,

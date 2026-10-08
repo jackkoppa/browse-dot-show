@@ -45,6 +45,7 @@ On a **dedicated runner**:
   ```
 
 - **No automatic macOS installs:** System Settings → General → Software Update → ⓘ next to Automatic Updates: turn off "Install macOS updates" (downloads are fine). Install updates when you're around.
+- **A network that's there with nobody logged in:** Ethernet plugged into the Mac itself, or Wi-Fi joined in System Settings (networks joined there stay connected at the login screen). Ethernet through a hub or dock you sometimes unplug doesn't count: on the runner, a run with the hub unplugged and no Wi-Fi joined was skipped for no network.
 - **Optional, for running things remotely:** System Settings → General → Sharing → Remote Login (SSH).
 
 A laptop works on a best-effort basis: lid open, on power. A closed laptop without an external display won't stay awake reliably.
@@ -60,6 +61,8 @@ cd ~/browse-dot-show
 ```
 
 `bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@22`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. Scheduled runs use Homebrew's `node@22` by its absolute path, whatever node your shell uses.
+
+`node@22` is keg-only, so it isn't on your PATH. For `pnpm bds …` in a shell, add `export PATH="$(brew --prefix node@22)/bin:$PATH"` to `~/.zprofile` (bootstrap prints the line). If your shell uses fnm or nvm with auto-switching, `cd` into the repo may offer to install Node 22 from `.nvmrc`; either answer is fine, as long as Homebrew's node comes first on PATH afterwards.
 
 > [!IMPORTANT]
 > Don't clone into `~/Documents`, `~/Desktop` or `~/Downloads`: macOS blocks background jobs from reading those without extra permissions.
@@ -110,17 +113,28 @@ pnpm bds schedule test-notifications --fail   # a test failure (the healthcheck 
 pnpm bds setup benchmark
 ```
 
-Transcribes the same episodes with 1–4 parallel workers (each a `whisper-cli` process using about 2 GB with `large-v3-turbo`), recommends the fewest within 7% of the fastest, and offers to save it as `transcriptionWorkers` in `.local-files-config.json`. For reference, an M4 Pro with 64 GB did 24.7 / 35.2 / 47.6 / 50.7 audio minutes per minute with 1 / 2 / 3 / 4 workers.
+Transcribes the same episodes with 1–4 parallel workers (each a `whisper-cli` process using about 2 GB with `large-v3-turbo`), recommends the fewest within 7% of the fastest, and offers to save it as `transcriptionWorkers` in `.local-files-config.json`. It takes 30–60 minutes on a base M4 (it prefers episodes under 40 minutes; with only hour-long ones, about 2 hours). Do this before the first real run: without `transcriptionWorkers`, runs use 3 workers.
 
-### 6. Full Disk Access (if a run can't read the SSD)
+For reference (audio minutes per minute, `large-v3-turbo`):
 
-A background job may need Full Disk Access to read an external volume. Try without it first (step 8); if a scheduled run is skipped with "can't read/write … Operation not permitted", grant it to the node binary that `bds setup machine` prints: System Settings → Privacy & Security → Full Disk Access → **+** → ⌘⇧G → paste the path.
+| Mac | 1 worker | 2 | 3 | 4 | Saved |
+| --- | --- | --- | --- | --- | --- |
+| M4 Pro, 64 GB | 24.7 | 35.2 | 47.6 | 50.7 | 4 |
+| M4 (Mac mini), 16 GB | 14.1 | 16.5 | 16.4 | 16.9 | 2 |
+
+The base M4's GPU is nearly saturated by one worker, so more workers only add memory pressure: at 4 workers the whisper processes used 8.4 GB and free memory fell to 16%.
+
+### 6. Full Disk Access (for local files on an external drive)
+
+The LaunchDaemon needs Full Disk Access to read local files on an external volume: on the runner (macOS 26), a run without it was skipped with "can't read/write … EPERM: operation not permitted". Grant it to the real node binary (the run's checks print the path; or `realpath $(brew --prefix node@22)/bin/node`): System Settings → Privacy & Security → Full Disk Access → **+** → ⌘⇧G → paste the path → Open, and check its switch is on.
 
 That path is in Homebrew's Cellar and changes when `node@22` upgrades, which drops the permission. On the runner, pin it, and re-grant after you upgrade on purpose:
 
 ```bash
 brew pin node@22
 ```
+
+After a scheduled run, macOS may ask at your next login whether to "Allow 'node' to find devices on local networks". Runs don't need it (everything they talk to is on the internet); "Don't Allow" is fine, and System Settings → Privacy & Security → Local Network changes it later.
 
 ### 7. Install the schedule
 
@@ -180,7 +194,7 @@ pnpm bds schedule install --track=main             # afterwards
 | --- | --- |
 | Skipped: `… doesn't exist (is /Volumes/… mounted?)` | The SSD isn't mounted. Plug it in; check it mounts without a login (Disk Utility: APFS, not encrypted) |
 | Skipped: `can't read/write … Operation not permitted` | Full Disk Access (step 6) |
-| Skipped: network unreachable | No network for 3 minutes after the wake. Check Wi-Fi/Ethernet; Ethernet is steadier |
+| Skipped: network unreachable | No network for 3 minutes after the wake. Check Wi-Fi/Ethernet (step 1): with Ethernet only through an unplugged hub and no Wi-Fi joined, there's none. The Slack message and healthcheck ping fail too; the healthcheck alerts after its grace time |
 | Failed: `Updating the runner checkout failed` | `pnpm install` or the build failed on the new `main` (the runner went back to the previous commit), or the runner checkout has local changes (`git -C <runner> status`). The next run retries |
 | Failed: `bds ingest exited with code 1` | A pipeline error; the Slack message lists them, the run log has details |
 | `crashed` | The run died without finishing: see its log and `~/Library/Logs/browse-dot-show/launchd.log` |
