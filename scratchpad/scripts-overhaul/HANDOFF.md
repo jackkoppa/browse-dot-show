@@ -13,7 +13,7 @@
 | Session 1: scripts cleanup (M0–M4, M6) | #162–#168 | The `pnpm bds` CLI (`scripts/cli/`), shared modules (`scripts/lib/`), parallel transcription (`bds ingest --parallel=N`), docs rewrite, Hermit removed |
 | Follow-ups | #170–#175, #183–#185 | `validate sites` passes; index sites whose transcripts are newer than their index; worktrees get config symlinked (`bds worktree link-config`); process-audio typecheck; unchanged search-entries not re-uploaded; atomic per-file transcription locks; lockfiles never synced; NFC file names; RSS User-Agent (Buzzsprout 403s) |
 | M4b: deploys from GitHub Actions | #176–#181, #187–#192 | Plans on PRs (one job per AWS account), approval for every plan with changes, apply + client uploads on merge. Verified end to end on 2026-10-08 |
-| M5: scheduled ingestion (built, not yet tested with launchd) | #195–#200 (a stack; merge in order) | `bds schedule`, `bds setup machine/benchmark`, run lock, logs in `~/Library/Logs`, [docs/scheduled-ingestion.md](../../docs/scheduled-ingestion.md). Status, test runbook and open questions: [M5-mac-automation.md](./M5-mac-automation.md) |
+| M5: scheduled ingestion (tested on the 16 GB runner; merging) | #195–#200 (a stack; merge in order) | `bds schedule`, `bds setup machine/benchmark`, run lock, logs in `~/Library/Logs`, [docs/scheduled-ingestion.md](../../docs/scheduled-ingestion.md). Status, test runbook and open questions: [M5-mac-automation.md](./M5-mac-automation.md) |
 
 How things work now:
 
@@ -24,7 +24,7 @@ How things work now:
 
 ## What's next
 
-1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Decisions made and the code built (PR stack). The developer answered the open questions (in the M5 doc). Next: set up the 16 GB runner from the unmerged stack (`--track`), run the tests there, then merge, all in a new session on the runner ([M5-RUNNER-SESSION.md](./M5-RUNNER-SESSION.md)). The dev-Mac session resumes only after that, from the runner session's report (section 8 there).
+1. **M5: unattended ingestion on a Mac** ([M5-mac-automation.md](./M5-mac-automation.md)). Built as a PR stack and tested on the 16 GB runner (2026-10-08): a real scheduled run succeeded there, logged out. The runner session's report, fixes and decisions are in [M5-RUNNER-SESSION.md, section 8](./M5-RUNNER-SESSION.md#8-runner-test-results). Next: merge the stack, move the runner to `--track=main`, watch the nightly runs; SIGTERM while transcribing is still to test. On the dev Mac, `bds doctor` will report local files missing: the SSD moved to the runner.
 2. **Alongside M5: typecheck client and homepage: done in #201 (open)**, independent of the M5 stack. Its lockfile change plans all 23 sites (no changes expected) and re-uploads every client on merge. The notes below are what it addressed. #194 added the required `typecheck` check (`pnpm all:typecheck`, `scripts/ci/typecheck.ts`), covering 16 projects but not these two:
    - Their `tsconfig.json` uses project references (`files: []`), so `tsc -p tsconfig.json` checks nothing; check `tsconfig.app.json` and `tsconfig.node.json` instead.
    - `tsconfig.app.json` fails with ~62 errors (client and homepage alike), all in `packages/ui` components (`TS7016`/`TS7026`: no types for `react`). `packages/ui` is imported from source and doesn't depend on `@types/react`. Fix: add `@types/react` (matching the client's version) to `packages/ui` devDependencies.
