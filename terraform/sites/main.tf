@@ -105,6 +105,38 @@ resource "aws_acm_certificate" "custom_domain" {
   }
 }
 
+# Certificate for the custom domain plus additional_domain_names. A separate resource, so adding
+# domains never replaces the certificate CloudFront is using: this one waits for DNS validation
+# until enable_additional_domains_on_cloudfront switches CloudFront over to it.
+resource "aws_acm_certificate" "with_additional_domains" {
+  count = (var.custom_domain_name != "" && length(var.additional_domain_names) > 0) ? 1 : 0
+
+  domain_name               = var.custom_domain_name
+  subject_alternative_names = var.additional_domain_names
+  validation_method         = "DNS"
+
+  provider = aws.us_east_1
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${var.site_id}-ssl-certificate-additional-domains"
+    Site = var.site_id
+  }
+}
+
+locals {
+  serve_custom_domain      = var.enable_custom_domain_on_cloudfront && var.custom_domain_name != ""
+  serve_additional_domains = local.serve_custom_domain && var.enable_additional_domains_on_cloudfront && length(var.additional_domain_names) > 0
+  # Every domain CloudFront serves the site at (besides its own *.cloudfront.net domain)
+  site_domain_names = concat(
+    local.serve_custom_domain ? [var.custom_domain_name] : [],
+    local.serve_additional_domains ? var.additional_domain_names : []
+  )
+}
+
 # CloudFront distribution
 module "cloudfront" {
   source = "./modules/cloudfront"
@@ -114,9 +146,8 @@ module "cloudfront" {
   site_id                     = var.site_id
   
   # Add custom domain configuration
-  custom_domain_name  = var.custom_domain_name
-  enable_custom_domain = var.enable_custom_domain_on_cloudfront
-  certificate_arn     = (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? aws_acm_certificate.custom_domain[0].arn : ""
+  domain_names    = local.site_domain_names
+  certificate_arn = local.serve_additional_domains ? aws_acm_certificate.with_additional_domains[0].arn : (local.serve_custom_domain ? aws_acm_certificate.custom_domain[0].arn : "")
 }
 
 # Wait for the S3 bucket to be fully configured
@@ -288,7 +319,7 @@ resource "aws_apigatewayv2_api" "search_api" {
   cors_configuration {
     allow_origins = concat(
       ["https://${module.cloudfront.cloudfront_domain_name}"],
-      (var.enable_custom_domain_on_cloudfront && var.custom_domain_name != "") ? ["https://${var.custom_domain_name}"] : []
+      [for domain in local.site_domain_names : "https://${domain}"]
     )
     allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["Content-Type", "Authorization"]

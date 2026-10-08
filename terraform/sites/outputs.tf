@@ -64,4 +64,16 @@ output "rss_processing_schedule_enabled" {
 output "rss_processing_schedule_expression" {
   description = "Schedule expression for RSS processing (if enabled)"
   value       = var.enable_rss_processing_schedule ? var.rss_processing_schedule_expression : "disabled"
-} 
+}
+
+output "additional_domains_certificate_validation_records" {
+  description = "CNAME records that validate the additional-domains certificate; each goes in that domain's DNS"
+  value = [
+    for option in try(aws_acm_certificate.with_additional_domains[0].domain_validation_options, []) : {
+      domain = option.domain_name
+      name   = option.resource_record_name
+      type   = option.resource_record_type
+      value  = option.resource_record_value
+    }
+  ]
+}
