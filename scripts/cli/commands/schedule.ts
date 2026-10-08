@@ -17,7 +17,7 @@ const RUN_FLAGS = {
 const RUN_OPTIONS_USAGE = `  --dry-run                  Run \`bds ingest --dry-run\` (no downloads, uploads or AWS calls)
   --no-update                Don't update the runner checkout first
   --parallel=N               Transcription workers (default: transcriptionWorkers in .local-files-config.json)
-  --notify-on-success=<when> ${NOTIFY_ON_SUCCESS.join(' | ')} (default: from schedule.json, else new-episodes)`;
+  --notify-on-success=<when> ${NOTIFY_ON_SUCCESS.join(' | ')} (default: from schedule.json, else always)`;
 
 function parseRunFlags(argv: string[]) {
   const flags = parseFlags(argv, RUN_FLAGS);
