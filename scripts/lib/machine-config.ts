@@ -28,3 +28,15 @@ export function getDefaultTranscriptionWorkers(): number {
   const configured = readMachineConfig().transcriptionWorkers;
   return Number.isInteger(configured) && configured! > 0 ? configured! : DEFAULT_TRANSCRIPTION_WORKERS;
 }
+
+/** Merge keys into `.local-files-config.json`, keeping the others. */
+export function updateMachineConfig(patch: Record<string, unknown>): void {
+  const filePath = repoPath('.local-files-config.json');
+  let current: Record<string, unknown> = {};
+  try {
+    current = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    // missing or unreadable: start fresh
+  }
+  fs.writeFileSync(filePath, JSON.stringify({ ...current, ...patch }, null, 2) + '\n');
+}

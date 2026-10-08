@@ -13,8 +13,10 @@ Useful, safe commands:
 - `pnpm bds doctor`: check tools and config (no AWS calls unless `--aws`)
 - `pnpm bds ingest --sites=<id> --dry-run`: preview the pipeline (no downloads, uploads or AWS calls)
 - `pnpm bds validate sites`: validate site configs
+- `pnpm bds schedule status`: scheduled runs on this Mac (read-only)
+- `pnpm bds schedule run-now --dry-run --no-update`: a scheduled run end to end, without AWS calls
 
-Anything that touches AWS (`bds ingest` without `--dry-run`, `site deploy`, `site upload-client`, `site destroy`, `infra ...`, `lambda run --env=prod`, `doctor --aws`) needs the developer's go-ahead.
+Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run-now` without `--dry-run`, `site deploy`, `site upload-client`, `site destroy`, `infra ...`, `lambda run --env=prod`, `doctor --aws`) needs the developer's go-ahead. So do machine-level changes: `bds schedule install`/`uninstall` (sudo: LaunchDaemon, `pmset`).
 
 ## Checks
 
@@ -34,6 +36,7 @@ Merged PRs deploy from GitHub Actions. A PR that changes Terraform (including an
 ## Guides
 
 - [Local Development Guide](docs/local-development.md): setup, config files, CLI reference, ingestion, worktrees, scripts layout
+- [Scheduled ingestion on a Mac](docs/scheduled-ingestion.md): runner Mac setup, `bds schedule`, troubleshooting
 - [Deployment Guide](docs/deployment-guide.md)
 - [GitHub Actions deploys](docs/github-actions-deploys.md)
 - [Deployed-sites invariants and smoke tests](docs/deployed-sites-invariants.md): read before touching AWS names, the S3 layout, Terraform or lambda packaging

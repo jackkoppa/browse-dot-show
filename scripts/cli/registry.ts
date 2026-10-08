@@ -1,6 +1,5 @@
 import { commandName, type Command } from './command.js';
 import { ciAffectedCommand, ciPlanCommentCommand, ciTerraformCommand, ciTerraformGroupCommand, ciUploadHomepageCommand } from './commands/ci.js';
-import { setupMachineCommand } from './commands/coming-soon.js';
 import { devClientCommand, devHomepageCommand, devSearchHealthCommand, worktreeCommand } from './commands/dev.js';
 import { doctorCommand } from './commands/doctor.js';
 import { infraAutomationCommand, infraGithubActionsCommand, infraHomepageCommand } from './commands/infra.js';
@@ -14,6 +13,7 @@ import {
   scheduleTestNotificationsCommand,
   scheduleUninstallCommand,
 } from './commands/schedule.js';
+import { setupBenchmarkCommand, setupMachineCommand } from './commands/setup.js';
 import { siteCreateCommand, siteDeployCommand, siteDestroyCommand, siteUploadClientCommand } from './commands/site.js';
 import { validateCommand } from './commands/validate.js';
 
@@ -33,7 +33,13 @@ export const MENU: MenuNode[] = [
       { label: 'One scheduled run, as launchd starts it', command: scheduleRunCommand },
     ],
   },
-  { label: 'Set up this machine — coming soon', command: setupMachineCommand },
+  {
+    label: 'Set up this Mac',
+    children: [
+      { label: 'Set up: local files, whisper + model, env files, checks', command: setupMachineCommand },
+      { label: 'Benchmark transcription workers', command: setupBenchmarkCommand },
+    ],
+  },
   {
     label: 'Sites',
     children: [
