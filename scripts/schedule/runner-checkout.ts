@@ -1,6 +1,7 @@
 import { execFile, spawn } from 'child_process';
 import * as path from 'path';
 import { promisify } from 'util';
+import { onShutdown } from '../lib/shutdown.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -56,6 +57,11 @@ export function runLogged(command: string, args: string[], cwd: string, log: Log
   return new Promise((resolve, reject) => {
     log(`$ ${command} ${args.join(' ')}`);
     const child = spawn(command, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    // Stop it too if the run is stopped (e.g. launchctl bootout during an update)
+    const unregister = onShutdown(() => {
+      child.kill('SIGTERM');
+    });
+    child.on('close', unregister);
     const forward = (data: Buffer) => data.toString().split('\n').filter(Boolean).forEach(line => log(`  ${line}`));
     child.stdout.on('data', forward);
     child.stderr.on('data', forward);
