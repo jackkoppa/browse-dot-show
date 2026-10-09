@@ -82,6 +82,44 @@ export interface AppHeader {
     includeAIUseDisclosure: boolean;
 }
 
+/** A podcast's private subscriber feed, ingested into the site's `subscriber/` files */
+export interface SubscriberFeed {
+    /** The podcast (in `includedPodcasts`) this is the subscriber feed of: its subscriber-only episodes are searched alongside it */
+    podcastId: string;
+    /**
+     * Env var holding the feed URL, in `.env.local` on the machine that ingests. Never commit
+     * the URL itself: it carries the developer's personal subscriber token.
+     * @example `SUBSCRIBER_FEED_URL_LISTENFAIRPLAY_FOOTBALL_CLICHES`
+     */
+    feedUrlEnvVar: string;
+    /** @example `football-cliches-subscriber.xml` */
+    rssFeedFile: string;
+}
+
+export type SubscriberLoginProvider = 'supporting-cast' | 'dev-code';
+
+/**
+ * Lets listeners log in with their podcast subscription to also search, open and listen to
+ * subscriber-only episodes (with no play-time limit). See scratchpad/subscriber-access/PLAN.md.
+ */
+export interface SubscriberAccess {
+    /**
+     * - `preview`: only visible with the `?subscriberPreview=1` query param (for testing on prod)
+     * - `live`: visible to everyone
+     */
+    launchStatus: 'preview' | 'live';
+    /** How listeners log in. `dev-code` is for testing, and only offered in preview */
+    providers: SubscriberLoginProvider[];
+    /**
+     * Name of the subscription, as in "Log in with your {subscriptionName} subscription"
+     * @example `Football Clichés`
+     */
+    subscriptionName: string;
+    /** Where listeners can subscribe */
+    subscribeUrl: string;
+    subscriberFeeds: SubscriberFeed[];
+}
+
 export interface SiteConfig {
     /** site ID - needs to match the name of the directory */
     id: string;
@@ -126,6 +164,9 @@ export interface SiteConfig {
      * @example `<script data-goatcounter="https://listenfairplay.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>`
      */
     trackingScript?: string;
+
+    /** Subscriber login and subscriber-only episodes; most sites don't have this */
+    subscriberAccess?: SubscriberAccess;
 
     // TODO: We will likely add additional customization options, including - perhaps - certain React component files
 }

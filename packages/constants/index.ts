@@ -1,4 +1,7 @@
 export {
+  getContentScope,
+  SUBSCRIBER_CONTENT_DIR,
+  type ContentScope,
   getSearchIndexKey,
   getLocalDbPath,
   getEpisodeManifestKey,
