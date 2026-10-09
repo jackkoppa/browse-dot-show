@@ -5,6 +5,8 @@ import { SearchEntry } from '@browse-dot-show/types';
 interface ConvertSrtFileIntoSearchEntryArrayProps {
     srtFileContent: string | null | undefined; // Allow null/undefined
     sequentialEpisodeId: number;
+    /** The episode ID in entries, if not the sequential ID: `s<n>` for subscriber-only episodes */
+    episodeId?: string;
     episodePublishedUnixTimestamp: number; // Unix timestamp for sorting by episode date
 }
 
@@ -28,6 +30,7 @@ const MAX_CHUNK_DURATION_MS = 15000;
 export const convertSrtFileIntoSearchEntryArray = ({
     srtFileContent,
     sequentialEpisodeId,
+    episodeId = sequentialEpisodeId.toString(),
     episodePublishedUnixTimestamp,
 }: ConvertSrtFileIntoSearchEntryArrayProps): SearchEntry[] => {
 
@@ -122,14 +125,14 @@ export const convertSrtFileIntoSearchEntryArray = ({
             log.debug(`    Final Chunk End Time: ${chunkEndTimeMs}`);
             const actualChunkStartTime = currentChunkLines[0].startTimeMs;
 
-            const uniqueId = `${sequentialEpisodeId}_${actualChunkStartTime}`;
+            const uniqueId = `${episodeId}_${actualChunkStartTime}`;
             
             searchEntries.push({
                 id: uniqueId,
                 startTimeMs: actualChunkStartTime,
                 endTimeMs: chunkEndTimeMs,
                 text: chunkCombinedText.trim(),
-                sequentialEpisodeIdAsString: sequentialEpisodeId.toString(),
+                sequentialEpisodeIdAsString: episodeId,
                 episodePublishedUnixTimestamp,
             });
 
