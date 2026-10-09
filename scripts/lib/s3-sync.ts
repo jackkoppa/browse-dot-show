@@ -528,3 +528,36 @@ export async function performComprehensiveS3Sync(
     };
   }
 }
+
+/**
+ * Sync a site's `subscriber/` folder (subscriber-only files) in either direction: download what's
+ * missing locally, or upload what's new or changed. Only for sites whose Terraform denies
+ * CloudFront access to `subscriber/` (see `isSubscriberUploadEnabled`).
+ */
+export async function syncSubscriberFolder(
+  siteId: string,
+  credentials: AutomationCredentials,
+  direction: SyncDirection
+): Promise<SyncResult> {
+  const startTime = Date.now();
+  try {
+    const { siteConfig, tempCredentials } = await assumeAwsRole(siteId, 'subscriber-sync', credentials);
+    const syncOptions = createSyncOptions(
+      siteId,
+      direction,
+      direction === 'local-to-s3' ? 'overwrite-if-newer' : 'skip-existing',
+      siteConfig,
+      tempCredentials
+    );
+    const folderResult = await syncSingleFolder('subscriber', syncOptions);
+    return {
+      success: folderResult.success,
+      duration: Date.now() - startTime,
+      totalFilesTransferred: folderResult.filesTransferred,
+      error: folderResult.error,
+    };
+  } catch (error: any) {
+    logError(`Failed to sync the subscriber folder for ${siteId}: ${error.message}`);
+    return { success: false, duration: Date.now() - startTime, totalFilesTransferred: 0, error: error.message };
+  }
+}
