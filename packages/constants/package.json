@@ -6,10 +6,12 @@
     "main": "./dist/index.js",
     "type": "module",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "test": "vitest run"
     },
     "devDependencies": {
-        "typescript": "catalog:"
+        "typescript": "catalog:",
+        "vitest": "catalog:"
     },
     "exports": {
         ".": "./dist/index.js"

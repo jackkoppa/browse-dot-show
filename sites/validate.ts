@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory } from './index.js';
 import { SiteConfig } from './types.js';
+import { validateSubscriberAccess } from './subscriber-access.js';
 
 interface ValidationResult {
     site_id: string;
@@ -92,6 +93,9 @@ function validateSiteConfiguration(site: SiteConfig): ValidationResult {
     
     // 7. Validate color consistency across files
     validateColorConsistency(site, result);
+
+    // 8. Validate subscriber access, for sites that have it
+    result.errors.push(...validateSubscriberAccess(site));
     
     return result;
 }
