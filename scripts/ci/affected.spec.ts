@@ -50,9 +50,9 @@ describe('computeAffected', () => {
   });
 
   it('only notes the manual Terraform stacks', () => {
-    const result = affected('terraform/automation/main.tf', 'terraform/github-actions/main.tf');
+    const result = affected('terraform/automation/main.tf', 'terraform/github-actions/main.tf', 'terraform/auth/main.tf');
     expect(result).toMatchObject({ terraformSites: [], clientSites: [], homepage: false });
-    expect(result.notes).toHaveLength(2);
+    expect(result.notes).toHaveLength(3);
   });
 
   it('deploys everything when the lockfile changes', () => {

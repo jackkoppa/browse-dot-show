@@ -50,7 +50,7 @@ const LAMBDA_PACKAGES = [
 const SITES_PACKAGE_DIR = 'sites';
 const SITE_FOLDER = /^sites\/(origin-sites|my-sites)\/([^/]+)\/(.*)$/;
 const DEPLOY_EVERYTHING_FILES = ['pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.base.json', '.nvmrc'];
-const MANUAL_STACKS = ['terraform/automation/', 'terraform/github-actions/'];
+const MANUAL_STACKS = ['terraform/automation/', 'terraform/github-actions/', 'terraform/auth/'];
 
 /** Files that never affect a build: docs and tests. */
 function isIrrelevant(file: string): boolean {
