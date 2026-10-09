@@ -4,9 +4,9 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
 import { log } from '@browse-dot-show/logging';
 import { fileExists, getFile, saveFile, listFiles, createDirectory, deleteFile } from '@browse-dot-show/s3';
-import { getCurrentSiteRSSConfig, getCurrentSiteId } from '@browse-dot-show/config';
+import { getCurrentSiteRSSConfig, getCurrentSiteId, getSubscriberRSSConfigForSite } from '@browse-dot-show/config';
 import { EpisodeManifest, EpisodeInManifest } from '@browse-dot-show/types';
-import { getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
+import { createCounterpartMatcher, getContentScope, getEpisodeManifestKey, getRSSDirectoryPrefix, getAudioDirPrefix, getEpisodeManifestDirPrefix } from '@browse-dot-show/constants';
 
 import { parsePubDate } from './utils/parse-pub-date.js';
 import { stripDownloadedAtFromFileKey, getEpisodeFileKeyWithDownloadedAt } from './utils/get-episode-file-key.js';
@@ -17,11 +17,14 @@ log.info(`▶️ Starting retrieve-rss-feeds-and-download-audio-files, with logg
 // since ~March 2026), so identify ourselves the way podcast clients do
 const FETCH_HEADERS = { 'User-Agent': 'browse.show/1.0 (+https://browse.show)' };
 
+/** A URL's host, for logs: URLs can carry tokens (subscriber feeds always do) */
+function hostOf(url: string): string {
+  try { return new URL(url).host; } catch { return 'unknown host'; }
+}
+
 /** e.g. "HTTP 403 Forbidden from www.buzzsprout.com" (the host only: URLs can carry tokens) */
 function httpErrorMessage(response: Response, url: string): string {
-  let host = 'unknown host';
-  try { host = new URL(response.url || url).host; } catch { /* keep the fallback */ }
-  return `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''} from ${host}`;
+  return `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''} from ${hostOf(response.url || url)}`;
 }
 
 // Types
@@ -66,7 +69,7 @@ async function fetchRSSFeed(url: string): Promise<string> {
     }
     return await response.text();
   } catch (error) {
-    log.error(`Error fetching RSS feed from ${url}:`, error);
+    log.error(`Error fetching RSS feed from ${hostOf(url)}:`, error);
     throw error;
   }
 }
@@ -224,7 +227,7 @@ async function updateManifestWithNewEpisodes(
 
   for (const rssEpisode of rssEpisodes) {
     if (!rssEpisode.enclosure || typeof rssEpisode.enclosure.url !== 'string' || !rssEpisode.enclosure.url) {
-      log.warn(`Skipping episode "${rssEpisode.title || 'N/A'}" due to missing or invalid enclosure/URL. Enclosure data: ${JSON.stringify(rssEpisode.enclosure)}`);
+      log.warn(`Skipping episode "${rssEpisode.title || 'N/A'}" due to missing or invalid enclosure/URL.`);
       continue;
     }
     
@@ -233,7 +236,7 @@ async function updateManifestWithNewEpisodes(
     const pubDateString = rssEpisode.pubDate;
 
     if (!pubDateString) {
-      log.warn(`Skipping episode "${episodeTitle}" (URL: ${originalAudioURL}) due to missing publication date (pubDate).`);
+      log.warn(`Skipping episode "${episodeTitle}" due to missing publication date (pubDate).`);
       continue;
     }
     
@@ -244,7 +247,7 @@ async function updateManifestWithNewEpisodes(
             throw new Error('Parsed date is invalid');
         }
     } catch (e: any) {
-        log.warn(`Skipping episode "${episodeTitle}" (URL: ${originalAudioURL}) due to invalid publication date: "${pubDateString}". Error: ${e.message}`);
+        log.warn(`Skipping episode "${episodeTitle}" due to invalid publication date: "${pubDateString}". Error: ${e.message}`);
         continue;
     }
 
@@ -350,7 +353,7 @@ async function downloadEpisodeAudio(episode: EpisodeInManifest): Promise<string>
   const podcastAudioKey = path.join(getAudioDirPrefix(), episode.podcastId, audioFilename);
   
   try {
-    log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${url}`);
+    log.debug(`Downloading audio for episode: ${episode.title} (key: ${episode.fileKey}) from ${hostOf(url)}`);
     const response = await fetch(url, { headers: FETCH_HEADERS });
     if (!response.ok) {
       throw new Error(httpErrorMessage(response, url));
@@ -498,9 +501,28 @@ export async function handler(maxEpisodes?: number): Promise<void> {
     
     const episodeManifest = await getOrCreateEpisodeManifest();
     
-    // Get site-aware RSS configuration
-    log.info(`🌐 Loading RSS configuration for site: ${getCurrentSiteId()}`);
-    const siteRSSConfig = getCurrentSiteRSSConfig();
+    // Get site-aware RSS configuration: the public feeds, or (CONTENT_SCOPE=subscriber) the
+    // site's subscriber feeds, whose episodes go in subscriber/ with their own manifest
+    const contentScope = getContentScope();
+    log.info(`🌐 Loading ${contentScope} RSS configuration for site: ${getCurrentSiteId()}`);
+    let siteRSSConfig: Record<string, any>;
+    let publicEpisodes: EpisodeInManifest[] = [];
+    if (contentScope === 'subscriber') {
+      const { rssConfig, missingEnvVars } = getSubscriberRSSConfigForSite(getCurrentSiteId());
+      if (missingEnvVars.length > 0) {
+        log.warn(`⚠️ Skipping subscriber feeds whose URL isn't set (add to .env.local): ${missingEnvVars.join(', ')}`);
+      }
+      siteRSSConfig = rssConfig;
+      // Subscriber versions of public episodes aren't ingested again (see episode-matching.ts in @browse-dot-show/constants)
+      const publicManifestKey = getEpisodeManifestKey('public');
+      if (await fileExists(publicManifestKey)) {
+        publicEpisodes = (JSON.parse((await getFile(publicManifestKey)).toString('utf-8')) as EpisodeManifest).episodes;
+      } else {
+        log.warn(`No public episode manifest at ${publicManifestKey}: every subscriber episode counts as subscriber-only`);
+      }
+    } else {
+      siteRSSConfig = getCurrentSiteRSSConfig();
+    }
     const activeFeeds = Object.values(siteRSSConfig).filter(feed => feed.status === 'active');
     
     log.debug(`Found ${activeFeeds.length} active feeds to process based on version-controlled config.`);
@@ -529,6 +551,20 @@ export async function handler(maxEpisodes?: number): Promise<void> {
             continue;
         }
         
+        // 3b. Subscriber feeds: leave out versions of public episodes
+        if (contentScope === 'subscriber') {
+          const items: RssEpisode[] = [parsedFeed.rss.channel.item ?? []].flat();
+          const findPublicCounterpart = createCounterpartMatcher(publicEpisodes.filter(ep => ep.podcastId === podcastId));
+          const subscriberOnly = items.filter(item => {
+            const publishedAt = item.pubDate ? parsePubDate(item.pubDate) : null;
+            // Undated items are skipped (with a warning) when added to the manifest
+            if (!publishedAt || isNaN(publishedAt.getTime())) return true;
+            return !findPublicCounterpart(item.title || '', publishedAt);
+          });
+          log.info(`🔗 ${podcastConfig.title}: ${items.length - subscriberOnly.length} of ${items.length} episodes are versions of public episodes (left out); ${subscriberOnly.length} subscriber-only`);
+          parsedFeed.rss.channel.item = subscriberOnly;
+        }
+
         // 4. Update Episode Manifest with new episodes from this feed
         // This function now modifies episodeManifest directly
         const { newEpisodesInManifest } = await updateManifestWithNewEpisodes(parsedFeed, podcastConfig, episodeManifest, maxEpisodes);
