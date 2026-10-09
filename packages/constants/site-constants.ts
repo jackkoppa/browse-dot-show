@@ -19,112 +19,79 @@ function isLocalEnvironment(): boolean {
     return (process.env.FILE_STORAGE_ENV ?? '') === 'local';
 }
 
-/** 
- * Get environment-aware S3 key for the Orama search index file
- * - Local: sites/{siteId}/search-index/orama_index.msp (needs site disambiguation)
- * - AWS: search-index/orama_index.msp (bucket is already site-specific)
+/**
+ * Which content a process works with:
+ * - `public`: the site's public files (the default)
+ * - `subscriber`: subscriber-only files, under `subscriber/` (never served by CloudFront)
+ *
+ * Set with the CONTENT_SCOPE env var, so the ingestion lambdas run unchanged for either.
+ * Functions below take an explicit scope when code needs both.
  */
-export function getSearchIndexKey(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/search-index/orama_index.msp`;
-    } else {
-        // In AWS, bucket is already site-specific
-        return `search-index/orama_index.msp`;
+export type ContentScope = 'public' | 'subscriber';
+
+/** Top-level folder for subscriber-only files, in the site bucket and its local mirror */
+export const SUBSCRIBER_CONTENT_DIR = 'subscriber';
+
+export function getContentScope(): ContentScope {
+    const scope = process.env.CONTENT_SCOPE || 'public';
+    if (scope !== 'public' && scope !== 'subscriber') {
+        throw new Error(`Invalid CONTENT_SCOPE "${scope}" (expected "public" or "subscriber")`);
     }
+    return scope;
 }
 
-/** 
- * Get site-aware local path for Orama search index in Lambda environment
- * Each site gets its own temp file to avoid conflicts
+/**
+ * Environment-aware key prefix for a top-level folder (e.g. `audio`), with a trailing slash:
+ * - Local: sites/{siteId}/[subscriber/]{folder}/ (needs site disambiguation)
+ * - AWS: [subscriber/]{folder}/ (bucket is already site-specific)
  */
-export function getLocalDbPath(): string {
-    const siteId = getSiteId();
-    return `/tmp/orama_index_${siteId}.msp`;
+function getScopedPrefix(folder: string, scope: ContentScope): string {
+    const scoped = scope === 'subscriber' ? `${SUBSCRIBER_CONTENT_DIR}/${folder}/` : `${folder}/`;
+    return isLocalEnvironment() ? `sites/${getSiteId()}/${scoped}` : scoped;
 }
 
-/** 
- * Get environment-aware episode manifest key
- * - Local: sites/{siteId}/episode-manifest/full-episode-manifest.json
- * - AWS: episode-manifest/full-episode-manifest.json
- */
-export function getEpisodeManifestKey(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/episode-manifest/full-episode-manifest.json`;
-    } else {
-        return `episode-manifest/full-episode-manifest.json`;
-    }
+/** Environment-aware S3 key for the Orama search index file, e.g. `search-index/orama_index.msp` */
+export function getSearchIndexKey(scope: ContentScope = getContentScope()): string {
+    return `${getScopedPrefix('search-index', scope)}orama_index.msp`;
 }
 
-/** 
- * Get environment-aware audio directory prefix
- * - Local: sites/{siteId}/audio/
- * - AWS: audio/
+/**
+ * Site-aware local path for the Orama search index in the Lambda environment.
+ * Each site (and scope) gets its own temp file to avoid conflicts.
  */
-export function getAudioDirPrefix(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/audio/`;
-    } else {
-        return `audio/`;
-    }
+export function getLocalDbPath(scope: ContentScope = getContentScope()): string {
+    const suffix = scope === 'subscriber' ? '_subscriber' : '';
+    return `/tmp/orama_index_${getSiteId()}${suffix}.msp`;
 }
 
-/** 
- * Get environment-aware transcripts directory prefix
- * - Local: sites/{siteId}/transcripts/
- * - AWS: transcripts/
- */
-export function getTranscriptsDirPrefix(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/transcripts/`;
-    } else {
-        return `transcripts/`;
-    }
+/** Environment-aware episode manifest key, e.g. `episode-manifest/full-episode-manifest.json` */
+export function getEpisodeManifestKey(scope: ContentScope = getContentScope()): string {
+    return `${getScopedPrefix('episode-manifest', scope)}full-episode-manifest.json`;
 }
 
-/** 
- * Get environment-aware RSS directory prefix
- * - Local: sites/{siteId}/rss/
- * - AWS: rss/
- */
-export function getRSSDirectoryPrefix(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/rss/`;
-    } else {
-        return `rss/`;
-    }
+/** Environment-aware audio directory prefix, e.g. `audio/` */
+export function getAudioDirPrefix(scope: ContentScope = getContentScope()): string {
+    return getScopedPrefix('audio', scope);
 }
 
-/** 
- * Get environment-aware search entries directory prefix
- * - Local: sites/{siteId}/search-entries/
- * - AWS: search-entries/
- */
-export function getSearchEntriesDirPrefix(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/search-entries/`;
-    } else {
-        return `search-entries/`;
-    }
+/** Environment-aware transcripts directory prefix, e.g. `transcripts/` */
+export function getTranscriptsDirPrefix(scope: ContentScope = getContentScope()): string {
+    return getScopedPrefix('transcripts', scope);
 }
 
-/** 
- * Get environment-aware episode manifest directory prefix
- * - Local: sites/{siteId}/episode-manifest/
- * - AWS: episode-manifest/
- */
-export function getEpisodeManifestDirPrefix(): string {
-    if (isLocalEnvironment()) {
-        const siteId = getSiteId();
-        return `sites/${siteId}/episode-manifest/`;
-    } else {
-        return `episode-manifest/`;
-    }
+/** Environment-aware RSS directory prefix, e.g. `rss/` */
+export function getRSSDirectoryPrefix(scope: ContentScope = getContentScope()): string {
+    return getScopedPrefix('rss', scope);
+}
+
+/** Environment-aware search entries directory prefix, e.g. `search-entries/` */
+export function getSearchEntriesDirPrefix(scope: ContentScope = getContentScope()): string {
+    return getScopedPrefix('search-entries', scope);
+}
+
+/** Environment-aware episode manifest directory prefix, e.g. `episode-manifest/` */
+export function getEpisodeManifestDirPrefix(scope: ContentScope = getContentScope()): string {
+    return getScopedPrefix('episode-manifest', scope);
 }
 
 /**

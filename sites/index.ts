@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Podcast, SiteConfig, AppHeader, SocialAndMetadata } from './types.js';
+import { Podcast, SiteConfig, AppHeader, SocialAndMetadata, SubscriberAccess, SubscriberFeed, SubscriberLoginProvider } from './types.js';
 
-export type { SiteConfig, AppHeader, SocialAndMetadata, Podcast };
+export type { SiteConfig, AppHeader, SocialAndMetadata, Podcast, SubscriberAccess, SubscriberFeed, SubscriberLoginProvider };
+export { validateSubscriberAccess } from './subscriber-access.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
