@@ -57,6 +57,20 @@ describe('groupBySite', () => {
     const groups = groupBySite([file('a', '1', 1), file('a', '2', 1), file('b', '3', 1)]);
     expect(groups.map(g => [g.siteId, g.files.length])).toEqual([['a', 2], ['b', 1]]);
   });
+
+  it("keeps a site's subscriber files in their own group", () => {
+    const subscriberFile = { ...file('a', 's', 1), scope: 'subscriber' as const };
+    const groups = groupBySite([file('a', '1', 1), subscriberFile, file('b', '3', 1)]);
+    expect(groups.map(g => [g.siteId, g.scope, g.files.length])).toEqual([['a', 'public', 1], ['a', 'subscriber', 1], ['b', 'public', 1]]);
+  });
+});
+
+describe('assignToWorkers with subscriber files', () => {
+  it("puts each site's public files before its subscriber files", () => {
+    const subscriberFile = { ...file('a', 's', 50), scope: 'subscriber' as const };
+    const [worker] = assignToWorkers([subscriberFile, file('a', '1', 10), file('a', '2', 5)], 1);
+    expect(worker.files.map(f => f.scope ?? 'public')).toEqual(['public', 'public', 'subscriber']);
+  });
 });
 
 describe('parseProgressEvents', () => {
@@ -76,6 +90,7 @@ describe('parseProgressEvents', () => {
 describe('transcriptPathFor', () => {
   it('maps audio/<podcast>/<file>.mp3 to transcripts/<podcast>/<file>.srt', () => {
     expect(transcriptPathFor('/files/s3/sites/x/audio/pod/ep 1.mp3')).toBe('/files/s3/sites/x/transcripts/pod/ep 1.srt');
+    expect(transcriptPathFor('/files/s3/sites/x/subscriber/audio/pod/ep 1.mp3')).toBe('/files/s3/sites/x/subscriber/transcripts/pod/ep 1.srt');
   });
 });
 

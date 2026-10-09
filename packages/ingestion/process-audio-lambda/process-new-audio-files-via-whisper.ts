@@ -25,14 +25,16 @@ import {
 import { killActiveWhisperProcess, transcribeViaWhisper, WhisperApiProvider } from './utils/transcribe-via-whisper.js';
 import { splitAudioFile, prepareAudioFile, TranscriptionChunk, getAudioMetadata } from './utils/ffmpeg-utils.js';
 import { LocalFileLocks } from './utils/local-file-locks.js';
+import { getContentScope, SUBSCRIBER_CONTENT_DIR } from '@browse-dot-show/constants';
 
 
 log.info(`▶️ Starting process-new-audio-files-via-whisper, with logging level: ${log.getLevel()}`);
 
-// Constants - S3 paths
-const AUDIO_DIR_PREFIX = 'audio/';
-const TRANSCRIPTS_DIR_PREFIX = 'transcripts/';
-const LOCKFILE_PATH = 'transcripts/.processing-lock.json';
+// Constants - S3 paths (site-relative; CONTENT_SCOPE=subscriber uses the subscriber/ files)
+const SCOPE_PREFIX = getContentScope() === 'subscriber' ? `${SUBSCRIBER_CONTENT_DIR}/` : '';
+const AUDIO_DIR_PREFIX = `${SCOPE_PREFIX}audio/`;
+const TRANSCRIPTS_DIR_PREFIX = `${SCOPE_PREFIX}transcripts/`;
+const LOCKFILE_PATH = `${TRANSCRIPTS_DIR_PREFIX}.processing-lock.json`;
 const MAX_FILE_SIZE_MB = 25;
 const MAX_DURATION_MINUTES = 20; // Maximum duration before chunking
 // Which Whisper API provider to use (can be configured via environment variable)

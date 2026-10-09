@@ -392,6 +392,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 'catalog:'
         version: 3.844.0
+      '@browse-dot-show/constants':
+        specifier: workspace:*
+        version: link:../../constants
       '@browse-dot-show/logging':
         specifier: workspace:*
         version: link:../../logging
