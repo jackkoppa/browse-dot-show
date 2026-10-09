@@ -9,6 +9,7 @@
     "test": "vitest run",
     "build:prod": "dotenvx run -f ../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
     "dev:local": "tsx dev-server.ts",
+    "generate-signing-key": "tsx generate-signing-key.ts",
     "__prepare-for-aws": "tsx ../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/auth-lambda"
   },
   "devDependencies": {

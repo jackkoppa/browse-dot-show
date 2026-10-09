@@ -1,0 +1,3 @@
+bucket = "homepage-terraform-state"
+key    = "subscriber-auth/terraform.tfstate"
+region = "us-east-1"
