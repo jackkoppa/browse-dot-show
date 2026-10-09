@@ -1,0 +1,26 @@
+{
+  "name": "@browse-dot-show/auth-lambda",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Shared subscriber login: checks a listener's podcast subscription and issues session tokens",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "build:prod": "dotenvx run -f ../../.env.lambda-prod-build -- rolldown -c rolldown.config.ts && pnpm __prepare-for-aws",
+    "dev:local": "tsx dev-server.ts",
+    "__prepare-for-aws": "tsx ../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/auth-lambda"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-ssm": "catalog:",
+    "@browse-dot-show/auth": "workspace:*",
+    "@browse-dot-show/logging": "workspace:*",
+    "rolldown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
