@@ -1,3 +1,3 @@
-export { RSS_CONFIG, getRSSConfigForSite, getCurrentSiteId, getCurrentSiteRSSConfig } from "./rss-config.js";
+export { RSS_CONFIG, getRSSConfigForSite, getSubscriberRSSConfigForSite, getCurrentSiteId, getCurrentSiteRSSConfig } from "./rss-config.js";
 export { SEARCH_FACETS } from "./search-facets.js";
 export { getLocalFilesBasePath, getLocalS3Path, getLocalS3SitePath, getLocalS3LegacyPath, clearConfigCache, getWorktreeDirectory, saveWorktreeDirectory } from "./local-files-config.js";
