@@ -113,6 +113,15 @@ Most DNS hosts (Squarespace, Namecheap, GoDaddy) want only the part before the d
 
 Once ACM shows the certificate as **Issued**, set `enable_additional_domains_on_cloudfront = true` and merge. CloudFront switches to the new certificate and adds the aliases, and the search API's CORS allows the new origins. CloudFront takes a few minutes to deploy.
 
+### Optional: the podcast's own branding
+
+When the podcast's domain becomes the main address (as with libero), also update `site.config.json`, like `listenfairplay`:
+
+- `socialAndMetadata.canonicalUrl`: the podcast's domain, so search engines show it. Only once it serves the site (step 3).
+- `appHeader.includeTitlePrefix: false`: drops `[browse.show]` from the header. The info drawer still says "Powered by browse.show".
+- `pageTitle` / `metaTitle` without `[browse.show]`, e.g. `Libero | Search the Podcast Archives`.
+- `assets/site.webmanifest`: `name` and `short_name` (the home-screen label).
+
 ### Changing the list later
 
 Changing `additional_domain_names` replaces the certificate, and the new one needs validating before CloudFront can use it. Set `enable_additional_domains_on_cloudfront = false` in the same change, then repeat steps 2 and 3. To remove the extra domains, set `additional_domain_names = []` and the flag to `false`.

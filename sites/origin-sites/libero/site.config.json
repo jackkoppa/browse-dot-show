@@ -3,18 +3,18 @@
   "domain": "libero.browse.show",
   "appHeader": {
     "primaryTitle": "Libero",
-    "includeTitlePrefix": true,
+    "includeTitlePrefix": false,
     "taglinePrimaryPodcastName": "Libero",
     "taglinePrimaryPodcastExternalURL": "https://www.liberopodcast.com/",
     "taglineSuffix": "podcast archives",
     "includeAIUseDisclosure": false
   },
   "socialAndMetadata": {
-    "pageTitle": "[browse.show] Libero",
+    "pageTitle": "Libero | Search the Podcast Archives",
     "canonicalUrl": "https://search.liberopodcast.com",
     "openGraphImagePath": "./assets/social-cards/open-graph-card-1200x630.png",
-    "metaDescription": "Search all episodes of the Libero podcast",
-    "metaTitle": "[browse.show] Libero"
+    "metaDescription": "Search every episode of the Libero podcast",
+    "metaTitle": "Libero | Search the Podcast Archives"
   },
   "includedPodcasts": [
     {

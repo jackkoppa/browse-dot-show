@@ -1,6 +1,6 @@
 {
-  "name": "[browse.show] Libero",
-  "short_name": "browse.show",
+  "name": "Libero | Search the Podcast Archives",
+  "short_name": "Libero Search",
   "icons": [
     {
       "src": "/assets/web-app-manifest-192x192.png",
