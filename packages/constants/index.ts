@@ -18,7 +18,8 @@ export {
 } from './site-constants.js';
 
 export {
-  CLIENT_PORT_NUMBER
+  CLIENT_PORT_NUMBER,
+  SUBSCRIBER_AUTH_API_URL
 } from './repo-constants.js';
 
 export {

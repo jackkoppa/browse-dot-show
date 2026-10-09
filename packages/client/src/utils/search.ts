@@ -1,5 +1,6 @@
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { SortOption } from '../types/search';
+import { SubscriberUnauthorizedError } from '../subscriber/api';
 
 export interface SearchParams {
   query: string;
@@ -7,13 +8,15 @@ export interface SearchParams {
   searchApiBaseUrl: string;
   searchLimit: number;
   searchOffset?: number;
+  /** A subscriber session token: searches the subscriber index (public + subscriber-only episodes) instead */
+  subscriberToken?: string;
 }
 
 /**
  * Perform a search request to the search API
  */
 export async function performSearch(params: SearchParams): Promise<SearchResponse> {
-  const { query, sortOption, searchApiBaseUrl, searchLimit, searchOffset = 0 } = params;
+  const { query, sortOption, searchApiBaseUrl, searchLimit, searchOffset = 0, subscriberToken } = params;
 
   const searchRequest: SearchRequest = {
     query: query.trim(),
@@ -32,14 +35,18 @@ export async function performSearch(params: SearchParams): Promise<SearchRespons
   }
   // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
 
-  const response = await fetch(`${searchApiBaseUrl}/`, {
+  const response = await fetch(subscriberToken ? `${searchApiBaseUrl}/subscriber` : `${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(subscriberToken ? { Authorization: `Bearer ${subscriberToken}` } : {}),
     },
     body: JSON.stringify(searchRequest),
   });
 
+  if (subscriberToken && response.status === 401) {
+    throw new SubscriberUnauthorizedError();
+  }
   if (!response.ok) {
     throw new Error(`Search request failed: ${response.status} ${response.statusText}`);
   }
@@ -51,20 +58,22 @@ export async function performSearch(params: SearchParams): Promise<SearchRespons
  * Performs a health check request to warm up the search Lambda
  * 
  * @param searchApiBaseUrl - The base URL for the search API
+ * @param subscriberToken - Warms the subscriber API instead
  * @returns Promise that resolves when the Lambda is warmed up
  * @throws Error if the health check request fails
  */
-export const performHealthCheck = async (searchApiBaseUrl: string): Promise<void> => {
+export const performHealthCheck = async (searchApiBaseUrl: string, subscriberToken?: string): Promise<void> => {
   const healthCheckRequest: SearchRequest = {
     query: 'health check',
     limit: 1,
     isHealthCheckOnly: true
   };
 
-  const response = await fetch(`${searchApiBaseUrl}/`, {
+  const response = await fetch(subscriberToken ? `${searchApiBaseUrl}/subscriber` : `${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(subscriberToken ? { Authorization: `Bearer ${subscriberToken}` } : {}),
     },
     body: JSON.stringify(healthCheckRequest),
   });

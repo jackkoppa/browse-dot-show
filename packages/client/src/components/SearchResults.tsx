@@ -1,4 +1,5 @@
-import { ApiSearchResultHit, EpisodeManifest } from '@browse-dot-show/types'
+import { ApiSearchResultHit, EpisodeManifest, parseEpisodeId } from '@browse-dot-show/types'
+import { useSubscriberEpisodes } from '../subscriber/useSubscriberEpisodes'
 import SearchResult from './SearchResult'
 import SearchResultsPagination from './SearchResultsPagination'
 import {
@@ -106,6 +107,8 @@ export default function SearchResults({
   itemsPerPage,
   onPageChange,
 }: SearchResultsProps) {
+  const subscriberEpisodes = useSubscriberEpisodes();
+
   // Show error message if there's an error
   if (error) {
     return (
@@ -115,6 +118,13 @@ export default function SearchResults({
       </div>
     );
   }
+
+  // Subscriber-only episodes (`s<n>`) come from the subscriber API; public ones from the manifest
+  const findEpisode = (episodeId: string) => {
+    const parsed = parseEpisodeId(episodeId);
+    if (parsed?.scope === 'subscriber') return subscriberEpisodes.get(episodeId);
+    return episodeManifest?.episodes.find(ep => ep.sequentialId === parsed?.sequentialId);
+  };
 
   // round to nearest 0.001 seconds, and always show at least 0.001 seconds
   const processingTimeSeconds = Math.max(Number((processingTimeMs / 1000).toFixed(3)), 0.001);
@@ -192,7 +202,7 @@ export default function SearchResults({
               <SearchResult
                 key={result.id}
                 result={result}
-                episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
+                episodeData={findEpisode(result.sequentialEpisodeIdAsString)}
                 isManifestLoading={isManifestLoading}
                 showManifestError={Boolean(manifestError)}
               />
