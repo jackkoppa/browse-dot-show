@@ -7,7 +7,7 @@ import path from 'path'
 import type { ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { log } from './src/utils/logging';
-import { CLIENT_PORT_NUMBER } from '@browse-dot-show/constants';
+import { CLIENT_PORT_NUMBER, SUBSCRIBER_AUTH_API_URL } from '@browse-dot-show/constants';
 
 import { getSiteById, getSiteDirectory } from '@browse-dot-show/sites';
 import { getLocalS3SitePath } from '@browse-dot-show/config';
@@ -46,6 +46,14 @@ function loadSiteConfig() {
     VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
     VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: JSON.stringify(siteConfig.searchPlaceholderOptions),
     VITE_SITE_TRACKING_SCRIPT: siteConfig.trackingScript,
+    // Only for sites with subscriber access (see scratchpad/subscriber-access/PLAN.md)
+    VITE_SUBSCRIBER_ACCESS: siteConfig.subscriberAccess && JSON.stringify({
+      launchStatus: siteConfig.subscriberAccess.launchStatus,
+      providers: siteConfig.subscriberAccess.providers,
+      subscriptionName: siteConfig.subscriberAccess.subscriptionName,
+      subscribeUrl: siteConfig.subscriberAccess.subscribeUrl,
+      authApiUrl: process.env.VITE_SUBSCRIBER_AUTH_API_URL || SUBSCRIBER_AUTH_API_URL,
+    }),
   };
 }
 

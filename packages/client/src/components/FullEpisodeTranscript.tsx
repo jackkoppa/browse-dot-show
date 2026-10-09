@@ -5,8 +5,8 @@ import { formatMillisecondsToMMSS } from '@/utils/time'
 import { Badge } from '@browse-dot-show/ui'
 import { encodeFileKey } from '@/utils/encode'
 
-async function getFullEpisodeSearchEntryFile(fileKey: string, podcastId: string): Promise<SearchEntry[]> {
-    const response = await fetch(`${S3_HOSTED_FILES_BASE_URL}search-entries/${podcastId}/${encodeFileKey(fileKey)}.json`);
+async function getFullEpisodeSearchEntryFile(fileKey: string, podcastId: string, searchEntriesUrl?: string): Promise<SearchEntry[]> {
+    const response = await fetch(searchEntriesUrl ?? `${S3_HOSTED_FILES_BASE_URL}search-entries/${podcastId}/${encodeFileKey(fileKey)}.json`);
     const data = await response.json();
     return data;
 }
@@ -19,11 +19,14 @@ const ENTRY_MATCHING_THRESHOLD_MS = 500
 
 export default function FullEpisodeTranscript({
     episodeData,
+    searchEntriesUrl,
     startTimeMs,
     currentPlayingTimeMs,
     onEntryClick
 }: {
-    episodeData: EpisodeInManifest;
+    episodeData: Pick<EpisodeInManifest, 'fileKey' | 'podcastId'>;
+    /** Where to fetch the transcript, if not the public search-entries file (subscriber episodes: a presigned URL) */
+    searchEntriesUrl?: string;
     startTimeMs: number | null;
     currentPlayingTimeMs: number | null;
     onEntryClick: (entry: SearchEntry) => void;
@@ -36,9 +39,9 @@ export default function FullEpisodeTranscript({
     const currentPlayingEntryRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        getFullEpisodeSearchEntryFile(episodeData.fileKey, episodeData.podcastId).then(setSearchEntries);
+        getFullEpisodeSearchEntryFile(episodeData.fileKey, episodeData.podcastId, searchEntriesUrl).then(setSearchEntries);
         setIsLoading(false);
-    }, [episodeData]);
+    }, [episodeData, searchEntriesUrl]);
 
     // Find the URL-based target entry to highlight and scroll to (only on initial load)
     useEffect(() => {
