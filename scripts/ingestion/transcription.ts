@@ -7,6 +7,8 @@ import { runLambdaLocally } from '../lib/lambda.js';
 import { onShutdown } from '../lib/shutdown.js';
 import type { Site } from '../lib/sites.js';
 import { logsDir } from '../lib/user-dirs.js';
+import type { ContentScope } from '@browse-dot-show/constants';
+import { hasSubscriberFeeds, SUBSCRIBER_FOLDER } from '../lib/subscriber-access.js';
 
 /**
  * Transcribe untranscribed audio for many sites at once, with N parallel workers.
@@ -23,7 +25,9 @@ const execFileAsync = promisify(execFile);
 
 export interface AudioFile {
   siteId: string;
-  /** Key relative to the site root, e.g. `audio/<podcastId>/<file>.mp3`. */
+  /** `subscriber` for subscriber-only episodes (under `subscriber/`); transcribed with CONTENT_SCOPE=subscriber */
+  scope?: ContentScope;
+  /** Key relative to the site root, e.g. `audio/<podcastId>/<file>.mp3` (or `subscriber/audio/…`). */
   key: string;
   fullPath: string;
   durationMinutes: number;
@@ -89,13 +93,15 @@ async function mapWithLimit<T, R>(items: T[], limit: number, fn: (item: T) => Pr
   return results;
 }
 
-/** Untranscribed audio files for the given sites, with durations. */
+/** Untranscribed audio files for the given sites (public, then subscriber-only), with durations. */
 export async function findUntranscribedFiles(sites: Site[]): Promise<AudioFile[]> {
   const pending = sites.flatMap(site => {
     const siteRoot = getLocalS3SitePath(site.id);
-    return listMp3Files(path.join(siteRoot, 'audio'))
+    const scopes: { scope: ContentScope; audioDir: string }[] = [{ scope: 'public', audioDir: path.join(siteRoot, 'audio') }];
+    if (hasSubscriberFeeds(site.id)) scopes.push({ scope: 'subscriber', audioDir: path.join(siteRoot, SUBSCRIBER_FOLDER, 'audio') });
+    return scopes.flatMap(({ scope, audioDir }) => listMp3Files(audioDir)
       .filter(fullPath => !fs.existsSync(transcriptPathFor(fullPath)))
-      .map(fullPath => ({ siteId: site.id, key: path.relative(siteRoot, fullPath), fullPath }));
+      .map(fullPath => ({ siteId: site.id, scope, key: path.relative(siteRoot, fullPath), fullPath })));
   });
 
   return mapWithLimit(pending, 8, async file => ({ ...file, durationMinutes: await audioDurationMinutes(file.fullPath) }));
@@ -104,7 +110,8 @@ export async function findUntranscribedFiles(sites: Site[]): Promise<AudioFile[]
 /**
  * Split files across `workerCount` workers, balanced by duration: longest files first, each
  * to the worker with the least total so far. Workers with no files are omitted. Within a
- * worker, files are grouped by site (in `siteOrder`), since each lambda run handles one site.
+ * worker, files are grouped by site (in `siteOrder`) and scope, since each lambda run handles one
+ * site's public or subscriber files.
  */
 export function assignToWorkers(files: AudioFile[], workerCount: number, siteOrder: string[] = []): WorkerPlan[] {
   const count = Math.max(1, Math.min(workerCount, files.length));
@@ -125,18 +132,22 @@ export function assignToWorkers(files: AudioFile[], workerCount: number, siteOrd
     return index === -1 ? Number.MAX_SAFE_INTEGER : index;
   };
   for (const worker of workers) {
-    worker.files.sort((a, b) => order(a.siteId) - order(b.siteId) || a.siteId.localeCompare(b.siteId));
+    // Public files before subscriber files, so each site needs at most two lambda runs
+    const scopeRank = (file: AudioFile) => (file.scope === 'subscriber' ? 1 : 0);
+    worker.files.sort((a, b) => order(a.siteId) - order(b.siteId) || a.siteId.localeCompare(b.siteId) || scopeRank(a) - scopeRank(b));
   }
   return workers.filter(worker => worker.files.length > 0);
 }
 
 /** Group a worker's files into consecutive per-site batches. */
-export function groupBySite(files: AudioFile[]): { siteId: string; files: AudioFile[] }[] {
-  const groups: { siteId: string; files: AudioFile[] }[] = [];
+/** Consecutive files of the same site and scope: each group is one lambda run */
+export function groupBySite(files: AudioFile[]): { siteId: string; scope: ContentScope; files: AudioFile[] }[] {
+  const groups: { siteId: string; scope: ContentScope; files: AudioFile[] }[] = [];
   for (const file of files) {
+    const scope = file.scope ?? 'public';
     const last = groups[groups.length - 1];
-    if (last && last.siteId === file.siteId) last.files.push(file);
-    else groups.push({ siteId: file.siteId, files: [file] });
+    if (last && last.siteId === file.siteId && last.scope === scope) last.files.push(file);
+    else groups.push({ siteId: file.siteId, scope, files: [file] });
   }
   return groups;
 }
@@ -329,7 +340,7 @@ export async function runParallelTranscription(options: ParallelTranscriptionOpt
             lambda: 'process-audio',
             siteId: batch.siteId,
             files: batch.files.map(f => f.key),
-            env: { WORKER_ID: state.plan.workerId },
+            env: { WORKER_ID: state.plan.workerId, CONTENT_SCOPE: batch.scope },
             output: 'quiet',
             onSpawn: child => {
               running.add(child);

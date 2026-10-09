@@ -1,12 +1,15 @@
 import { loadAutomationCredentials, type AutomationCredentials } from '../lib/env.js';
-import { logError, logInfo } from '../lib/logging.js';
+import { logError, logInfo, logWarning } from '../lib/logging.js';
 import { PipelineResultLogger } from '../lib/pipeline-result-logger.js';
 import {
   assumeAwsRole,
   performComprehensiveS3Sync,
   performS3ToLocalPreSync,
   syncEpisodeManifestFolder,
+  syncSubscriberFolder,
 } from '../lib/s3-sync.js';
+import { getLocalS3SitePath } from '@browse-dot-show/config';
+import { hasSubscriberFeeds, isSubscriberIndexStale, isSubscriberUploadEnabled } from '../lib/subscriber-access.js';
 import { displaySyncConsistencyReport, generateSyncConsistencyReport, SYNC_MODES } from '../lib/sync-consistency-checker.js';
 import {
   invalidateCloudFrontForSite,
@@ -32,6 +35,11 @@ import type { PipelineConfig, SiteProcessingResult } from './types.js';
  *    transcripts are newer than their index (e.g. after a manual `bds lambda run`)
  * 5. S3 sync: upload new local files (incl. search index), then refresh the search lambda
  * 6. CloudFront invalidation for sites with uploads
+ *
+ * Sites with subscriber feeds (`subscriberAccess` in site config) also get a subscriber pass:
+ * their `subscriber/` files are pre-synced, retrieved, transcribed, indexed (one index of public
+ * + subscriber-only episodes) and uploaded alongside the public ones. Uploads only happen once
+ * the site's Terraform denies CloudFront access to `subscriber/` (`enable_subscriber_access`).
  *
  * S3 phases use the automation user (`.env.automation`) and assume
  * `browse-dot-show-automation-role` in each site's account.
@@ -103,6 +111,24 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     });
   }
 
+  /** Upload a site's subscriber/ files (once its Terraform protects them) and refresh its subscriber API */
+  async function uploadSubscriberFiles(siteId: string, result: SiteProcessingResult): Promise<void> {
+    if (!isSubscriberUploadEnabled(siteId)) {
+      logWarning(`Not uploading ${siteId}'s subscriber files: set enable_subscriber_access = true in its prod.tfvars (and deploy it) first`);
+      return;
+    }
+    const upload = await syncSubscriberFolder(siteId, credentials, 'local-to-s3');
+    result.s3SyncTotalFilesUploaded = (result.s3SyncTotalFilesUploaded ?? 0) + upload.totalFilesTransferred;
+    if (upload.error) {
+      result.errors.push(`Subscriber upload error: ${upload.error}`);
+      return;
+    }
+    if (upload.totalFilesTransferred > 0) {
+      const refresh = await triggerSearchApiLambdaRefresh(siteId, credentials, `subscriber-api-${siteId}`);
+      if (refresh.error) result.errors.push(`subscriber-api Lambda refresh error: ${refresh.error}`);
+    }
+  }
+
   // Phase 1: Pre-sync check - Download files from S3 that don't exist locally
   if (config.phases.preSync) {
     console.log('\n' + '='.repeat(60));
@@ -149,6 +175,12 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
             results[i].s3PreSyncFilesDownloaded = 0;
           }
           
+          if (hasSubscriberFeeds(site.id) && isSubscriberUploadEnabled(site.id)) {
+            const subscriberDownload = await syncSubscriberFolder(site.id, credentials, 's3-to-local');
+            results[i].s3PreSyncFilesDownloaded = (results[i].s3PreSyncFilesDownloaded ?? 0) + subscriberDownload.totalFilesTransferred;
+            if (subscriberDownload.error) results[i].errors.push(`Subscriber pre-sync error: ${subscriberDownload.error}`);
+          }
+
           const duration = Date.now() - startTime;
           results[i].preConsistencyCheckSuccess = true;
           results[i].preConsistencyCheckDuration = duration;
@@ -181,6 +213,10 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     
     if (config.dryRun) {
       console.log('🔍 DRY RUN: Would download new episodes from RSS feeds');
+      const subscriberSites = sites.filter(site => hasSubscriberFeeds(site.id));
+      if (subscriberSites.length > 0) {
+        console.log(`   ...and from subscriber feeds, for: ${subscriberSites.map(site => site.id).join(', ')}`);
+      }
     } else {
       for (const site of sites) {
         const rssResult = await runRssRetrieval(site.id);
@@ -197,6 +233,15 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
         
         if (rssResult.error) {
           results[siteIndex].errors.push(rssResult.error);
+        }
+
+        if (hasSubscriberFeeds(site.id)) {
+          const subscriberRssResult = await runRssRetrieval(site.id, 'subscriber');
+          results[siteIndex].rssRetrievalSuccess &&= subscriberRssResult.success;
+          results[siteIndex].rssRetrievalDuration += subscriberRssResult.duration;
+          results[siteIndex].newAudioFilesDownloaded += subscriberRssResult.newAudioFiles || 0;
+          if ((subscriberRssResult.newAudioFiles || 0) > 0) results[siteIndex].hasNewFiles = true;
+          if (subscriberRssResult.error) results[siteIndex].errors.push(`Subscriber RSS retrieval: ${subscriberRssResult.error}`);
         }
       }
     }
@@ -309,6 +354,24 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
         }
       }
     }
+
+    // Subscriber indexes contain every public episode, so rebuild them after their site's
+    // public index, or when subscriber transcripts changed
+    const subscriberSitesToIndex = results.filter(result =>
+      hasSubscriberFeeds(result.siteId) &&
+      (config.forceLocalIndexing || indexingReason(result) !== undefined || isSubscriberIndexStale(getLocalS3SitePath(result.siteId)))
+    );
+    if (subscriberSitesToIndex.length > 0) {
+      if (config.dryRun) {
+        console.log(`🔍 DRY RUN: Would build the subscriber index for: ${subscriberSitesToIndex.map(r => r.siteId).join(', ')}`);
+      } else {
+        for (const result of subscriberSitesToIndex) {
+          const subscriberIndexingResult = await runLocalIndexingForSite(result.siteId, 'subscriber');
+          if (subscriberIndexingResult.success) result.hasNewFiles = true;
+          if (subscriberIndexingResult.error) result.errors.push(`Subscriber indexing error: ${subscriberIndexingResult.error}`);
+        }
+      }
+    }
   } else {
     console.log('\n⏭️  Skipping Phase 4: Local indexing (disabled)');
   }
@@ -321,6 +384,11 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     
     if (config.dryRun) {
       console.log('🔍 DRY RUN: Would check for files to upload (local→S3), upload missing files to S3, and refresh search-api Lambda for sites with uploads');
+      for (const site of sites.filter(site => hasSubscriberFeeds(site.id))) {
+        console.log(isSubscriberUploadEnabled(site.id)
+          ? `   ...and upload ${site.id}'s subscriber/ files, then refresh subscriber-api-${site.id}`
+          : `   ...but not ${site.id}'s subscriber/ files: enable_subscriber_access isn't set in its prod.tfvars`);
+      }
     } else {
       for (let i = 0; i < sites.length; i++) {
         const site = sites[i];
@@ -400,6 +468,10 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
             logInfo(`No files uploaded to S3 for ${site.id}. Skipping search-api Lambda refresh.`);
           } else {
             logInfo(`File upload failed for ${site.id}. Skipping search-api Lambda refresh.`);
+          }
+
+          if (hasSubscriberFeeds(site.id)) {
+            await uploadSubscriberFiles(site.id, results[i]);
           }
           
         } catch (error: any) {
