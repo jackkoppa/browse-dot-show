@@ -20,3 +20,10 @@ export {
 export {
   CLIENT_PORT_NUMBER
 } from './repo-constants.js';
+
+export {
+  createCounterpartMatcher,
+  normalizeEpisodeTitle,
+  type PublicEpisodeForMatching,
+  type CounterpartMatch
+} from './episode-matching.js';
