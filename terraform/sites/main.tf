@@ -161,7 +161,7 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
   bucket = module.s3_bucket.bucket_name
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Sid       = "AllowCloudFrontServicePrincipal"
         Effect    = "Allow"
@@ -176,7 +176,18 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
           }
         }
       }
-    ]
+      ], var.enable_subscriber_access ? [
+      # Subscriber-only files are served by the subscriber API (presigned URLs), never CloudFront
+      {
+        Sid    = "DenyCloudFrontSubscriberFiles"
+        Effect = "Deny"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${module.s3_bucket.bucket_arn}/subscriber/*"
+      }
+    ] : [])
   })
   depends_on = [module.cloudfront, time_sleep.wait_for_bucket_configuration]
 }
@@ -364,6 +375,71 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
   source_arn = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
 }
 
+# Subscriber API (enable_subscriber_access): the search lambda's code with CONTENT_SCOPE=subscriber.
+# It searches the subscriber index (public + subscriber-only episodes) and serves subscriber-only
+# episodes via presigned URLs, for requests with a session token from the shared auth lambda.
+module "subscriber_search_lambda" {
+  count  = var.enable_subscriber_access ? 1 : 0
+  source = "./modules/lambda"
+
+  function_name     = "subscriber-api-${var.site_id}"
+  handler           = "search-indexed-transcripts.handler"
+  runtime           = "nodejs20.x"
+  timeout           = var.search_lambda_timeout
+  memory_size       = coalesce(var.subscriber_search_lambda_memory_size, var.search_lambda_memory_size)
+  ephemeral_storage = 2048 # Space for the Orama index file
+  environment_variables = {
+    S3_BUCKET_NAME              = module.s3_bucket.bucket_name
+    LOG_LEVEL                   = var.log_level
+    SITE_ID                     = var.site_id
+    FILE_STORAGE_ENV            = "prod-s3"
+    CONTENT_SCOPE               = "subscriber"
+    SUBSCRIBER_TOKEN_PUBLIC_KEY = var.subscriber_token_public_key
+  }
+  source_dir          = "../../packages/search/search-lambda/aws-dist"
+  s3_bucket_name      = module.s3_bucket.bucket_name
+  site_id             = var.site_id
+  lambda_architecture = ["arm64"]
+  layers              = [aws_lambda_layer_version.compress_encode_layer.arn]
+}
+
+resource "aws_apigatewayv2_integration" "subscriber_search_lambda_integration" {
+  count                  = var.enable_subscriber_access ? 1 : 0
+  api_id                 = aws_apigatewayv2_api.search_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.subscriber_search_lambda[0].lambda_function_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+  timeout_milliseconds   = var.api_gateway_timeout * 1000
+}
+
+# POST /subscriber (CORS preflight is answered by the API's cors_configuration)
+resource "aws_apigatewayv2_route" "subscriber_search_route" {
+  count     = var.enable_subscriber_access ? 1 : 0
+  api_id    = aws_apigatewayv2_api.search_api.id
+  route_key = "POST /subscriber"
+  target    = "integrations/${aws_apigatewayv2_integration.subscriber_search_lambda_integration[0].id}"
+}
+
+resource "aws_lambda_permission" "allow_apigw_to_invoke_subscriber_search_lambda" {
+  count         = var.enable_subscriber_access ? 1 : 0
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.subscriber_search_lambda[0].lambda_function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
+}
+
+module "subscriber_search_lambda_warming_schedule" {
+  count  = var.enable_subscriber_access && var.enable_search_lambda_warming ? 1 : 0
+  source = "./modules/eventbridge"
+
+  schedule_name       = "subscriber-search-lambda-warming-${var.site_id}"
+  schedule_expression = var.search_lambda_warming_schedule
+  lambda_function_arn = module.subscriber_search_lambda[0].lambda_function_arn
+  site_id             = var.site_id
+}
+
 # IAM role for automation account to assume (only create if this is the first site in the account)
 resource "aws_iam_role" "automation_role" {
   count = var.create_automation_role ? 1 : 0
@@ -407,7 +483,7 @@ resource "aws_iam_role_policy" "automation_permissions" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
         Effect = "Allow"
         Action = [
@@ -435,6 +511,13 @@ resource "aws_iam_role_policy" "automation_permissions" {
         Action = "lambda:InvokeFunction"
         Resource = module.search_lambda.lambda_function_arn
       },
+      ], var.enable_subscriber_access ? [
+      {
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
+        Resource = module.subscriber_search_lambda[0].lambda_function_arn
+      },
+      ] : [], [
       {
         Effect = "Allow"
         Action = [
@@ -443,7 +526,7 @@ resource "aws_iam_role_policy" "automation_permissions" {
         ]
         Resource = "*"
       }
-    ]
+    ])
   })
 }
 

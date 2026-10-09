@@ -127,3 +127,26 @@ variable "rss_processing_schedule_expression" {
   type        = string
   default     = "cron(0 8 * * ? *)"  # Once daily at 8 AM UTC instead of 3x daily
 }
+
+variable "enable_subscriber_access" {
+  description = "Subscriber access (see scratchpad/subscriber-access/PLAN.md): denies CloudFront access to subscriber/ in the bucket, and adds the subscriber-api-<site> lambda at the search API's /subscriber route. Must be deployed before any subscriber files are uploaded (bds ingest checks prod.tfvars)."
+  type        = bool
+  default     = false
+}
+
+variable "subscriber_token_public_key" {
+  description = "PEM public key (Ed25519) that verifies subscriber session tokens from the shared auth lambda (terraform/auth). Required when enable_subscriber_access is true."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.subscriber_token_public_key == "" || can(regex("-----BEGIN PUBLIC KEY-----", var.subscriber_token_public_key))
+    error_message = "subscriber_token_public_key must be a PEM public key."
+  }
+}
+
+variable "subscriber_search_lambda_memory_size" {
+  description = "Memory size in MB for the subscriber search lambda (its index holds every public episode plus the subscriber-only ones). Defaults to search_lambda_memory_size."
+  type        = number
+  default     = null
+}
