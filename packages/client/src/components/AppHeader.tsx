@@ -16,6 +16,7 @@ import { AudioSourceSelect } from './AudioSourceSelect'
 import siteConfig from '../config/site-config'
 import { trackEvent } from '@/utils/goatcounter'
 import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
+import SubscriberLoginDialog from '@/subscriber/SubscriberLoginDialog'
 
 // Utility function to format date as "M/D/YY - H:MM AM/PM"
 const formatLastUpdated = (dateString: string): string => {
@@ -187,6 +188,7 @@ export default function AppHeader({ scrolled }: AppHeaderProps) {
     },
     actions: (
       <>
+        <SubscriberLoginDialog />
         <InfoDrawer includeAIUseDisclosure={appHeader.includeAIUseDisclosure} />
         <SettingsDrawer />
       </>
