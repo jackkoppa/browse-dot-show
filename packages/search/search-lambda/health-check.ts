@@ -2,6 +2,7 @@
 
 import { handler } from './search-indexed-transcripts.js';
 import { log } from '@browse-dot-show/logging';
+import type { SearchResponse } from '@browse-dot-show/types';
 
 /**
  * Health check script for the search lambda
@@ -23,7 +24,7 @@ async function runHealthCheck() {
     };
     
     log.info('Calling search handler with health check event...');
-    const result = await handler(healthCheckEvent);
+    const result = await handler(healthCheckEvent) as SearchResponse;
     
     const endTime = Date.now();
     const endTimeISO = new Date(endTime).toISOString();
