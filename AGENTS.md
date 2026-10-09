@@ -30,6 +30,8 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run
 
 Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer. **Current: M5 (scheduled ingestion) is built as PR stack #195–#200 and is being tested on the 16 GB runner Mac before merging. On that Mac, start with [M5-RUNNER-SESSION.md](scratchpad/scripts-overhaul/M5-RUNNER-SESSION.md).**
 
+Subscriber access (logging in with a podcast subscription to search and play subscriber-only episodes) is planned in [scratchpad/subscriber-access/PLAN.md](scratchpad/subscriber-access/PLAN.md), built as a PR stack.
+
 ## Deploys
 
 Merged PRs deploy from GitHub Actions. A PR that changes Terraform (including any lambda code) gets a plan comment and needs the developer's approval in the `terraform-approval` environment before it can merge; review the comment for unexpected creates, replaces or destroys. Branch protection requires up-to-date branches (rebase merges). See [GitHub Actions deploys](docs/github-actions-deploys.md).
