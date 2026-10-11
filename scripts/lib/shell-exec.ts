@@ -20,6 +20,8 @@ export interface ShellExecResult {
   exitCode: number;
 }
 
+const fullCommandFor = (command: string, args: string[]) => (args.length > 0 ? `${command} ${args.join(' ')}` : command);
+
 /**
  * Execute a shell command and return the result
  */
@@ -40,8 +42,7 @@ export async function execCommand(
   }
 
   try {
-    const fullCommand = args.length > 0 ? `${command} ${args.join(' ')}` : command;
-    const { stdout, stderr } = await execAsync(fullCommand, {
+    const { stdout, stderr } = await execAsync(fullCommandFor(command, args), {
       cwd,
       env,
       timeout
@@ -54,7 +55,10 @@ export async function execCommand(
     };
   } catch (error: any) {
     const exitCode = error.code || 1;
-    const stderr = error.stderr || error.message || '';
+    // A timeout kills the command, usually before it printed anything; say so
+    const stderr = error.killed && timeout
+      ? [`Timed out after ${timeout / 1000} s: ${fullCommandFor(command, args)}`, error.stderr?.trim()].filter(Boolean).join('\n')
+      : error.stderr || error.message || '';
     const stdout = error.stdout || '';
 
     if (!silent) {

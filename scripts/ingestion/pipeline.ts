@@ -354,6 +354,8 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
           const episodeManifestSyncResult = await syncEpisodeManifestFolder(site.id, credentials);
           
           let totalFilesUploaded = episodeManifestSyncResult.totalFilesTransferred;
+          // Search reads only the search index, not the episode manifest (uploaded every run)
+          let searchFilesUploaded = 0;
           let syncErrors: string[] = [];
           
           if (episodeManifestSyncResult.error) {
@@ -369,6 +371,7 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
             );
             
             totalFilesUploaded += syncResult.totalFilesTransferred;
+            searchFilesUploaded = syncResult.totalFilesTransferred;
             
             if (syncResult.error) {
               syncErrors.push(`Comprehensive S3 sync error: ${syncResult.error}`);
@@ -385,8 +388,8 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
           // Add any sync errors to results
           syncErrors.forEach(error => results[i].errors.push(error));
           
-          // Trigger search-api Lambda refresh if any files were successfully uploaded
-          if (results[i].s3SyncSuccess && totalFilesUploaded > 0) {
+          // Trigger search-api Lambda refresh if files besides the episode manifest were uploaded
+          if (results[i].s3SyncSuccess && searchFilesUploaded > 0) {
             logInfo(`Files uploaded to S3 for ${site.id}. Triggering search-api Lambda refresh...`);
             const refreshResult = await triggerSearchApiLambdaRefresh(site.id, credentials);
             
@@ -396,8 +399,8 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
             if (refreshResult.error) {
               results[i].errors.push(`Search-api Lambda refresh error: ${refreshResult.error}`);
             }
-          } else if (totalFilesUploaded === 0) {
-            logInfo(`No files uploaded to S3 for ${site.id}. Skipping search-api Lambda refresh.`);
+          } else if (searchFilesUploaded === 0) {
+            logInfo(`No files besides the episode manifest uploaded to S3 for ${site.id}. Skipping search-api Lambda refresh.`);
           } else {
             logInfo(`File upload failed for ${site.id}. Skipping search-api Lambda refresh.`);
           }

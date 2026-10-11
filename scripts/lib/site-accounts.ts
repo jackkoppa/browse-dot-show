@@ -1,5 +1,7 @@
 import { readFileSync } from 'fs';
 import { repoPath } from './paths.js';
+import { logWarning } from './logging.js';
+import { withRetries } from './retry.js';
 import { execCommand } from './shell-exec.js';
 import type { AutomationCredentials } from './env.js';
 
@@ -79,25 +81,29 @@ export async function assumeSiteRole(
 ): Promise<{ siteAccount: SiteAccount; tempCredentials: TempCredentials }> {
   const siteAccount = getSiteAccountMapping(siteId);
 
-  const result = await execCommand('aws', [
-    'sts', 'assume-role',
-    '--role-arn', getAutomationRoleArn(siteAccount.accountId),
-    '--role-session-name', sessionName,
-  ], {
-    silent: true,
-    env: {
-      ...process.env,
-      AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
-      AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
-      AWS_REGION: credentials.AWS_REGION,
-    },
+  // STS occasionally stalls until the call times out; a retry a few seconds later goes through
+  const stdout = await withRetries(async () => {
+    const result = await execCommand('aws', [
+      'sts', 'assume-role',
+      '--role-arn', getAutomationRoleArn(siteAccount.accountId),
+      '--role-session-name', sessionName,
+    ], {
+      silent: true,
+      env: {
+        ...process.env,
+        AWS_ACCESS_KEY_ID: credentials.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: credentials.AWS_SECRET_ACCESS_KEY,
+        AWS_REGION: credentials.AWS_REGION,
+      },
+    });
+    if (result.exitCode !== 0) throw new Error(`Failed to assume role: ${result.stderr}`);
+    return result.stdout;
+  }, {
+    onRetry: (error, attempt, delayMs) =>
+      logWarning(`Assuming the role for ${siteId} failed (attempt ${attempt}), retrying in ${delayMs / 1000} s: ${error instanceof Error ? error.message : String(error)}`),
   });
 
-  if (result.exitCode !== 0) {
-    throw new Error(`Failed to assume role: ${result.stderr}`);
-  }
-
-  return { siteAccount, tempCredentials: JSON.parse(result.stdout).Credentials };
+  return { siteAccount, tempCredentials: JSON.parse(stdout).Credentials };
 }
 
 /** Env vars that make the AWS CLI use the given temporary credentials. */
