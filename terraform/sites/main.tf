@@ -62,8 +62,8 @@ module "s3_bucket" {
 }
 
 # The layers' compatible_runtimes is metadata (Lambda uses it to filter ListLayers), not a
-# check: the functions run nodejs24.x with these layers. It stays nodejs20.x because the pinned
-# AWS provider doesn't accept nodejs24.x there, and changing it would replace every layer version.
+# check: the functions run nodejs24.x with these layers. It stays nodejs20.x because changing it
+# would replace every site's layer versions.
 
 # @mongodb-js/zstd & msgpackr Lambda Layer - for compressing & encoding/decoding search index files
 resource "aws_lambda_layer_version" "compress_encode_layer" {
