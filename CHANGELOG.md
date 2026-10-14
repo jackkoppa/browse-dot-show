@@ -11,6 +11,12 @@ Notable changes to how you run, develop and deploy `browse-dot-show`. Versions a
 >
 > Deployed sites, AWS resource names, the S3 layout and your gitignored config files (`.env.local`, `.env.automation`, `.site-account-mappings.json`, `.local-files-config.json`, sites' `.env.aws-sso`) are unchanged.
 
+## Unreleased
+
+### Changed
+
+- The site lambdas run on Node 24 (`nodejs24.x`; Node 20 has reached end of life). The lambda layers are unchanged.
+
 ## v1.0.0 (2026-10-14)
 
 Developer tooling rebuilt around one CLI, deploys from GitHub Actions, and nightly ingestion on a Mac with nobody logged in. Scheduled ingestion has run nightly on a dedicated Mac mini since 2026-10-08.
