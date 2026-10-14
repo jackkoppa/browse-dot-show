@@ -6,7 +6,7 @@ Guides on using `browse-dot-show`, to host your own podcast search sites.
 
 - **[Getting Started](./GETTING_STARTED.md)** - Interactive setup wizard for creating your first podcast site
 - **[Deployment Guide](./deployment-guide.md)** - Deploy your site to AWS
-- **[Changelog](../CHANGELOG.md)** - What changed between versions (pre-October 2026 users: see `v0.0.1`)
+- **[Changelog](../CHANGELOG.md)** - What changed between versions
 
 ## 🛠️ For Developers
 

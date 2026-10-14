@@ -4,9 +4,6 @@
 
 Start your own podcast archive and search engine with our interactive setup wizard.
 
-> [!NOTE]
-> **Using this repo from before October 6, 2026?** Commands and scripts were reorganized into the `pnpm bds` CLI. If your local scripts and deployments already work, you can stay on the [`v0.0.1` tag](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1). See the [changelog](../CHANGELOG.md) for what changed.
-
 ## 🚀 Quick Start
 
 ### 1. Fork & Clone

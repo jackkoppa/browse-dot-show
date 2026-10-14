@@ -10,7 +10,7 @@ import { repoPath } from './paths.js';
  *   { "localFilesPath": "...", "transcriptionWorkers": 3 }
  */
 
-/** Used when neither `--parallel` nor `transcriptionWorkers` is set. 3 was fastest per worker added on an M4 Pro (benchmark: scratchpad/scripts-overhaul/M5-mac-automation.md). */
+/** Used when neither `--parallel` nor `transcriptionWorkers` is set. 3 was fastest per worker added on an M4 Pro (benchmarks: docs/scheduled-ingestion.md). */
 export const DEFAULT_TRANSCRIPTION_WORKERS = 3;
 
 interface MachineConfig {

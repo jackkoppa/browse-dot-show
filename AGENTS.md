@@ -28,7 +28,20 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run
 
 ## Current work
 
-Developer-tooling work in progress is tracked in `scratchpad/scripts-overhaul/`. Start with [HANDOFF.md](scratchpad/scripts-overhaul/HANDOFF.md): what's done, what's next, and how to work with the developer. **Current: M5 (scheduled ingestion) is built as PR stack #195–#200 and is being tested on the 16 GB runner Mac before merging. On that Mac, start with [M5-RUNNER-SESSION.md](scratchpad/scripts-overhaul/M5-RUNNER-SESSION.md).**
+Work in progress has notes in `scratchpad/` (see its README); the backlog is in [GitHub issues](https://github.com/jackkoppa/browse-dot-show/issues).
+
+Ingestion runs nightly on a dedicated runner Mac mini ([Scheduled ingestion](docs/scheduled-ingestion.md)), which has the SSD with the local files. On any other Mac, don't run a real `bds ingest` without asking: it would upload from a different copy of the local files.
+
+## Working with the developer
+
+- Ask questions as interactive multiple-choice prompts (with a recommendation), batched, not as a long list in chat.
+- The developer often prefers to run AWS commands themselves: give the exact command, the expected output and what to watch for.
+- Never break the deployed sites: read [the invariants](docs/deployed-sites-invariants.md) and run the smoke tests before finishing.
+- Review every Terraform plan comment before telling the developer to approve. Unexpected creates, replaces or destroys usually mean drift: find out why first, and present it as a decision.
+- If an ingestion run is going in the main checkout, work in a separate worktree (`bds worktree create`, then `bds worktree link-config`).
+- Don't touch the local files (`localFilesPath`: an external SSD, hundreds of GB) without asking. Machine-level changes (`sudo`, `pmset`, `bds schedule install/uninstall`) are run by or with the developer.
+- One PR per change; the developer merges. The repo is public: PR comments, Actions logs and artifacts are public.
+- History: the planning notes for the October 2026 scripts overhaul (the `bds` CLI, GitHub Actions deploys, scheduled ingestion) are in git history at [`scratchpad/scripts-overhaul/`](https://github.com/jackkoppa/browse-dot-show/tree/d500ff0/scratchpad/scripts-overhaul); the PRs (#162–#222) have the context for each change.
 
 ## Deploys
 

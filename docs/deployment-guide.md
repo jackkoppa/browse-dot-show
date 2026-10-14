@@ -2,9 +2,6 @@
 
 This guide will walk you through deploying your podcast site to AWS using the automated deployment scripts.
 
-> [!NOTE]
-> **Using this repo from before October 6, 2026?** Commands and scripts were reorganized into the `pnpm bds` CLI. If your local scripts and deployments already work, you can stay on the [`v0.0.1` tag](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1). See the [changelog](../CHANGELOG.md) for what changed.
-
 ## 🎯 Overview
 
 Your site will be deployed to AWS with:
