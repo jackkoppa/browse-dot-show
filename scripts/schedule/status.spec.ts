@@ -9,7 +9,7 @@ const config: ScheduleConfig = {
   branch: 'main',
   hour: 3,
   minute: 0,
-  nodePath: '/opt/homebrew/opt/node@22/bin/node',
+  nodePath: '/opt/homebrew/opt/node@24/bin/node',
   userName: 'dev',
   notifyOnSuccess: 'new-episodes',
   wakeMinutesBefore: 5,

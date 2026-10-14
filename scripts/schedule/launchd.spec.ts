@@ -23,7 +23,7 @@ const config: ScheduleConfig = {
   branch: 'main',
   hour: 3,
   minute: 0,
-  nodePath: '/opt/homebrew/opt/node@22/bin/node',
+  nodePath: '/opt/homebrew/opt/node@24/bin/node',
   userName: 'dev',
   notifyOnSuccess: 'new-episodes',
   wakeMinutesBefore: 5,
@@ -34,12 +34,12 @@ describe('LaunchDaemon plist', () => {
   const plist = renderLaunchDaemonPlist({ ...config, homeDir: '/Users/dev', logPath: '/Users/dev/Library/Logs/browse-dot-show/launchd.log' });
 
   it('runs `bds schedule run` from the runner checkout with absolute paths', () => {
-    expect(plist).toContain('<string>/opt/homebrew/opt/node@22/bin/node</string>');
+    expect(plist).toContain('<string>/opt/homebrew/opt/node@24/bin/node</string>');
     expect(plist).toContain('<string>/Users/dev/browse-dot-show-runner/node_modules/tsx/dist/cli.mjs</string>');
     expect(plist).toContain('<string>/Users/dev/browse-dot-show-runner/scripts/cli/index.ts</string>\n    <string>schedule</string>\n    <string>run</string>');
     expect(plist).toContain('<key>UserName</key>\n  <string>dev</string>');
     expect(plist).toContain('<key>Hour</key>\n    <integer>3</integer>');
-    expect(plist).toContain('<string>/opt/homebrew/opt/node@22/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>');
+    expect(plist).toContain('<string>/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>');
     expect(plist).toContain('<key>ProcessType</key>\n  <string>Interactive</string>');
   });
 

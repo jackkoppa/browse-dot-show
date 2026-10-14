@@ -17,10 +17,10 @@ cd browse-dot-show
 
 ### 2. Set Up Development Tools
 
-You need Node.js 22 and pnpm (via Corepack), plus ffmpeg and whisper.cpp for transcription. See the [Local Development Guide](./local-development.md#1-tools) for details.
+You need Node.js 24 and pnpm (via Corepack), plus ffmpeg and whisper.cpp for transcription. See the [Local Development Guide](./local-development.md#1-tools) for details.
 
 ```bash
-brew install node@22 ffmpeg awscli   # or use nvm for Node: `nvm install` reads .nvmrc
+brew install node@24 ffmpeg awscli   # or use nvm for Node: `nvm install` reads .nvmrc
 corepack enable                      # provides the pnpm version pinned in package.json
 ```
 

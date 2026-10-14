@@ -60,9 +60,9 @@ cd ~/browse-dot-show
 ./scripts/bootstrap.sh
 ```
 
-`bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@22`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. Scheduled runs use Homebrew's `node@22` by its absolute path, whatever node your shell uses.
+`bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@24`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. Scheduled runs use Homebrew's `node@24` by its absolute path, whatever node your shell uses.
 
-`node@22` is keg-only, so it isn't on your PATH. For `pnpm bds …` in a shell, add `export PATH="$(brew --prefix node@22)/bin:$PATH"` to `~/.zprofile` (bootstrap prints the line). If your shell uses fnm or nvm with auto-switching, `cd` into the repo may offer to install Node 22 from `.nvmrc`; either answer is fine, as long as Homebrew's node comes first on PATH afterwards.
+`node@24` is keg-only, so it isn't on your PATH. For `pnpm bds …` in a shell, add `export PATH="$(brew --prefix node@24)/bin:$PATH"` to `~/.zprofile` (bootstrap prints the line). If your shell uses fnm or nvm with auto-switching, `cd` into the repo may offer to install Node 24 from `.nvmrc`; either answer is fine, as long as Homebrew's node comes first on PATH afterwards.
 
 > [!IMPORTANT]
 > Don't clone into `~/Documents`, `~/Desktop` or `~/Downloads`: macOS blocks background jobs from reading those without extra permissions.
@@ -126,13 +126,25 @@ The base M4's GPU is nearly saturated by one worker, so more workers only add me
 
 ### 6. Full Disk Access (for local files on an external drive)
 
-The LaunchDaemon needs Full Disk Access to read local files on an external volume: on the runner (macOS 26), a run without it was skipped with "can't read/write … EPERM: operation not permitted". Grant it to the real node binary (the run's checks print the path; or `realpath $(brew --prefix node@22)/bin/node`): System Settings → Privacy & Security → Full Disk Access → **+** → ⌘⇧G → paste the path → Open, and check its switch is on.
+The LaunchDaemon needs Full Disk Access to read local files on an external volume: on the runner (macOS 26), a run without it was skipped with "can't read/write … EPERM: operation not permitted". Grant it to the real node binary (the run's checks print the path; or `realpath $(brew --prefix node@24)/bin/node`): System Settings → Privacy & Security → Full Disk Access → **+** → ⌘⇧G → paste the path → Open, and check its switch is on.
 
-That path is in Homebrew's Cellar and changes when `node@22` upgrades, which drops the permission. On the runner, pin it, and re-grant after you upgrade on purpose:
+That path is in Homebrew's Cellar and changes when `node@24` upgrades, which drops the permission. On the runner, pin it, and re-grant after you upgrade on purpose:
 
 ```bash
-brew pin node@22
+brew pin node@24
 ```
+
+**Moving the runner to a new Node major** (e.g. from `node@22` to `node@24`): install it, point the LaunchDaemon at it, grant it Full Disk Access, and pin it:
+
+```bash
+brew install node@24
+pnpm bds schedule install --node=$(brew --prefix node@24)/bin/node
+realpath $(brew --prefix node@24)/bin/node   # grant Full Disk Access to this path
+brew pin node@24
+pnpm bds schedule run-now --dry-run --no-update
+```
+
+`schedule install` keeps the run time, runner checkout and notification settings; pass `--wake-minutes-before` or `--no-wake` again if you installed with them. Until you do this, scheduled runs keep using the old node (any Node 22+ works). Once the new one works, `brew unpin node@22 && brew uninstall node@22`.
 
 After a scheduled run, macOS may ask at your next login whether to "Allow 'node' to find devices on local networks". Runs don't need it (everything they talk to is on the internet); "Don't Allow" is fine, and System Settings → Privacy & Security → Local Network changes it later.
 
@@ -213,4 +225,4 @@ macOS behaviors the design relies on (checked on macOS 26):
 | Failed: `bds ingest exited with code 1` | A pipeline error; the Slack message lists them, the run log has details |
 | `crashed` | The run died without finishing: see its log and `~/Library/Logs/browse-dot-show/launchd.log` |
 | No run at all, no Slack message, the healthcheck alerts | The Mac was off or asleep without a wake (`pmset -g sched`), stuck at the FileVault unlock screen after a restart, or the LaunchDaemon isn't loaded (`status` says so; re-run `install`) |
-| `launchd.log` says `node: No such file or directory` | The node path in the LaunchDaemon is gone (a Homebrew or nvm change). Re-run `bds schedule install` (`--node=$(brew --prefix node@22)/bin/node`) |
+| `launchd.log` says `node: No such file or directory` | The node path in the LaunchDaemon is gone (a Homebrew or nvm change). Re-run `bds schedule install` (`--node=$(brew --prefix node@24)/bin/node`) |

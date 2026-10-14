@@ -27,7 +27,7 @@ export interface ScheduleConfig {
   /** Daily start time, local time. */
   hour: number;
   minute: number;
-  /** The node binary launchd runs (absolute; Homebrew's node@22 on a runner). */
+  /** The node binary launchd runs (absolute; Homebrew's node@24 on a runner). */
   nodePath: string;
   /** macOS user the job runs as. */
   userName: string;

@@ -225,7 +225,7 @@ OPTIONS
   --runner-dir=<path>         Runner checkout (default: browse-dot-show-runner next to the main checkout)
   --track=<branch>            Branch the runner follows (default: main). For testing changes to scheduling
                               itself before they merge; the branch must be pushed
-  --node=<path>               node binary for launchd (default: Homebrew's node@22 if installed, else this node)
+  --node=<path>               node binary for launchd (default: Homebrew's node@24 if installed, else this node)
   --user=<name>               macOS user the job runs as (default: you)
   --notify-on-success=<when>  ${NOTIFY_ON_SUCCESS.join(' | ')} (default: always, or the current setting)
   --wake-minutes-before=N     Wake the Mac N minutes before the run (default: 5)
@@ -262,7 +262,7 @@ OPTIONS
     console.log(`   Daily at ${formatTimeOfDay(config.hour, config.minute)} as ${config.userName}`);
     console.log(`   Runner checkout: ${config.runnerDir}${plan.createRunner ? ' (will be created)' : ''}, following origin/${config.branch}`);
     console.log(`   Node: ${config.nodePath}`);
-    if (config.nodePath.includes('/.nvm/')) console.log("   ⚠️  That's nvm's node: scheduled runs break if that version is removed. Homebrew's node@22 is steadier (--node).");
+    if (config.nodePath.includes('/.nvm/')) console.log("   ⚠️  That's nvm's node: scheduled runs break if that version is removed. Homebrew's node@24 is steadier (--node).");
     console.log(`   Success notifications: ${config.notifyOnSuccess}`);
     if (plan.existingWakes.length) console.log(`   Current repeating wake (will be replaced): ${plan.existingWakes.join('; ')}`);
     console.log('\nThen, with sudo:');

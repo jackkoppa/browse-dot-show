@@ -18,10 +18,15 @@ import {
 import { formatTimeOfDay, parseRepeatingEvents, pmsetRepeatArgs, pmsetSchedule, renderLaunchDaemonPlist, wakeTime } from './launchd.js';
 import { createRunnerCheckout, isWorktreeOf } from './runner-checkout.js';
 
-/** Where Homebrew's keg-only node@22 lives (Apple silicon, then Intel). */
-export const HOMEBREW_NODE_CANDIDATES = ['/opt/homebrew/opt/node@22/bin/node', '/usr/local/opt/node@22/bin/node'];
+/** Where Homebrew's keg-only node@24 lives (Apple silicon, then Intel), then node@22 for a runner that hasn't moved to 24. */
+export const HOMEBREW_NODE_CANDIDATES = [
+  '/opt/homebrew/opt/node@24/bin/node',
+  '/usr/local/opt/node@24/bin/node',
+  '/opt/homebrew/opt/node@22/bin/node',
+  '/usr/local/opt/node@22/bin/node',
+];
 
-/** Homebrew's node@22 if installed, else the node running this. */
+/** Homebrew's node@24 (or node@22) if installed, else the node running this. */
 export function defaultNodePath(candidates = HOMEBREW_NODE_CANDIDATES): string {
   return candidates.find(candidate => fs.existsSync(candidate)) ?? process.execPath;
 }

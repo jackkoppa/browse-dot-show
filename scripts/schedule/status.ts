@@ -82,7 +82,7 @@ export function renderStatus(facts: StatusFacts): StatusReport {
       lines.push(`  launchd: ${facts.job.state ?? 'loaded'}${facts.job.runs !== undefined ? `, ${facts.job.runs} run(s) since loaded` : ''}${facts.job.lastExitCode ? `, last exit: ${facts.job.lastExitCode}` : ''}`);
     }
     if (config?.nodePath.includes('/.nvm/')) {
-      warnings.push(`Scheduled runs use nvm's node (${config.nodePath}); it breaks when that version is removed. Homebrew's node@22 is steadier: re-run install with --node=$(brew --prefix node@22)/bin/node.`);
+      warnings.push(`Scheduled runs use nvm's node (${config.nodePath}); it breaks when that version is removed. Homebrew's node@24 is steadier: re-run install with --node=$(brew --prefix node@24)/bin/node.`);
     }
   }
 
