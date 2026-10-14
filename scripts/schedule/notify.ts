@@ -1,6 +1,7 @@
 import { loadEnvFile } from '../lib/env.js';
 import { repoPath } from '../lib/paths.js';
 import type { NotifyOnSuccess } from './config.js';
+import { newestEpisodeSearchUrl, type NewestEpisodeSearch } from './newest-episode.js';
 import type { ScheduledRunRecord } from './records.js';
 
 /**
@@ -96,11 +97,16 @@ export function formatDuration(ms: number | undefined): string {
 /**
  * A short message for Slack and the healthcheck body: a bold headline, then bullets.
  * Slack renders `*bold*` and `` `code` ``; elsewhere they read fine as plain text.
- * With `siteDomains` (Slack only), sites with new episodes link to their deployed site.
+ * With `siteDomains` (Slack only), sites with new episodes link to their deployed site, and
+ * with `newestEpisodes` too, to a search that finds the site's newest episode first.
  */
 export function formatRunMessage(
   record: ScheduledRunRecord,
-  { maxErrors = 5, siteDomains = {} }: { maxErrors?: number; siteDomains?: Record<string, string> } = {},
+  {
+    maxErrors = 5,
+    siteDomains = {},
+    newestEpisodes = {},
+  }: { maxErrors?: number; siteDomains?: Record<string, string>; newestEpisodes?: Record<string, NewestEpisodeSearch> } = {},
 ): string {
   const lines: string[] = [];
   const bullet = (text: string) => lines.push(`• ${text}`);
@@ -133,7 +139,11 @@ export function formatRunMessage(
       bullet(`*${plural(totals.transcribed, 'episode')} transcribed*:`);
       for (const site of record.pipeline!.sites.filter(site => site.transcribed > 0)) {
         const domain = siteDomains[site.siteId];
-        subBullet(`${domain ? `<https://${domain}|${site.siteId}>` : site.siteId}: ${site.transcribed}`);
+        const newest = newestEpisodes[site.siteId];
+        const newestLink = domain && newest
+          ? `, newest: <${slackEscape(newestEpisodeSearchUrl(domain, newest.query))}|${slackEscape(newest.title)}>`
+          : '';
+        subBullet(`${domain ? `<https://${domain}|${site.siteId}>` : site.siteId}: ${site.transcribed}${newestLink}`);
       }
     }
     bullet(`${plural(totals.newAudioFiles, 'audio file')} downloaded, ${plural(totals.filesUploaded, 'file')} uploaded`);
@@ -150,6 +160,11 @@ export function formatRunMessage(
 
 function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** Slack's mrkdwn treats &, < and > as control characters, in link URLs and labels too. */
+function slackEscape(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function truncate(text: string, max: number): string {
