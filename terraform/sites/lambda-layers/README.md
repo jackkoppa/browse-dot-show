@@ -45,7 +45,7 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
 
 2. **Prepare the Lambda layer:**
    ```bash
-   tsx 2-prepare-ffmpeg-layer.ts
+   pnpm exec tsx 2-prepare-ffmpeg-layer.ts
    ```
 
    This script will:
@@ -68,6 +68,7 @@ We also might need Lambda Layers for OS/terminal dependencies (i.e. _not_ NPM pa
 **Notes:**
 - The original `.tar.xz` file is `.gitignored` due to its size (~18MB)
 - The generated `ffmpeg-layer.zip` should also be `.gitignored` and created as needed
+- Terraform uploads the zip directly, which Lambda allows up to 50 MB. The arm64 build from August 2024 that the sites use makes a 48.9 MB zip; check the size the script prints before deploying a newer build.
 - Binaries are placed in `/opt/bin/` when the layer is attached to a Lambda function
 - Our code automatically detects Lambda environment and uses `/opt/bin/ffmpeg` and `/opt/bin/ffprobe`
 
