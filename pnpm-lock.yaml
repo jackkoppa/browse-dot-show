@@ -26,10 +26,10 @@ catalogs:
       specifier: ^3.830.0
       version: 3.844.0
     '@orama/orama':
-      specifier: ^3.1.7
+      specifier: 3.1.11
       version: 3.1.11
     '@orama/plugin-data-persistence':
-      specifier: ^3.1.7
+      specifier: 3.1.11
       version: 3.1.11
     '@types/fs-extra':
       specifier: ^11.0.4
@@ -61,6 +61,11 @@ catalogs:
     xml2js:
       specifier: ^0.6.2
       version: 0.6.2
+
+patchedDependencies:
+  '@orama/orama@3.1.11':
+    hash: d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af
+    path: patches/@orama__orama@3.1.11.patch
 
 importers:
 
@@ -239,7 +244,7 @@ importers:
         version: 2.0.1
       '@orama/orama':
         specifier: 'catalog:'
-        version: 3.1.11
+        version: 3.1.11(patch_hash=d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af)
       '@orama/plugin-data-persistence':
         specifier: 'catalog:'
         version: 3.1.11
@@ -484,7 +489,7 @@ importers:
         version: link:../../types
       '@orama/orama':
         specifier: 'catalog:'
-        version: 3.1.11
+        version: 3.1.11(patch_hash=d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af)
       '@orama/plugin-data-persistence':
         specifier: 'catalog:'
         version: 3.1.11
@@ -557,7 +562,7 @@ importers:
     dependencies:
       '@orama/orama':
         specifier: 'catalog:'
-        version: 3.1.11
+        version: 3.1.11(patch_hash=d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af)
       '@orama/plugin-data-persistence':
         specifier: 'catalog:'
         version: 3.1.11
@@ -5135,12 +5140,12 @@ snapshots:
 
   '@orama/highlight@0.1.9': {}
 
-  '@orama/orama@3.1.11': {}
+  '@orama/orama@3.1.11(patch_hash=d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af)': {}
 
   '@orama/plugin-data-persistence@3.1.11':
     dependencies:
       '@msgpack/msgpack': 2.8.0
-      '@orama/orama': 3.1.11
+      '@orama/orama': 3.1.11(patch_hash=d1f264581fd606d6f5d46634a81cebbe459a41f01e76720de9a4bcc55b6ba8af)
       dpack: 0.6.22
 
   '@oxc-project/runtime@0.77.0': {}

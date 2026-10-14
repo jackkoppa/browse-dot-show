@@ -20,8 +20,10 @@ packages:
   - sites
 
 catalog:
-  '@orama/orama': ^3.1.7
-  '@orama/plugin-data-persistence': ^3.1.7
+  # Pinned: 3.1.15+ makes `exact: true` searches case-sensitive ("georgia" stops matching
+  # "Georgia"), and patches/@orama__orama@3.1.11.patch applies to this exact version only.
+  '@orama/orama': 3.1.11
+  '@orama/plugin-data-persistence': 3.1.11
   typescript: ^5.3.3
   '@aws-sdk/client-cloudfront': ^3.830.0
   '@aws-sdk/client-lambda': ^3.830.0
@@ -48,3 +50,6 @@ injectWorkspacePackages: true
 onlyBuiltDependencies:
   - '@mongodb-js/zstd'
   - msgpackr-extract
+
+patchedDependencies:
+  '@orama/orama@3.1.11': patches/@orama__orama@3.1.11.patch
