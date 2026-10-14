@@ -23,6 +23,7 @@ import {
 } from './records.js';
 import { currentCommit, updateRunnerCheckout } from './runner-checkout.js';
 import { localFilesBase } from '../lib/machine-config.js';
+import { findNewestEpisodeSearch, type NewestEpisodeSearch } from './newest-episode.js';
 
 /**
  * One scheduled run (`bds schedule run`, what launchd starts):
@@ -122,7 +123,7 @@ export async function runScheduled(options: ScheduledRunOptions): Promise<number
     const message = formatRunMessage(record);
     log(`\n${message}`);
     const notifyOnSuccess = options.notifyOnSuccess ?? config?.notifyOnSuccess ?? DEFAULT_NOTIFY_ON_SUCCESS;
-    if (shouldPostToSlack(record, notifyOnSuccess)) await postToSlack(targets, formatRunMessage(record, { siteDomains: siteDomains() }), log);
+    if (shouldPostToSlack(record, notifyOnSuccess)) await postToSlack(targets, formatRunMessage(record, { siteDomains: siteDomains(), newestEpisodes: newestEpisodes(record) }), log);
     await pingHealthcheck(targets, healthcheckKind(record), message, log);
 
     rotateRunFiles(dir, RUNS_TO_KEEP);
@@ -224,6 +225,20 @@ function keepAwake(log: (message: string) => void): ChildProcess | null {
   const caffeinate = spawn('/usr/bin/caffeinate', ['-i', '-s', '-m', '-w', String(process.pid)], { stdio: 'ignore' });
   caffeinate.on('error', error => log(`⚠️  caffeinate failed: ${error.message}`));
   return caffeinate;
+}
+
+/** A search for the newest episode of each site with new episodes, for links in Slack. Never throws. */
+function newestEpisodes(record: ScheduledRunRecord): Record<string, NewestEpisodeSearch> {
+  const searches: Record<string, NewestEpisodeSearch> = {};
+  for (const site of record.pipeline?.sites.filter(site => site.transcribed > 0) ?? []) {
+    try {
+      const search = findNewestEpisodeSearch(path.join(localFilesBase(), 's3', 'sites', site.siteId));
+      if (search) searches[site.siteId] = search;
+    } catch {
+      // links are optional
+    }
+  }
+  return searches;
 }
 
 /** Each site's deployed domain, for links in Slack. Never throws: links are optional. */

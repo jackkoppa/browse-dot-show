@@ -102,6 +102,16 @@ describe('notifications', () => {
       .toContain('      ◦ <https://a.browse.show|a>: 2');
   });
 
+  it('links each site\'s newest episode to a search for it, escaped for Slack', () => {
+    const message = formatRunMessage(record({ pipeline: twoNew }), {
+      siteDomains: { a: 'a.browse.show' },
+      newestEpisodes: { a: { title: 'Q&A <live>', query: 'rare words here' } },
+    });
+    expect(message).toContain(
+      '      ◦ <https://a.browse.show|a>: 2, newest: <https://a.browse.show/?q=rare+words+here&amp;sort=newest|Q&amp;A &lt;live&gt;>',
+    );
+  });
+
   it('formats a success with no new episodes', () => {
     const none = pipeline([{ siteId: 'a', newAudioFiles: 0, transcribed: 0, filesUploaded: 1, errors: [] }]);
     expect(formatRunMessage(record({ pipeline: none }))).toBe(
