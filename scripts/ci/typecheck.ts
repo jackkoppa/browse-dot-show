@@ -22,6 +22,7 @@ export const TYPECHECK_PROJECTS: { dir: string; config: string }[] = [
   { dir: 'scripts', config: 'tsconfig.json' },
   { dir: 'sites', config: 'tsconfig.json' },
   { dir: 'packages/alerting', config: 'tsconfig.json' },
+  { dir: 'packages/auth', config: 'tsconfig.json' },
   { dir: 'packages/blocks', config: 'tsconfig.json' },
   { dir: 'packages/config', config: 'tsconfig.json' },
   { dir: 'packages/constants', config: 'tsconfig.json' },

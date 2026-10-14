@@ -1,0 +1,20 @@
+{
+    "name": "@browse-dot-show/auth",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Subscriber session tokens (signed and verified with Ed25519) and subscription providers, used by the auth and subscriber search lambdas",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "typescript": "catalog:",
+        "vitest": "catalog:"
+    },
+    "exports": {
+        ".": "./dist/index.js"
+    },
+    "types": "./dist/index.d.ts"
+}
