@@ -12,6 +12,8 @@ import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';
 import HighlightedText from './HighlightedText';
 import { trackEvent } from '@/utils/goatcounter';
+import { multiFeedPodcastTitle } from '@/utils/podcast';
+import siteConfig from '@/config/site-config';
 
 export interface SearchResultProps {
   result: ApiSearchResultHit;
@@ -27,6 +29,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
   const formattedStartTime = formatMillisecondsToMMSS(result.startTimeMs);
   const formattedEndTime = formatMillisecondsToMMSS(result.endTimeMs);
   const formattedDate = episodeData?.publishedAt ? formatDate(episodeData.publishedAt) : null;
+  const podcastTitle = episodeData ? multiFeedPodcastTitle(episodeData.podcastId, siteConfig.podcastLinks) : undefined;
 
   const handleLoadHere = () => {
     if (!episodeData) return;
@@ -68,7 +71,8 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
                 {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
                 <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
               </div>
-              <div className="text-xs text-muted-foreground w-full block mt-2 italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
+              {podcastTitle && <div className="text-xs font-semibold text-muted-foreground w-full block mt-2">{podcastTitle}</div>}
+              <div className={`text-xs text-muted-foreground w-full block ${podcastTitle ? 'mt-0.5' : 'mt-2'} italic`}>{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
             </div>
           </>
         )}
