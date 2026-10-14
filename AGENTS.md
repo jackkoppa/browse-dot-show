@@ -31,7 +31,7 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run
 
 Work in progress has notes in `scratchpad/` (see its README); the backlog is in [GitHub issues](https://github.com/jackkoppa/browse-dot-show/issues).
 
-Subscriber access (logging in with a podcast subscription to search and play subscriber-only episodes) is planned in [scratchpad/subscriber-access/PLAN.md](scratchpad/subscriber-access/PLAN.md), built as PR stack #211–#220.
+Subscriber access (logging in with a podcast subscription to search and play subscriber-only episodes) is planned in [scratchpad/subscriber-access/PLAN.md](scratchpad/subscriber-access/PLAN.md), built as PR stack #211–#220, plus #241 (Supporting Cast rate limits).
 
 Ingestion runs nightly on a dedicated runner Mac mini ([Scheduled ingestion](docs/scheduled-ingestion.md)), which has the SSD with the local files. On any other Mac, don't run a real `bds ingest` without asking: it would upload from a different copy of the local files.
 
