@@ -1,7 +1,13 @@
 // Site configuration loaded at build time
 // This file reads from environment variables that are injected by Vite during build
 
-import type { AppHeader, SocialAndMetadata } from '@browse-dot-show/sites';
+import type { AppHeader, SocialAndMetadata, SubscriberAccess } from '@browse-dot-show/sites';
+
+/** What the client gets of a site's `subscriberAccess` config (see src/subscriber/) */
+export type SubscriberAccessClientConfig = Pick<SubscriberAccess, 'launchStatus' | 'providers' | 'subscriptionName' | 'subscribeUrl'> & {
+  /** The shared auth API; empty until it's deployed (the feature stays hidden) */
+  authApiUrl: string;
+};
 
 export interface SiteRuntimeConfig {
   id: string;
@@ -19,6 +25,7 @@ export interface SiteRuntimeConfig {
   themeColorDark: string;
   searchPlaceholderOptions: string[];
   trackingScript?: string;
+  subscriberAccess?: SubscriberAccessClientConfig;
 }
 
 // Read site config from environment variables injected at build time
@@ -31,7 +38,8 @@ const siteConfig: SiteRuntimeConfig = {
   themeColor: import.meta.env.VITE_SITE_THEME_COLOR || '#000000',
   themeColorDark: import.meta.env.VITE_SITE_THEME_COLOR_DARK || '#000000',
   searchPlaceholderOptions: JSON.parse(import.meta.env.VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS || '["example search"]'),
-  trackingScript: import.meta.env.VITE_SITE_TRACKING_SCRIPT || ''
+  trackingScript: import.meta.env.VITE_SITE_TRACKING_SCRIPT || '',
+  subscriberAccess: import.meta.env.VITE_SUBSCRIBER_ACCESS ? JSON.parse(import.meta.env.VITE_SUBSCRIBER_ACCESS) : undefined
 };
 
 export default siteConfig; 
