@@ -10,7 +10,7 @@ Apple silicon Macs are the supported platform (Intel Macs and Linux mostly work 
 
 | Tool | Why | Install |
 | --- | --- | --- |
-| Node.js 22 | Runs everything | `brew install node@22`, or [nvm](https://github.com/nvm-sh/nvm) (`nvm install`, which reads `.nvmrc`) |
+| Node.js 24 | Runs everything | `brew install node@24`, or [nvm](https://github.com/nvm-sh/nvm) (`nvm install`, which reads `.nvmrc`) |
 | pnpm 10 | Workspace package manager | `corepack enable` (uses the version pinned in `package.json`) |
 | ffmpeg / ffprobe | Audio splitting and durations | `brew install ffmpeg` |
 | AWS CLI v2 | S3 sync, CloudFront, role assumption | `brew install awscli` |
@@ -24,7 +24,7 @@ pnpm install
 pnpm all:build
 ```
 
-Or do all of the above at once with Homebrew: `./scripts/bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@22`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. That's the recommended setup for a machine that runs scheduled ingestion ([Scheduled ingestion](scheduled-ingestion.md)).
+Or do all of the above at once with Homebrew: `./scripts/bootstrap.sh` installs the [`Brewfile`](../Brewfile) (`node@24`, ffmpeg, the AWS CLI, `whisper.cpp`), enables pnpm and builds. That's the recommended setup for a machine that runs scheduled ingestion ([Scheduled ingestion](scheduled-ingestion.md)).
 
 ### whisper.cpp
 

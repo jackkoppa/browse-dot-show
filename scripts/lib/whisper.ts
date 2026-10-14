@@ -58,7 +58,8 @@ export function ensureHomebrewWhisperLayout(dir: string, homebrewCli: string, mo
   fs.mkdirSync(path.dirname(paths.model), { recursive: true });
 
   const isLink = paths.cliLinkTarget !== undefined;
-  if (isLink && paths.cliLinkTarget !== homebrewCli) fs.rmSync(paths.cli);
+  // unlinkSync, not rmSync: Node 24's rmSync leaves a dangling symlink in place
+  if (isLink && paths.cliLinkTarget !== homebrewCli) fs.unlinkSync(paths.cli);
   if (!fs.existsSync(paths.cli) && !isSymlink(paths.cli)) fs.symlinkSync(homebrewCli, paths.cli);
   return whisperPaths(dir, model);
 }

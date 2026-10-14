@@ -2,7 +2,7 @@
 
 ## Tools
 
-Node.js 22 (see `.nvmrc`) and pnpm 10 (via Corepack: `corepack enable`). No other tool manager is needed. Run `pnpm install && pnpm all:build` once after cloning.
+Node.js 24 (see `.nvmrc`) and pnpm 10 (via Corepack: `corepack enable`). No other tool manager is needed. Run `pnpm install && pnpm all:build` once after cloning.
 
 ## The `bds` CLI
 

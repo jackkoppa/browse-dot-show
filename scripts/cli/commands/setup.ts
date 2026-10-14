@@ -237,7 +237,7 @@ async function setupAutomationEnv(copyFromFlag: string | undefined, log: (line: 
       fs.copyFileSync(envPath, `${envPath}.backup-${Date.now()}`);
       log('📝 Backed up the existing .env.automation');
     }
-    fs.rmSync(envPath, { force: true });
+    if (fs.lstatSync(envPath, { throwIfNoEntry: false })) fs.unlinkSync(envPath); // not rmSync: Node 24's leaves a dangling symlink
     fs.copyFileSync(copyFrom, envPath);
     log(`📝 Copied ${copyFrom} to .env.automation`);
   }
@@ -287,7 +287,7 @@ async function checkMacSettings(log: (line: string) => void): Promise<boolean> {
     log('     System Settings → Privacy & Security → Full Disk Access → + → (⌘⇧G) this path:');
     log(`     ${real}`);
     log('     A scheduled run whose drive isn\'t readable is skipped and says so (Slack, bds schedule status).');
-    if (real.includes('/Cellar/')) log('     That path changes when Homebrew upgrades node@22; consider `brew pin node@22` on the runner.');
+    if (real.includes('/Cellar/')) log('     That path changes when Homebrew upgrades node@24; consider `brew pin node@24` on the runner.');
   }
   return true;
 }

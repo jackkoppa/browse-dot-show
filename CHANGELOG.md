@@ -16,6 +16,7 @@ Notable changes to how you run, develop and deploy `browse-dot-show`. Versions a
 ### Changed
 
 - The site lambdas run on Node 24 (`nodejs24.x`; Node 20 has reached end of life). The lambda layers are unchanged.
+- Local tooling uses Node 24 (`.nvmrc`, the `Brewfile`'s `node@24`, GitHub Actions). Node 22 still works (`bds doctor` needs 22+). To move a scheduled-ingestion Mac, see [Scheduled ingestion](docs/scheduled-ingestion.md#6-full-disk-access-for-local-files-on-an-external-drive).
 
 ## v1.0.0 (2026-10-14)
 

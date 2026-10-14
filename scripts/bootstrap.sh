@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "❌ bootstrap.sh is for macOS. On other systems, install Node 22, ffmpeg, the AWS CLI and whisper.cpp yourself (docs/local-development.md)."
+  echo "❌ bootstrap.sh is for macOS. On other systems, install Node 24, ffmpeg, the AWS CLI and whisper.cpp yourself (docs/local-development.md)."
   exit 1
 fi
 if [[ "$(uname -m)" != "arm64" ]]; then
@@ -28,9 +28,9 @@ fi
 echo "📦 Installing Homebrew packages (Brewfile)…"
 brew bundle --file=Brewfile
 
-# Use Homebrew's node@22 for the rest of this script, whatever node the shell has
+# Use Homebrew's node@24 for the rest of this script, whatever node the shell has
 SHELL_NODE="$(command -v node || true)"
-NODE_BIN="$(brew --prefix node@22)/bin"
+NODE_BIN="$(brew --prefix node@24)/bin"
 export PATH="$NODE_BIN:$PATH"
 echo "✅ node $(node --version) ($NODE_BIN/node)"
 
@@ -51,7 +51,7 @@ echo
 echo "✅ Bootstrap done."
 if [[ "$SHELL_NODE" != "$NODE_BIN/node" ]]; then
   echo
-  echo "Your shell uses a different node (${SHELL_NODE:-none}); that's fine for development (.nvmrc). To use Homebrew's node@22 by default instead, add this to ~/.zprofile:"
+  echo "Your shell uses a different node (${SHELL_NODE:-none}); that's fine for development (.nvmrc). To use Homebrew's node@24 by default instead, add this to ~/.zprofile:"
   echo "  export PATH=\"$NODE_BIN:\$PATH\""
 fi
 echo
