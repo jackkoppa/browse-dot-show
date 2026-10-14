@@ -62,8 +62,8 @@ describe('session', () => {
   })
 
   it('needs refreshing in its last 2 days', () => {
-    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 7 * 86400 })).toBe(false)
-    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 86400 })).toBe(true)
+    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 30 * 86400 - 3600 })).toBe(false)
+    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 28 * 86400 })).toBe(true)
   })
 })
 

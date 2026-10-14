@@ -21,6 +21,14 @@ describe('session tokens', () => {
     expect(verifySessionToken(tokenFor(), keys.publicKeyPem, { siteId: 'libero', now: NOW })).toEqual({ valid: false, reason: 'wrong-audience' });
   });
 
+  it('never accepts a login link as a session, or a session as a login link', () => {
+    const link = tokenFor({ scope: 'login-link', jti: 'abc' });
+    expect(verifySessionToken(link, keys.publicKeyPem, { siteId: 'listenfairplay', now: NOW })).toEqual({ valid: false, reason: 'wrong-scope' });
+    const verified = verifySessionToken(link, keys.publicKeyPem, { siteId: 'listenfairplay', scope: 'login-link', now: NOW });
+    expect(verified.valid && verified.claims.jti).toBe('abc');
+    expect(verifySessionToken(tokenFor(), keys.publicKeyPem, { siteId: 'listenfairplay', scope: 'login-link', now: NOW })).toEqual({ valid: false, reason: 'wrong-scope' });
+  });
+
   it('rejects an expired token (after the clock-skew allowance)', () => {
     const token = tokenFor();
     expect(verifySessionToken(token, keys.publicKeyPem, { siteId: 'listenfairplay', now: NOW + 3600 + 30 }).valid).toBe(true);

@@ -31,7 +31,8 @@ async function postJson<T>(url: string, body: unknown, token?: string): Promise<
     body: JSON.stringify(body),
   });
   if (response.status === 401) throw new SubscriberUnauthorizedError();
-  if (response.status === 503) throw new Error('The subscription service is busy. Please try again in a minute.');
+  if (response.status === 429) throw new Error('Too many login attempts. Please try again later.');
+  if (response.status === 503) throw new Error('Subscriber login is busy right now. Please try again later.');
   if (!response.ok) throw new Error(`Request failed: ${response.status} ${response.statusText}`);
   return response.json() as Promise<T>;
 }

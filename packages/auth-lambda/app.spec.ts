@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { generateSigningKeyPair, ProviderUnavailableError, signSessionToken, verifySessionToken, type SubscriptionProvider } from '@browse-dot-show/auth';
-import { handleAuthRequest, SESSION_TTL_SECONDS, type AuthDependencies } from './app.js';
+import { createMemoryAuthStore, generateSigningKeyPair, ProviderUnavailableError, signSessionToken, verifySessionToken, type SubscriptionProvider } from '@browse-dot-show/auth';
+import { handleAuthRequest, LOGIN_LINK_TTL_SECONDS, RATE_LIMITS, SESSION_TTL_SECONDS, type AuthDependencies } from './app.js';
 import { createDependencies, parseSitesConfig } from './dependencies.js';
 
 const keys = generateSigningKeyPair();
@@ -22,13 +22,15 @@ function deps(provider = fakeProvider()): AuthDependencies {
       listenfairplay: { origins: ['https://listenfairplay.com', 'https://www.listenfairplay.com'], providers: ['supporting-cast'] },
       libero: { origins: ['https://libero.browse.show'], providers: ['dev-code'] },
     },
+    store: createMemoryAuthStore(() => NOW),
     getSigningPrivateKey: async () => keys.privateKeyPem,
     getProvider: async () => provider,
+    hashEmail: async email => `hash(${email.trim().toLowerCase()})`,
     now: () => NOW,
   };
 }
 
-const post = (path: string, body: unknown, headers: Record<string, string> = {}) => ({ method: 'POST', path, headers, body });
+const post = (path: string, body: unknown, headers: Record<string, string> = {}, sourceIp = '203.0.113.1') => ({ method: 'POST', path, headers, body, sourceIp });
 
 describe('POST /login', () => {
   it("starts the provider's login, returning to the requesting origin when it's the site's", async () => {
@@ -38,7 +40,7 @@ describe('POST /login', () => {
       deps(provider),
     );
     expect(response).toEqual({ status: 200, body: { result: { kind: 'email-sent' } } });
-    expect(provider.startLogin).toHaveBeenCalledWith({ email: 'fan@example.com', callbackUrl: 'https://www.listenfairplay.com/auth/callback?provider=supporting-cast' });
+    expect(provider.startLogin).toHaveBeenCalledWith(expect.objectContaining({ email: 'fan@example.com', callbackUrl: 'https://www.listenfairplay.com/auth/callback?provider=supporting-cast' }));
   });
 
   it("never returns to an origin that isn't the site's", async () => {
@@ -59,8 +61,73 @@ describe('POST /login', () => {
   });
 });
 
+describe('rate limits', () => {
+  const login = (email: string, sourceIp = '203.0.113.1') => post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', email }, {}, sourceIp);
+
+  it('limits logins per IP per hour', async () => {
+    const dependencies = deps();
+    for (let i = 0; i < RATE_LIMITS.loginsPerIpPerHour; i++) {
+      expect((await handleAuthRequest(login(`fan${i}@example.com`), dependencies)).status).toBe(200);
+    }
+    expect(await handleAuthRequest(login('another@example.com'), dependencies)).toEqual({ status: 429, body: { error: 'too-many-requests' } });
+    expect((await handleAuthRequest(login('another@example.com', '198.51.100.7'), dependencies)).status).toBe(200);
+  });
+
+  it('limits logins per email per day, from any IP and however the email is typed', async () => {
+    const provider = fakeProvider();
+    const dependencies = deps(provider);
+    for (let i = 0; i < RATE_LIMITS.loginsPerEmailPerDay; i++) {
+      expect((await handleAuthRequest(login('fan@example.com', `198.51.100.${i}`), dependencies)).status).toBe(200);
+    }
+    expect((await handleAuthRequest(login(' FAN@example.com ', '192.0.2.1'), dependencies)).status).toBe(429);
+    expect(provider.startLogin).toHaveBeenCalledTimes(RATE_LIMITS.loginsPerEmailPerDay);
+  });
+});
+
+describe('login links', () => {
+  /** The link the provider would have emailed, from the loginLinkFor it was given */
+  async function emailedLink(dependencies: AuthDependencies, provider: SubscriptionProvider, userId = '41') {
+    await handleAuthRequest(post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', email: 'fan@example.com' }), dependencies);
+    const input = vi.mocked(provider.startLogin).mock.calls[0][0];
+    return new URL(await input.loginLinkFor(userId));
+  }
+  const complete = (params: Record<string, string>) => post('/complete', { siteId: 'listenfairplay', provider: 'supporting-cast', params });
+
+  it('go back to the site, and log in once without asking the provider to verify them', async () => {
+    const provider = fakeProvider();
+    const dependencies = deps(provider);
+    const link = await emailedLink(dependencies, provider);
+    expect(`${link.origin}${link.pathname}`).toBe('https://listenfairplay.com/auth/callback');
+    const params = Object.fromEntries(link.searchParams);
+    expect(params.provider).toBe('supporting-cast');
+
+    const response = await handleAuthRequest(complete({ link: params.link }), dependencies);
+    expect(response.status).toBe(200);
+    expect(provider.completeLogin).not.toHaveBeenCalled();
+    expect(provider.refresh).toHaveBeenCalledWith('41');
+
+    expect(await handleAuthRequest(complete({ link: params.link }), dependencies)).toEqual({ status: 401, body: { error: 'link-already-used' } });
+  });
+
+  it('turn away a subscriber who lapsed since the email', async () => {
+    const provider = fakeProvider();
+    const dependencies = deps(provider);
+    const link = await emailedLink(dependencies, provider, '99');
+    expect(await handleAuthRequest(complete({ link: link.searchParams.get('link')! }), dependencies)).toEqual({ status: 401, body: { error: 'not-a-subscriber' } });
+  });
+
+  it('reject expired, forged and session tokens', async () => {
+    const sign = (scope: 'login-link' | 'subscriber', now = NOW, key = keys.privateKeyPem) =>
+      signSessionToken({ siteId: 'listenfairplay', subject: 'supporting-cast:41', scope, jti: 'x', ttlSeconds: LOGIN_LINK_TTL_SECONDS, now }, key).token;
+    const invalid = { status: 401, body: { error: 'invalid-link' } };
+    expect(await handleAuthRequest(complete({ link: sign('login-link', NOW - LOGIN_LINK_TTL_SECONDS - 120) }), deps())).toEqual(invalid);
+    expect(await handleAuthRequest(complete({ link: sign('login-link', NOW, generateSigningKeyPair().privateKeyPem) }), deps())).toEqual(invalid);
+    expect(await handleAuthRequest(complete({ link: sign('subscriber') }), deps())).toEqual(invalid);
+  });
+});
+
 describe('POST /complete', () => {
-  it('issues a 7-day session token for a verified subscriber', async () => {
+  it('issues a 30-day session token for a verified subscriber', async () => {
     const response = await handleAuthRequest(post('/complete', { siteId: 'listenfairplay', provider: 'supporting-cast', params: { login_token: 'good' } }), deps());
     expect(response.status).toBe(200);
     expect(response.body.expiresAt).toBe(NOW + SESSION_TTL_SECONDS);
@@ -136,5 +203,52 @@ describe('dependencies', () => {
     const dependencies = createDependencies({}, async () => 'a-long-enough-dev-code');
     const provider = await dependencies.getProvider('libero', 'dev-code');
     expect(await provider.completeLogin({ code: 'a-long-enough-dev-code' })).toEqual({ providerUserId: 'dev' });
+  });
+});
+
+describe('secret cache', () => {
+  it('re-reads secrets after a few minutes, so a changed setting applies', async () => {
+    let clock = 0;
+    const readSecret = vi.fn(async () => keys.privateKeyPem);
+    const dependencies = createDependencies({}, readSecret, undefined, () => clock);
+    await dependencies.getSigningPrivateKey();
+    clock += 60_000;
+    await dependencies.getSigningPrivateKey();
+    expect(readSecret).toHaveBeenCalledTimes(1);
+    clock += 5 * 60_000;
+    await dependencies.getSigningPrivateKey();
+    expect(readSecret).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Supporting Cast end to end (in memory)', () => {
+  it('syncs the mirror, then logs a subscriber in with one call to Supporting Cast', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
+      const { pathname } = new URL(url);
+      calls.push(`${init.method} ${pathname.replace('/v2/net-1', '')}`);
+      if (pathname.endsWith('/subscriptions')) return Response.json({ subscriptions: [{ id: 1, user_id: 41, subscription_plan_id: 7, status: 'Active' }], meta: {} });
+      if (pathname.endsWith('/users')) return Response.json({ users: [{ id: 41, email: 'fan@example.com' }], meta: {} });
+      return new Response(null, { status: 204 });
+    });
+    try {
+      const secrets: Record<string, string> = {
+        'signing-private-key': keys.privateKeyPem,
+        'email-hash-key': 'k',
+        'sites/listenfairplay/supporting-cast': JSON.stringify({ apiToken: 't', networkId: 'net-1', planIds: [7] }),
+      };
+      const dependencies = createDependencies(
+        { listenfairplay: { origins: ['https://listenfairplay.com'], providers: ['supporting-cast'] } },
+        async name => secrets[name],
+      );
+      expect(await dependencies.syncSupportingCast()).toEqual({ listenfairplay: { pages: 2, users: 1, subscriptions: 1, caughtUp: true } });
+
+      const login = (email: string) => handleAuthRequest(post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', email }), dependencies);
+      expect((await login('nobody@example.com')).status).toBe(200);
+      expect((await login('Fan@Example.com')).status).toBe(200);
+      expect(calls).toEqual(['GET /subscriptions', 'GET /users', 'POST /users/41/send_login_email']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

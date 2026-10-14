@@ -9,8 +9,12 @@ export interface SubscriberSession {
   expiresAt: number;
 }
 
-/** Refresh the session when it has less than this left (it lasts 7 days) */
-const REFRESH_WHEN_SECONDS_LEFT = 2 * 24 * 60 * 60;
+/**
+ * Refresh the session once it's a day old (it lasts 30 days): refreshing is cheap (no call to the
+ * subscription platform), and picks up a lapsed subscription within a day of the next visit
+ */
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
+const REFRESH_WHEN_SECONDS_LEFT = SESSION_SECONDS - 24 * 60 * 60;
 
 const storageKey = (siteId: string) => `bds:subscriber-session:${siteId}`;
 const nowSeconds = () => Math.floor(Date.now() / 1000);
