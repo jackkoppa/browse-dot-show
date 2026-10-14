@@ -32,3 +32,14 @@ jobs:
       # Packages import each other's built dist/
       - run: pnpm all:build
       - run: pnpm all:test
+
+  # Terraform formatting (no init, no AWS access). Fix with `terraform fmt -recursive terraform/`
+  terraform-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive -diff terraform/

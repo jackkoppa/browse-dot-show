@@ -41,7 +41,7 @@ output "automation_role_arns" {
 # Output for .env.automation file template
 output "env_automation_template" {
   description = "Template for .env.automation file"
-  value = <<-EOT
+  value       = <<-EOT
 # AWS credentials for automated ingestion runs
 # These credentials should have permissions to assume roles in all site accounts
 
@@ -56,5 +56,5 @@ AWS_REGION=${var.aws_region}
 # Site account mappings (for reference)
 ${join("\n", [for site_id, account_id in local.site_account_ids : "# ${site_id}_ACCOUNT_ID=${account_id}"])}
 EOT
-  sensitive = true
+  sensitive   = true
 } 
