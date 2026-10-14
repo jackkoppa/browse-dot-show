@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import prompts from 'prompts';
-import { execCommandOrThrow, execCommand } from '../lib/shell-exec.js';
+import { execCommandOrThrow, execCommand, TERRAFORM_TIMEOUT_MS } from '../lib/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { validateAwsEnvironment } from '../lib/aws-utils.js';
 
@@ -143,7 +143,7 @@ async function runTerraformDeployment(options: DeploymentOptions): Promise<{ acc
     await execCommandOrThrow('terraform', [
       'init',
       '-backend-config=terraform.tfbackend'
-    ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE } });
+    ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE }, timeout: TERRAFORM_TIMEOUT_MS });
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
@@ -161,7 +161,7 @@ async function runTerraformDeployment(options: DeploymentOptions): Promise<{ acc
         'plan',
         '-var-file=terraform.tfvars',
         '-out=tfplan'
-      ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE } });
+      ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE }, timeout: TERRAFORM_TIMEOUT_MS });
       
       if (planResult.exitCode !== 0) {
         throw new Error(`Terraform plan failed: ${planResult.stderr}`);
@@ -227,7 +227,7 @@ ${planResult.stderr ? `WARNINGS/ERRORS:\n${planResult.stderr}` : ''}
           'plan',
           '-var-file=terraform.tfvars',
           '-out=tfplan'
-        ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE } });
+        ], { env: { ...process.env, AWS_PROFILE: AUTOMATION_PROFILE }, timeout: TERRAFORM_TIMEOUT_MS });
       }
 
       // Apply terraform with progress monitoring

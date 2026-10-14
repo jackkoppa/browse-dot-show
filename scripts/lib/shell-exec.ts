@@ -20,6 +20,12 @@ export interface ShellExecResult {
   exitCode: number;
 }
 
+/**
+ * Timeout for `terraform init` / `plan` run through execCommand (whose default is 30 s). A first
+ * init downloads providers, and a plan refreshes every resource; both can take minutes.
+ */
+export const TERRAFORM_TIMEOUT_MS = 15 * 60 * 1000;
+
 const fullCommandFor = (command: string, args: string[]) => (args.length > 0 ? `${command} ${args.join(' ')}` : command);
 
 /**

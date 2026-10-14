@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import * as path from 'path';
-import { execCommandOrThrow, execCommand, execCommandLive } from '../lib/shell-exec.js';
+import { execCommandOrThrow, execCommand, execCommandLive, TERRAFORM_TIMEOUT_MS } from '../lib/shell-exec.js';
 import { printInfo, printError, printWarning, printSuccess, logHeader } from '../lib/logging.js';
 import { checkAwsCredentials } from '../lib/aws-utils.js';
 import prompts from 'prompts';
@@ -87,7 +87,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     // Initialize Terraform with site-specific backend config
     printInfo(`Initializing Terraform with backend config: ${BACKEND_CONFIG_FILE}`);
     printInfo(`Command: terraform init -backend-config ${BACKEND_CONFIG_FILE} -reconfigure`);
-    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure']);
+    await execCommandOrThrow('terraform', ['init', '-backend-config', BACKEND_CONFIG_FILE, '-reconfigure'], { timeout: TERRAFORM_TIMEOUT_MS });
     printSuccess('✅ Terraform initialization completed');
 
     // Validate Terraform configuration
@@ -112,7 +112,7 @@ async function runTerraformDestroy(siteId: string, env: string): Promise<void> {
     // Plan the destruction and capture output
     printInfo('Planning destruction changes...');
     printInfo(`Command: terraform ${planArgs.join(' ')}`);
-    const planResult = await execCommand('terraform', planArgs);
+    const planResult = await execCommand('terraform', planArgs, { timeout: TERRAFORM_TIMEOUT_MS });
     
     if (planResult.exitCode !== 0) {
       printError('Terraform destroy plan failed!');
