@@ -2,7 +2,7 @@
 
 import prompts from 'prompts';
 import * as path from 'path';
-import { execCommandOrThrow, execCommand, execCommandLiveOrThrow } from '../lib/shell-exec.js';
+import { execCommandOrThrow, execCommand, execCommandLiveOrThrow, TERRAFORM_TIMEOUT_MS } from '../lib/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { checkAwsCredentials } from '../lib/aws-utils.js';
 import { siteInitArgs, sitePlanArgs, siteTerraformEnv } from '../lib/site-terraform.js';
@@ -432,7 +432,7 @@ async function runTerraformDeployment(siteId: string, skipPrompts: boolean = fal
     // Initialize Terraform with site-specific backend config
     const initArgs = siteInitArgs(siteId);
     printInfo(`Initializing Terraform with backend config: ${initArgs[2]}`);
-    await execCommandOrThrow('terraform', initArgs);
+    await execCommandOrThrow('terraform', initArgs, { timeout: TERRAFORM_TIMEOUT_MS });
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
@@ -444,7 +444,7 @@ async function runTerraformDeployment(siteId: string, skipPrompts: boolean = fal
 
     // Plan the deployment and capture output
     printInfo('Planning deployment changes...');
-    const planResult = await execCommand('terraform', terraformArgs);
+    const planResult = await execCommand('terraform', terraformArgs, { timeout: TERRAFORM_TIMEOUT_MS });
     
     if (planResult.exitCode !== 0) {
       throw new Error(`Terraform plan failed: ${planResult.stderr}`);

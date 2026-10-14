@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 import prompts from 'prompts';
-import { execCommandOrThrow, execCommand } from '../lib/shell-exec.js';
+import { execCommandOrThrow, execCommand, TERRAFORM_TIMEOUT_MS } from '../lib/shell-exec.js';
 import { printInfo, printError, printSuccess, logHeader } from '../lib/logging.js';
 import { validateHomepageAwsEnvironment } from '../lib/aws-utils.js';
 import { loadHomepageEnv } from '../lib/env.js';
@@ -194,7 +194,7 @@ async function runTerraformDeployment(): Promise<{ bucketName: string; distribut
     await execCommandOrThrow('terraform', [
       'init',
       '-backend-config=terraform.tfbackend'
-    ]);
+    ], { timeout: TERRAFORM_TIMEOUT_MS });
 
     // Validate Terraform configuration
     printInfo('Validating Terraform configuration...');
@@ -206,7 +206,7 @@ async function runTerraformDeployment(): Promise<{ bucketName: string; distribut
       'plan',
       '-var-file=homepage-prod.tfvars',
       '-out=tfplan'
-    ]);
+    ], { timeout: TERRAFORM_TIMEOUT_MS });
     
     if (planResult.exitCode !== 0) {
       throw new Error(`Terraform plan failed: ${planResult.stderr}`);
