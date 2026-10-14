@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix } from '@browse-dot-show/constants';
+import { createCounterpartMatcher, getContentScope, getSearchIndexKey, getLocalDbPath, getEpisodeManifestKey, getTranscriptsDirPrefix, getSearchEntriesDirPrefix, type ContentScope } from '@browse-dot-show/constants';
 import { hasDownloadedAtTimestamp, parseFileKey } from './utils/get-episode-file-key.js';
 import {
   createOramaIndex,
@@ -10,7 +10,7 @@ import {
   type CompressionType
 } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
-import { SearchEntry, EpisodeInManifest, SearchRequest } from '@browse-dot-show/types';
+import { SearchEntry, EpisodeInManifest, EpisodeManifest, SearchRequest, formatEpisodeId } from '@browse-dot-show/types';
 import {
   getFile,
   saveFile,
@@ -52,6 +52,8 @@ function logMemoryUsage(context: string): void {
 // Structure for episode data from the manifest
 interface EpisodeManifestEntry {
   sequentialId: number;
+  podcastId: string;
+  title: string;
   fileKey: string;
   publishedAt: string; // ISO 8601 date string for calculating unix timestamp
 }
@@ -151,6 +153,7 @@ async function processSrtFile(srtFileKey: string): Promise<SearchEntry[]> {
   const utilityEntries = convertSrtFileIntoSearchEntryArray({
     srtFileContent: srtContent,
     sequentialEpisodeId,
+    episodeId: formatEpisodeId(sequentialEpisodeId, getContentScope()), // `s<n>` for subscriber-only episodes
     episodePublishedUnixTimestamp // Pass the unix timestamp to the utility
   });
 
@@ -185,8 +188,8 @@ function searchEntriesKeyFor(srtFileKey: string): string {
  * All existing search entry JSON files, as keys like `search-entries/<podcast>/<episode>.json`.
  * Lists each podcast directory, because local `listFiles` isn't recursive (S3's is).
  */
-async function listExistingSearchEntryJsonFiles(): Promise<Set<string>> {
-  const searchEntriesPrefix = getSearchEntriesDirPrefix();
+async function listExistingSearchEntryJsonFiles(scope: ContentScope = getContentScope()): Promise<Set<string>> {
+  const searchEntriesPrefix = getSearchEntriesDirPrefix(scope);
   const keys = new Set<string>();
   const directories = await listDirectories(searchEntriesPrefix);
   for (const prefix of [searchEntriesPrefix, ...directories]) {
@@ -215,6 +218,54 @@ async function isSrtNewerThanSearchEntries(srtFileKey: string, searchEntriesKey:
 }
 
 // Main handler function
+/** The public episode manifest (the subscriber index includes every public episode) */
+async function loadPublicManifest(): Promise<EpisodeManifest> {
+  const key = getEpisodeManifestKey('public');
+  return JSON.parse((await getFile(key)).toString('utf-8')) as EpisodeManifest;
+}
+
+/**
+ * Subscriber-only episodes that are now versions of public ones (e.g. subscribers got the episode
+ * a few days early, and RSS retrieval ingested it before the public one existed). The public
+ * episode stays in the subscriber index; these are left out, so search shows the episode once.
+ */
+function subscriberEpisodesNowPublic(publicManifest: EpisodeManifest): Set<string> {
+  const leftOut = new Set<string>();
+  const matchers = new Map<string, ReturnType<typeof createCounterpartMatcher>>();
+  for (const episode of episodeManifestData) {
+    if (!matchers.has(episode.podcastId)) {
+      matchers.set(episode.podcastId, createCounterpartMatcher(publicManifest.episodes.filter(ep => ep.podcastId === episode.podcastId)));
+    }
+    const match = matchers.get(episode.podcastId)!(episode.title, new Date(episode.publishedAt));
+    if (match) {
+      log.info(`Leaving out subscriber episode "${episode.title}": now public as #${match.episode.sequentialId} "${match.episode.title}"`);
+      leftOut.add(episode.fileKey);
+    }
+  }
+  return leftOut;
+}
+
+/** Search entries of every public episode, from their existing JSON files (written by public indexing) */
+async function loadPublicSearchEntries(publicManifest: EpisodeManifest): Promise<{ entries: SearchEntry[]; episodes: number; missing: number }> {
+  const existing = new Set([...await listExistingSearchEntryJsonFiles('public')].map(key => key.normalize('NFC')));
+  const entries: SearchEntry[] = [];
+  let episodes = 0;
+  let missing = 0;
+  for (const episode of publicManifest.episodes) {
+    const key = path.join(getSearchEntriesDirPrefix('public'), episode.podcastId, `${episode.fileKey}.json`);
+    if (!existing.has(key.normalize('NFC'))) {
+      missing++;
+      continue;
+    }
+    const parsed = JSON.parse((await getFile(key)).toString('utf-8'));
+    if (Array.isArray(parsed)) {
+      entries.push(...parsed);
+      episodes++;
+    }
+  }
+  return { entries, episodes, missing };
+}
+
 export async function handler(): Promise<any> {
   log.info(`🟢 Starting convert-srts-indexed-search > handler, with logging level: ${log.getLevel()}`);
   const lambdaStartTime = Date.now();
@@ -226,7 +277,9 @@ export async function handler(): Promise<any> {
     throw new Error('SITE_ID environment variable is required');
   }
 
-  const searchLambdaName = `${SEARCH_LAMBDA_PREFIX}-${siteId}`;
+  // CONTENT_SCOPE=subscriber builds the subscriber index: public episodes + subscriber-only ones
+  const contentScope = getContentScope();
+  const searchLambdaName = contentScope === 'subscriber' ? `subscriber-api-${siteId}` : `${SEARCH_LAMBDA_PREFIX}-${siteId}`;
 
   try {
     const episodeManifestKey = getEpisodeManifestKey();
@@ -237,6 +290,8 @@ export async function handler(): Promise<any> {
     if (parsedManifest && Array.isArray(parsedManifest.episodes)) {
       episodeManifestData = parsedManifest.episodes.map((ep: EpisodeInManifest) => ({
         sequentialId: ep.sequentialId,
+        podcastId: ep.podcastId,
+        title: ep.title,
         fileKey: ep.fileKey,
         publishedAt: ep.publishedAt, // Include publishedAt for unix timestamp calculation
       }));
@@ -327,7 +382,8 @@ export async function handler(): Promise<any> {
   const srtFilesToEvaluate = allSrtFiles; // Already filtered for .srt
   const totalSrtFiles = srtFilesToEvaluate.length;
 
-  if (totalSrtFiles === 0) {
+  // The subscriber index is built even without subscriber transcripts: it's the public episodes then
+  if (totalSrtFiles === 0 && contentScope === 'public') {
     log.info("No SRT files found in transcripts directory. Exiting.");
     return {
       status: 'success',
@@ -351,8 +407,16 @@ export async function handler(): Promise<any> {
   // Collect all search entries to insert in batches for better performance
   const allSearchEntriesToInsert: SearchEntry[] = [];
 
+  const publicManifest = contentScope === 'subscriber' ? await loadPublicManifest() : null;
+  const leftOutSubscriberFileKeys = publicManifest ? subscriberEpisodesNowPublic(publicManifest) : new Set<string>();
+
   for (const srtFileKey of srtFilesToEvaluate) {
     log.debug(`Evaluating SRT file: ${srtFileKey} (${srtFilesProcessedCount + 1}/${totalSrtFiles})`);
+
+    if (leftOutSubscriberFileKeys.has(path.basename(srtFileKey, '.srt'))) {
+      srtFilesProcessedCount++;
+      continue;
+    }
 
     // Check if a newer version of this transcript exists (skip processing older versions)
     if (hasNewerTranscriptVersion(srtFileKey, allSrtFiles)) {
@@ -428,6 +492,16 @@ export async function handler(): Promise<any> {
         `\nCollected ${allSearchEntriesToInsert.length} entries so far...\n`
       );
       lastLoggedPercentage = currentSrtPercentage;
+    }
+  }
+
+  if (publicManifest) {
+    const subscriberEntries = allSearchEntriesToInsert.length;
+    const publicEntries = await loadPublicSearchEntries(publicManifest);
+    allSearchEntriesToInsert.push(...publicEntries.entries);
+    log.info(`Subscriber index: ${publicEntries.episodes} public episodes (${publicEntries.entries.length} entries) + subscriber-only episodes (${subscriberEntries} entries)`);
+    if (publicEntries.missing > 0) {
+      log.warn(`${publicEntries.missing} public episodes have no search entries yet (untranscribed); index the public files first`);
     }
   }
 
