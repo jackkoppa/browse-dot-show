@@ -7,9 +7,9 @@
 
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execCommandOrThrow, execCommand } from '../../scripts/utils/shell-exec.js';
-import { exists, removeDir, ensureDir } from '../../scripts/utils/file-operations.js';
-import { printInfo, printError, printSuccess, logHeader } from '../../scripts/utils/logging.js';
+import { execCommandOrThrow, execCommand } from '../../../scripts/lib/shell-exec.js';
+import { exists, removeDir, ensureDir } from '../../../scripts/lib/file-operations.js';
+import { printInfo, printError, printSuccess, logHeader } from '../../../scripts/lib/logging.js';
 
 // Get the current script directory (ESM equivalent of __dirname)
 const __filename = fileURLToPath(import.meta.url);
@@ -106,15 +106,10 @@ async function createZipFile(): Promise<void> {
   // Create the zip file
   printInfo('🗜️  Creating Lambda layer zip file...');
   
-  // Change to script directory to create relative paths in the zip
-  const originalCwd = process.cwd();
-  process.chdir(SCRIPT_DIR);
-
-  try {
-    await execCommandOrThrow('bash', ['-c', `cd ffmpeg-layer && zip -r ../ffmpeg-layer.zip .`]);
-  } finally {
-    process.chdir(originalCwd);
-  }
+  // Zip from inside the layer folder, so the zip has bin/ffmpeg and bin/ffprobe at its root.
+  // (execCommand joins its arguments into one shell command, so `bash -c 'cd … && zip …'`
+  // ran zip in the wrong folder.)
+  await execCommandOrThrow('zip', ['-r', '-q', OUTPUT_ZIP, '.'], { cwd: LAYER_DIR, timeout: 5 * 60 * 1000 });
 }
 
 async function cleanupTemporaryFiles(): Promise<void> {
