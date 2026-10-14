@@ -5,7 +5,7 @@ terraform {
       version = "~> 5.31.0"
     }
   }
-  
+
   # Backend configuration will be provided via backend config file
   backend "s3" {
     # Values provided via terraform init -backend-config
@@ -18,7 +18,7 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  
+
   default_tags {
     tags = var.tags
   }
@@ -28,7 +28,7 @@ provider "aws" {
 resource "aws_iam_user" "automation_user" {
   name = var.automation_user_name
   path = "/automation/"
-  
+
   tags = merge(var.tags, {
     Name = var.automation_user_name
   })
@@ -48,8 +48,8 @@ resource "aws_iam_user_policy" "assume_site_roles" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = "sts:AssumeRole"
+        Effect   = "Allow"
+        Action   = "sts:AssumeRole"
         Resource = local.automation_role_arns
       }
     ]

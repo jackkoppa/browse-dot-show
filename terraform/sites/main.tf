@@ -5,7 +5,7 @@ terraform {
       version = "~> 6.68.0"
     }
   }
-  
+
   # Site-specific S3 backend for terraform state
   # The bucket name and key will be configured dynamically via terraform init
   # Each site will use: bucket = "{site_id}-browse-dot-show-tf-state", key = "terraform.tfstate"
@@ -21,10 +21,10 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  
+
   # Use AWS profile from environment variable (set via site-specific .env.aws-sso)
   profile = var.aws_profile
-  
+
   default_tags {
     tags = {
       Project   = "browse-dot-show"
@@ -39,10 +39,10 @@ data "aws_caller_identity" "current" {}
 
 # Additional provider for us-east-1 (required for CloudFront certificates)
 provider "aws" {
-  alias  = "us_east_1"
-  region = "us-east-1"
+  alias   = "us_east_1"
+  region  = "us-east-1"
   profile = var.aws_profile
-  
+
   default_tags {
     tags = {
       Project   = "browse-dot-show"
@@ -55,10 +55,10 @@ provider "aws" {
 # S3 bucket for storing podcast files and hosting website
 module "s3_bucket" {
   source = "./modules/s3"
-  
+
   bucket_name          = "${var.site_id}-${var.s3_bucket_name}"
   site_id              = var.site_id
-  cors_allowed_origins = ["*"]  # Adjust as needed
+  cors_allowed_origins = ["*"] # Adjust as needed
 }
 
 # The layers' compatible_runtimes is metadata (Lambda uses it to filter ListLayers), not a
@@ -70,10 +70,10 @@ resource "aws_lambda_layer_version" "compress_encode_layer" {
   filename         = "lambda-layers/mongodb-js-zstd__msgpackr.zip"
   layer_name       = "compress-encode-${var.site_id}"
   source_code_hash = filebase64sha256("lambda-layers/mongodb-js-zstd__msgpackr.zip")
-  
+
   compatible_runtimes      = ["nodejs20.x"]
   compatible_architectures = ["arm64"]
-  
+
   description = "@mongodb-js/zstd & msgpackr NPM packages, for compressing & encoding/decoding search index files - ${var.site_id}"
 }
 
@@ -82,10 +82,10 @@ resource "aws_lambda_layer_version" "ffmpeg_layer" {
   filename         = "lambda-layers/ffmpeg-layer.zip"
   layer_name       = "ffmpeg-${var.site_id}"
   source_code_hash = filebase64sha256("lambda-layers/ffmpeg-layer.zip")
-  
+
   compatible_runtimes      = ["nodejs20.x"]
   compatible_architectures = ["arm64"]
-  
+
   description = "FFmpeg static binaries for audio/video processing - ${var.site_id}"
 }
 
@@ -144,11 +144,11 @@ locals {
 # CloudFront distribution
 module "cloudfront" {
   source = "./modules/cloudfront"
-  
+
   bucket_name                 = module.s3_bucket.bucket_name
   bucket_regional_domain_name = module.s3_bucket.bucket_regional_domain_name
   site_id                     = var.site_id
-  
+
   # Add custom domain configuration
   domain_names    = local.site_domain_names
   certificate_arn = local.serve_additional_domains ? aws_acm_certificate.with_additional_domains[0].arn : (local.serve_custom_domain ? aws_acm_certificate.custom_domain[0].arn : "")
@@ -156,7 +156,7 @@ module "cloudfront" {
 
 # Wait for the S3 bucket to be fully configured
 resource "time_sleep" "wait_for_bucket_configuration" {
-  depends_on = [module.s3_bucket]
+  depends_on      = [module.s3_bucket]
   create_duration = "10s"
 }
 
@@ -167,13 +167,13 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipal"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontServicePrincipal"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }
-        Action    = "s3:GetObject"
-        Resource  = "${module.s3_bucket.bucket_arn}/*"
+        Action   = "s3:GetObject"
+        Resource = "${module.s3_bucket.bucket_arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = module.cloudfront.cloudfront_arn
@@ -188,45 +188,45 @@ resource "aws_s3_bucket_policy" "cloudfront_access" {
 # Lambda for RSS feed processing
 module "rss_lambda" {
   source = "./modules/lambda"
-  
-  function_name        = "rss-retrieval-${var.site_id}"
-  handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
-  runtime              = "nodejs24.x"
-  timeout              = 300
-  memory_size          = 2560
+
+  function_name = "rss-retrieval-${var.site_id}"
+  handler       = "retrieve-rss-feeds-and-download-audio-files.handler"
+  runtime       = "nodejs24.x"
+  timeout       = 300
+  memory_size   = 2560
   environment_variables = {
-    S3_BUCKET_NAME            = module.s3_bucket.bucket_name
-    LOG_LEVEL                 = var.log_level
+    S3_BUCKET_NAME             = module.s3_bucket.bucket_name
+    LOG_LEVEL                  = var.log_level
     CLOUDFRONT_DISTRIBUTION_ID = module.cloudfront.cloudfront_id
-    SITE_ID                   = var.site_id
+    SITE_ID                    = var.site_id
   }
-  source_dir           = "../../packages/ingestion/rss-retrieval-lambda/aws-dist"
-  s3_bucket_name       = module.s3_bucket.bucket_name
-  site_id              = var.site_id
-  lambda_architecture  = ["arm64"]
+  source_dir          = "../../packages/ingestion/rss-retrieval-lambda/aws-dist"
+  s3_bucket_name      = module.s3_bucket.bucket_name
+  site_id             = var.site_id
+  lambda_architecture = ["arm64"]
 
 }
 
 # Lambda for Whisper transcription
 module "whisper_lambda" {
   source = "./modules/lambda"
-  
-  function_name        = "whisper-transcription-${var.site_id}"
-  handler              = "process-new-audio-files-via-whisper.handler"
-  runtime              = "nodejs24.x"
-  timeout              = 900
-  memory_size          = 1024
+
+  function_name = "whisper-transcription-${var.site_id}"
+  handler       = "process-new-audio-files-via-whisper.handler"
+  runtime       = "nodejs24.x"
+  timeout       = 900
+  memory_size   = 1024
   environment_variables = {
-    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
-    OPENAI_API_KEY     = var.openai_api_key
-    LOG_LEVEL          = var.log_level
-    SITE_ID            = var.site_id
+    S3_BUCKET_NAME = module.s3_bucket.bucket_name
+    OPENAI_API_KEY = var.openai_api_key
+    LOG_LEVEL      = var.log_level
+    SITE_ID        = var.site_id
   }
-  source_dir           = "../../packages/ingestion/process-audio-lambda/aws-dist"
-  s3_bucket_name       = module.s3_bucket.bucket_name
-  site_id              = var.site_id
-  lambda_architecture  = ["arm64"]
-  layers               = [aws_lambda_layer_version.ffmpeg_layer.arn]
+  source_dir          = "../../packages/ingestion/process-audio-lambda/aws-dist"
+  s3_bucket_name      = module.s3_bucket.bucket_name
+  site_id             = var.site_id
+  lambda_architecture = ["arm64"]
+  layers              = [aws_lambda_layer_version.ffmpeg_layer.arn]
 }
 
 # EventBridge schedule for RSS processing. Off by default (enable_rss_processing_schedule):
@@ -234,11 +234,11 @@ module "whisper_lambda" {
 module "eventbridge_schedule" {
   count  = var.enable_rss_processing_schedule ? 1 : 0
   source = "./modules/eventbridge"
-  
-  schedule_name        = "rss-processing-${var.site_id}"
-  schedule_expression  = var.rss_processing_schedule_expression
-  lambda_function_arn  = module.rss_lambda.lambda_function_arn
-  site_id              = var.site_id
+
+  schedule_name       = "rss-processing-${var.site_id}"
+  schedule_expression = var.rss_processing_schedule_expression
+  lambda_function_arn = module.rss_lambda.lambda_function_arn
+  site_id             = var.site_id
 }
 
 # IAM permissions to allow Lambda 1 to trigger Lambda 2
@@ -254,22 +254,22 @@ resource "aws_lambda_permission" "allow_lambda1_to_invoke_lambda2" {
 module "indexing_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "srt-indexing-${var.site_id}"
-  handler              = "convert-srts-indexed-search.handler"
-  runtime              = "nodejs24.x"
-  timeout              = 900 # TODO: Switch back to more reasonable size after confirming if max timeout is long enough for Brotli compression
-  memory_size          = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
-  ephemeral_storage    = 2048 # Space for the Orama index file
+  function_name     = "srt-indexing-${var.site_id}"
+  handler           = "convert-srts-indexed-search.handler"
+  runtime           = "nodejs24.x"
+  timeout           = 900                                 # TODO: Switch back to more reasonable size after confirming if max timeout is long enough for Brotli compression
+  memory_size       = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
+  ephemeral_storage = 2048                                # Space for the Orama index file
   environment_variables = {
-    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
-    LOG_LEVEL          = var.log_level
-    SITE_ID            = var.site_id
+    S3_BUCKET_NAME = module.s3_bucket.bucket_name
+    LOG_LEVEL      = var.log_level
+    SITE_ID        = var.site_id
   }
-  source_dir           = "../../packages/ingestion/srt-indexing-lambda/aws-dist"
-  s3_bucket_name       = module.s3_bucket.bucket_name
-  site_id              = var.site_id
-  lambda_architecture  = ["arm64"]
-  layers               = [aws_lambda_layer_version.compress_encode_layer.arn]
+  source_dir          = "../../packages/ingestion/srt-indexing-lambda/aws-dist"
+  s3_bucket_name      = module.s3_bucket.bucket_name
+  site_id             = var.site_id
+  lambda_architecture = ["arm64"]
+  layers              = [aws_lambda_layer_version.compress_encode_layer.arn]
 }
 
 # IAM permissions to allow Lambda 2 (Whisper) to trigger Lambda 3 (Indexing)
@@ -285,34 +285,34 @@ resource "aws_lambda_permission" "allow_lambda2_to_invoke_lambda3" {
 module "search_lambda" {
   source = "./modules/lambda"
 
-  function_name        = "search-api-${var.site_id}"
-  handler              = "search-indexed-transcripts.handler"
-  runtime              = "nodejs24.x"
-  timeout              = var.search_lambda_timeout # Configurable per-site. While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file - default of 45 seconds usually enough
-  memory_size          = var.search_lambda_memory_size # Configurable per-site, default 3008
-  ephemeral_storage    = 2048 # Space for the Orama index file
+  function_name     = "search-api-${var.site_id}"
+  handler           = "search-indexed-transcripts.handler"
+  runtime           = "nodejs24.x"
+  timeout           = var.search_lambda_timeout     # Configurable per-site. While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file - default of 45 seconds usually enough
+  memory_size       = var.search_lambda_memory_size # Configurable per-site, default 3008
+  ephemeral_storage = 2048                          # Space for the Orama index file
   environment_variables = {
-    S3_BUCKET_NAME     = module.s3_bucket.bucket_name
-    LOG_LEVEL          = var.log_level
-    SITE_ID            = var.site_id
-    FILE_STORAGE_ENV   = "prod-s3"
+    S3_BUCKET_NAME   = module.s3_bucket.bucket_name
+    LOG_LEVEL        = var.log_level
+    SITE_ID          = var.site_id
+    FILE_STORAGE_ENV = "prod-s3"
   }
-  source_dir           = "../../packages/search/search-lambda/aws-dist"
-  s3_bucket_name       = module.s3_bucket.bucket_name
-  site_id              = var.site_id
-  lambda_architecture  = ["arm64"]
-  layers               = [aws_lambda_layer_version.compress_encode_layer.arn]
+  source_dir          = "../../packages/search/search-lambda/aws-dist"
+  s3_bucket_name      = module.s3_bucket.bucket_name
+  site_id             = var.site_id
+  lambda_architecture = ["arm64"]
+  layers              = [aws_lambda_layer_version.compress_encode_layer.arn]
 }
 
 # EventBridge schedule for search lambda warming (conditional)
 module "search_lambda_warming_schedule" {
   count  = var.enable_search_lambda_warming ? 1 : 0
   source = "./modules/eventbridge"
-  
-  schedule_name        = "search-lambda-warming-${var.site_id}"
-  schedule_expression  = var.search_lambda_warming_schedule
-  lambda_function_arn  = module.search_lambda.lambda_function_arn
-  site_id              = var.site_id
+
+  schedule_name       = "search-lambda-warming-${var.site_id}"
+  schedule_expression = var.search_lambda_warming_schedule
+  lambda_function_arn = module.search_lambda.lambda_function_arn
+  site_id             = var.site_id
 }
 
 # API Gateway for Search Lambda
@@ -333,12 +333,12 @@ resource "aws_apigatewayv2_api" "search_api" {
 
 # API Gateway integration with configurable timeout
 resource "aws_apigatewayv2_integration" "search_lambda_integration" {
-  api_id           = aws_apigatewayv2_api.search_api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = module.search_lambda.lambda_function_arn
-  integration_method = "POST"
+  api_id                 = aws_apigatewayv2_api.search_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.search_lambda.lambda_function_arn
+  integration_method     = "POST"
   payload_format_version = "2.0"
-  timeout_milliseconds = var.api_gateway_timeout * 1000
+  timeout_milliseconds   = var.api_gateway_timeout * 1000
 }
 
 # API Gateway route for all methods
@@ -372,7 +372,7 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_search_lambda" {
 resource "aws_iam_role" "automation_role" {
   count = var.create_automation_role ? 1 : 0
   name  = "browse-dot-show-automation-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -385,7 +385,7 @@ resource "aws_iam_role" "automation_role" {
       }
     ]
   })
-  
+
   tags = {
     Name = "${var.site_id}-automation-role"
     Site = var.site_id
@@ -430,13 +430,13 @@ resource "aws_iam_role_policy" "automation_permissions" {
         Resource = module.s3_bucket.bucket_arn
       },
       {
-        Effect = "Allow"
-        Action = "lambda:InvokeFunction"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
         Resource = module.indexing_lambda.lambda_function_arn
       },
       {
-        Effect = "Allow"
-        Action = "lambda:InvokeFunction"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
         Resource = module.search_lambda.lambda_function_arn
       },
       {

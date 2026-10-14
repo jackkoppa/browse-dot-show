@@ -125,5 +125,5 @@ variable "enable_rss_processing_schedule" {
 variable "rss_processing_schedule_expression" {
   description = "Schedule expression for RSS processing (e.g., 'cron(0 1,8,16 * * ? *)' for 3x daily)"
   type        = string
-  default     = "cron(0 8 * * ? *)"  # Once daily at 8 AM UTC instead of 3x daily
+  default     = "cron(0 8 * * ? *)" # Once daily at 8 AM UTC instead of 3x daily
 }

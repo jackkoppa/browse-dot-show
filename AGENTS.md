@@ -25,6 +25,7 @@ Anything that touches AWS (`bds ingest` without `--dry-run`, `schedule run`/`run
 - `pnpm all:typecheck`: every TypeScript project (after `pnpm all:build`); required on PRs (the `checks` workflow)
 - `pnpm all:test`: every package's tests (after `pnpm all:build`); also on PRs (the `checks` workflow's `test` job)
 - `pnpm all:lint`
+- `terraform fmt -check -recursive terraform/`: Terraform formatting; also on PRs (the `checks` workflow's `terraform-fmt` job). Locally it also checks the gitignored `terraform/automation/terraform.tfvars`, which CI doesn't have.
 
 ## Current work
 

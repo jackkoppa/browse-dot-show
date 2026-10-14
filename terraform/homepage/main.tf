@@ -5,7 +5,7 @@ terraform {
       version = "~> 5.31.0"
     }
   }
-  
+
   # Homepage-specific S3 backend for terraform state
   backend "s3" {
     # Values will be provided via terraform init -backend-config
@@ -19,7 +19,7 @@ terraform {
 provider "aws" {
   region  = var.aws_region
   profile = var.aws_profile
-  
+
   default_tags {
     tags = {
       Project   = "browse-dot-show"
@@ -34,7 +34,7 @@ provider "aws" {
   alias   = "us_east_1"
   region  = "us-east-1"
   profile = var.aws_profile
-  
+
   default_tags {
     tags = {
       Project   = "browse-dot-show"
@@ -95,7 +95,7 @@ resource "aws_acm_certificate" "homepage" {
   }
 
   tags = {
-    Name = "homepage-ssl-certificate"
+    Name   = "homepage-ssl-certificate"
     Domain = var.domain_name
   }
 }
@@ -120,7 +120,7 @@ resource "aws_cloudfront_distribution" "homepage" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
-  price_class         = "PriceClass_100"  # Use only North America and Europe edge locations
+  price_class         = "PriceClass_100" # Use only North America and Europe edge locations
   aliases             = [var.domain_name]
 
   default_cache_behavior {
@@ -138,8 +138,8 @@ resource "aws_cloudfront_distribution" "homepage" {
     }
 
     min_ttl     = 0
-    default_ttl = 3600     # 1 hour
-    max_ttl     = 86400    # 1 day
+    default_ttl = 3600  # 1 hour
+    max_ttl     = 86400 # 1 day
   }
 
   # Cache behavior for static assets (longer cache)
@@ -189,7 +189,7 @@ resource "aws_cloudfront_distribution" "homepage" {
   }
 
   tags = {
-    Name = "homepage-distribution"
+    Name   = "homepage-distribution"
     Domain = var.domain_name
   }
 }
@@ -197,18 +197,18 @@ resource "aws_cloudfront_distribution" "homepage" {
 # S3 bucket policy to allow CloudFront access
 resource "aws_s3_bucket_policy" "homepage_cloudfront_access" {
   bucket = aws_s3_bucket.homepage.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontServicePrincipal"
-        Effect    = "Allow"
+        Sid    = "AllowCloudFrontServicePrincipal"
+        Effect = "Allow"
         Principal = {
           Service = "cloudfront.amazonaws.com"
         }
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.homepage.arn}/*"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.homepage.arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.homepage.arn
@@ -217,6 +217,6 @@ resource "aws_s3_bucket_policy" "homepage_cloudfront_access" {
       }
     ]
   })
-  
+
   depends_on = [aws_cloudfront_distribution.homepage]
 } 
