@@ -61,6 +61,10 @@ module "s3_bucket" {
   cors_allowed_origins = ["*"]  # Adjust as needed
 }
 
+# The layers' compatible_runtimes is metadata (Lambda uses it to filter ListLayers), not a
+# check: the functions run nodejs24.x with these layers. It stays nodejs20.x because the pinned
+# AWS provider doesn't accept nodejs24.x there, and changing it would replace every layer version.
+
 # @mongodb-js/zstd & msgpackr Lambda Layer - for compressing & encoding/decoding search index files
 resource "aws_lambda_layer_version" "compress_encode_layer" {
   filename         = "lambda-layers/mongodb-js-zstd__msgpackr.zip"
@@ -187,7 +191,7 @@ module "rss_lambda" {
   
   function_name        = "rss-retrieval-${var.site_id}"
   handler              = "retrieve-rss-feeds-and-download-audio-files.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 300
   memory_size          = 2560
   environment_variables = {
@@ -209,7 +213,7 @@ module "whisper_lambda" {
   
   function_name        = "whisper-transcription-${var.site_id}"
   handler              = "process-new-audio-files-via-whisper.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 900
   memory_size          = 1024
   environment_variables = {
@@ -252,7 +256,7 @@ module "indexing_lambda" {
 
   function_name        = "srt-indexing-${var.site_id}"
   handler              = "convert-srts-indexed-search.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = 900 # TODO: Switch back to more reasonable size after confirming if max timeout is long enough for Brotli compression
   memory_size          = var.srt_indexing_lambda_memory_size # Configurable per-site, default 3008 
   ephemeral_storage    = 2048 # Space for the Orama index file
@@ -283,7 +287,7 @@ module "search_lambda" {
 
   function_name        = "search-api-${var.site_id}"
   handler              = "search-indexed-transcripts.handler"
-  runtime              = "nodejs20.x"
+  runtime              = "nodejs24.x"
   timeout              = var.search_lambda_timeout # Configurable per-site. While we hope all warm requests are < 500ms, we need sufficient time for cold starts, to load the Orama index file - default of 45 seconds usually enough
   memory_size          = var.search_lambda_memory_size # Configurable per-site, default 3008
   ephemeral_storage    = 2048 # Space for the Orama index file
