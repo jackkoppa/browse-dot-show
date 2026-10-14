@@ -7,7 +7,8 @@ import { createDependencies, parseSitesConfig, SECRET_NAMES } from './dependenci
  * Local auth server for client development: `pnpm --filter @browse-dot-show/auth-lambda dev:local`
  *
  * Uses a throwaway signing key (printed, so a local subscriber lambda can verify its tokens) and
- * the `dev-code` provider with AUTH_DEV_CODE (default below). Real providers need their settings
+ * the `dev-code` provider with AUTH_DEV_CODE (default below), with in-memory storage (so a
+ * Supporting Cast mirror starts empty: POST /sync fills it). Real providers need their settings
  * as env vars, e.g. AUTH_SECRET_sites_listenfairplay_supporting_cast='{"apiToken":…}'.
  */
 
@@ -23,6 +24,7 @@ const sites = parseSitesConfig(
 const dependencies = createDependencies(sites, async name => {
   if (name === SECRET_NAMES.signingPrivateKey) return keys.privateKeyPem;
   if (name === SECRET_NAMES.devCode) return DEV_CODE;
+  if (name === SECRET_NAMES.emailHashKey) return 'local-email-hash-key';
   const value = process.env[`AUTH_SECRET_${name.replace(/[^a-z0-9]/gi, '_')}`];
   if (!value) throw new Error(`No local value for secret ${name}`);
   return value;
@@ -48,7 +50,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   const path = new URL(req.url ?? '/', 'http://localhost').pathname;
-  const response = await handleAuthRequest({ method: req.method ?? 'GET', path, headers: req.headers as Record<string, string>, body }, dependencies);
+  if (req.method === 'POST' && path === '/sync') {
+    res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(await dependencies.syncSupportingCast()));
+    return;
+  }
+  const response = await handleAuthRequest(
+    { method: req.method ?? 'GET', path, headers: req.headers as Record<string, string>, body, sourceIp: req.socket.remoteAddress },
+    dependencies,
+  );
   res.writeHead(response.status, { 'Content-Type': 'application/json' }).end(JSON.stringify(response.body));
 });
 

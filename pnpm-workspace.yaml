@@ -28,6 +28,7 @@ catalog:
   '@orama/plugin-data-persistence': 3.1.11
   typescript: ^5.3.3
   '@aws-sdk/client-cloudfront': ^3.830.0
+  '@aws-sdk/client-dynamodb': ^3.830.0
   '@aws-sdk/client-lambda': ^3.830.0
   '@aws-sdk/client-ssm': ^3.830.0
   '@aws-sdk/client-s3': ^3.830.0

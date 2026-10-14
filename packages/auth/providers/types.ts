@@ -23,20 +23,29 @@ export type StartLoginResult =
 
 export interface StartLoginInput {
   email?: string;
-  /** Where the provider sends the listener after logging in: `https://<site domain>/auth/callback` */
+  /** Where the provider sends the listener after logging in: `https://<site domain>/auth/callback?provider=<id>` */
   callbackUrl: string;
+  /**
+   * The callback URL plus a signed, single-use login link token for this user (1 hour), for
+   * providers that email the listener a link: only the inbox's owner sees it, so `/complete`
+   * accepts it without asking the provider again.
+   */
+  loginLinkFor(providerUserId: string): Promise<string>;
 }
 
 export interface SubscriptionProvider {
   id: ProviderId;
   startLogin(input: StartLoginInput): Promise<StartLoginResult>;
-  /** Checks what the site's `/auth/callback` (or code form) received; null if it doesn't grant access */
+  /**
+   * Checks what the site's `/auth/callback` (or code form) received; null if it doesn't grant
+   * access. Login links (`loginLinkFor`) are checked by the auth lambda, which then calls `refresh`.
+   */
   completeLogin(params: Record<string, string>): Promise<VerifiedSubscriber | null>;
   /** Re-checks a subscriber when their session is refreshed; null if they no longer have access */
   refresh(providerUserId: string): Promise<VerifiedSubscriber | null>;
 }
 
-/** The provider's API failed or rate-limited us: the listener should try again later */
+/** The provider's API failed or rate-limited us, or logins are paused: the listener should try again later */
 export class ProviderUnavailableError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message);
