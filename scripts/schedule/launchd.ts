@@ -7,7 +7,7 @@ import { LAUNCHD_LABEL, type ScheduleConfig } from './config.js';
 const execFileAsync = promisify(execFile);
 
 /**
- * The LaunchDaemon and the wake schedule (macOS facts: scratchpad/scripts-overhaul/M5-mac-automation.md).
+ * The LaunchDaemon and the wake schedule (why it's built this way: docs/scheduled-ingestion.md).
  *
  * - A LaunchDaemon (not a LaunchAgent) runs with nobody logged in. `UserName` runs it as the
  *   developer's user, so it uses their files and `.env.automation`.

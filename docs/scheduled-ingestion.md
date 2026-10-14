@@ -188,6 +188,20 @@ pnpm bds schedule install --track=main             # afterwards
 
 `bds schedule status` warns while the runner follows something other than `main`.
 
+## Why it's built this way
+
+macOS behaviors the design relies on (checked on macOS 26):
+
+- **A LaunchDaemon, not a LaunchAgent.** LaunchAgents need a logged-in user; a LaunchDaemon in `/Library/LaunchDaemons/` with `UserName` set runs as your user at the login window or with nobody logged in.
+- **`StartCalendarInterval`:** if the Mac is asleep at the scheduled time, launchd runs the job once on the next wake; if it's off, the run is missed. launchd never starts a second copy of a running job.
+- **Waking:** `pmset repeat wakeorpoweron` a few minutes before the run. A Mac has one repeating wake schedule, so `install` replaces it rather than adding another.
+- **Staying awake:** the run holds a `caffeinate -i -s -m` assertion, so a scheduled wake doesn't fall back asleep mid-run. A desktop on AC with `sleep 0` and `autorestart 1` is the most reliable; a laptop with its lid closed and no display isn't.
+- **FileVault** keeps the disk locked after a restart until someone types the password, so nothing runs, LaunchDaemons included.
+- **No keychain or SSO** with nobody logged in: AWS access uses the static keys in `.env.automation`.
+- **A minimal PATH under launchd:** the LaunchDaemon uses absolute paths (node, ffmpeg, aws, whisper), not shims.
+- **Privacy protections:** a background job needs Full Disk Access to read removable volumes (and `~/Documents`, `~/Desktop`, `~/Downloads`).
+- **A dedicated runner checkout** that fast-forwards to `origin/main` before each run, so branch work in your main checkout never affects scheduled runs.
+
 ## Troubleshooting
 
 | Symptom (`bds schedule status`, Slack) | Cause and fix |

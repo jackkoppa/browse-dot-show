@@ -11,9 +11,9 @@ Notable changes to how you run, develop and deploy `browse-dot-show`. Versions a
 >
 > Deployed sites, AWS resource names, the S3 layout and your gitignored config files (`.env.local`, `.env.automation`, `.site-account-mappings.json`, `.local-files-config.json`, sites' `.env.aws-sso`) are unchanged.
 
-## Unreleased (on the way to v1.0.0)
+## v1.0.0 (2026-10-14)
 
-v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, unattended ingestion on a Mac works.
+Developer tooling rebuilt around one CLI, deploys from GitHub Actions, and nightly ingestion on a Mac with nobody logged in. Scheduled ingestion has run nightly on a dedicated Mac mini since 2026-10-08.
 
 ### Changed
 
@@ -47,6 +47,7 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - **Setting up a Mac:** `Brewfile` + `./scripts/bootstrap.sh`, `bds setup machine` (local files, whisper.cpp + model, env files, Mac settings, doctor) and `bds setup benchmark` (picks `transcriptionWorkers`). Homebrew's `whisper-cli` is supported through a checkout-like folder, so the transcription lambda is unchanged.
 - **One ingestion run at a time:** `bds ingest` holds `<localFilesPath>/locks/ingestion-run.lock`; a second run exits with code 75.
 - `bds ingest --summary-json=<path>`: a machine-readable run summary.
+- The Slack message links each site with new episodes, and its newest episode: a search, sorted newest first, for a few uncommon words from that episode's transcript, so it's the first result.
 
 ### Changed (scheduled ingestion)
 
@@ -82,6 +83,8 @@ v1.0.0 will be tagged once deployments run from GitHub Actions and scheduled, un
 - `bds site upload-client --site=<id>` read the bucket and CloudFront ID from `terraform output`, i.e. from whichever site `terraform/sites` was last initialized for, so it could upload to another site's bucket. It now reads them from `.site-account-mappings.json`, and uses environment credentials when `AWS_PROFILE` isn't set.
 - Lambda `aws-dist/package.json` lists dependencies in a stable order, so unchanged code builds an identical zip.
 - The search-lambda refresh wrote to a fixed `/tmp/lambda-invoke-output.json`, which failed ("Permission denied") when another user had created it; it now uses a per-run temp folder.
+- Assuming a site's AWS role retries twice: one `aws sts assume-role` that stalled until its 30 s timeout failed a whole nightly run. A command that times out now says so (`Timed out after 30 s: …`).
+- The search-api refresh runs only when files besides the episode manifest were uploaded (search doesn't read the manifest, which is uploaded every run).
 
 ## v0.0.1 (2026-10-06)
 

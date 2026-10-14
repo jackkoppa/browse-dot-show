@@ -4,9 +4,6 @@ Setting up a Mac for `browse-dot-show`, and the day-to-day commands: running ing
 
 Everything runs through one CLI, `pnpm bds`. Run it with no arguments for an interactive menu, or pass a command and flags to run it without prompts.
 
-> [!NOTE]
-> **Using this repo from before October 6, 2026?** Commands and scripts were reorganized into the `pnpm bds` CLI. If your local scripts and deployments already work, you can stay on the [`v0.0.1` tag](https://github.com/jackkoppa/browse-dot-show/tree/v0.0.1). See the [changelog](../CHANGELOG.md) for what changed.
-
 ## 1. Tools
 
 Apple silicon Macs are the supported platform (Intel Macs and Linux mostly work for client development; transcription is only tested on Apple silicon).
