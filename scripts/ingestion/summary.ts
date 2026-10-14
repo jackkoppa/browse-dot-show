@@ -1,7 +1,30 @@
-import type { PipelineConfig, SiteProcessingResult } from './types.js';
+import { PIPELINE_PHASES, type PipelineConfig, type SiteProcessingResult } from './types.js';
+
+/** A dry run runs no phases, so there are no results to show: list what a real run would do. */
+export function formatDryRunSummary(results: SiteProcessingResult[], config: PipelineConfig): string {
+  const enabled = PIPELINE_PHASES.filter(phase => config.phases[phase.key]).map(phase => phase.id);
+  const skipped = PIPELINE_PHASES.filter(phase => !config.phases[phase.key]).map(phase => phase.id);
+  const lines = [
+    '',
+    '='.repeat(60),
+    '📊 Dry Run Summary (nothing ran)',
+    '='.repeat(60),
+    '',
+    `⚪ Phases a real run would run: ${enabled.join(', ') || 'none'}${config.reapplySpellingCorrections ? ' (+ reapplying spelling corrections)' : ''}`,
+  ];
+  if (skipped.length) lines.push(`⏭️  Skipped: ${skipped.join(', ')}`);
+  lines.push('', `Sites (${results.length}):`);
+  for (const result of results) lines.push(`   ${result.siteId} (${result.siteTitle})`);
+  return lines.join('\n');
+}
 
 /** Print the per-site results and overall statistics at the end of a pipeline run. */
 export function printPipelineSummary(results: SiteProcessingResult[], config: PipelineConfig, overallStartTime: number): void {
+  if (config.dryRun) {
+    console.log(formatDryRunSummary(results, config));
+    return;
+  }
+
   // Generate final summary
   const overallDuration = Date.now() - overallStartTime;
   

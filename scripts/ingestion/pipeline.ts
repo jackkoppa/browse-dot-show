@@ -463,14 +463,16 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
   
   printPipelineSummary(results, config, overallStartTime);
 
-  // Log pipeline results to file
+  // Log pipeline results to the run history (a dry run has none)
   const endTime = new Date();
-  try {
-    const logger = new PipelineResultLogger();
-    logger.logPipelineRun(results, startTime, endTime);
-    console.log(`\n📝 Pipeline results logged to: ${logger.getLogFilePath()}`);
-  } catch (error) {
-    console.warn(`⚠️  Failed to log pipeline results: ${error instanceof Error ? error.message : error}`);
+  if (!config.dryRun) {
+    try {
+      const logger = new PipelineResultLogger();
+      logger.logPipelineRun(results, startTime, endTime);
+      console.log(`\n📝 Pipeline results logged to: ${logger.getLogFilePath()}`);
+    } catch (error) {
+      console.warn(`⚠️  Failed to log pipeline results: ${error instanceof Error ? error.message : error}`);
+    }
   }
 
   const exitCode = results.some(r => r.errors.length > 0) ? 1 : 0;
@@ -486,6 +488,6 @@ export async function runPipeline(config: PipelineConfig): Promise<number> {
     console.log('\n⚠️  Some operations failed. Check the errors above.');
     return exitCode;
   }
-  console.log('\n🎉 All operations completed successfully!');
+  console.log(config.dryRun ? '\n✅ Dry run done.' : '\n🎉 All operations completed successfully!');
   return 0;
 }
