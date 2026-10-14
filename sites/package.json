@@ -8,11 +8,13 @@
     "scripts": {
         "build": "tsc",
         "validate": "tsx validate.ts",
-        "validate:sites": "tsx validate.ts"
+        "validate:sites": "tsx validate.ts",
+        "test": "vitest run"
     },
     "devDependencies": {
         "typescript": "catalog:",
-        "tsx": "catalog:"
+        "tsx": "catalog:",
+        "vitest": "catalog:"
     },
     "exports": {
         ".": "./dist/index.js"
