@@ -49,6 +49,19 @@ export function killActiveWhisperProcess(): void {
   }
 }
 
+const DEFAULT_TIMEOUT_SECONDS = 150;
+
+/**
+ * Timeout for a transcription attempt (each chunk is up to 20 minutes of audio): 150 s for the
+ * first attempt, doubled for the retry. That's ample on Apple Silicon; a CPU-only machine can
+ * take longer than the audio itself, so `WHISPER_TIMEOUT_SECONDS` (in .env.local) raises it.
+ */
+export function transcriptionTimeoutMs(attempt: number, env: NodeJS.ProcessEnv = process.env): number {
+  const configured = Number(env.WHISPER_TIMEOUT_SECONDS);
+  const baseSeconds = Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_TIMEOUT_SECONDS;
+  return baseSeconds * 1000 * attempt;
+}
+
 /**
  * Transcribes an audio file using either OpenAI or Replicate Whisper API
  * @param options Transcription options
@@ -75,12 +88,10 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
   }
 
   const MAX_ATTEMPTS = 2;
-  const BASE_TIMEOUT_MS = 150 * 1000; // 150 seconds for first attempt
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      // Calculate timeout: Increase with each attempt; max of MAX_ATTEMPTS * BASE_TIMEOUT_MS
-      const currentTimeoutMs = BASE_TIMEOUT_MS * attempt;
+      const currentTimeoutMs = transcriptionTimeoutMs(attempt);
 
       log.info(`Transcription attempt ${attempt}/${MAX_ATTEMPTS} for ${path.basename(filePath)} using ${whisperApiProvider}`);
       log.info(`⏱️  Timeout for this attempt: ${currentTimeoutMs / 1000} seconds`);
@@ -121,7 +132,7 @@ export async function transcribeViaWhisper(options: TranscribeOptions): Promise<
               log.error(`❌ Failed to kill process PID ${currentWhisperProcess.pid}: ${killError}`);
             }
           }
-          reject(new Error(`Transcription timed out after ${currentTimeoutMs / 1000} seconds`));
+          reject(new Error(`Transcription timed out after ${currentTimeoutMs / 1000} seconds (on a slower machine, raise WHISPER_TIMEOUT_SECONDS in .env.local; it's the first attempt's timeout, and the retry gets twice that)`));
         }, currentTimeoutMs);
       });
 
