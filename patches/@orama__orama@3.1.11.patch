@@ -1,0 +1,76 @@
+diff --git a/dist/browser/trees/radix.js b/dist/browser/trees/radix.js
+index e87fd7ca5b9842599e95e120a8515cb48689c08f..8cb139399a8b60708027a9c3deaa57dda246cd59 100644
+--- a/dist/browser/trees/radix.js
++++ b/dist/browser/trees/radix.js
+@@ -58,9 +58,13 @@ export class RadixNode {
+                 // always check in own property to prevent access to inherited properties
+                 // fix https://github.com/oramasearch/orama/issues/137
+                 if (getOwnProperty(output, w) != null && docIDs.size > 0) {
++                    // browse-dot-show patch: dedupe with a Set, not docs.includes() (O(n^2): a
++                    // word in 280k documents took seconds). docIDs is a Set, so each ID is new
++                    // unless output[w] already had documents.
+                     const docs = output[w];
++                    const seen = docs.length > 0 ? new Set(docs) : null;
+                     for (const docID of docIDs) {
+-                        if (!docs.includes(docID)) {
++                        if (seen === null || !seen.has(docID)) {
+                             docs.push(docID);
+                         }
+                     }
+diff --git a/dist/commonjs/trees/radix.js b/dist/commonjs/trees/radix.js
+index 8df89847f1ed4e9e15b4bd1976995573f8fa9e32..104cd3b60e81df3e764cff488b8d6602f02ae028 100644
+--- a/dist/commonjs/trees/radix.js
++++ b/dist/commonjs/trees/radix.js
+@@ -61,9 +61,13 @@ class RadixNode {
+                 // always check in own property to prevent access to inherited properties
+                 // fix https://github.com/oramasearch/orama/issues/137
+                 if ((0, utils_js_1.getOwnProperty)(output, w) != null && docIDs.size > 0) {
++                    // browse-dot-show patch: dedupe with a Set, not docs.includes() (O(n^2): a
++                    // word in 280k documents took seconds). docIDs is a Set, so each ID is new
++                    // unless output[w] already had documents.
+                     const docs = output[w];
++                    const seen = docs.length > 0 ? new Set(docs) : null;
+                     for (const docID of docIDs) {
+-                        if (!docs.includes(docID)) {
++                        if (seen === null || !seen.has(docID)) {
+                             docs.push(docID);
+                         }
+                     }
+diff --git a/dist/deno/trees/radix.js b/dist/deno/trees/radix.js
+index e87fd7ca5b9842599e95e120a8515cb48689c08f..8cb139399a8b60708027a9c3deaa57dda246cd59 100644
+--- a/dist/deno/trees/radix.js
++++ b/dist/deno/trees/radix.js
+@@ -58,9 +58,13 @@ export class RadixNode {
+                 // always check in own property to prevent access to inherited properties
+                 // fix https://github.com/oramasearch/orama/issues/137
+                 if (getOwnProperty(output, w) != null && docIDs.size > 0) {
++                    // browse-dot-show patch: dedupe with a Set, not docs.includes() (O(n^2): a
++                    // word in 280k documents took seconds). docIDs is a Set, so each ID is new
++                    // unless output[w] already had documents.
+                     const docs = output[w];
++                    const seen = docs.length > 0 ? new Set(docs) : null;
+                     for (const docID of docIDs) {
+-                        if (!docs.includes(docID)) {
++                        if (seen === null || !seen.has(docID)) {
+                             docs.push(docID);
+                         }
+                     }
+diff --git a/dist/esm/trees/radix.js b/dist/esm/trees/radix.js
+index e87fd7ca5b9842599e95e120a8515cb48689c08f..8cb139399a8b60708027a9c3deaa57dda246cd59 100644
+--- a/dist/esm/trees/radix.js
++++ b/dist/esm/trees/radix.js
+@@ -58,9 +58,13 @@ export class RadixNode {
+                 // always check in own property to prevent access to inherited properties
+                 // fix https://github.com/oramasearch/orama/issues/137
+                 if (getOwnProperty(output, w) != null && docIDs.size > 0) {
++                    // browse-dot-show patch: dedupe with a Set, not docs.includes() (O(n^2): a
++                    // word in 280k documents took seconds). docIDs is a Set, so each ID is new
++                    // unless output[w] already had documents.
+                     const docs = output[w];
++                    const seen = docs.length > 0 ? new Set(docs) : null;
+                     for (const docID of docIDs) {
+-                        if (!docs.includes(docID)) {
++                        if (seen === null || !seen.has(docID)) {
+                             docs.push(docID);
+                         }
+                     }
