@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import { getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
+import { getContentScope, getSearchIndexKey, getLocalDbPath } from '@browse-dot-show/constants';
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { searchOramaIndex, OramaSearchDatabase, restoreFromFileStreamingMsgPackR } from '@browse-dot-show/database';
 import { log } from '@browse-dot-show/logging';
@@ -7,6 +7,13 @@ import {
   getFile,
   fileExists
 } from '@browse-dot-show/s3';
+import {
+  authorize,
+  clearSubscriberManifestCache,
+  getSubscriberEpisode,
+  getSubscriberManifest,
+  isApiError,
+} from './subscriber-api.js';
 
 // Keep the Orama index in memory for reuse between lambda invocations
 let oramaIndex: OramaSearchDatabase | null = null;
@@ -60,6 +67,7 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
     log.info('Forcing fresh DB file download. Clearing existing Orama index from memory.');
     logMemoryUsage('Before Clearing Cache');
     oramaIndex = null;
+    clearSubscriberManifestCache();
     // Setting to null allows the object to be garbage collected if no other references exist.
     forceGarbageCollection();
     logMemoryUsage('After Clearing Cache');
@@ -141,7 +149,7 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
 /**
  * Main Lambda handler function
  */
-export async function handler(event: any): Promise<SearchResponse> {
+export async function handler(event: any): Promise<SearchResponse | object> {
   logMemoryUsage('Handler Entry');
   log.info('Search request received:', JSON.stringify(event));
   const startTime = Date.now();
@@ -157,6 +165,22 @@ export async function handler(event: any): Promise<SearchResponse> {
       sortBy: undefined,
       sortOrder: 'DESC'
     };
+  }
+
+  // The subscriber API (CONTENT_SCOPE=subscriber) needs a session token on every API request.
+  // Direct invocations (warming, index refresh after ingestion) have no requestContext and need none.
+  if (getContentScope() === 'subscriber' && event.requestContext?.http) {
+    const claims = authorize(event.headers);
+    if (isApiError(claims)) return claims;
+    let body: any = {};
+    try {
+      body = typeof event.body === 'string' ? JSON.parse(event.body) : (event.body ?? {});
+    } catch {
+      return { statusCode: 400, body: JSON.stringify({ error: 'invalid-json' }) };
+    }
+    if (body.action === 'manifest') return getSubscriberManifest();
+    if (body.action === 'episode') return getSubscriberEpisode(body.id);
+    // Otherwise a search, handled below like any other
   }
 
   // Determine forceFreshDBFileDownload early, as it's needed for initializeOramaIndex
