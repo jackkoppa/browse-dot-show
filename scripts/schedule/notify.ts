@@ -97,8 +97,8 @@ export function formatDuration(ms: number | undefined): string {
 /**
  * A short message for Slack and the healthcheck body: a bold headline, then bullets.
  * Slack renders `*bold*` and `` `code` ``; elsewhere they read fine as plain text.
- * With `siteDomains` (Slack only), sites with new episodes link to their deployed site, and
- * with `newestEpisodes` too, to a search that finds the site's newest episode first.
+ * With `siteDomains` (Slack only), sites with new episodes link to their deployed site: to a
+ * search that finds the site's newest episode first, when `newestEpisodes` has one.
  */
 export function formatRunMessage(
   record: ScheduledRunRecord,
@@ -140,10 +140,8 @@ export function formatRunMessage(
       for (const site of record.pipeline!.sites.filter(site => site.transcribed > 0)) {
         const domain = siteDomains[site.siteId];
         const newest = newestEpisodes[site.siteId];
-        const newestLink = domain && newest
-          ? `, newest: <${slackEscape(newestEpisodeSearchUrl(domain, newest.query))}|${slackEscape(newest.title)}>`
-          : '';
-        subBullet(`${domain ? `<https://${domain}|${site.siteId}>` : site.siteId}: ${site.transcribed}${newestLink}`);
+        const url = domain && (newest ? newestEpisodeSearchUrl(domain, newest.query) : `https://${domain}`);
+        subBullet(`${url ? `<${slackEscape(url)}|${site.siteId}>` : site.siteId}: ${site.transcribed}`);
       }
     }
     bullet(`${plural(totals.newAudioFiles, 'audio file')} downloaded, ${plural(totals.filesUploaded, 'file')} uploaded`);
