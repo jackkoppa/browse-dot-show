@@ -97,7 +97,7 @@ SLACK_WEBHOOK_URL=https://hooks.slack.com/services/…
 HEALTHCHECK_PING_URL=https://hc-ping.com/<uuid>
 ```
 
-- **Slack:** create an app at [api.slack.com/apps](https://api.slack.com/apps) → From scratch → Incoming Webhooks → on → Add New Webhook to Workspace → pick a channel → copy the URL. Every run posts: failures and skips, and successes too, as a daily heartbeat (change with `bds schedule install --notify-on-success=always|new-episodes|never`). For each site with new episodes, the message links the site and its newest episode: a search, sorted newest first, for a few uncommon words from that episode's transcript, so the episode is the first result (to check it transcribed and plays).
+- **Slack:** create an app at [api.slack.com/apps](https://api.slack.com/apps) → From scratch → Incoming Webhooks → on → Add New Webhook to Workspace → pick a channel → copy the URL. Every run posts: failures and skips, and successes too, as a daily heartbeat (change with `bds schedule install --notify-on-success=always|new-episodes|never`). For each site with new episodes, the site's name links to its newest episode: a search, sorted newest first, for a few uncommon words from that episode's transcript, so the episode is the first result (to check it transcribed and plays).
 - **Healthcheck ([healthchecks.io](https://healthchecks.io), free):** add a check with Schedule **Cron** `0 3 * * *` (your run time), your time zone, and a **grace time of 8 hours** (a long run is fine; the run pings `/start` when it begins). Add Slack (or email) under Integrations. Copy the ping URL.
 
 Check both:
