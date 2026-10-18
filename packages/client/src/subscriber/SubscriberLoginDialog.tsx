@@ -10,7 +10,9 @@ import { useSubscriber } from './SubscriberContext';
 import type { SubscriberLoginProvider } from '@browse-dot-show/sites';
 
 /** Providers whose login is a redirect to their site (OAuth), and their button labels */
-export const REDIRECT_PROVIDER_LABELS: Partial<Record<SubscriberLoginProvider, string>> = {};
+export const REDIRECT_PROVIDER_LABELS: Partial<Record<SubscriberLoginProvider, string>> = {
+  patreon: 'Log in with Patreon',
+};
 
 /** The header's subscriber button: log in (email link or dev code), or see you're logged in and log out */
 export default function SubscriberLoginDialog() {

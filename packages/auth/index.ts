@@ -20,6 +20,7 @@ export {
   type StartLoginInput,
   type StartLoginResult,
   type OAuthCallback,
+  type LoginDenied,
   type VerifiedSubscriber,
 } from './providers/types.js';
 export { createDevCodeProvider } from './providers/dev-code.js';
@@ -39,4 +40,17 @@ export {
   type SyncDependencies,
   type SyncResult,
 } from './providers/supporting-cast/index.js';
+export {
+  createPatreonProvider,
+  patreonAccess,
+  patreonHasAccess,
+  patreonMemberships,
+  PATREON_BASE_URL,
+  PATREON_DEFAULT_SCOPES,
+  PATREON_IDENTITY_PATH,
+  type PatreonClientSettings,
+  type PatreonIdentity,
+  type PatreonProviderOptions,
+  type PatreonSiteSettings,
+} from './providers/patreon/index.js';
 export { createMemoryAuthStore, timeBuckets, type AuthStore } from './store.js';

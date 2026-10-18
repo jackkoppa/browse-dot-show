@@ -1,6 +1,6 @@
 import type { SiteConfig } from './types.js';
 
-const PROVIDERS = ['supporting-cast', 'dev-code'];
+const PROVIDERS = ['supporting-cast', 'patreon', 'dev-code'];
 /** Only `preview` until a site launches subscriber access to everyone (see types.ts) */
 const LAUNCH_STATUSES = ['preview'];
 

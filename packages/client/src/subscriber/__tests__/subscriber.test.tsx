@@ -124,3 +124,21 @@ describe('SubscriberProvider and login dialog', () => {
     expect(JSON.parse(init!.body as string)).toEqual({ siteId: 'listenfairplay', provider: 'supporting-cast', email: 'fan@example.com', origin: window.location.origin })
   })
 })
+
+describe('AuthCallbackRoute', () => {
+  it("tells a member on another tier, with a way to ask about it", async () => {
+    const { MemoryRouter } = await import('react-router')
+    const { default: AuthCallbackRoute } = await import('../AuthCallbackRoute')
+    // The flag was set when the listener started logging in
+    localStorage.setItem('bds:subscriber-preview', '1')
+
+    render(
+      <MemoryRouter initialEntries={['/auth/callback?provider=supporting-cast&error=tier-not-included']}>
+        <SubscriberProvider><AuthCallbackRoute /></SubscriberProvider>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText(/tier doesn't include the subscriber episodes/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', 'https://browse.show/contact')
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+})

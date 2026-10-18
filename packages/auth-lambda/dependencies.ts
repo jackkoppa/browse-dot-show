@@ -3,11 +3,14 @@ import {
   ProviderNotConfiguredError,
   createDevCodeProvider,
   createMemoryAuthStore,
+  createPatreonProvider,
   createMemorySupportingCastMirror,
   createSupportingCastProvider,
   normalizeEmail,
   syncSupportingCast,
   type AuthStore,
+  type PatreonClientSettings,
+  type PatreonSiteSettings,
   type ProviderId,
   type SubscriptionProvider,
   type SupportingCastMirror,
@@ -24,6 +27,8 @@ import type { AuthDependencies, AuthSitesConfig } from './app.js';
  *   Changing it empties the Supporting Cast mirrors in effect: reset their sync state to rebuild them
  * - `dev-code`: the `dev-code` provider's code
  * - `sites/<siteId>/supporting-cast`: JSON SupportingCastSettings (API token, network ID, plans, limits)
+ * - `patreon-client`: JSON PatreonClientSettings (browse.show's Patreon OAuth client, for every site)
+ * - `sites/<siteId>/patreon`: JSON PatreonSiteSettings (campaign and tiers)
  */
 export type SecretReader = (name: string) => Promise<string>;
 
@@ -40,6 +45,8 @@ export const SECRET_NAMES = {
   emailHashKey: 'email-hash-key',
   devCode: 'dev-code',
   supportingCast: (siteId: string) => `sites/${siteId}/supporting-cast`,
+  patreonClient: 'patreon-client',
+  patreon: (siteId: string) => `sites/${siteId}/patreon`,
 };
 
 /** Secrets are re-read after this long, so a changed setting (e.g. `enabled: false`) applies within minutes */
@@ -87,6 +94,8 @@ export interface DependencyOptions {
   storage?: Storage;
   /** The auth API's own URL, for OAuth redirect URIs */
   publicUrl?: string;
+  /** Patreon's site and API (a local fake in development) */
+  patreonBaseUrl?: string;
   /** Milliseconds since the epoch (tests) */
   clock?: () => number;
 }
@@ -136,6 +145,11 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
           store: storage.store,
           hashEmail: await emailHasher(),
         });
+      case 'patreon': {
+        const site = JSON.parse(await providerSecret(SECRET_NAMES.patreon(siteId))) as PatreonSiteSettings;
+        const client = site.client ?? (JSON.parse(await providerSecret(SECRET_NAMES.patreonClient)) as PatreonClientSettings);
+        return createPatreonProvider(site, client, { baseUrl: options.patreonBaseUrl });
+      }
     }
   }
 

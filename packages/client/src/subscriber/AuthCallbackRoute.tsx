@@ -4,9 +4,13 @@ import type { SubscriberLoginProvider } from '@browse-dot-show/sites';
 import { trackEvent } from '../utils/goatcounter';
 import { useSubscriber } from './SubscriberContext';
 
+/** Where listeners can ask about subscriber access (e.g. for a tier that doesn't include it yet) */
+export const SUBSCRIBER_CONTACT_URL = 'https://browse.show/contact';
+
 /** What the auth API's `error` param means (OAuth logins come back with one when they fail) */
 export const CALLBACK_ERRORS: Record<string, string> = {
   'not-a-subscriber': "We couldn't find an active subscription for that account.",
+  'tier-not-included': "Your membership's tier doesn't include the subscriber episodes here yet.",
   cancelled: 'Login was cancelled.',
   'link-already-used': 'That login link was already used. Please log in again.',
   'provider-not-configured': "Logging in with this service isn't set up yet.",
@@ -23,6 +27,7 @@ export default function AuthCallbackRoute() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [message, setMessage] = useState('Logging you in…');
+  const [showContact, setShowContact] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
@@ -38,6 +43,11 @@ export default function AuthCallbackRoute() {
     const errorCode = searchParams.get('error');
     if (errorCode) {
       setMessage(CALLBACK_ERRORS[errorCode] ?? DEFAULT_CALLBACK_ERROR);
+      if (errorCode === 'tier-not-included') {
+        // Counted, to gauge demand for subscriber access on other tiers
+        trackEvent({ eventType: 'Subscriber Tier Not Included' });
+        setShowContact(true);
+      }
       return;
     }
     const params = Object.fromEntries([...searchParams.entries()].filter(([key]) => key !== 'provider'));
@@ -56,6 +66,11 @@ export default function AuthCallbackRoute() {
   return (
     <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 min-h-screen">
       <p className="text-center">{message}</p>
+      {showContact && (
+        <p className="text-center mt-4">
+          Interested, or have questions? <a href={SUBSCRIBER_CONTACT_URL} target="_blank" rel="noopener noreferrer" className="underline">Contact us</a>
+        </p>
+      )}
       <p className="text-center mt-4"><a href="/" className="underline">Back to search</a></p>
     </div>
   );
