@@ -14,9 +14,10 @@ import { SortOption } from '../types/search'
 import { useEpisodeManifest } from '../hooks/useEpisodeManifest'
 import { trackEvent } from '@/utils/goatcounter';
 import siteConfig from '../config/site-config'
+import { SEARCH_API_BASE_URL } from '../constants'
+import { useSubscriber } from '../subscriber/SubscriberContext'
+import { SubscriberUnauthorizedError } from '../subscriber/api'
 
-// Get the search API URL from environment variable, fallback to localhost for development
-const SEARCH_API_BASE_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
 
 const SEARCH_LIMIT = 25;
 
@@ -61,6 +62,10 @@ function HomePage() {
   // Use the shared episode manifest hook
   const { episodeManifest, isLoading: isManifestLoading, error: manifestError } = useEpisodeManifest();
 
+  // Logged-in subscribers search the subscriber index (public + subscriber-only episodes)
+  const subscriber = useSubscriber();
+  const subscriberToken = subscriber.session?.token;
+
   // Local state for search input (not synced to URL until search is performed)
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
@@ -69,7 +74,7 @@ function HomePage() {
   // Ref to track when the page was loaded for cold start timeout logic
   const pageLoadTime = useRef(Date.now());
   // Ref to track the last search parameters to prevent duplicate searches
-  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number} | null>(null);
+  const lastSearchParams = useRef<{query: string, sort: SortOption, page: number, subscriberToken?: string} | null>(null);
 
   // Sync local search query when URL changes (browser back/forward, direct navigation)
   useEffect(() => {
@@ -147,6 +152,16 @@ function HomePage() {
   }, []);
 
   /**
+   * Warm the subscriber API too, once logged in
+   */
+  useEffect(() => {
+    if (!subscriberToken) return;
+    performHealthCheck(SEARCH_API_BASE_URL, subscriberToken).catch(e => {
+      if (e instanceof SubscriberUnauthorizedError) subscriber.handleUnauthorized();
+    });
+  }, [subscriberToken]);
+
+  /**
    * Perform search when explicitly triggered by user (Enter key or button click)
    */
   const handleSearch = async () => {
@@ -196,15 +211,16 @@ function HomePage() {
   /**
    * Perform the actual search API request
    */
-  const performSearchRequest = async (query: string) => {
+  const performSearchRequest = async (query: string, token: string | undefined = subscriberToken) => {
     // Check if we're about to perform the same search as last time
-    const currentSearchParams = { query, sort: sortOption, page: currentPage };
+    const currentSearchParams = { query, sort: sortOption, page: currentPage, subscriberToken: token };
     const lastParams = lastSearchParams.current;
     
     if (lastParams && 
         lastParams.query === currentSearchParams.query && 
         lastParams.sort === currentSearchParams.sort &&
-        lastParams.page === currentSearchParams.page) {
+        lastParams.page === currentSearchParams.page &&
+        lastParams.subscriberToken === currentSearchParams.subscriberToken) {
       return;
     }
     
@@ -222,6 +238,7 @@ function HomePage() {
         searchApiBaseUrl: SEARCH_API_BASE_URL,
         searchLimit: SEARCH_LIMIT,
         searchOffset,
+        subscriberToken: token,
       });
       
       if (data && data.hits) {
@@ -245,6 +262,14 @@ function HomePage() {
       // Hide cold start loader once we have real search results
       setShowColdStartLoader(false);
     } catch (e: any) {
+      if (e instanceof SubscriberUnauthorizedError) {
+        // The session was rejected: log out, and search the public episodes instead
+        subscriber.handleUnauthorized();
+        lastSearchParams.current = null;
+        setIsLoading(false);
+        await performSearchRequest(query, undefined);
+        return;
+      }
       log.error('[HomePage.tsx] performSearchRequest: Failed to fetch search results:', e);
       setError(e.message || 'Failed to fetch search results. Please try again.');
       setSearchResults([]);
@@ -283,7 +308,7 @@ function HomePage() {
   }, [isLambdaWarm, showColdStartLoader, localSearchQuery]);
 
   /**
-   * Re-run search when sort option or page changes (but only if we have an active search)
+   * Re-run search when sort option or page changes, or a subscriber logs in or out (but only if we have an active search)
    */
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
@@ -291,7 +316,7 @@ function HomePage() {
     if (trimmedQuery.length >= 2) {
       performSearchRequest(trimmedQuery);
     }
-  }, [sortOption, currentPage]);
+  }, [sortOption, currentPage, subscriberToken]);
 
   return (
     <div className="bg-background max-w-3xl mx-auto p-4 font-mono pt-32 sm:pt-28 min-h-screen">
@@ -305,6 +330,13 @@ function HomePage() {
         mostRecentSuccessfulSearchQuery={mostRecentSuccessfulSearchQuery}
         headerConfig={headerConfig}
       />
+
+      {subscriber.notice && (
+        <div className="text-yellow-800 bg-yellow-100 border-yellow-600 border-2 p-3 mb-4 rounded-none flex justify-between gap-4 text-sm">
+          <span>{subscriber.notice}</span>
+          <button type="button" className="underline" onClick={subscriber.dismissNotice}>Dismiss</button>
+        </div>
+      )}
 
       {/* Conditionally render ColdStartLoader or SearchResults */}
       {showColdStartLoader ? (

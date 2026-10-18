@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { ApiSearchResultHit, EpisodeInManifest } from '@browse-dot-show/types'; // Import the new type
+import { ApiSearchResultHit, EpisodeInManifest, parseEpisodeId } from '@browse-dot-show/types';
 import {
   Card,
   CardContent,
@@ -17,7 +17,8 @@ import siteConfig from '@/config/site-config';
 
 export interface SearchResultProps {
   result: ApiSearchResultHit;
-  episodeData?: EpisodeInManifest;
+  /** The result's episode: a public one from the manifest, or a subscriber-only one */
+  episodeData?: Pick<EpisodeInManifest, 'title' | 'publishedAt' | 'podcastId'>;
   isManifestLoading: boolean;
   showManifestError: boolean;
 }
@@ -47,13 +48,15 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
       eventType: 'Result Clicked',
     });
 
-    navigate(`/episode/${episodeData.sequentialId}${queryString ? `?${queryString}` : ''}`);
+    // The episode ID: `123`, or `s12` for subscriber-only episodes
+    navigate(`/episode/${result.sequentialEpisodeIdAsString}${queryString ? `?${queryString}` : ''}`);
   };
 
   // Determine what to show in the footer
   const showEpisodeMetadata = Boolean(episodeData);
   const showSkeletonLoaders = !episodeData && isManifestLoading && !showManifestError;
   const shouldBeClickable = Boolean(episodeData);
+  const isSubscriberEpisode = parseEpisodeId(result.sequentialEpisodeIdAsString)?.scope === 'subscriber';
 
   return (
     <Card 
@@ -70,6 +73,7 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
               <div className="flex items-center gap-2">
                 {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
                 <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
+                {isSubscriberEpisode && <Badge variant="secondary">Subscriber</Badge>}
               </div>
               {podcastTitle && <div className="text-xs font-semibold text-muted-foreground w-full block mt-2">{podcastTitle}</div>}
               <div className={`text-xs text-muted-foreground w-full block ${podcastTitle ? 'mt-0.5' : 'mt-2'} italic`}>{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>

@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router'
 import { useState, useEffect, useRef } from 'react'
-import { EpisodeInManifest } from '@browse-dot-show/types'
+import { EpisodeInManifest, parseEpisodeId } from '@browse-dot-show/types'
 import { CaretSortIcon, MinusCircledIcon, Share1Icon, Share2Icon, Cross2Icon, CopyIcon, CheckCircledIcon } from "@radix-ui/react-icons"
 
 import { log } from '../utils/logging';
@@ -18,6 +18,9 @@ import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
 import { usePlayTimeLimit } from '@/hooks/usePlayTimeLimit'
 import { trackEvent } from '@/utils/goatcounter';
 import { encodeFileKey } from '@/utils/encode';
+import { useSubscriber } from '@/subscriber/SubscriberContext';
+import { getSubscriberEpisode, SubscriberUnauthorizedError, type SubscriberEpisodeDetails } from '@/subscriber/api';
+import { SEARCH_API_BASE_URL } from '../constants'
 
 // Add a simple check for whether this is iOS or Mac, vs anything else:
 const isIOSOrMac = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -112,7 +115,7 @@ function hideSheetBuiltInCloseButton() {
  * EpisodeRoute component that handles the /episode/:eID route.
  * 
  * Reads:
- * - eID route parameter (episode sequential ID)
+ * - eID route parameter (episode sequential ID; `s<n>` for subscriber-only episodes, loaded via the subscriber API)
  * - start query parameter (start time in milliseconds)
  * 
  * Fetches episode data and creates a mock search result for transcript highlighting.
@@ -140,11 +143,42 @@ export default function EpisodeRoute() {
   const audioPlayerRef = useRef<AudioPlayerRef>(null)
   const playTimeLimit = usePlayTimeLimit()
 
+  // Subscribers can listen without the play-time limit, and open subscriber-only episodes
+  const subscriber = useSubscriber()
+  const limitApplies = !subscriber.isSubscriber
+  const parsedEpisodeId = eID ? parseEpisodeId(eID) : null
+  const isSubscriberEpisode = parsedEpisodeId?.scope === 'subscriber'
+  const [subscriberEpisodeDetails, setSubscriberEpisodeDetails] = useState<SubscriberEpisodeDetails | null>(null)
+
   useEffect(() => {
     const fetchEpisodeData = async () => {
-      if (!eID) {
-        setError('Episode ID is required')
+      if (!eID || !parsedEpisodeId) {
+        setError(eID ? `Episode with ID ${eID} not found` : 'Episode ID is required')
         setIsLoading(false)
+        return
+      }
+
+      if (isSubscriberEpisode) {
+        if (!subscriber.session) {
+          setError(subscriber.available
+            ? 'This is a subscriber-only episode. Log in with your subscription to listen'
+            : 'This episode is only available to subscribers')
+          setIsLoading(false)
+          return
+        }
+        try {
+          setIsLoading(true)
+          setError(null)
+          const details = await getSubscriberEpisode(SEARCH_API_BASE_URL, eID, subscriber.session)
+          setSubscriberEpisodeDetails(details)
+          setEpisodeData({ ...details.episode, originalAudioURL: '' })
+        } catch (e: any) {
+          if (e instanceof SubscriberUnauthorizedError) subscriber.handleUnauthorized()
+          log.error('[EpisodeRoute.tsx] Failed to fetch subscriber episode:', e)
+          setError(e.message || 'Failed to load episode data')
+        } finally {
+          setIsLoading(false)
+        }
         return
       }
 
@@ -170,7 +204,7 @@ export default function EpisodeRoute() {
         setError(null)
 
         // Find episode by sequential ID (converted to number for comparison)
-        const episode = episodeManifest.episodes.find(ep => ep.sequentialId === parseInt(eID, 10))
+        const episode = episodeManifest.episodes.find(ep => ep.sequentialId === parsedEpisodeId.sequentialId)
 
         if (!episode) {
           throw new Error(`Episode with ID ${eID} not found`)
@@ -186,7 +220,7 @@ export default function EpisodeRoute() {
     }
 
     fetchEpisodeData()
-  }, [eID, episodeManifest, isManifestLoading, manifestError])
+  }, [eID, episodeManifest, isManifestLoading, manifestError, subscriber.session])
 
   useEffect(() => {
     hideSheetBuiltInCloseButton()
@@ -228,7 +262,7 @@ export default function EpisodeRoute() {
     }
 
     // Check if limit exceeded during playback
-    if (episodeData && hasUserInteracted) {
+    if (episodeData && hasUserInteracted && limitApplies) {
       const episodeId = episodeData.sequentialId.toString();
       if (playTimeLimit.checkAndHandleLimit(episodeId)) {
         // Limit just exceeded, pause the audio and show dialog
@@ -252,7 +286,7 @@ export default function EpisodeRoute() {
     const episodeId = episodeData.sequentialId.toString();
     
     // Check if limit is already exceeded
-    if (playTimeLimit.isLimitExceeded(episodeId)) {
+    if (limitApplies && playTimeLimit.isLimitExceeded(episodeId)) {
       setShowLimitDialog(true);
       return;
     }
@@ -261,7 +295,7 @@ export default function EpisodeRoute() {
     setHasUserInteracted(true);
 
     // Track play time
-    playTimeLimit.onPlay(episodeId);
+    if (limitApplies) playTimeLimit.onPlay(episodeId);
 
     trackEvent({
       eventType: 'Play Button Clicked',
@@ -336,7 +370,10 @@ export default function EpisodeRoute() {
   const formattedPublishedAt = publishedAt ? formatDate(publishedAt) : null
 
   let baseAudioUrl = ''
-  if (audioSource === 'rssFeedURL') {
+  if (subscriberEpisodeDetails && isSubscriberEpisode) {
+    // Subscriber-only audio is only ever our (presigned) copy: the feed URL is private
+    baseAudioUrl = subscriberEpisodeDetails.audioUrl
+  } else if (audioSource === 'rssFeedURL') {
     // Use the .mp3 file from the RSS feed
     baseAudioUrl = originalAudioURL
   } else {
@@ -372,7 +409,7 @@ export default function EpisodeRoute() {
               onPause={handlePause}
               onSeek={handleSeek}
               onLimitExceededClick={() => setShowLimitDialog(true)}
-              isLimitExceeded={playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
+              isLimitExceeded={limitApplies && playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
             />
           </div>
           <SheetDescription className="sr-only">
@@ -381,6 +418,7 @@ export default function EpisodeRoute() {
         </SheetHeader>
         <FullEpisodeTranscript
           episodeData={episodeData}
+          searchEntriesUrl={isSubscriberEpisode ? subscriberEpisodeDetails?.searchEntriesUrl : undefined}
           startTimeMs={startTimeMs}
           currentPlayingTimeMs={hasUserInteracted ? currentPlayingTimeMs : null}
           onEntryClick={handleEntryClick}
