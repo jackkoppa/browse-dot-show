@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite dev"
+    "dev": "vite dev",
+    "test": "vitest run"
   },
   "dependencies": {
     "@browse-dot-show/types": "workspace:*",

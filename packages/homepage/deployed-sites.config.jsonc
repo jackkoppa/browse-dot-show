@@ -209,6 +209,16 @@
                 "imageUrl": "https://wattsoccurring.browse.show/assets/web-app-manifest-192x192.png",
                 "searchInputPlaceholder": "Tour"
             },
+            // sites/origin-sites/libero
+            // Also served at libero.browse.show; search.liberopodcast.com is its canonical URL
+            "libero": {
+                "siteName": "Libero | Search the Podcast Archives",
+                "displayedPodcastName": "Libero",
+                "podcastTagline": "A podcast about football, the least important of the most important things, featuring John Brewin, Miguel Delaney, James Horncastle, Tariq Panja, Jack Pitt-Brooke, Rory Smith and Jonathan Wilson.",
+                "domain": "search.liberopodcast.com",
+                "imageUrl": "https://search.liberopodcast.com/assets/web-app-manifest-192x192.png",
+                "searchInputPlaceholder": "modern football"
+            },
         }
     }
 }
