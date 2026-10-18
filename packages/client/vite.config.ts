@@ -36,6 +36,14 @@ function loadSiteConfig() {
     };
   });
 
+  // `bds dev client --subscriber-demo` on a site without subscriber access: every provider, against local fakes
+  const subscriberAccess = siteConfig.subscriberAccess ?? (process.env.BDS_SUBSCRIBER_DEMO === '1' ? {
+    launchStatus: 'preview' as const,
+    providers: ['supporting-cast', 'patreon', 'dev-code'],
+    subscriptionName: 'Demo subscription',
+    subscribeUrl: 'https://example.com/subscribe',
+  } : undefined);
+
   return {
     VITE_SITE_ID: siteConfig.id,
     VITE_SITE_DOMAIN: siteConfig.domain,
@@ -46,12 +54,13 @@ function loadSiteConfig() {
     VITE_SITE_THEME_COLOR_DARK: siteConfig.themeColorDark,
     VITE_SITE_SEARCH_PLACEHOLDER_OPTIONS: JSON.stringify(siteConfig.searchPlaceholderOptions),
     VITE_SITE_TRACKING_SCRIPT: siteConfig.trackingScript,
-    // Only for sites with subscriber access (see scratchpad/subscriber-access/PLAN.md)
-    VITE_SUBSCRIBER_ACCESS: siteConfig.subscriberAccess && JSON.stringify({
-      launchStatus: siteConfig.subscriberAccess.launchStatus,
-      providers: siteConfig.subscriberAccess.providers,
-      subscriptionName: siteConfig.subscriberAccess.subscriptionName,
-      subscribeUrl: siteConfig.subscriberAccess.subscribeUrl,
+    // Only for sites with subscriber access (see scratchpad/subscriber-access/PLAN.md), or any
+    // site in `bds dev client --subscriber-demo`
+    VITE_SUBSCRIBER_ACCESS: subscriberAccess && JSON.stringify({
+      launchStatus: subscriberAccess.launchStatus,
+      providers: subscriberAccess.providers,
+      subscriptionName: subscriberAccess.subscriptionName,
+      subscribeUrl: subscriberAccess.subscribeUrl,
       authApiUrl: process.env.VITE_SUBSCRIBER_AUTH_API_URL || SUBSCRIBER_AUTH_API_URL,
     }),
   };

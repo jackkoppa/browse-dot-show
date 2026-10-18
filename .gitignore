@@ -82,3 +82,6 @@ sites/my-sites/**/.setup-progress.json
 # Terraform plan summaries from `bds ci terraform`
 .terraform-plans/
 terraform/.ci-*/
+
+# Dummy data for `bds dev client --subscriber-demo`
+.subscriber-demo/

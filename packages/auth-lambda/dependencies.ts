@@ -96,6 +96,8 @@ export interface DependencyOptions {
   publicUrl?: string;
   /** Patreon's site and API (a local fake in development) */
   patreonBaseUrl?: string;
+  /** Supporting Cast's API (a local fake in development) */
+  supportingCastApi?: { fetch?: typeof fetch; baseUrl?: string };
   /** Milliseconds since the epoch (tests) */
   clock?: () => number;
 }
@@ -144,6 +146,7 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
           mirror: storage.supportingCastMirror(siteId),
           store: storage.store,
           hashEmail: await emailHasher(),
+          api: options.supportingCastApi,
         });
       case 'patreon': {
         const site = JSON.parse(await providerSecret(SECRET_NAMES.patreon(siteId))) as PatreonSiteSettings;
@@ -161,7 +164,7 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
     getProvider,
     hashEmail: async email => (await emailHasher())(email),
 
-    async syncSupportingCast(options = {}) {
+    async syncSupportingCast(syncOptions = {}) {
       const results: Record<string, SyncResult | { skipped: string }> = {};
       for (const [siteId, site] of Object.entries(sites)) {
         if (!site.providers.includes('supporting-cast')) continue;
@@ -180,7 +183,8 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
           results[siteId] = await syncSupportingCast(settings, {
             mirror: storage.supportingCastMirror(siteId),
             hashEmail: await emailHasher(),
-            shouldStop: options.shouldStop,
+            shouldStop: syncOptions.shouldStop,
+            api: options.supportingCastApi,
           });
         } catch (error) {
           // E.g. rate-limited: the next run carries on from where this one got to
