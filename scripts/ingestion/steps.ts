@@ -8,6 +8,7 @@ import { logError, logProgress, logSuccess } from '../lib/logging.js';
 import { assumeAwsRole } from '../lib/s3-sync.js';
 import { execCommand } from '../lib/shell-exec.js';
 import { getSiteCloudFrontId } from '../lib/site-accounts.js';
+import type { ContentScope } from '@browse-dot-show/constants';
 import { reapplySpellingCorrectionsToAllTranscripts as reapplySpellingCorrectionsFunction } from './spelling-corrections.js';
 
 /** The individual steps the pipeline runs for each site. Each returns a result; none throw. */
@@ -18,17 +19,17 @@ import { reapplySpellingCorrectionsToAllTranscripts as reapplySpellingCorrection
  */
 export async function triggerSearchApiLambdaRefresh(
   siteId: string,
-  credentials: AutomationCredentials
+  credentials: AutomationCredentials,
+  /** `search-api-<siteId>`, or the subscriber API (`subscriber-api-<siteId>`) */
+  searchLambdaName = `search-api-${siteId}`
 ): Promise<{ success: boolean; duration: number; error?: string }> {
   const startTime = Date.now();
   
-  logProgress(`Triggering search-api Lambda refresh for ${siteId}`);
+  logProgress(`Triggering ${searchLambdaName} Lambda refresh for ${siteId}`);
   
   try {
     // Assume AWS role and get temporary credentials
     const { tempCredentials } = await assumeAwsRole(siteId, 'search-refresh', credentials);
-    
-    const searchLambdaName = `search-api-${siteId}`;
     
     // Create the payload to force fresh DB file download
     const payload = JSON.stringify({
@@ -83,9 +84,10 @@ export async function triggerSearchApiLambdaRefresh(
  * Run RSS retrieval locally for a site, streaming its output, and count new audio files.
  */
 export async function runRssRetrieval(
-  siteId: string
+  siteId: string,
+  scope: ContentScope = 'public'
 ): Promise<{ success: boolean; duration: number; error?: string; newAudioFiles?: number }> {
-  const operation = 'RSS retrieval';
+  const operation = scope === 'subscriber' ? 'Subscriber RSS retrieval' : 'RSS retrieval';
   console.log(`\n🚀 Running ${operation} for site: ${siteId}`);
 
   const startTime = Date.now();
@@ -97,7 +99,7 @@ export async function runRssRetrieval(
   // The new-audio count below comes from an info-level line; the lambda's default level
   // (warn, when .env.local leaves LOG_LEVEL empty) would hide it and the count would read 0
   const logLevel = ['trace', 'debug'].includes(process.env.LOG_LEVEL ?? '') ? process.env.LOG_LEVEL! : 'info';
-  const result = await runLambdaLocally({ lambda: 'rss-retrieval', siteId, env: { LOG_LEVEL: logLevel } });
+  const result = await runLambdaLocally({ lambda: 'rss-retrieval', siteId, env: { LOG_LEVEL: logLevel, CONTENT_SCOPE: scope } });
   clearInterval(progressInterval);
 
   let newAudioFiles = 0;
@@ -118,21 +120,24 @@ export async function runRssRetrieval(
  * Output is captured; a one-line progress indicator is shown instead.
  */
 export async function runLocalIndexingForSite(
-  siteId: string
+  siteId: string,
+  scope: ContentScope = 'public'
 ): Promise<{ success: boolean; duration: number; error?: string; entriesProcessed?: number }> {
   const startTime = Date.now();
-  logProgress(`Running local indexing for ${siteId}`);
+  const label = scope === 'subscriber' ? `${siteId} (subscriber index)` : siteId;
+  logProgress(`Running local indexing for ${label}`);
 
   let lastProgressLine = '';
   const progressInterval = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const baseMessage = `🔍 Processing local indexing for ${siteId}... (${elapsed}s)`;
+    const baseMessage = `🔍 Processing local indexing for ${label}... (${elapsed}s)`;
     process.stdout.write(`\r${lastProgressLine ? `${baseMessage} | ${lastProgressLine}` : baseMessage}`.padEnd(120));
   }, 5000);
 
   const result = await runLambdaLocally({
     lambda: 'srt-indexing',
     siteId,
+    env: { CONTENT_SCOPE: scope },
     output: 'quiet',
     onStdout: output => {
       // Keep the most recent progress line, e.g. "25% (261/1022), 105435 entries"
@@ -156,12 +161,12 @@ export async function runLocalIndexingForSite(
   if (result.success) {
     const entriesMatch = result.stdout.match(/📝 New Search Entries Added: (\d+)/);
     const entriesProcessed = entriesMatch ? parseInt(entriesMatch[1], 10) : 0;
-    logSuccess(`Local indexing completed for ${siteId} (${(result.duration / 1000).toFixed(1)}s)`);
+    logSuccess(`Local indexing completed for ${label} (${(result.duration / 1000).toFixed(1)}s)`);
     return { success: true, duration: result.duration, entriesProcessed };
   }
 
   const error = `Local indexing failed (${result.error}): ${result.stderr}`;
-  logError(`Local indexing failed for ${siteId}: ${error}`);
+  logError(`Local indexing failed for ${label}: ${error}`);
   return { success: false, duration: result.duration, error };
 }
 
