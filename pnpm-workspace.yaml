@@ -1,5 +1,6 @@
 packages:
   - packages/alerting
+  - packages/auth
   - packages/client
   - packages/config
   - packages/constants
