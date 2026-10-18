@@ -22,10 +22,5 @@ export function createDevCodeProvider(options: { code: string }): SubscriptionPr
       const label = (params.label ?? '').replace(/[^a-z0-9-]/gi, '').slice(0, 32) || 'dev';
       return { providerUserId: label };
     },
-    async refresh(providerUserId) {
-      // Valid while the provider is configured; rotating the code doesn't end existing sessions
-      // before they expire
-      return { providerUserId };
-    },
   };
 }

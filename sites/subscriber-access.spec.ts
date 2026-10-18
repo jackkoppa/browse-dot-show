@@ -23,10 +23,8 @@ describe('validateSubscriberAccess', () => {
         expect(validateSubscriberAccess(site({}))).toEqual([]);
     });
 
-    it('requires a real provider to go live', () => {
-        expect(validateSubscriberAccess(site({ launchStatus: 'live', providers: ['dev-code'] }))).toEqual([
-            'subscriberAccess: a live site needs a real provider (dev-code is only for preview)',
-        ]);
+    it('keeps every site in preview (subscriber features need the query param)', () => {
+        expect(validateSubscriberAccess(site({ launchStatus: 'live' as never }))).toEqual(['subscriberAccess.launchStatus must be one of: preview']);
     });
 
     it('checks feeds against the site', () => {
@@ -50,10 +48,10 @@ describe('validateSubscriberAccess', () => {
     });
 
     it('checks the basics', () => {
-        const errors = validateSubscriberAccess(site({ launchStatus: 'soon' as never, providers: ['patreon' as never], subscriptionName: '', subscribeUrl: 'http://x' }));
+        const errors = validateSubscriberAccess(site({ launchStatus: 'soon' as never, providers: ['myspace' as never], subscriptionName: '', subscribeUrl: 'http://x' }));
         expect(errors).toEqual([
-            'subscriberAccess.launchStatus must be one of: preview, live',
-            'subscriberAccess.providers: unknown provider "patreon"',
+            'subscriberAccess.launchStatus must be one of: preview',
+            'subscriberAccess.providers: unknown provider "myspace"',
             'subscriberAccess.subscriptionName is required',
             'subscriberAccess.subscribeUrl must be an https:// URL',
         ]);

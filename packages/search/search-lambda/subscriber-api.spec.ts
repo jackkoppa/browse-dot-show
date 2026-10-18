@@ -104,3 +104,13 @@ describe('handler in subscriber mode', () => {
     expect(await handler(apiEvent({ action: 'episode', id: 's1' }, headers))).toMatchObject({ episode: { id: 's1' } });
   });
 });
+
+describe('redactEvent', () => {
+  it('keeps session tokens out of logs', async () => {
+    const { redactEvent } = await import('./search-indexed-transcripts.js');
+    const event = { body: '{}', headers: { Authorization: 'Bearer secret', 'content-type': 'application/json' } };
+    expect(JSON.stringify(redactEvent(event))).not.toContain('secret');
+    expect(redactEvent(event).headers['content-type']).toBe('application/json');
+    expect(redactEvent({ isHealthCheckOnly: true })).toEqual({ isHealthCheckOnly: true });
+  });
+});

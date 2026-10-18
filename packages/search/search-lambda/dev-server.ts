@@ -75,10 +75,18 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    log.debug('[Dev Server] Constructed event for handler:', JSON.stringify(event));
-    const result = await searchHandler(event);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
+    // Like API Gateway: the path and headers (the subscriber API needs the Authorization header)
+    event.rawPath = parsedUrl.pathname;
+    event.headers = req.headers;
+    const result: any = await searchHandler(event);
+    // Responses with a statusCode (subscriber API errors) are proxy responses, as API Gateway sends them
+    if (result && typeof result.statusCode === 'number' && 'body' in result) {
+      res.writeHead(result.statusCode, { 'Content-Type': 'application/json', ...result.headers });
+      res.end(result.body);
+    } else {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    }
     log.info(`[Dev Server] Successfully processed ${method} request for ${parsedUrl.pathname}`);
 
   } catch (error: any) {

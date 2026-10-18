@@ -145,8 +145,10 @@ resource "aws_lambda_function" "auth" {
 
   environment {
     variables = {
-      AUTH_SITES           = jsonencode(local.auth_sites)
-      AUTH_TABLE_NAME      = aws_dynamodb_table.auth.name
+      AUTH_SITES      = jsonencode(local.auth_sites)
+      AUTH_TABLE_NAME = aws_dynamodb_table.auth.name
+      # OAuth providers (Patreon) send listeners back to <this>/oauth/callback
+      AUTH_PUBLIC_URL      = aws_apigatewayv2_api.auth.api_endpoint
       SSM_PARAMETER_PREFIX = var.ssm_parameter_prefix
       LOG_LEVEL            = var.log_level
     }

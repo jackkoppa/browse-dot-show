@@ -18,6 +18,7 @@ interface GoatCounterEvent {
         'Contact Button Clicked' |
         'browse.show Info Link Clicked' |
         'Subscriber Login Email Requested' |
+        'Subscriber Login Redirected' |
         'Subscriber Logged In';
     /** e.g. `Searched: 'football clubbing'`- when you want each event to be tracked separately, provide a unique eventName per-tracked-event. Otherwise, eventType is suffcient.  */
     eventName?: string;

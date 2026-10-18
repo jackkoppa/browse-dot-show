@@ -146,12 +146,19 @@ async function initializeOramaIndex(forceFreshDBFileDownload?: boolean): Promise
   }
 }
 
+/** The event without credentials (the subscriber API's session tokens), for logging */
+export function redactEvent(event: any): any {
+  if (!event?.headers) return event;
+  const headers = Object.fromEntries(Object.entries(event.headers).map(([name, value]) => [name, /^(authorization|cookie)$/i.test(name) ? '[redacted]' : value]));
+  return { ...event, headers };
+}
+
 /**
  * Main Lambda handler function
  */
 export async function handler(event: any): Promise<SearchResponse | object> {
   logMemoryUsage('Handler Entry');
-  log.info('Search request received:', JSON.stringify(event));
+  log.info('Search request received:', JSON.stringify(redactEvent(event)));
   const startTime = Date.now();
 
   // Handle CORS preflight requests (OPTIONS) immediately

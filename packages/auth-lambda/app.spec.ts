@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMemoryAuthStore, generateSigningKeyPair, ProviderUnavailableError, signSessionToken, verifySessionToken, type SubscriptionProvider } from '@browse-dot-show/auth';
+import {
+  createMemoryAuthStore,
+  generateSigningKeyPair,
+  ProviderNotConfiguredError,
+  ProviderUnavailableError,
+  signSessionToken,
+  verifySessionToken,
+  type SubscriptionProvider,
+} from '@browse-dot-show/auth';
 import { handleAuthRequest, LOGIN_LINK_TTL_SECONDS, RATE_LIMITS, SESSION_TTL_SECONDS, type AuthDependencies } from './app.js';
-import { createDependencies, parseSitesConfig } from './dependencies.js';
+import { createDependencies, parseSitesConfig, SecretNotFoundError } from './dependencies.js';
 
 const keys = generateSigningKeyPair();
 const NOW = 1_800_000_000;
@@ -26,6 +34,7 @@ function deps(provider = fakeProvider()): AuthDependencies {
     getSigningPrivateKey: async () => keys.privateKeyPem,
     getProvider: async () => provider,
     hashEmail: async email => `hash(${email.trim().toLowerCase()})`,
+    publicUrl: 'https://auth.example.com',
     now: () => NOW,
   };
 }
@@ -210,7 +219,7 @@ describe('secret cache', () => {
   it('re-reads secrets after a few minutes, so a changed setting applies', async () => {
     let clock = 0;
     const readSecret = vi.fn(async () => keys.privateKeyPem);
-    const dependencies = createDependencies({}, readSecret, undefined, () => clock);
+    const dependencies = createDependencies({}, readSecret, { clock: () => clock });
     await dependencies.getSigningPrivateKey();
     clock += 60_000;
     await dependencies.getSigningPrivateKey();
@@ -249,6 +258,110 @@ describe('Supporting Cast end to end (in memory)', () => {
       expect(calls).toEqual(['GET /subscriptions', 'GET /users', 'POST /users/41/send_login_email']);
     } finally {
       vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('missing provider settings', () => {
+  it('answers 503 provider-not-configured, so the site can say login is not set up yet', async () => {
+    const provider = fakeProvider({ startLogin: async () => { throw new ProviderNotConfiguredError('no settings'); } });
+    expect(await handleAuthRequest(post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', email: 'a@b.c' }), deps(provider)))
+      .toEqual({ status: 503, body: { error: 'provider-not-configured' } });
+  });
+
+  it('treats a missing SSM parameter as not configured', async () => {
+    const dependencies = createDependencies(
+      { listenfairplay: { origins: ['https://listenfairplay.com'], providers: ['supporting-cast'] } },
+      async name => {
+        if (name === 'signing-private-key') return keys.privateKeyPem;
+        if (name === 'email-hash-key') return 'k';
+        throw new SecretNotFoundError(name);
+      },
+    );
+    expect(await handleAuthRequest(post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', email: 'a@b.c' }), dependencies))
+      .toEqual({ status: 503, body: { error: 'provider-not-configured' } });
+    expect(await dependencies.syncSupportingCast()).toEqual({ listenfairplay: { skipped: 'no settings in SSM yet' } });
+  });
+});
+
+describe('sessions', () => {
+  const tokenFor = (subject: string, authTime: number) =>
+    signSessionToken({ siteId: 'listenfairplay', subject, authTime, ttlSeconds: authTime + SESSION_TTL_SECONDS - (NOW - 100), now: NOW - 100 }, keys.privateKeyPem).token;
+
+  it('restart the 30 days when the provider re-checks access', async () => {
+    const token = tokenFor('supporting-cast:41', NOW - 10 * 86400);
+    const response = await handleAuthRequest(post('/refresh', { siteId: 'listenfairplay' }, { authorization: `Bearer ${token}` }), deps());
+    expect(response.body.expiresAt).toBe(NOW + SESSION_TTL_SECONDS);
+    const verified = verifySessionToken(response.body.token as string, keys.publicKeyPem, { siteId: 'listenfairplay', now: NOW });
+    expect(verified.valid && verified.claims.auth_time).toBe(NOW);
+  });
+
+  it("stay as they are when the provider can't re-check (they end 30 days after login)", async () => {
+    const { refresh: _refresh, ...withoutRefresh } = fakeProvider();
+    const token = tokenFor('supporting-cast:41', NOW - 10 * 86400);
+    const response = await handleAuthRequest(post('/refresh', { siteId: 'listenfairplay' }, { authorization: `Bearer ${token}` }), deps(withoutRefresh));
+    expect(response).toEqual({ status: 200, body: { token, expiresAt: NOW - 10 * 86400 + SESSION_TTL_SECONDS } });
+  });
+});
+
+describe('OAuth logins', () => {
+  /** An OAuth provider: `code=member` is a member, anything else isn't */
+  function oauthProvider() {
+    const { refresh: _refresh, ...base } = fakeProvider();
+    return {
+      ...base,
+      startLogin: vi.fn(async ({ oauth }: { oauth: { redirectUri: string; state: string } }) => ({
+        kind: 'redirect' as const,
+        url: `https://provider.example/authorize?redirect_uri=${encodeURIComponent(oauth.redirectUri)}&state=${oauth.state}`,
+      })),
+      completeOAuth: vi.fn(async ({ code }: { code: string }) => (code === 'member' ? { providerUserId: '77' } : null)),
+    } satisfies SubscriptionProvider;
+  }
+  const callback = (query: Record<string, string>) => ({ method: 'GET', path: '/oauth/callback', headers: {}, body: undefined, query, sourceIp: '203.0.113.1' });
+
+  async function start(dependencies: AuthDependencies, origin = 'https://www.listenfairplay.com') {
+    const response = await handleAuthRequest(post('/login', { siteId: 'listenfairplay', provider: 'supporting-cast', origin }), dependencies);
+    const url = new URL((response.body.result as { url: string }).url);
+    expect(url.searchParams.get('redirect_uri')).toBe('https://auth.example.com/oauth/callback');
+    return url.searchParams.get('state')!;
+  }
+
+  it('check the membership, then send the listener back to the site to finish with a login link', async () => {
+    const provider = oauthProvider();
+    const dependencies = deps(provider);
+    const state = await start(dependencies);
+
+    const response = await handleAuthRequest(callback({ code: 'member', state }), dependencies);
+    expect(response.status).toBe(302);
+    const back = new URL(response.redirect!);
+    expect(`${back.origin}${back.pathname}`).toBe('https://www.listenfairplay.com/auth/callback');
+    expect(provider.completeOAuth).toHaveBeenCalledWith({ code: 'member', redirectUri: 'https://auth.example.com/oauth/callback' });
+
+    const session = await handleAuthRequest(post('/complete', { siteId: 'listenfairplay', provider: 'supporting-cast', params: { link: back.searchParams.get('link')! } }), dependencies);
+    expect(session.status).toBe(200);
+    const verified = verifySessionToken(session.body.token as string, keys.publicKeyPem, { siteId: 'listenfairplay', now: NOW });
+    expect(verified.valid && verified.claims.sub).toBe('supporting-cast:77');
+  });
+
+  it("send non-members, cancelled logins and reused states back with an error", async () => {
+    const dependencies = deps(oauthProvider());
+    const errorOf = (response: { redirect?: string }) => new URL(response.redirect!).searchParams.get('error');
+
+    expect(errorOf(await handleAuthRequest(callback({ code: 'stranger', state: await start(dependencies) }), dependencies))).toBe('not-a-subscriber');
+    expect(errorOf(await handleAuthRequest(callback({ error: 'access_denied', state: await start(dependencies) }), dependencies))).toBe('cancelled');
+
+    const state = await start(dependencies);
+    await handleAuthRequest(callback({ code: 'member', state }), dependencies);
+    expect(errorOf(await handleAuthRequest(callback({ code: 'member', state }), dependencies))).toBe('link-already-used');
+  });
+
+  it('reject states that are forged, expired or for nowhere', async () => {
+    const dependencies = deps(oauthProvider());
+    const forged = signSessionToken({ siteId: 'listenfairplay', subject: 'supporting-cast:', scope: 'oauth-state', jti: 'x', origin: 'https://listenfairplay.com', ttlSeconds: 600, now: NOW }, generateSigningKeyPair().privateKeyPem).token;
+    const evilOrigin = signSessionToken({ siteId: 'listenfairplay', subject: 'supporting-cast:', scope: 'oauth-state', jti: 'y', origin: 'https://evil.example', ttlSeconds: 600, now: NOW }, keys.privateKeyPem).token;
+    const expired = signSessionToken({ siteId: 'listenfairplay', subject: 'supporting-cast:', scope: 'oauth-state', jti: 'z', origin: 'https://listenfairplay.com', ttlSeconds: 600, now: NOW - 3600 }, keys.privateKeyPem).token;
+    for (const state of [forged, evilOrigin, expired, 'garbage', '']) {
+      expect(await handleAuthRequest(callback({ code: 'member', state }), dependencies)).toEqual({ status: 400, body: { error: 'invalid-state' } });
     }
   });
 });

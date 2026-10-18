@@ -104,10 +104,11 @@ export type SubscriberLoginProvider = 'supporting-cast' | 'dev-code';
  */
 export interface SubscriberAccess {
     /**
-     * - `preview`: only visible with the `?subscriberPreview=1` query param (for testing on prod)
-     * - `live`: visible to everyone
+     * `preview`: only visible with the `?subscriberPreview=1` query param (for testing on prod).
+     * The only status for now: every subscriber feature on every site needs the param. Launching a
+     * site to everyone will add a `live` status (a deliberate code change).
      */
-    launchStatus: 'preview' | 'live';
+    launchStatus: 'preview';
     /** How listeners log in. `dev-code` is for testing, and only offered in preview */
     providers: SubscriberLoginProvider[];
     /**

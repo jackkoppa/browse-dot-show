@@ -10,10 +10,13 @@ import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify, t
 export const SESSION_TOKEN_ISSUER = 'browse.show-auth';
 
 /**
- * `subscriber`: a listener's session. `login-link`: the single-use token in a login link we ask a
- * provider to email (it proves the listener got the email); never accepted as a session.
+ * - `subscriber`: a listener's session
+ * - `login-link`: the single-use token in a login link (emailed by a provider, or the redirect
+ *   back to the site after an OAuth login); never accepted as a session
+ * - `oauth-state`: the OAuth `state` parameter, tying a provider's callback to the login that
+ *   started it (CSRF protection)
  */
-export type SessionScope = 'subscriber' | 'login-link';
+export type SessionScope = 'subscriber' | 'login-link' | 'oauth-state';
 
 export interface SessionClaims {
   /** Always SESSION_TOKEN_ISSUER */
@@ -23,8 +26,12 @@ export interface SessionClaims {
   /** `<provider>:<provider user ID>`, e.g. `supporting-cast:123` or `dev-code:jack` */
   sub: string;
   scope: SessionScope;
-  /** Unique ID, for single-use tokens (login links) */
+  /** Unique ID, for single-use tokens (login links, OAuth state) */
   jti?: string;
+  /** When the provider last confirmed access (sessions; seconds since the epoch). Sessions end 30 days after it */
+  auth_time?: number;
+  /** The site origin to return to (OAuth state) */
+  origin?: string;
   /** Issued at, in seconds since the epoch */
   iat: number;
   /** Expires at, in seconds since the epoch */
@@ -65,6 +72,8 @@ export interface SignSessionTokenOptions {
   subject: string;
   scope?: SessionScope;
   jti?: string;
+  authTime?: number;
+  origin?: string;
   /** Lifetime in seconds */
   ttlSeconds: number;
   /** Seconds since the epoch; defaults to now */
@@ -79,6 +88,8 @@ export function signSessionToken(options: SignSessionTokenOptions, privateKey: s
     sub: options.subject,
     scope: options.scope ?? 'subscriber',
     ...(options.jti ? { jti: options.jti } : {}),
+    ...(options.authTime !== undefined ? { auth_time: options.authTime } : {}),
+    ...(options.origin ? { origin: options.origin } : {}),
     iat,
     exp: iat + options.ttlSeconds,
   };
@@ -140,4 +151,19 @@ export function getBearerToken(headers: Record<string, string | undefined> | und
   const value = Object.entries(headers).find(([name]) => name.toLowerCase() === 'authorization')?.[1];
   const match = value?.match(/^Bearer\s+(\S+)$/i);
   return match ? match[1] : null;
+}
+
+/**
+ * A token's claims without checking it: only for choosing how to verify it (e.g. which site an
+ * OAuth state is for). Never trust them before verifySessionToken.
+ */
+export function readUnverifiedClaims(token: string): Partial<SessionClaims> | null {
+  const encodedClaims = typeof token === 'string' ? token.split('.')[1] : undefined;
+  if (!encodedClaims) return null;
+  try {
+    const claims = JSON.parse(Buffer.from(encodedClaims, 'base64url').toString('utf-8'));
+    return typeof claims === 'object' && claims !== null ? claims : null;
+  } catch {
+    return null;
+  }
 }
