@@ -4,6 +4,7 @@ export {
   signSessionToken,
   verifySessionToken,
   getBearerToken,
+  readUnverifiedClaims,
   type SessionClaims,
   type SessionScope,
   type VerifyResult,
@@ -12,11 +13,13 @@ export {
 } from './session-token.js';
 export {
   PROVIDER_IDS,
+  ProviderNotConfiguredError,
   ProviderUnavailableError,
   type ProviderId,
   type SubscriptionProvider,
   type StartLoginInput,
   type StartLoginResult,
+  type OAuthCallback,
   type VerifiedSubscriber,
 } from './providers/types.js';
 export { createDevCodeProvider } from './providers/dev-code.js';

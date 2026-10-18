@@ -7,6 +7,10 @@ import { trackEvent } from '../utils/goatcounter';
 import { log } from '../utils/logging';
 import { startLogin } from './api';
 import { useSubscriber } from './SubscriberContext';
+import type { SubscriberLoginProvider } from '@browse-dot-show/sites';
+
+/** Providers whose login is a redirect to their site (OAuth), and their button labels */
+export const REDIRECT_PROVIDER_LABELS: Partial<Record<SubscriberLoginProvider, string>> = {};
 
 /** The header's subscriber button: log in (email link or dev code), or see you're logged in and log out */
 export default function SubscriberLoginDialog() {
@@ -33,6 +37,21 @@ export default function SubscriberLoginDialog() {
       await startLogin(config.authApiUrl, { siteId: siteConfig.id, provider: 'supporting-cast', email });
       setStatus('email-sent');
       trackEvent({ eventType: 'Subscriber Login Email Requested' });
+    } catch (error) {
+      log.warn('[subscriber] Login request failed', error);
+      setStatus('error');
+      setMessage((error as Error).message);
+    }
+  };
+
+  const handleRedirectLogin = async (provider: SubscriberLoginProvider) => {
+    setStatus('sending');
+    setMessage(null);
+    try {
+      const result = await startLogin(config.authApiUrl, { siteId: siteConfig.id, provider });
+      if (result.kind !== 'redirect') throw new Error('Unexpected login response');
+      trackEvent({ eventType: 'Subscriber Login Redirected' });
+      window.location.assign(result.url);
     } catch (error) {
       log.warn('[subscriber] Login request failed', error);
       setStatus('error');
@@ -88,6 +107,12 @@ export default function SubscriberLoginDialog() {
                 </form>
               )
             )}
+
+            {subscriber.providers.filter(provider => REDIRECT_PROVIDER_LABELS[provider]).map(provider => (
+              <Button key={provider} onClick={() => handleRedirectLogin(provider)} disabled={status === 'sending'}>
+                {REDIRECT_PROVIDER_LABELS[provider]}
+              </Button>
+            ))}
 
             {subscriber.providers.includes('dev-code') && (
               <form onSubmit={handleCodeLogin} className="flex flex-col gap-2">

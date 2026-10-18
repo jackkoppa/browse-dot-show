@@ -1,7 +1,7 @@
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { log } from '@browse-dot-show/logging';
 import { handleAuthRequest } from './app.js';
-import { createDependencies, parseSitesConfig, type Dependencies } from './dependencies.js';
+import { SecretNotFoundError, createDependencies, parseSitesConfig, type Dependencies } from './dependencies.js';
 import { createDynamoStorage } from './dynamo.js';
 
 /**
@@ -9,11 +9,12 @@ import { createDynamoStorage } from './dynamo.js';
  * OPTIONS requests never reach this handler), and on a schedule for `{ "action": "sync-supporting-cast" }`.
  *
  * Env: AUTH_SITES (JSON, see app.ts), SSM_PARAMETER_PREFIX (e.g. `/browse-dot-show/auth`),
- * AUTH_TABLE_NAME (DynamoDB, see dynamo.ts)
+ * AUTH_TABLE_NAME (DynamoDB, see dynamo.ts), AUTH_PUBLIC_URL (the API's own URL, for OAuth redirects)
  */
 
 interface HttpApiEvent {
   rawPath?: string;
+  queryStringParameters?: Record<string, string | undefined>;
   headers?: Record<string, string | undefined>;
   body?: string;
   isBase64Encoded?: boolean;
@@ -41,11 +42,16 @@ function getDependencies(): Dependencies {
     dependencies = createDependencies(
       parseSitesConfig(process.env.AUTH_SITES),
       async name => {
-        const { Parameter } = await ssm.send(new GetParameterCommand({ Name: `${prefix}/${name}`, WithDecryption: true }));
-        if (!Parameter?.Value) throw new Error(`SSM parameter ${prefix}/${name} is empty`);
-        return Parameter.Value;
+        try {
+          const { Parameter } = await ssm.send(new GetParameterCommand({ Name: `${prefix}/${name}`, WithDecryption: true }));
+          if (!Parameter?.Value) throw new SecretNotFoundError(`${prefix}/${name}`);
+          return Parameter.Value;
+        } catch (error) {
+          if ((error as Error).name === 'ParameterNotFound') throw new SecretNotFoundError(`${prefix}/${name}`);
+          throw error;
+        }
       },
-      createDynamoStorage(process.env.AUTH_TABLE_NAME),
+      { storage: createDynamoStorage(process.env.AUTH_TABLE_NAME), publicUrl: process.env.AUTH_PUBLIC_URL },
     );
   }
   return dependencies;
@@ -80,6 +86,7 @@ async function handleHttp(event: HttpApiEvent) {
         path: event.rawPath ?? '/',
         headers: event.headers ?? {},
         body,
+        query: event.queryStringParameters ?? {},
         sourceIp: event.requestContext?.http?.sourceIp,
       },
       getDependencies(),
@@ -89,6 +96,9 @@ async function handleHttp(event: HttpApiEvent) {
     response = { status: 500, body: { error: 'internal-error' } };
   }
 
+  if (response.redirect) {
+    return { statusCode: 302, headers: { Location: response.redirect, 'Cache-Control': 'no-store' }, body: '' };
+  }
   return {
     statusCode: response.status,
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },

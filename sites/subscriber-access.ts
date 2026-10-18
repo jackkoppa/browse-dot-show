@@ -1,7 +1,8 @@
 import type { SiteConfig } from './types.js';
 
 const PROVIDERS = ['supporting-cast', 'dev-code'];
-const LAUNCH_STATUSES = ['preview', 'live'];
+/** Only `preview` until a site launches subscriber access to everyone (see types.ts) */
+const LAUNCH_STATUSES = ['preview'];
 
 /** Problems with a site's `subscriberAccess` config (none if it doesn't have one) */
 export function validateSubscriberAccess(site: SiteConfig): string[] {
@@ -18,9 +19,6 @@ export function validateSubscriberAccess(site: SiteConfig): string[] {
     } else {
         for (const provider of access.providers) {
             if (!PROVIDERS.includes(provider)) errors.push(`${prefix}.providers: unknown provider "${provider}"`);
-        }
-        if (access.launchStatus === 'live' && access.providers.length === 1 && access.providers[0] === 'dev-code') {
-            errors.push(`${prefix}: a live site needs a real provider (dev-code is only for preview)`);
         }
     }
     if (!access.subscriptionName) errors.push(`${prefix}.subscriptionName is required`);

@@ -1,7 +1,7 @@
 import * as http from 'http';
 import { generateSigningKeyPair } from '@browse-dot-show/auth';
 import { handleAuthRequest } from './app.js';
-import { createDependencies, parseSitesConfig, SECRET_NAMES } from './dependencies.js';
+import { createDependencies, parseSitesConfig, SecretNotFoundError, SECRET_NAMES } from './dependencies.js';
 
 /**
  * Local auth server for client development: `pnpm --filter @browse-dot-show/auth-lambda dev:local`
@@ -26,9 +26,9 @@ const dependencies = createDependencies(sites, async name => {
   if (name === SECRET_NAMES.devCode) return DEV_CODE;
   if (name === SECRET_NAMES.emailHashKey) return 'local-email-hash-key';
   const value = process.env[`AUTH_SECRET_${name.replace(/[^a-z0-9]/gi, '_')}`];
-  if (!value) throw new Error(`No local value for secret ${name}`);
+  if (!value) throw new SecretNotFoundError(name);
   return value;
-});
+}, { publicUrl: `http://localhost:${PORT}` });
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin ?? '*');
@@ -49,15 +49,20 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const path = url.pathname;
   if (req.method === 'POST' && path === '/sync') {
     res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(await dependencies.syncSupportingCast()));
     return;
   }
   const response = await handleAuthRequest(
-    { method: req.method ?? 'GET', path, headers: req.headers as Record<string, string>, body, sourceIp: req.socket.remoteAddress },
+    { method: req.method ?? 'GET', path, headers: req.headers as Record<string, string>, body, query: Object.fromEntries(url.searchParams), sourceIp: req.socket.remoteAddress },
     dependencies,
   );
+  if (response.redirect) {
+    res.writeHead(302, { Location: response.redirect }).end();
+    return;
+  }
   res.writeHead(response.status, { 'Content-Type': 'application/json' }).end(JSON.stringify(response.body));
 });
 

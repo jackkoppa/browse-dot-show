@@ -7,14 +7,16 @@ export interface SubscriberSession {
   token: string;
   /** Seconds since the epoch */
   expiresAt: number;
+  /** When the auth API last issued or refreshed it (seconds since the epoch; set by saveSession) */
+  checkedAt?: number;
 }
 
 /**
- * Refresh the session once it's a day old (it lasts 30 days): refreshing is cheap (no call to the
- * subscription platform), and picks up a lapsed subscription within a day of the next visit
+ * Refresh the session once a day: it lasts 30 days from when the provider last confirmed access.
+ * Providers that re-check without the listener (Supporting Cast's mirror) restart the 30 days and
+ * pick up a lapsed subscription; for the others (OAuth), the session stays as it is
  */
-const SESSION_SECONDS = 30 * 24 * 60 * 60;
-const REFRESH_WHEN_SECONDS_LEFT = SESSION_SECONDS - 24 * 60 * 60;
+const REFRESH_AFTER_SECONDS = 24 * 60 * 60;
 
 const storageKey = (siteId: string) => `bds:subscriber-session:${siteId}`;
 const nowSeconds = () => Math.floor(Date.now() / 1000);
@@ -33,12 +35,15 @@ export function loadSession(siteId: string): SubscriberSession | null {
   }
 }
 
-export function saveSession(siteId: string, session: SubscriberSession): void {
+/** Stores the session as just checked; returns it with `checkedAt` */
+export function saveSession(siteId: string, session: SubscriberSession): SubscriberSession {
+  const checked = { ...session, checkedAt: nowSeconds() };
   try {
-    localStorage.setItem(storageKey(siteId), JSON.stringify(session));
+    localStorage.setItem(storageKey(siteId), JSON.stringify(checked));
   } catch {
     // Storage blocked: the session lasts for this page only
   }
+  return checked;
 }
 
 export function clearSession(siteId: string): void {
@@ -50,5 +55,5 @@ export function clearSession(siteId: string): void {
 }
 
 export function shouldRefresh(session: SubscriberSession): boolean {
-  return session.expiresAt - nowSeconds() < REFRESH_WHEN_SECONDS_LEFT;
+  return !session.checkedAt || nowSeconds() - session.checkedAt > REFRESH_AFTER_SECONDS;
 }

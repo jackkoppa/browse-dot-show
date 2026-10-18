@@ -86,17 +86,33 @@ Matching happens twice. RSS retrieval skips counterparts, so they're never downl
 - **Deploying it:** applied locally, like `terraform/automation` (CI notes changes but doesn't apply them). Setup steps are in [terraform/auth/README.md](../../terraform/auth/README.md).
 - **Secrets:** SSM Parameter Store SecureStrings: the Ed25519 signing key, the email hash key, and each site's provider settings (e.g. the Supporting Cast API token and network ID). They're re-read every 5 minutes, so a changed setting (e.g. pausing logins) applies quickly.
 - **State:** one on-demand DynamoDB table for rate-limit counters, used login links and the Supporting Cast mirrors (see 4a). Sessions stay stateless.
-- **Providers** implement one interface, so Patreon fits later without changing the flow:
-  - `startLogin({ email | nothing, returnUrl })` returns `{ kind: 'email-sent' }` (Supporting Cast magic link) or `{ kind: 'redirect', url }` (Patreon OAuth).
-  - `completeLogin(callbackParams)` returns the verified subscriber or null.
-  - `refresh(subscriberRef)` re-checks that the subscription is still active.
+- **Providers** implement one interface (`packages/auth/providers/types.ts`), so a new platform is one more provider:
+  - `startLogin(...)` returns `{ kind: 'email-sent' }` (Supporting Cast's emailed link), `{ kind: 'redirect', url }` (OAuth, e.g. Patreon) or `{ kind: 'enter-code' }` (`dev-code`).
+  - `completeLogin(params)` checks what a code form sends (`dev-code`). Emailed links and OAuth logins end with our own login link, which the auth lambda checks itself.
+  - `completeOAuth({ code, redirectUri })` (OAuth providers) exchanges the code and checks the membership.
+  - `refresh(userId)` (optional) re-checks access without the listener. Supporting Cast has it (the mirror). OAuth providers don't, since we keep none of their tokens.
+- **OAuth flow** (any OAuth provider; one registered redirect URI for every site):
+  1. `POST /login` returns the provider's authorize URL. Its `state` is a signed token (15 minutes, single-use) holding the site and origin; the redirect URI is the auth API's `/oauth/callback`.
+  2. The provider sends the browser to `GET /oauth/callback?code&state`. The auth lambda checks the state, exchanges the code and checks the membership, then redirects to `https://<site>/auth/callback?provider=<id>&link=<login link>`, or `&error=<code>` (`not-a-subscriber`, `cancelled`, …).
+  3. The site posts the login link to `/complete` as usual and gets its session.
+- **Errors:**
+  - 400: requests no site allows
+  - 401: access not granted
+  - 429: past rate limits
+  - 503 `provider-not-configured`: the provider's keys aren't in SSM yet. Sites can be deployed with a provider before its keys exist; the login dialog then says it isn't set up yet.
+  - 503 `provider-unavailable`: the provider is down, rate-limited or paused
+  - 500: anything else
 - **Supporting Cast flow** (one API call per login; see 4a):
   1. `POST /login {site, email}`: look the email's hash up in our mirror of subscribers. Only for a subscriber with access, call `POST /users/{id}/send_login_email` with a `redirect_url` of `https://<site>/auth/callback?provider=supporting-cast&link=<login link>`. The login link is our own signed, single-use token (1 hour). The response is always "if you're a subscriber, check your email" (no account enumeration).
   2. Supporting Cast emails the link to the address it has on file. It ends at `/auth/callback`, and the client posts the query params to `POST /complete`. The auth lambda checks the login link itself (signature, expiry, not used before) and re-checks access in the mirror: no call to Supporting Cast.
   3. The auth lambda returns a **session token**.
-- **Session token:** a compact JWT signed with Ed25519 (`node:crypto`, no dependency). Claims: `iss`, `aud` (site ID), `sub` (`<provider>:<user id>`), `scope: "subscriber"`, `iat`, `exp` (30 days). The client stores it in `localStorage` and calls `POST /refresh` once it's a day old; for Supporting Cast, refresh checks the mirror (no API call). A listener who visits at least monthly stays logged in; a lapsed subscription loses access at the next refresh, or within 30 days at most. Login links use the same signing, with `scope: "login-link"`, which no API accepts as a session.
+- **Session token:** a compact JWT signed with Ed25519 (`node:crypto`, no dependency). Claims: `iss`, `aud` (site ID), `sub` (`<provider>:<user id>`), `scope: "subscriber"`, `auth_time` (when the provider last confirmed access), `iat`, `exp` (30 days after `auth_time`). The client stores it in `localStorage` and calls `POST /refresh` once a day.
+  - Providers with `refresh` (Supporting Cast, from the mirror; no API call) restart the 30 days. A listener who visits at least monthly stays logged in, and a lapsed subscription loses access at the next refresh.
+  - Other providers (OAuth) keep the session as it is: it ends 30 days after login, and the listener logs in again. That's one click when they're still logged in at the provider.
+  - Login links (`scope: "login-link"`) and OAuth states (`scope: "oauth-state"`) use the same signing. No API accepts them as sessions.
 - **Verification** happens in the site's subscriber lambda, with the public key (an env var; public keys are committed). It costs microseconds with no network call.
-- **Mock / dev provider (`dev-code`):** for testing on prod before any provider credentials exist. `/complete {siteId, provider: "dev-code", params: {code}}` checks the code against SSM `/browse-dot-show/auth/dev-code` and issues a token with `sub: "dev-code:<label>"`. It's enabled per site (`providers` in config), and the UI offers it only while the site is in `preview`.
+- **Mock / dev provider (`dev-code`):** for testing on prod before any provider credentials exist. `/complete {siteId, provider: "dev-code", params: {code}}` checks the code against SSM `/browse-dot-show/auth/dev-code` and issues a token with `sub: "dev-code:<label>"`. It's enabled per site (`providers` in config).
+- **Preview only:** `launchStatus` can only be `preview` for now, so every subscriber feature on every site needs `?subscriberPreview=1`. The flag is remembered in the browser, so links back to the site work; `?subscriberPreview=0` turns it off. Launching a site to everyone will mean adding a `live` status, a deliberate code change.
 - **Supporting Cast access check:** a subscription on one of the site's `planIds` (any plan, without them) that's `Active`/`Alert`, or `Cancelled` but paid up until `ends_at`.
 
 ### 4a. Supporting Cast's rate limit

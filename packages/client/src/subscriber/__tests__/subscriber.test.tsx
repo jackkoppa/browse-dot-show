@@ -61,9 +61,10 @@ describe('session', () => {
     clearSession('listenfairplay')
   })
 
-  it('needs refreshing in its last 2 days', () => {
-    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 30 * 86400 - 3600 })).toBe(false)
-    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 28 * 86400 })).toBe(true)
+  it('needs refreshing once a day', () => {
+    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 86400, checkedAt: nowSeconds() - 3600 })).toBe(false)
+    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 86400, checkedAt: nowSeconds() - 2 * 86400 })).toBe(true)
+    expect(shouldRefresh({ token: 't', expiresAt: nowSeconds() + 86400 })).toBe(true)
   })
 })
 

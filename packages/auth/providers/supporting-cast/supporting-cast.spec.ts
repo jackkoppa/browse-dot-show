@@ -37,7 +37,7 @@ async function setup(options: { loginEmailsPerDay?: number; enabled?: boolean } 
   const store = createMemoryAuthStore(() => Math.floor(NOW.getTime() / 1000));
   const { calls, fetchImpl } = fakeSupportingCast({ 'POST /users/41/send_login_email': () => ({ status: 204 }) });
   const provider = createSupportingCastProvider({ ...settings, planIds: [7], ...options }, { siteId: 'listenfairplay', mirror, store, hashEmail, now: () => NOW, api: { fetch: fetchImpl } });
-  const login = (email: string) => provider.startLogin({ email, callbackUrl: 'unused', loginLinkFor: async id => `https://listenfairplay.com/auth/callback?provider=supporting-cast&link=for-${id}` });
+  const login = (email: string) => provider.startLogin({ email, callbackUrl: 'unused', loginLinkFor: async id => `https://listenfairplay.com/auth/callback?provider=supporting-cast&link=for-${id}`, oauth: { redirectUri: '', state: '' } });
   return { provider, calls, login, store };
 }
 
@@ -75,10 +75,10 @@ describe('Supporting Cast provider', () => {
 
   it('refreshes sessions from the mirror, with no calls', async () => {
     const { calls, provider } = await setup();
-    expect(await provider.refresh('41')).toEqual({ providerUserId: '41' });
-    expect(await provider.refresh('5')).toBeNull();
-    expect(await provider.refresh('999')).toBeNull();
-    expect(await provider.refresh('not-a-number')).toBeNull();
+    expect(await provider.refresh!('41')).toEqual({ providerUserId: '41' });
+    expect(await provider.refresh!('5')).toBeNull();
+    expect(await provider.refresh!('999')).toBeNull();
+    expect(await provider.refresh!('not-a-number')).toBeNull();
     expect(await provider.completeLogin({ login_token: 'anything' })).toBeNull();
     expect(calls).toEqual([]);
   });
@@ -90,7 +90,7 @@ describe('Supporting Cast provider', () => {
       await mirror.putSubscription('41', active);
       const { fetchImpl } = fakeSupportingCast({ 'POST /users/41/send_login_email': () => ({ status }) });
       const provider = createSupportingCastProvider(settings, { siteId: 'x', mirror, store: createMemoryAuthStore(), hashEmail, api: { fetch: fetchImpl } });
-      await expect(provider.startLogin({ email: 'fan@example.com', callbackUrl: '', loginLinkFor: async () => '' })).rejects.toBeInstanceOf(ProviderUnavailableError);
+      await expect(provider.startLogin({ email: 'fan@example.com', callbackUrl: '', loginLinkFor: async () => '', oauth: { redirectUri: '', state: '' } })).rejects.toBeInstanceOf(ProviderUnavailableError);
     }
   });
 });

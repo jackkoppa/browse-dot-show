@@ -16,7 +16,7 @@ export interface VerifiedSubscriber {
 export type StartLoginResult =
   /** The provider emails the listener a link back to the site (Supporting Cast). Also returned when there's no such subscriber, so the response never reveals who subscribes */
   | { kind: 'email-sent' }
-  /** Send the browser here to log in (OAuth providers, e.g. Patreon) */
+  /** Send the browser here to log in (OAuth providers, e.g. Patreon); it comes back to the auth API's `/oauth/callback` */
   | { kind: 'redirect'; url: string }
   /** No login step: the listener enters a code in the site (`dev-code`) */
   | { kind: 'enter-code' };
@@ -31,6 +31,15 @@ export interface StartLoginInput {
    * accepts it without asking the provider again.
    */
   loginLinkFor(providerUserId: string): Promise<string>;
+  /** For OAuth providers: the redirect URI to send (the auth API's `/oauth/callback`) and the `state` to pass through */
+  oauth: { redirectUri: string; state: string };
+}
+
+/** What an OAuth provider's redirect brought back to `/oauth/callback` */
+export interface OAuthCallback {
+  code: string;
+  /** The redirect URI the login used (OAuth token requests must repeat it) */
+  redirectUri: string;
 }
 
 export interface SubscriptionProvider {
@@ -38,11 +47,26 @@ export interface SubscriptionProvider {
   startLogin(input: StartLoginInput): Promise<StartLoginResult>;
   /**
    * Checks what the site's `/auth/callback` (or code form) received; null if it doesn't grant
-   * access. Login links (`loginLinkFor`) are checked by the auth lambda, which then calls `refresh`.
+   * access. Login links (`loginLinkFor`) are checked by the auth lambda, which then calls `refresh`
+   * (if the provider has it).
    */
   completeLogin(params: Record<string, string>): Promise<VerifiedSubscriber | null>;
-  /** Re-checks a subscriber when their session is refreshed; null if they no longer have access */
-  refresh(providerUserId: string): Promise<VerifiedSubscriber | null>;
+  /** OAuth providers: exchanges the callback's code and checks the listener's membership; null if it doesn't grant access */
+  completeOAuth?(callback: OAuthCallback): Promise<VerifiedSubscriber | null>;
+  /**
+   * Re-checks a subscriber without them (e.g. from a mirror of subscribers); null if they no
+   * longer have access. Providers without it (OAuth: we keep no provider tokens) only check at
+   * login, so their sessions end 30 days after it.
+   */
+  refresh?(providerUserId: string): Promise<VerifiedSubscriber | null>;
+}
+
+/** The provider's settings (e.g. API keys) aren't in SSM yet: logins with it can't work until they are */
+export class ProviderNotConfiguredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ProviderNotConfiguredError';
+  }
 }
 
 /** The provider's API failed or rate-limited us, or logins are paused: the listener should try again later */

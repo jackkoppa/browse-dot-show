@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import {
+  ProviderNotConfiguredError,
   createDevCodeProvider,
   createMemoryAuthStore,
   createMemorySupportingCastMirror,
@@ -25,6 +26,14 @@ import type { AuthDependencies, AuthSitesConfig } from './app.js';
  * - `sites/<siteId>/supporting-cast`: JSON SupportingCastSettings (API token, network ID, plans, limits)
  */
 export type SecretReader = (name: string) => Promise<string>;
+
+/** What a SecretReader throws for a secret that isn't set (e.g. SSM's ParameterNotFound) */
+export class SecretNotFoundError extends Error {
+  constructor(name: string) {
+    super(`Secret ${name} isn't set`);
+    this.name = 'SecretNotFoundError';
+  }
+}
 
 export const SECRET_NAMES = {
   signingPrivateKey: 'signing-private-key',
@@ -74,7 +83,16 @@ export interface Dependencies extends AuthDependencies {
 }
 
 /** Dependencies built on a secret reader and storage, caching secrets (for a few minutes) */
-export function createDependencies(sites: AuthSitesConfig, readSecret: SecretReader, storage: Storage = createMemoryStorage(), clock: () => number = Date.now): Dependencies {
+export interface DependencyOptions {
+  storage?: Storage;
+  /** The auth API's own URL, for OAuth redirect URIs */
+  publicUrl?: string;
+  /** Milliseconds since the epoch (tests) */
+  clock?: () => number;
+}
+
+export function createDependencies(sites: AuthSitesConfig, readSecret: SecretReader, options: DependencyOptions = {}): Dependencies {
+  const { storage = createMemoryStorage(), clock = Date.now } = options;
   const secretCache = new Map<string, { value: Promise<string>; readAt: number }>();
   const cachedSecret = (name: string) => {
     const cached = secretCache.get(name);
@@ -92,15 +110,25 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
     return email => createHmac('sha256', key).update(normalizeEmail(email)).digest('hex');
   }
 
+  /** A provider's settings; a missing secret means the provider isn't set up yet (logins get 503 provider-not-configured) */
+  async function providerSecret(name: string): Promise<string> {
+    try {
+      return await cachedSecret(name);
+    } catch (error) {
+      if (error instanceof SecretNotFoundError) throw new ProviderNotConfiguredError(error.message);
+      throw error;
+    }
+  }
+
   async function supportingCastSettings(siteId: string): Promise<SupportingCastSettings> {
-    return JSON.parse(await cachedSecret(SECRET_NAMES.supportingCast(siteId))) as SupportingCastSettings;
+    return JSON.parse(await providerSecret(SECRET_NAMES.supportingCast(siteId))) as SupportingCastSettings;
   }
 
   // Providers are cheap to build: build them per request, so they always have current settings
   async function getProvider(siteId: string, providerId: ProviderId): Promise<SubscriptionProvider> {
     switch (providerId) {
       case 'dev-code':
-        return createDevCodeProvider({ code: await cachedSecret(SECRET_NAMES.devCode) });
+        return createDevCodeProvider({ code: await providerSecret(SECRET_NAMES.devCode) });
       case 'supporting-cast':
         return createSupportingCastProvider(await supportingCastSettings(siteId), {
           siteId,
@@ -114,6 +142,7 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
   return {
     sites,
     store: storage.store,
+    publicUrl: options.publicUrl,
     getSigningPrivateKey: () => cachedSecret(SECRET_NAMES.signingPrivateKey),
     getProvider,
     hashEmail: async email => (await emailHasher())(email),
@@ -125,8 +154,8 @@ export function createDependencies(sites: AuthSitesConfig, readSecret: SecretRea
         let settings: SupportingCastSettings;
         try {
           settings = await supportingCastSettings(siteId);
-        } catch {
-          results[siteId] = { skipped: 'no settings in SSM' };
+        } catch (error) {
+          results[siteId] = { skipped: error instanceof ProviderNotConfiguredError ? 'no settings in SSM yet' : `failed: ${(error as Error).message}` };
           continue;
         }
         if (settings.enabled === false) {
