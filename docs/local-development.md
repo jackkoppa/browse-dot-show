@@ -75,6 +75,7 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds site destroy --site=<id>` | Destroy a site's infrastructure (typed confirmation) |
 | `bds lambda run --lambda=<id> --sites=<ids>` | Run one ingestion lambda (`rss-retrieval`, `process-audio`, `srt-indexing`) locally, or in AWS with `--env=prod` |
 | `bds dev client --site=<id>` | Client dev server + local assets + local search lambda |
+| `bds dev client --site=<id> --subscriber-demo` | The same, plus subscriber access, all local with dummy data (see below) |
 | `bds dev search-health --site=<id>` | Search lambda health check, locally |
 | `bds dev homepage` | Homepage dev server |
 | `bds validate <sites\|local\|prod\|consistency>` | Validate site configs, local files or S3 contents |
@@ -89,6 +90,28 @@ pnpm bds <command> --help  # flags and examples for one command
 | `bds schedule run` | What the LaunchDaemon runs: checks, runner update, `ingest --all-sites`, notifications |
 
 Every command runs without prompts when its required flags are given. If something required is missing and there's no terminal (e.g. a scheduled job), it exits with code 2 instead of waiting for input. Exit codes: `0` success, `1` failure, `2` usage error, `75` another ingestion run is in progress, `130` cancelled.
+
+### Testing subscriber access locally
+
+```bash
+pnpm bds dev client --site=doublepivot --subscriber-demo   # any site; --reseed rewrites the dummy data
+```
+
+It runs everything subscriber access needs, on this Mac only:
+
+| | |
+| --- | --- |
+| Dummy data | 4 public and 2 subscriber-only episodes with made-up transcripts and silent audio, in `.subscriber-demo/` (gitignored; never your local files). The real indexing lambda indexes them |
+| `localhost:3001` / `3003` | The public search lambda, and the subscriber one (`CONTENT_SCOPE=subscriber`) |
+| `localhost:3002` | The auth server, with fake Supporting Cast and Patreon (`packages/auth-lambda/dev-fakes.ts`) and a throwaway signing key |
+
+Then open http://localhost:5137/?subscriberPreview=1 and click the lock in the header:
+
+- **Supporting Cast:** enter `subscriber@example.com`. The "login email" link is printed in the terminal and listed at http://localhost:3002/fake-inbox. `lapsed@example.com`, or any other email, gets nothing, with the same message.
+- **Patreon:** the fake Patreon page offers an active patron, another tier, a former patron, and cancelling.
+- **Preview code:** `local-dev-code-0123456789`.
+
+Logged in, search for "pressing" or "goalkeeper": subscriber-only episodes show up with a badge, and play without the time limit. Without `?subscriberPreview=1` (or after `?subscriberPreview=0`), the site looks exactly as it does today. Sites with `subscriberAccess` in their config offer their own providers; others get all three. Restarting logs you out, since sessions and the Supporting Cast mirror are in memory.
 
 ## 4. Running ingestion
 

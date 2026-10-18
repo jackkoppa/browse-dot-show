@@ -1,5 +1,6 @@
 import { SearchRequest, SearchResponse } from '@browse-dot-show/types';
 import { SortOption } from '../types/search';
+import { subscriberApiUrl } from '../constants';
 import { SubscriberUnauthorizedError } from '../subscriber/api';
 
 export interface SearchParams {
@@ -35,7 +36,7 @@ export async function performSearch(params: SearchParams): Promise<SearchRespons
   }
   // For 'relevance', we don't add sortBy/sortOrder to use Orama's default relevance scoring
 
-  const response = await fetch(subscriberToken ? `${searchApiBaseUrl}/subscriber` : `${searchApiBaseUrl}/`, {
+  const response = await fetch(subscriberToken ? subscriberApiUrl(searchApiBaseUrl) : `${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -69,7 +70,7 @@ export const performHealthCheck = async (searchApiBaseUrl: string, subscriberTok
     isHealthCheckOnly: true
   };
 
-  const response = await fetch(subscriberToken ? `${searchApiBaseUrl}/subscriber` : `${searchApiBaseUrl}/`, {
+  const response = await fetch(subscriberToken ? subscriberApiUrl(searchApiBaseUrl) : `${searchApiBaseUrl}/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

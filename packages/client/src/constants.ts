@@ -3,3 +3,8 @@ export const S3_HOSTED_FILES_BASE_URL = import.meta.env.VITE_S3_HOSTED_FILES_BAS
 
 /** The site's search API (the public search, and the subscriber API at `/subscriber`); localhost in development */
 export const SEARCH_API_BASE_URL: string = import.meta.env.VITE_SEARCH_API_URL || 'http://localhost:3001';
+
+/** The site's subscriber API: `<search API>/subscriber`, or its own local server in `bds dev client --subscriber-demo` */
+export function subscriberApiUrl(searchApiBaseUrl: string = SEARCH_API_BASE_URL): string {
+  return import.meta.env.VITE_SUBSCRIBER_API_URL || `${searchApiBaseUrl}/subscriber`;
+}

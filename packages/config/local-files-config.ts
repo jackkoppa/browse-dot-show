@@ -83,6 +83,8 @@ function getLocalFilesConfig(): LocalFilesConfig {
  * Gets the base path for local files storage
  */
 export function getLocalFilesBasePath(): string {
+  // An override for one process tree (e.g. `bds dev client --subscriber-demo`'s dummy data), never the config's files
+  if (process.env.BDS_LOCAL_FILES_PATH) return process.env.BDS_LOCAL_FILES_PATH;
   const config = getLocalFilesConfig();
   return config.localFilesPath || DEFAULT_CONFIG.localFilesPath!;
 }

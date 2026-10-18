@@ -1,5 +1,6 @@
 import type { SearchRequest, SearchResponse, EpisodeInManifest } from '@browse-dot-show/types';
 import type { SubscriberLoginProvider } from '@browse-dot-show/sites';
+import { subscriberApiUrl } from '../constants';
 import type { SubscriberSession } from './session';
 
 /** Calls to the shared auth API and the site's subscriber API (POST <search API>/subscriber) */
@@ -67,13 +68,13 @@ export async function refreshSession(authApiUrl: string, siteId: string, session
 }
 
 export function subscriberSearch(searchApiBaseUrl: string, request: SearchRequest, session: SubscriberSession): Promise<SearchResponse> {
-  return postJson<SearchResponse>(`${searchApiBaseUrl}/subscriber`, request, session.token);
+  return postJson<SearchResponse>(subscriberApiUrl(searchApiBaseUrl), request, session.token);
 }
 
 export function getSubscriberEpisodes(searchApiBaseUrl: string, session: SubscriberSession): Promise<{ episodes: SubscriberEpisode[] }> {
-  return postJson(`${searchApiBaseUrl}/subscriber`, { action: 'manifest' }, session.token);
+  return postJson(subscriberApiUrl(searchApiBaseUrl), { action: 'manifest' }, session.token);
 }
 
 export function getSubscriberEpisode(searchApiBaseUrl: string, id: string, session: SubscriberSession): Promise<SubscriberEpisodeDetails> {
-  return postJson(`${searchApiBaseUrl}/subscriber`, { action: 'episode', id }, session.token);
+  return postJson(subscriberApiUrl(searchApiBaseUrl), { action: 'episode', id }, session.token);
 }
