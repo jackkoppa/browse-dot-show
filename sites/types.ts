@@ -96,7 +96,7 @@ export interface SubscriberFeed {
     rssFeedFile: string;
 }
 
-export type SubscriberLoginProvider = 'supporting-cast' | 'dev-code';
+export type SubscriberLoginProvider = 'supporting-cast' | 'patreon' | 'dev-code';
 
 /**
  * Lets listeners log in with their podcast subscription to also search, open and listen to

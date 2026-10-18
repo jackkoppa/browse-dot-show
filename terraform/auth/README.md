@@ -15,6 +15,10 @@ One auth API for every site with subscriber access (see [the plan](../../scratch
   | `/browse-dot-show/auth/email-hash-key` | Random key for hashing emails (the table never holds emails) |
   | `/browse-dot-show/auth/dev-code` | Code for the `dev-code` provider (testing; at least 16 characters) |
   | `/browse-dot-show/auth/sites/<siteId>/supporting-cast` | JSON settings (below) |
+  | `/browse-dot-show/auth/patreon-client` | JSON: browse.show's Patreon OAuth client (below) |
+  | `/browse-dot-show/auth/sites/<siteId>/patreon` | JSON: the site's Patreon campaign and tiers (below) |
+
+Until a site's provider settings exist, logins with that provider answer 503 `provider-not-configured`, and the login dialog says it isn't set up yet. So sites can be deployed with a provider before its keys exist.
 
 It isn't deployed by GitHub Actions: apply it locally. A PR that changes it gets a note in its plan comment.
 
@@ -73,6 +77,35 @@ Run these with the account's admin profile (`AWS_PROFILE=browse.show-0_admin-per
    ```
 
    It prints e.g. `{"listenfairplay":{"pages":20,"users":1400,"subscriptions":600,"caughtUp":false}}`; run it again until `caughtUp` is true. The lambda re-reads secrets every 5 minutes, so changed settings apply within 5 minutes.
+
+5. **Patreon** (one OAuth client for every site):
+
+   1. On https://www.patreon.com/portal/registration/register-clients (Patreon needs a creator page for this; an empty one is fine), create a client: API version 2, redirect URIs `<auth_api_url>/oauth/callback` and `http://localhost:3002/oauth/callback` (for testing locally against real Patreon).
+   2. Check what it sees, with the client's **Creator's Access Token** (only your own account's data):
+
+      ```bash
+      PATREON_ACCESS_TOKEN='…' pnpm --filter @browse-dot-show/auth-lambda patreon-check
+      ```
+
+      It lists your memberships: campaign IDs, patron status and tier IDs. A membership to another creator's campaign (e.g. Double Pivot, `1631945`) confirms the `identity.memberships` scope works for this.
+   3. Store the client, then each site's campaign and tiers:
+
+      ```bash
+      aws ssm put-parameter --name /browse-dot-show/auth/patreon-client --type SecureString \
+        --value '{"clientId":"…","clientSecret":"…"}'
+      aws ssm put-parameter --name /browse-dot-show/auth/sites/<siteId>/patreon --type SecureString \
+        --value '{"campaignId":"1631945","tierIds":["2479339"]}'
+      ```
+
+   | `sites/<siteId>/patreon` setting | Default | |
+   | --- | --- | --- |
+   | `campaignId` | | The creator's campaign |
+   | `tierIds` | any paying membership | Tiers that grant access |
+   | `enabled` | true | `false` pauses logins |
+   | `allowFreeMembers` | false | Free members count too: only for a free test campaign |
+   | `client` | the shared client | `{"clientId","clientSecret"}` registered by the creator, if they'd rather |
+
+   A login makes 2 calls to Patreon (the token exchange and the listener's identity); refreshes make none. Patreon allows 100 requests every 2 seconds per client.
 
 ## How it limits calls to Supporting Cast
 

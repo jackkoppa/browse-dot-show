@@ -26,7 +26,8 @@ import { log } from '@browse-dot-show/logging';
  *   returns a new `{ token, expiresAt }`, or 401. Providers that can't re-check (OAuth) get the
  *   same session back: it ends 30 days after login
  * - `GET /oauth/callback?code&state`: where OAuth providers (Patreon) return the browser. Checks
- *   the membership, then redirects to the site's `/auth/callback` with a login link (or `error`)
+ *   the membership, then redirects to the site's `/auth/callback` with a login link, or `error`
+ *   (e.g. `not-a-subscriber`, or `tier-not-included` for a member on another tier)
  *
  * Errors: 400 for requests no site allows, 401 when access isn't granted, 429 past rate limits,
  * 503 when a provider is down, paused or not set up yet (`provider-not-configured`: its keys aren't
@@ -270,8 +271,9 @@ export async function handleAuthRequest(request: AuthRequest, deps: AuthDependen
       const provider = await deps.getProvider(stateSiteId, providerId);
       if (!provider.completeOAuth) return back('unknown-provider');
       const subscriber = await provider.completeOAuth({ code: query.code, redirectUri: oauthRedirectUri });
-      log.info(`oauth login: site=${stateSiteId} provider=${providerId} granted=${!!subscriber}`);
+      log.info(`oauth login: site=${stateSiteId} provider=${providerId} result=${!subscriber ? 'not-a-subscriber' : 'denied' in subscriber ? subscriber.denied : 'granted'}`);
       if (!subscriber) return back('not-a-subscriber');
+      if ('denied' in subscriber) return back(subscriber.denied);
       const { token } = signSessionToken(
         { siteId: stateSiteId, subject: `${providerId}:${subscriber.providerUserId}`, scope: 'login-link', jti: randomUUID(), ttlSeconds: LOGIN_LINK_TTL_SECONDS, now },
         await deps.getSigningPrivateKey(),

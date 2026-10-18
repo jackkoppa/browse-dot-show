@@ -141,6 +141,18 @@ Estimated calls a day for listenfairplay. GoatCounter shows about 1,500 visits a
 
 The first sync is extra: about (users + subscriptions) / 100 calls, once (e.g. 80 calls for 5,000 users and 3,000 subscriptions), at most 20 per run. The sync is most of the steady-state total. A 6-hour schedule (`supporting_cast_sync_schedule`) would make it 8 a day, with a longer wait for new subscribers. For comparison, the first version of the stack made 5 calls per login, 1–2 per unknown email (unbounded under abuse), and 1 per active subscriber every 5 days.
 
+### 4b. Patreon
+
+- **One OAuth client for every site, registered by browse.show's own Patreon account.** With the `identity.memberships` scope, a login sees the listener's memberships to every campaign, not just the client owner's. So a site needs no API keys from its creators, only the campaign ID and which tiers count. Both are public: Double Pivot is campaign `1631945`, with tiers Subscriber (`2479339`, $3), Mousa Dembele (`2479345`, $10), Expecting Goals (`22041304`, $10) and Double Double (`22041320`, $17). The hosts should still agree, and say which tiers include the premium episodes. A site can use a client the creator registers instead (`client` in its settings).
+- **Login:** OAuth (4, OAuth flow), with 2 calls to Patreon: the token exchange and `GET /api/oauth2/v2/identity?include=memberships.campaign,memberships.currently_entitled_tiers`. Access: `patron_status: active_patron` on the site's campaign, on one of its `tierIds` (any tier, without them).
+- **Sessions:** we keep none of Patreon's tokens, so nothing to store, and sessions end 30 days after login (then one click to log in again). A cancelled patron keeps access until then, at most.
+- **Webhooks:** not used. They'd need a client registered by the creator, and they would only re-check access between logins, which 30-day sessions don't need.
+- **Rate limits:** 100 requests every 2 seconds per client, and 100 a minute per listener token. At 10–500 visitors a day, that's far away.
+- **Testing:** Patreon has no sandbox; its docs suggest dummy accounts. That gives three checks:
+  - Locally: the fake Patreon in `bds dev client --subscriber-demo` (no Patreon at all).
+  - Before deploying: `pnpm --filter @browse-dot-show/auth-lambda patreon-check` with the client's Creator's Access Token shows what your account's memberships look like.
+  - On prod: log in with your own account. A paying membership to the site's campaign works; so does a free test campaign (a second account's creator page with a free tier), with its ID as the site's `campaignId`, `"allowFreeMembers": true` and no `tierIds`. With a test campaign, put the real settings back afterwards.
+
 ### 5. Subscriber API: one opt-in Lambda per site
 
 `subscriber-api-<site>`: the search lambda package started in subscriber mode (env `CONTENT_SCOPE=subscriber`, plus `SUBSCRIBER_TOKEN_PUBLIC_KEY`). It's routed from the site's existing API Gateway at `POST /subscriber`, so CORS and the domain stay the same. Every request needs a valid token for that site. Actions:

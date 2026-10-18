@@ -3,9 +3,9 @@
  * `dev-code` provider for testing. The auth lambda only talks to providers through this.
  */
 
-export type ProviderId = 'supporting-cast' | 'dev-code';
+export type ProviderId = 'supporting-cast' | 'patreon' | 'dev-code';
 
-export const PROVIDER_IDS: readonly ProviderId[] = ['supporting-cast', 'dev-code'];
+export const PROVIDER_IDS: readonly ProviderId[] = ['supporting-cast', 'patreon', 'dev-code'];
 
 /** A listener the provider confirmed has subscriber access */
 export interface VerifiedSubscriber {
@@ -35,6 +35,15 @@ export interface StartLoginInput {
   oauth: { redirectUri: string; state: string };
 }
 
+/**
+ * A member the provider recognized, without access: `tier-not-included` is a member on a tier
+ * that doesn't include the site's subscriber episodes. The site tells the listener, so demand
+ * for other tiers can be gauged.
+ */
+export interface LoginDenied {
+  denied: 'tier-not-included';
+}
+
 /** What an OAuth provider's redirect brought back to `/oauth/callback` */
 export interface OAuthCallback {
   code: string;
@@ -52,7 +61,7 @@ export interface SubscriptionProvider {
    */
   completeLogin(params: Record<string, string>): Promise<VerifiedSubscriber | null>;
   /** OAuth providers: exchanges the callback's code and checks the listener's membership; null if it doesn't grant access */
-  completeOAuth?(callback: OAuthCallback): Promise<VerifiedSubscriber | null>;
+  completeOAuth?(callback: OAuthCallback): Promise<VerifiedSubscriber | LoginDenied | null>;
   /**
    * Re-checks a subscriber without them (e.g. from a mirror of subscribers); null if they no
    * longer have access. Providers without it (OAuth: we keep no provider tokens) only check at

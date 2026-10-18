@@ -314,7 +314,8 @@ describe('OAuth logins', () => {
         kind: 'redirect' as const,
         url: `https://provider.example/authorize?redirect_uri=${encodeURIComponent(oauth.redirectUri)}&state=${oauth.state}`,
       })),
-      completeOAuth: vi.fn(async ({ code }: { code: string }) => (code === 'member' ? { providerUserId: '77' } : null)),
+      completeOAuth: vi.fn(async ({ code }: { code: string }) =>
+        code === 'member' ? { providerUserId: '77' } : code === 'other-tier' ? { denied: 'tier-not-included' as const } : null),
     } satisfies SubscriptionProvider;
   }
   const callback = (query: Record<string, string>) => ({ method: 'GET', path: '/oauth/callback', headers: {}, body: undefined, query, sourceIp: '203.0.113.1' });
@@ -348,6 +349,7 @@ describe('OAuth logins', () => {
     const errorOf = (response: { redirect?: string }) => new URL(response.redirect!).searchParams.get('error');
 
     expect(errorOf(await handleAuthRequest(callback({ code: 'stranger', state: await start(dependencies) }), dependencies))).toBe('not-a-subscriber');
+    expect(errorOf(await handleAuthRequest(callback({ code: 'other-tier', state: await start(dependencies) }), dependencies))).toBe('tier-not-included');
     expect(errorOf(await handleAuthRequest(callback({ error: 'access_denied', state: await start(dependencies) }), dependencies))).toBe('cancelled');
 
     const state = await start(dependencies);
@@ -363,5 +365,74 @@ describe('OAuth logins', () => {
     for (const state of [forged, evilOrigin, expired, 'garbage', '']) {
       expect(await handleAuthRequest(callback({ code: 'member', state }), dependencies)).toEqual({ status: 400, body: { error: 'invalid-state' } });
     }
+  });
+});
+
+describe('Patreon end to end (in memory)', () => {
+  it('logs an active patron in: authorize, callback, login link, session', async () => {
+    const patreonCalls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      const { pathname } = new URL(url);
+      patreonCalls.push(pathname);
+      if (pathname === '/api/oauth2/token') return Response.json({ access_token: 'listener-token' });
+      return Response.json({
+        data: { id: '555', type: 'user' },
+        included: [{
+          id: 'm1', type: 'member', attributes: { patron_status: 'active_patron' },
+          relationships: { campaign: { data: { id: '1631945', type: 'campaign' } }, currently_entitled_tiers: { data: [{ id: '2479339', type: 'tier' }] } },
+        }],
+      });
+    });
+    try {
+      const secrets: Record<string, string> = {
+        'signing-private-key': keys.privateKeyPem,
+        'email-hash-key': 'k',
+        'patreon-client': JSON.stringify({ clientId: 'c', clientSecret: 's' }),
+        'sites/doublepivot/patreon': JSON.stringify({ campaignId: '1631945', tierIds: ['2479339'] }),
+      };
+      const dependencies = createDependencies(
+        { doublepivot: { origins: ['https://doublepivot.browse.show'], providers: ['patreon'] } },
+        async name => {
+          if (!secrets[name]) throw new SecretNotFoundError(name);
+          return secrets[name];
+        },
+        { publicUrl: 'https://auth.example.com' },
+      );
+
+      const login = await handleAuthRequest(post('/login', { siteId: 'doublepivot', provider: 'patreon', origin: 'https://doublepivot.browse.show' }), dependencies);
+      const authorize = new URL((login.body.result as { url: string }).url);
+      expect(authorize.searchParams.get('redirect_uri')).toBe('https://auth.example.com/oauth/callback');
+
+      const callback = await handleAuthRequest(
+        { method: 'GET', path: '/oauth/callback', headers: {}, body: undefined, query: { code: 'abc', state: authorize.searchParams.get('state')! } },
+        dependencies,
+      );
+      const back = new URL(callback.redirect!);
+      expect(`${back.origin}${back.pathname}`).toBe('https://doublepivot.browse.show/auth/callback');
+
+      const session = await handleAuthRequest(post('/complete', { siteId: 'doublepivot', provider: 'patreon', params: { link: back.searchParams.get('link')! } }), dependencies);
+      expect(session.status).toBe(200);
+      expect(patreonCalls).toEqual(['/api/oauth2/token', '/api/oauth2/v2/identity']);
+
+      // Refreshing keeps the session as it is, with no calls to Patreon
+      const refreshed = await handleAuthRequest(post('/refresh', { siteId: 'doublepivot' }, { authorization: `Bearer ${session.body.token}` }), dependencies);
+      expect(refreshed.body).toEqual(session.body);
+      expect(patreonCalls).toHaveLength(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("answers provider-not-configured until the site's Patreon settings are in SSM", async () => {
+    const dependencies = createDependencies(
+      { doublepivot: { origins: ['https://doublepivot.browse.show'], providers: ['patreon'] } },
+      async name => {
+        if (name === 'signing-private-key') return keys.privateKeyPem;
+        if (name === 'email-hash-key') return 'k';
+        throw new SecretNotFoundError(name);
+      },
+      { publicUrl: 'https://auth.example.com' },
+    );
+    expect(await handleAuthRequest(post('/login', { siteId: 'doublepivot', provider: 'patreon' }), dependencies)).toEqual({ status: 503, body: { error: 'provider-not-configured' } });
   });
 });
