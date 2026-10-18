@@ -68,11 +68,16 @@ The subscriber search index is built at ingestion as one index: **every public e
 - The other 31 are the subscriber-only "Dreamland" series.
 - Every public episode matched exactly one subscriber item.
 
+**Double Pivot's Patreon feed (2026-10-18)** has 1,206 items. 387 match public episodes (375 by title, 12 by a similar title); 819 are Patreon-only. Checking it found two kinds of false match, now ruled out (Dreamland's results didn't change):
+- different parts of a series: "Part I" / "Part II", or "World Cup Semifinals Preview: England-Argentina" / "…: France-Spain"
+- full Patreon episodes and their public teasers
+
 Matching happens twice. RSS retrieval skips counterparts, so they're never downloaded or transcribed. Indexing re-checks, and leaves out a subscriber episode whose public version appeared later (e.g. subscribers got it a week early). The rules, in `episode-matching.ts` in `@browse-dot-show/constants`:
 
 - the same title within 14 days
-- a near-identical title within 2 days
-- a distinctive part of one title (4+ words, split at ":" or " - ") found in the other, within 14 days
+- a near-identical title within 2 days, with the same part and episode numbers (years aside)
+- a distinctive part shared by both titles (4+ words, split at ":" or " - "), within 14 days, unless it starts both (a series name)
+- never a teaser with a full episode
 
 **Phase 1 (decided): bonus episodes only.** Counterparts are skipped. Subscribers get the public (ad-supported) version of shared episodes and the subscriber-only episodes on top. That's no extra transcription and no ambiguity.
 **Phase 2 (optional): ad-free versions.** Transcribe counterparts too, and replace the public episode with the `s` version in the combined index. Timestamps differ from the ad version, so it needs its own transcript. That's a one-time backlog of transcription on the runner.
@@ -144,7 +149,7 @@ The first sync is extra: about (users + subscriptions) / 100 calls, once (e.g. 8
 ### 4b. Patreon
 
 - **One OAuth client for every site, registered by browse.show's own Patreon account.** With the `identity.memberships` scope, a login sees the listener's memberships to every campaign, not just the client owner's. So a site needs no API keys from its creators, only the campaign ID and which tiers count. Both are public: Double Pivot is campaign `1631945`, with tiers Subscriber (`2479339`, $3), Mousa Dembele (`2479345`, $10), Expecting Goals (`22041304`, $10) and Double Double (`22041320`, $17). The hosts should still agree, and say which tiers include the premium episodes. A site can use a client the creator registers instead (`client` in its settings).
-- **Login:** OAuth (4, OAuth flow), with 2 calls to Patreon: the token exchange and `GET /api/oauth2/v2/identity?include=memberships.campaign,memberships.currently_entitled_tiers`. Access: `patron_status: active_patron` on the site's campaign, on one of its `tierIds` (any tier, without them).
+- **Login:** OAuth (4, OAuth flow), with 2 calls to Patreon: the token exchange and `GET /api/oauth2/v2/identity?include=memberships.campaign,memberships.currently_entitled_tiers`. Access: `patron_status: active_patron` on the site's campaign, on one of its `tierIds` (any tier, without them). An active patron on another tier gets `tier-not-included`: the site says their tier doesn't include the episodes yet, links to https://browse.show/contact, and counts it in GoatCounter ("Subscriber Tier Not Included").
 - **Sessions:** we keep none of Patreon's tokens, so nothing to store, and sessions end 30 days after login (then one click to log in again). A cancelled patron keeps access until then, at most.
 - **Webhooks:** not used. They'd need a client registered by the creator, and they would only re-check access between logins, which 30-day sessions don't need.
 - **Rate limits:** 100 requests every 2 seconds per client, and 100 a minute per listener token. At 10–500 visitors a day, that's far away.
@@ -224,31 +229,88 @@ Each PR keeps every existing site working and leaves the feature dark.
   - The subscriber API returned 401 without a token.
   - Feed tokens never appeared in logs.
 
-| # | Branch | What | AWS / approval |
-|---|---|---|---|
-| 1 | `feat/subscriber-access-plan` | This plan + AGENTS.md pointer | – |
-| 2 | `feat/subscriber-auth-tokens` | `packages/auth`: Ed25519 session tokens | Lockfile: full plan, no changes expected |
-| 3 | `feat/subscriber-auth-providers` | Providers (Supporting Cast, dev-code) + `packages/auth-lambda` | Lockfile: full plan, no changes expected |
-| 4 | `feat/subscriber-content-scope` | `subscriberAccess` site config + validation; `CONTENT_SCOPE` key prefixes; `s<n>` IDs | Lambda zips change |
-| 5 | `feat/subscriber-rss-retrieval` | Subscriber feeds → `subscriber/`, counterpart matching, URL redaction in logs | Lambda zips change |
-| 6 | `feat/subscriber-search-index` | Combined subscriber index | Lambda zips change |
-| 7 | `feat/subscriber-api` | Subscriber API mode in the search lambda | Lambda zips change |
-| 8 | `feat/subscriber-ingest-pass` | `bds ingest` subscriber pass | Lambda zips change (process-audio) |
-| 9 | `feat/subscriber-terraform` | `enable_subscriber_access` (sites) + `terraform/auth` | Full plan, no changes expected for sites; auth stack applied by the developer |
-| 10 | `feat/subscriber-client` | Login, callback, subscriber search/episodes, no play cap | Clients re-uploaded (inert) |
-| 11 | `feat/subscriber-auth-rate-limits` | Supporting Cast mirror + sync, login links, 30-day sessions, rate limits (4a) | Lockfile: full plan, no changes expected; auth stack gains a DynamoDB table and schedule |
+Each PR is labeled **shared** (any provider), **Supporting Cast** or **Patreon**.
 
-**Next, once merged (needs the developer):**
+| # | PR | Branch | For | What | AWS / approval |
+|---|---|---|---|---|---|
+| 1 | #211 | `feat/subscriber-access-plan` | shared | This plan + AGENTS.md pointer | – |
+| 2 | #212 | `feat/subscriber-auth-tokens` | shared | `packages/auth`: Ed25519 session tokens | Lockfile: full plan, no changes expected |
+| 3 | #213 | `feat/subscriber-auth-providers` | shared + Supporting Cast | Provider interface, Supporting Cast and dev-code providers, `packages/auth-lambda` | Lockfile: full plan, no changes expected |
+| 4 | #214 | `feat/subscriber-content-scope` | shared | `subscriberAccess` site config + validation; `CONTENT_SCOPE` key prefixes; `s<n>` IDs | Lambda zips change |
+| 5 | #215 | `feat/subscriber-rss-retrieval` | shared | Subscriber feeds → `subscriber/`, counterpart matching, URL redaction in logs | Lambda zips change |
+| 6 | #216 | `feat/subscriber-search-index` | shared | Combined subscriber index | Lambda zips change |
+| 7 | #217 | `feat/subscriber-api` | shared | Subscriber API mode in the search lambda | Lambda zips change |
+| 8 | #218 | `feat/subscriber-ingest-pass` | shared | `bds ingest` subscriber pass | Lambda zips change (process-audio) |
+| 9 | #219 | `feat/subscriber-terraform` | shared | `enable_subscriber_access` (sites) + `terraform/auth` | Full plan, no changes expected for sites; auth stack applied by the developer |
+| 10 | #220 | `feat/subscriber-client` | shared | Login, callback, subscriber search/episodes, no play cap | Clients re-uploaded (inert) |
+| 11 | #241 | `feat/subscriber-auth-rate-limits` | Supporting Cast | Supporting Cast mirror + sync, login links, 30-day sessions, rate limits (4a) | Lockfile: full plan, no changes expected; auth stack gains a DynamoDB table and schedule |
+| 12 | #243 | `feat/subscriber-oauth` | shared | OAuth flow, optional refresh (`auth_time`), `provider-not-configured`, preview-only `launchStatus`, no tokens in search logs | Lambda zips change |
+| 13 | #244 | `feat/subscriber-patreon` | Patreon | Patreon provider (4b), `patreon-check` | – (auth stack only) |
+| 14 | #245 | `feat/subscriber-local-demo` | shared | `bds dev client --subscriber-demo`: dummy data, fake Supporting Cast and Patreon | Lambda zips change (`packages/config`) |
+| 15 | #246 | `feat/subscriber-sites` | Supporting Cast + Patreon | listenfairplay and doublepivot `subscriberAccess` (preview), per-site to-dos, subscriber lambda warming off by default | Two sites' clients re-uploaded (inert: no auth URL yet); sites plan no changes |
 
-1. Deploy `terraform/auth`: create the SSM signing key, email hash key and dev code, apply, commit `SUBSCRIBER_AUTH_API_URL`.
-2. Enable listenfairplay in one PR:
-   - `subscriberAccess` (preview, `dev-code`)
-   - `enable_subscriber_access = true` + `subscriber_token_public_key` in `prod.tfvars`
-   - re-apply `terraform/auth` (new site origin)
-3. Put the subscriber feed URL in `.env.local` (dev and runner Macs), then run `bds ingest --sites=listenfairplay` and check the matching report in the log.
-4. Test on prod with `?subscriberPreview=1` and the dev code.
-5. Supporting Cast for real: the hosts' API token, network ID and feed ID in SSM; add `supporting-cast` to providers; confirm the callback parameter.
-6. Launch: `launchStatus: "live"`, drop `dev-code`.
+**Per-podcast to-dos and questions for the hosts:** [listenfairplay.md](listenfairplay.md) (Supporting Cast) and [doublepivot.md](doublepivot.md) (Patreon).
+
+**Next, once merged (shared, once; needs the developer):**
+
+1. Deploy `terraform/auth`, step by step (its [README](../../terraform/auth/README.md), steps 1–3):
+   - the SSM signing key, email hash key and dev code
+   - `build:prod`, `terraform plan` (expect only creates), `apply`
+   - commit `SUBSCRIBER_AUTH_API_URL` in `packages/constants/repo-constants.ts`, which turns the login button on for sites in preview (still behind `?subscriberPreview=1`)
+   - keep the printed public key for each site's `prod.tfvars`
+2. Then follow each podcast's list. Neither needs the other, or its hosts, until its "once the hosts answer" steps.
+
+## Later (not in this stack)
+
+- **Subscription levels:** several levels per site, each a set of subscriber feeds, mapped from the provider's tiers. E.g. for Double Pivot: Subscriber gets the Subscriber feed; Mousa Dembele and Double Double get it plus the Mousa feed. Today a site has one level (the feeds in `subscriberFeeds`), and other tiers get `tier-not-included`, whose GoatCounter count shows the demand for this.
+- **Teasers:** hide public teasers from logged-in subscribers, who have the full episode.
+- **Ad-free versions:** phase 1 leaves them out (bonus episodes only).
+
+## Costs
+
+Nothing costs anything until a site opts in:
+- The subscriber lambda only exists with `enable_subscriber_access`.
+- The auth stack only once it's applied.
+
+Once on (all usage-priced, at 10–500 visitors a day):
+
+| | Cost |
+| --- | --- |
+| Auth lambda, HTTP API ($1/million requests), DynamoDB on-demand, EventBridge schedule, SSM standard parameters | Cents a year |
+| A subscriber lambda per opted-in site, with no warming schedule (`enable_subscriber_search_lambda_warming`, off by default; the client warms it when a subscriber opens the site) | Within Lambda's free tier at this traffic |
+| Subscriber audio in S3 (Dreamland: 31 episodes, ~1.5 GB; Double Pivot: 819 episodes, ~30 GB, ~$0.70 a month) | ~$0.023/GB-month |
+| Subscriber audio downloads (presigned S3 URLs, not CloudFront: $0.09/GB) | ~$0.005 per episode listened to |
+
+## Removing subscriber access
+
+The feature is additive: every site without `subscriberAccess` behaves as before, and dark code costs nothing. To turn it off, or take it out entirely:
+
+1. **Per site** (repeat for each), in this order, so subscriber files are never readable through CloudFront:
+   1. PR: remove `subscriberAccess` from `site.config.json`. The site's subscriber UI goes, and ingestion stops fetching and uploading subscriber episodes.
+   2. Delete its subscriber files (in the site's AWS account, after that PR deploys):
+      ```bash
+      aws s3 rm s3://<siteId>-browse-dot-show/sites/<siteId>/subscriber/ --recursive
+      ```
+      The runner Mac's local copy is `<localFilesPath>/s3/sites/<siteId>/subscriber/`.
+   3. PR: remove `enable_subscriber_access` and `subscriber_token_public_key` from `prod.tfvars`. The plan destroys the subscriber lambda, its route and permission, and drops the bucket policy's Deny statement (nothing is left for it to protect).
+   4. Remove its `SUBSCRIBER_FEED_URL_…` line from `.env.local` on the Macs.
+2. **The auth stack** (account 297202224084, once no site uses it):
+   ```bash
+   cd terraform/auth && terraform destroy -var-file=auth-prod.tfvars
+   aws ssm get-parameters-by-path --path /browse-dot-show/auth --recursive --query 'Parameters[].Name' --output text \
+     | xargs -n 10 aws ssm delete-parameters --names
+   ```
+   Set `SUBSCRIBER_AUTH_API_URL` back to `''`. If you registered a Patreon client, delete it in the Patreon portal.
+3. **The code** (optional; dormant code is harmless): one PR reverting the stack's commits, newest first:
+   ```bash
+   git revert --no-edit <oldest stack commit>^..<newest stack commit>
+   ```
+   With rebase merges each PR is one commit on `main`, so the range is this stack's 15 commits. Check for later commits that touched the same files. Outside the new packages (`packages/auth`, `packages/auth-lambda`, `terraform/auth`), the stack touches:
+   - the search lambda, the RSS, indexing and process-audio lambdas
+   - `packages/constants`, `packages/config`, `packages/types`, `sites/`
+   - `scripts/ingestion`, `scripts/cli/commands/dev.ts`
+   - `terraform/sites`
+   - the client (`src/subscriber/` and the files that use it)
 
 ## Decisions (2026-10-14)
 
@@ -256,6 +318,13 @@ Each PR keeps every existing site working and leaves the feature dark.
 - **Merging:** review the whole stack, then merge it in order in one sitting.
 - **Auth stack:** deployed together, step by step (the developer runs the commands).
 - **Feed URL:** in `.env.local` on the dev Mac; the runner Mac needs it too before its nightly runs ingest subscriber episodes.
+
+## Decisions (2026-10-18)
+
+- **Patreon next, for Double Pivot**, alongside Supporting Cast; both mergeable and deployable before any keys exist (logins answer `provider-not-configured` until then).
+- **Every subscriber feature on every site needs `?subscriberPreview=1`** until a site deliberately launches.
+- **Revertible:** dark by default; [removal steps](#removing-subscriber-access) above.
+- **Local testing first:** `bds dev client --subscriber-demo` against the top of the stack before merging.
 
 ## Open questions
 
@@ -266,3 +335,4 @@ Each PR keeps every existing site working and leaves the feature dark.
    - Does the network have webhooks (its security events mention "webhook subscriptions")? They could replace the polling sync.
 2. **Session length:** 30 days, refreshed daily (implemented).
 3. **Abuse of `/login`:** per-IP, per-email and daily caps (implemented). If bots show up anyway, Cloudflare Turnstile (free) could go in front of the email form.
+4. **Patreon (Double Pivot's hosts):** which tiers include the premium podcast, and whether the Mousa Dembele specials are a separate feed (see [doublepivot.md](doublepivot.md)). Also to confirm: that `identity.memberships` shows memberships to other creators' campaigns, with `patreon-check`, before deploying.

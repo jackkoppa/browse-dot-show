@@ -25,6 +25,22 @@
       "url": "https://feeds.buzzsprout.com/819853.rss"
     }
   ],
+  "subscriberAccess": {
+    "launchStatus": "preview",
+    "providers": [
+      "patreon",
+      "dev-code"
+    ],
+    "subscriptionName": "Double Pivot Patreon",
+    "subscribeUrl": "https://www.patreon.com/doublepivot",
+    "subscriberFeeds": [
+      {
+        "podcastId": "doublepivot-podcast",
+        "feedUrlEnvVar": "SUBSCRIBER_FEED_URL_DOUBLEPIVOT",
+        "rssFeedFile": "doublepivot-patreon.xml"
+      }
+    ]
+  },
   "whisperTranscriptionPrompt": "Hello, and welcome to Double Pivot. A podcast about soccer analysis, analytics, and commentary with us, your hosts Mike Goodman and Michael Caley. Let's jump in!",
   "themeColor": "#32ff9a",
   "themeColorDark": "#11824e",

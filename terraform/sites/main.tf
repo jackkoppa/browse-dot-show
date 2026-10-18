@@ -434,8 +434,9 @@ resource "aws_lambda_permission" "allow_apigw_to_invoke_subscriber_search_lambda
   source_arn    = "${aws_apigatewayv2_api.search_api.execution_arn}/prod/*"
 }
 
+# Off by default: the client warms the subscriber lambda when a logged-in listener opens the site
 module "subscriber_search_lambda_warming_schedule" {
-  count  = var.enable_subscriber_access && var.enable_search_lambda_warming ? 1 : 0
+  count  = var.enable_subscriber_access && var.enable_subscriber_search_lambda_warming ? 1 : 0
   source = "./modules/eventbridge"
 
   schedule_name       = "subscriber-search-lambda-warming-${var.site_id}"

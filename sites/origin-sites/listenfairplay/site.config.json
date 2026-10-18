@@ -32,6 +32,22 @@
             "url": "https://feeds.acast.com/public/shows/683740806e5b65d787520c15"
         }
     ],
+    "subscriberAccess": {
+        "launchStatus": "preview",
+        "providers": [
+            "supporting-cast",
+            "dev-code"
+        ],
+        "subscriptionName": "Dreamland",
+        "subscribeUrl": "https://footballcliches.supportingcast.fm/",
+        "subscriberFeeds": [
+            {
+                "podcastId": "football-cliches",
+                "feedUrlEnvVar": "SUBSCRIBER_FEED_URL_LISTENFAIRPLAY_FOOTBALL_CLICHES",
+                "rssFeedFile": "football-cliches-subscriber.xml"
+            }
+        ]
+    },
     "whisperTranscriptionPrompt": "Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe. I'm your host, Adam Hurrey, here with David Walker & Charlie Eccleshare. Let's begin!",
     "themeColor": "#fdf100",
     "themeColorDark": "#136cba",
