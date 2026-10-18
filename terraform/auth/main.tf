@@ -48,6 +48,9 @@ locals {
     } if try(site.subscriberAccess, null) != null
   }
   allowed_origins = sort(distinct(flatten([for site in values(local.auth_sites) : site.origins])))
+
+  # Sites whose Supporting Cast mirror the scheduled sync keeps current
+  supporting_cast_sites = [for id, site in local.auth_sites : id if contains(site.providers, "supporting-cast")]
 }
 
 data "archive_file" "auth_lambda" {
@@ -89,6 +92,44 @@ resource "aws_iam_role_policy" "auth_lambda_ssm" {
   })
 }
 
+# Rate-limit counters, used login links and the Supporting Cast mirrors (packages/auth-lambda/dynamo.ts).
+# On-demand: at a few thousand requests a month, it costs nothing measurable
+resource "aws_dynamodb_table" "auth" {
+  name         = "browse-dot-show-subscriber-auth"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+}
+
+resource "aws_iam_role_policy" "auth_lambda_dynamodb" {
+  name = "use-subscriber-auth-table"
+  role = aws_iam_role.auth_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:Query"]
+      Resource = aws_dynamodb_table.auth.arn
+    }]
+  })
+}
+
 resource "aws_lambda_function" "auth" {
   function_name    = "browse-dot-show-subscriber-auth"
   filename         = data.archive_file.auth_lambda.output_path
@@ -97,12 +138,15 @@ resource "aws_lambda_function" "auth" {
   runtime          = "nodejs20.x"
   architectures    = ["arm64"]
   memory_size      = 256
-  timeout          = 15
-  role             = aws_iam_role.auth_lambda.arn
+  # Requests finish in well under a second (the API gives up at 30 s); a sync run stops fetching
+  # pages 20 s before this and carries on next run
+  timeout = 120
+  role    = aws_iam_role.auth_lambda.arn
 
   environment {
     variables = {
       AUTH_SITES           = jsonencode(local.auth_sites)
+      AUTH_TABLE_NAME      = aws_dynamodb_table.auth.name
       SSM_PARAMETER_PREFIX = var.ssm_parameter_prefix
       LOG_LEVEL            = var.log_level
     }
@@ -158,4 +202,28 @@ resource "aws_lambda_permission" "auth_api" {
   function_name = aws_lambda_function.auth.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*"
+}
+
+# Keeps the Supporting Cast mirrors current: usually 2 API calls per site per run
+resource "aws_cloudwatch_event_rule" "supporting_cast_sync" {
+  count               = length(local.supporting_cast_sites) > 0 ? 1 : 0
+  name                = "browse-dot-show-subscriber-auth-supporting-cast-sync"
+  description         = "Syncs subscriber lists from Supporting Cast"
+  schedule_expression = var.supporting_cast_sync_schedule
+}
+
+resource "aws_cloudwatch_event_target" "supporting_cast_sync" {
+  count = length(local.supporting_cast_sites) > 0 ? 1 : 0
+  rule  = aws_cloudwatch_event_rule.supporting_cast_sync[0].name
+  arn   = aws_lambda_function.auth.arn
+  input = jsonencode({ action = "sync-supporting-cast" })
+}
+
+resource "aws_lambda_permission" "supporting_cast_sync" {
+  count         = length(local.supporting_cast_sites) > 0 ? 1 : 0
+  statement_id  = "AllowSupportingCastSyncSchedule"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.auth.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.supporting_cast_sync[0].arn
 }

@@ -20,4 +20,20 @@ export {
   type VerifiedSubscriber,
 } from './providers/types.js';
 export { createDevCodeProvider } from './providers/dev-code.js';
-export { createSupportingCastProvider, SUPPORTING_CAST_API_BASE_URL, type SupportingCastSettings } from './providers/supporting-cast.js';
+export {
+  createSupportingCastProvider,
+  syncSupportingCast,
+  normalizeEmail,
+  createMemorySupportingCastMirror,
+  hasAccess,
+  SUPPORTING_CAST_API_BASE_URL,
+  SUPPORTING_CAST_DEFAULTS,
+  type SupportingCastProviderDependencies,
+  type SupportingCastSettings,
+  type SupportingCastMirror,
+  type MirroredSubscription,
+  type SyncState,
+  type SyncDependencies,
+  type SyncResult,
+} from './providers/supporting-cast/index.js';
+export { createMemoryAuthStore, timeBuckets, type AuthStore } from './store.js';

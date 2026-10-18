@@ -39,3 +39,9 @@ variable "throttling_burst_limit" {
   type        = number
   default     = 10
 }
+
+variable "supporting_cast_sync_schedule" {
+  description = "How often the Supporting Cast subscriber lists sync (each run: usually 2 API calls per site). New subscribers can log in after the next run"
+  type        = string
+  default     = "rate(2 hours)"
+}

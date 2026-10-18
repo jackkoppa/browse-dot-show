@@ -76,7 +76,10 @@ export default function SubscriberLoginDialog() {
 
             {subscriber.providers.includes('supporting-cast') && (
               status === 'email-sent' ? (
-                <p className="p-3 bg-muted rounded-md">If <strong>{email}</strong> has a subscription, we've sent it a login link. Open it on this device.</p>
+                <p className="p-3 bg-muted rounded-md">
+                  If <strong>{email}</strong> has a subscription, we've sent it a login link. Open it on this device within an hour.
+                  {' '}Just subscribed? It can take a couple of hours before you can log in here.
+                </p>
               ) : (
                 <form onSubmit={handleEmailLogin} className="flex flex-col gap-2">
                   <label htmlFor="subscriber-email">The email you subscribe with</label>

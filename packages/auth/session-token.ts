@@ -9,7 +9,11 @@ import { createPrivateKey, createPublicKey, generateKeyPairSync, sign, verify, t
 
 export const SESSION_TOKEN_ISSUER = 'browse.show-auth';
 
-export type SessionScope = 'subscriber';
+/**
+ * `subscriber`: a listener's session. `login-link`: the single-use token in a login link we ask a
+ * provider to email (it proves the listener got the email); never accepted as a session.
+ */
+export type SessionScope = 'subscriber' | 'login-link';
 
 export interface SessionClaims {
   /** Always SESSION_TOKEN_ISSUER */
@@ -19,6 +23,8 @@ export interface SessionClaims {
   /** `<provider>:<provider user ID>`, e.g. `supporting-cast:123` or `dev-code:jack` */
   sub: string;
   scope: SessionScope;
+  /** Unique ID, for single-use tokens (login links) */
+  jti?: string;
   /** Issued at, in seconds since the epoch */
   iat: number;
   /** Expires at, in seconds since the epoch */
@@ -27,7 +33,7 @@ export interface SessionClaims {
 
 export type VerifyResult =
   | { valid: true; claims: SessionClaims }
-  | { valid: false; reason: 'malformed' | 'bad-signature' | 'wrong-issuer' | 'wrong-audience' | 'expired' | 'not-yet-valid' };
+  | { valid: false; reason: 'malformed' | 'bad-signature' | 'wrong-issuer' | 'wrong-audience' | 'wrong-scope' | 'expired' | 'not-yet-valid' };
 
 const HEADER = { alg: 'EdDSA', typ: 'JWT' };
 /** Tolerance for clock differences between the auth lambda and a site lambda */
@@ -58,6 +64,7 @@ export interface SignSessionTokenOptions {
   siteId: string;
   subject: string;
   scope?: SessionScope;
+  jti?: string;
   /** Lifetime in seconds */
   ttlSeconds: number;
   /** Seconds since the epoch; defaults to now */
@@ -71,6 +78,7 @@ export function signSessionToken(options: SignSessionTokenOptions, privateKey: s
     aud: options.siteId,
     sub: options.subject,
     scope: options.scope ?? 'subscriber',
+    ...(options.jti ? { jti: options.jti } : {}),
     iat,
     exp: iat + options.ttlSeconds,
   };
@@ -82,6 +90,8 @@ export function signSessionToken(options: SignSessionTokenOptions, privateKey: s
 export interface VerifySessionTokenOptions {
   /** The site the request is for: the token's `aud` must match */
   siteId: string;
+  /** The scope the token must have; defaults to `subscriber` */
+  scope?: SessionScope;
   /** Seconds since the epoch; defaults to now */
   now?: number;
 }
@@ -114,6 +124,7 @@ export function verifySessionToken(token: string, publicKey: string | KeyObject,
 
   if (claims.iss !== SESSION_TOKEN_ISSUER) return { valid: false, reason: 'wrong-issuer' };
   if (claims.aud !== options.siteId) return { valid: false, reason: 'wrong-audience' };
+  if (claims.scope !== (options.scope ?? 'subscriber')) return { valid: false, reason: 'wrong-scope' };
   if (typeof claims.exp !== 'number' || typeof claims.iat !== 'number') return { valid: false, reason: 'malformed' };
 
   const now = options.now ?? Math.floor(Date.now() / 1000);

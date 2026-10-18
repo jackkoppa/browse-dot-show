@@ -13,6 +13,7 @@
     "__prepare-for-aws": "tsx ../../scripts/pnpm-deploy-with-versions-fix.ts @browse-dot-show/auth-lambda"
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "catalog:",
     "@aws-sdk/client-ssm": "catalog:",
     "@browse-dot-show/auth": "workspace:*",
     "@browse-dot-show/logging": "workspace:*",

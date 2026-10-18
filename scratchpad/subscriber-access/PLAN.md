@@ -10,7 +10,7 @@ Later: Libero (also Supporting Cast), Patreon sites, and subscriber-only feature
 
 **Constraints**
 
-- **Cheap.** All 23 sites cost $10–15/month and the total should stay under $20. Use only resources that are free indefinitely or cost per use: Lambda, Lambda function URLs, SSM Parameter Store (standard), S3. No databases, NAT gateways, Secrets Manager or always-on servers.
+- **Cheap.** All 23 sites cost $10–15/month and the total should stay under $20. Use only resources that are free indefinitely or cost per use: Lambda, API Gateway HTTP APIs, SSM Parameter Store (standard), S3, and one on-demand DynamoDB table (for the auth lambda's rate limits and the Supporting Cast mirror: cents a year at this traffic). No provisioned databases, NAT gateways, Secrets Manager or always-on servers.
 - **Keep the search model.** Lambdas load an Orama index from S3 at cold start and are kept warm. Warm searches take milliseconds.
 - **Other sites don't change.** Everything is off unless a site opts in. A site without `subscriberAccess` builds and deploys the same as today.
 - **No staging.** Test on prod behind a query-param feature flag (`?subscriberPreview=1`). Real users don't see the feature until it's turned on for a site.
@@ -84,19 +84,46 @@ Matching happens twice. RSS retrieval skips counterparts, so they're never downl
   - Why not reserved concurrency: it fails on accounts with a low concurrency limit.
   - The API costs $1/million requests.
 - **Deploying it:** applied locally, like `terraform/automation` (CI notes changes but doesn't apply them). Setup steps are in [terraform/auth/README.md](../../terraform/auth/README.md).
-- **Secrets:** SSM Parameter Store SecureStrings: the Ed25519 signing key, and each site's provider settings (e.g. the Supporting Cast API token and network ID). They're read once per cold start.
+- **Secrets:** SSM Parameter Store SecureStrings: the Ed25519 signing key, the email hash key, and each site's provider settings (e.g. the Supporting Cast API token and network ID). They're re-read every 5 minutes, so a changed setting (e.g. pausing logins) applies quickly.
+- **State:** one on-demand DynamoDB table for rate-limit counters, used login links and the Supporting Cast mirrors (see 4a). Sessions stay stateless.
 - **Providers** implement one interface, so Patreon fits later without changing the flow:
   - `startLogin({ email | nothing, returnUrl })` returns `{ kind: 'email-sent' }` (Supporting Cast magic link) or `{ kind: 'redirect', url }` (Patreon OAuth).
   - `completeLogin(callbackParams)` returns the verified subscriber or null.
   - `refresh(subscriberRef)` re-checks that the subscription is still active.
-- **Supporting Cast flow:**
-  1. `POST /login {site, email}`: look up the user (`POST /users/search {email}`), and if they have an active subscription on an allowed plan, call `POST /users/{id}/send_login_email {redirect_url: https://<site>/auth/callback}`. The response is always "if you're a subscriber, check your email" (no account enumeration).
-  2. The magic link sends the user back to `/auth/callback?...`. The client posts the query params to `POST /complete`, and the provider checks them (expected: `POST /users/search {login_token}`, then `GET /users/{id}/subscriptions`).
+- **Supporting Cast flow** (one API call per login; see 4a):
+  1. `POST /login {site, email}`: look the email's hash up in our mirror of subscribers. Only for a subscriber with access, call `POST /users/{id}/send_login_email` with a `redirect_url` of `https://<site>/auth/callback?provider=supporting-cast&link=<login link>`. The login link is our own signed, single-use token (1 hour). The response is always "if you're a subscriber, check your email" (no account enumeration).
+  2. Supporting Cast emails the link to the address it has on file. It ends at `/auth/callback`, and the client posts the query params to `POST /complete`. The auth lambda checks the login link itself (signature, expiry, not used before) and re-checks access in the mirror: no call to Supporting Cast.
   3. The auth lambda returns a **session token**.
-- **Session token:** a compact JWT signed with Ed25519 (`node:crypto`, no dependency). Claims: `iss`, `aud` (site ID), `sub` (`<provider>:<user id>`), `scope: "subscriber"`, `iat`, `exp` (7 days). The client stores it in `localStorage` and calls `POST /refresh` when it has under 2 days left; refresh re-checks the provider. A cancelled subscription keeps access for at most 7 days. No database.
+- **Session token:** a compact JWT signed with Ed25519 (`node:crypto`, no dependency). Claims: `iss`, `aud` (site ID), `sub` (`<provider>:<user id>`), `scope: "subscriber"`, `iat`, `exp` (30 days). The client stores it in `localStorage` and calls `POST /refresh` once it's a day old; for Supporting Cast, refresh checks the mirror (no API call). A listener who visits at least monthly stays logged in; a lapsed subscription loses access at the next refresh, or within 30 days at most. Login links use the same signing, with `scope: "login-link"`, which no API accepts as a session.
 - **Verification** happens in the site's subscriber lambda, with the public key (an env var; public keys are committed). It costs microseconds with no network call.
 - **Mock / dev provider (`dev-code`):** for testing on prod before any provider credentials exist. `/complete {siteId, provider: "dev-code", params: {code}}` checks the code against SSM `/browse-dot-show/auth/dev-code` and issues a token with `sub: "dev-code:<label>"`. It's enabled per site (`providers` in config), and the UI offers it only while the site is in `preview`.
-- **Supporting Cast access check:** if `feedIds` is set in the site's SSM settings, the listener needs access to one of those feeds (`GET /users/{id}/feeds`, which covers gifts and invites). Otherwise any `Active`/`Alert` subscription counts, or a `Cancelled` one that's paid up until `ends_at`.
+- **Supporting Cast access check:** a subscription on one of the site's `planIds` (any plan, without them) that's `Active`/`Alert`, or `Cancelled` but paid up until `ends_at`.
+
+### 4a. Supporting Cast's rate limit
+
+Supporting Cast rate-limits its API, and the network's other uses (e.g. the Football Clichés games page login) share the allowance. So the auth lambda calls it as little as possible, with hard caps:
+
+- **A mirror of who subscribes**, synced every 2 hours (`GET /subscriptions` and `GET /users` with `updated_since`: usually one call each per run). It holds Supporting Cast user IDs, HMAC-SHA256 hashes of their emails (the key is in SSM), and each subscription's plan, status and end date. It never holds emails, names or anything else. The first sync pages through everything, 100 per call. It fetches at most 20 pages per run (`syncPagesPerRun`), so a few thousand subscribers take a few runs.
+- **Logins:** an email that isn't a subscriber's makes no calls. A subscriber's makes one (`send_login_email`). Completing the login and refreshing sessions use the mirror (no calls).
+- **Caps:**
+  - at most 100 login emails a day per site (`loginEmailsPerDay`); past that, every login gets "try again later", so the cap reveals nothing about who subscribes
+  - 3 login requests per email per day
+  - 10 login requests per IP per hour
+  - the HTTP API's throttling (5 requests/second)
+- **Kill switch:** `"enabled": false` in the site's SSM settings pauses logins and syncs within 5 minutes. Listeners who are logged in stay logged in. Removing `supporting-cast` from the site's providers turns it off entirely.
+- **Trade-off:** someone who just subscribed can log in after the next sync (up to 2 hours). The dialog says so.
+
+Estimated calls a day for listenfairplay. GoatCounter shows about 1,500 visits a month to `/` (about 50 a day). The 100 and 300 columns are the planning ceilings. The estimates assume about 10% of visitors are Dreamland subscribers; each logs in once per device, then stays logged in while they visit monthly.
+
+| | Today (~50 visits/day) | 100 visits/day | 300 visits/day (busy) |
+| --- | --- | --- | --- |
+| Sync (`GET /subscriptions` + `GET /users`, 12 runs) | 24 | 24 | 24 |
+| Login emails, launch month | 2–5 | 5–10 | 15–30 |
+| Login emails, after that | ~1 | ~2 | ~5 |
+| **Total per day** | **~25–30** | **~26–35** | **~30–55** |
+| Hard ceiling (any traffic, including abuse) | 124 | 124 | 124 |
+
+The first sync is extra: about (users + subscriptions) / 100 calls, once (e.g. 80 calls for 5,000 users and 3,000 subscriptions), at most 20 per run. The sync is most of the steady-state total. A 6-hour schedule (`supporting_cast_sync_schedule`) would make it 8 a day, with a longer wait for new subscribers. For comparison, the first version of the stack made 5 calls per login, 1–2 per unknown email (unbounded under abuse), and 1 per active subscriber every 5 days.
 
 ### 5. Subscriber API: one opt-in Lambda per site
 
@@ -181,10 +208,11 @@ Each PR keeps every existing site working and leaves the feature dark.
 | 8 | `feat/subscriber-ingest-pass` | `bds ingest` subscriber pass | Lambda zips change (process-audio) |
 | 9 | `feat/subscriber-terraform` | `enable_subscriber_access` (sites) + `terraform/auth` | Full plan, no changes expected for sites; auth stack applied by the developer |
 | 10 | `feat/subscriber-client` | Login, callback, subscriber search/episodes, no play cap | Clients re-uploaded (inert) |
+| 11 | `feat/subscriber-auth-rate-limits` | Supporting Cast mirror + sync, login links, 30-day sessions, rate limits (4a) | Lockfile: full plan, no changes expected; auth stack gains a DynamoDB table and schedule |
 
 **Next, once merged (needs the developer):**
 
-1. Deploy `terraform/auth`: create the SSM signing key and dev code, apply, commit `SUBSCRIBER_AUTH_API_URL`.
+1. Deploy `terraform/auth`: create the SSM signing key, email hash key and dev code, apply, commit `SUBSCRIBER_AUTH_API_URL`.
 2. Enable listenfairplay in one PR:
    - `subscriberAccess` (preview, `dev-code`)
    - `enable_subscriber_access = true` + `subscriber_token_public_key` in `prod.tfvars`
@@ -204,9 +232,9 @@ Each PR keeps every existing site working and leaves the feature dark.
 ## Open questions
 
 1. **Supporting Cast (ask the hosts / help@supportingcast.fm):**
-   - What does the `send_login_email` magic link append to `redirect_url`? `login_token` is assumed; `callbackTokenParams` handles others.
-   - Must the redirect domain be allowlisted?
-   - Rate limits?
-   - Which feed ID(s) should grant access?
-2. **Session length:** 7 days with refresh (implemented).
-3. **Abuse of `/login`:** the HTTP API's throttling caps it. Per-email throttling would need state (DynamoDB's always-free tier) and is deferred unless needed.
+   - Is the rate limit per API token or for the whole network, and what is it (per minute, per day)? Can it be raised for a separate token?
+   - Does `send_login_email` keep `redirect_url`'s query string (our login link)? Must the redirect domain be allowlisted?
+   - Which subscription plan ID(s) grant Dreamland access? Do gifted and invited listeners get a subscription record (the mirror only sees subscriptions)?
+   - Does the network have webhooks (its security events mention "webhook subscriptions")? They could replace the polling sync.
+2. **Session length:** 30 days, refreshed daily (implemented).
+3. **Abuse of `/login`:** per-IP, per-email and daily caps (implemented). If bots show up anyway, Cloudflare Turnstile (free) could go in front of the email form.
