@@ -145,6 +145,12 @@ variable "subscriber_token_public_key" {
   }
 }
 
+variable "enable_subscriber_search_lambda_warming" {
+  description = "Keep the subscriber search lambda warm on search_lambda_warming_schedule. Off by default: few listeners log in, and the client warms it when one does"
+  type        = bool
+  default     = false
+}
+
 variable "subscriber_search_lambda_memory_size" {
   description = "Memory size in MB for the subscriber search lambda (its index holds every public episode plus the subscriber-only ones). Defaults to search_lambda_memory_size."
   type        = number
