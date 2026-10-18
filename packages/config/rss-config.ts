@@ -63,3 +63,35 @@ export function getCurrentSiteId(): string {
 export function getCurrentSiteRSSConfig() {
     return getRSSConfigForSite(getCurrentSiteId());
 }
+
+/**
+ * RSS configuration for a site's subscriber feeds (`subscriberAccess.subscriberFeeds`), keyed by
+ * the public podcast ID they belong to. Feed URLs come from env vars (`.env.local` on the machine
+ * that ingests); feeds whose env var isn't set are listed in `missingEnvVars` and left out.
+ */
+export function getSubscriberRSSConfigForSite(siteId: string, env: Record<string, string | undefined> = process.env) {
+    const siteConfig = getSiteById(siteId);
+    if (!siteConfig) {
+        throw new Error(`Site "${siteId}" not found`);
+    }
+
+    const rssConfig: Record<string, any> = {};
+    const missingEnvVars: string[] = [];
+    for (const feed of siteConfig.subscriberAccess?.subscriberFeeds ?? []) {
+        const url = env[feed.feedUrlEnvVar]?.trim();
+        if (!url) {
+            missingEnvVars.push(feed.feedUrlEnvVar);
+            continue;
+        }
+        const podcast = siteConfig.includedPodcasts.find(p => p.id === feed.podcastId);
+        rssConfig[feed.podcastId] = {
+            id: feed.podcastId,
+            rssFeedFile: feed.rssFeedFile,
+            title: `${podcast?.title ?? feed.podcastId} (subscriber feed)`,
+            status: 'active',
+            url,
+        };
+    }
+
+    return { rssConfig, missingEnvVars };
+}
