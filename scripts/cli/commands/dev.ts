@@ -2,35 +2,53 @@ import { spawn } from 'child_process';
 import { parseFlags } from '../../lib/args.js';
 import { REPO_ROOT } from '../../lib/paths.js';
 import { resolveSite } from '../../lib/sites.js';
+import { getSiteSearchApiUrl } from '../../lib/site-accounts.js';
 import { printEquivalentCommand, runProcess, runTsxScript, siteProcessEnv, type Command } from '../command.js';
 
 const SITE_FLAGS = { site: { type: 'string' }, help: { type: 'boolean', short: 'h' } } as const;
+
+/** The client's path for search requests with --remote; vite.config.ts proxies it to REMOTE_SEARCH_API_URL */
+const REMOTE_SEARCH_API_PATH = '/remote-search-api';
 
 export const devClientCommand: Command = {
   path: ['dev', 'client'],
   summary: 'Start the client dev server (+ local assets and search lambda) for a site',
   usage: `
 USAGE
-  pnpm bds dev client --site=<id>
+  pnpm bds dev client --site=<id> [--remote]
 
 Runs the Vite dev server, the local S3 asset server and the local search lambda together,
 then opens the site in your browser.
+
+FLAGS
+  --remote   Use the deployed site's search API and files instead of local ones, to work on the
+             client without the local files. Runs only the Vite dev server; search requests go
+             through it to the site's API (read-only, like a visitor's searches).
 `,
   async run(argv, ctx) {
-    const flags = parseFlags(argv, SITE_FLAGS);
+    const flags = parseFlags(argv, { ...SITE_FLAGS, remote: { type: 'boolean' } });
     const site = await resolveSite({ site: flags.site, interactive: ctx.interactive, operation: 'client development' });
     if (!site) return 130;
-    if (!flags.site) printEquivalentCommand(['dev client', `--site=${site.id}`]);
+    if (!flags.site) printEquivalentCommand(['dev client', `--site=${site.id}`, ...(flags.remote ? ['--remote'] : [])]);
 
-    const child = spawn(
-      'concurrently',
-      [
-        '"pnpm --filter @browse-dot-show/client _vite-dev"',
-        '"pnpm --filter @browse-dot-show/client _serve-s3-assets"',
-        '"pnpm --filter @browse-dot-show/search-lambda dev:local"',
-      ],
-      { cwd: REPO_ROOT, env: siteProcessEnv(site.id), shell: true, stdio: ['inherit', 'pipe', 'pipe'] }
-    );
+    const processes = flags.remote
+      ? ['"pnpm --filter @browse-dot-show/client _vite-dev"']
+      : [
+          '"pnpm --filter @browse-dot-show/client _vite-dev"',
+          '"pnpm --filter @browse-dot-show/client _serve-s3-assets"',
+          '"pnpm --filter @browse-dot-show/search-lambda dev:local"',
+        ];
+    const env = siteProcessEnv(site.id);
+    if (flags.remote) {
+      Object.assign(env, {
+        REMOTE_SEARCH_API_URL: getSiteSearchApiUrl(site.id),
+        VITE_SEARCH_API_URL: REMOTE_SEARCH_API_PATH,
+        VITE_S3_HOSTED_FILES_BASE_URL: `https://${site.domain}/`,
+      });
+      console.log(`🌐 Using ${site.domain}'s deployed search API and files`);
+    }
+
+    const child = spawn('concurrently', processes, { cwd: REPO_ROOT, env, shell: true, stdio: ['inherit', 'pipe', 'pipe'] });
 
     // Open the browser once Vite prints its local URL
     let opened = false;

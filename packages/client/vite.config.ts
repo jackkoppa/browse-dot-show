@@ -343,6 +343,17 @@ export default defineConfig(() => {
     },
     server: {
       port: CLIENT_PORT_NUMBER,
+      // `bds dev client --remote`: send search requests to the deployed site's API. Through this
+      // proxy, since the API only allows the site's own origins (CORS)
+      proxy: process.env.REMOTE_SEARCH_API_URL
+        ? {
+            '/remote-search-api': {
+              target: process.env.REMOTE_SEARCH_API_URL,
+              changeOrigin: true,
+              rewrite: (requestPath: string) => requestPath.replace(/^\/remote-search-api/, ''),
+            },
+          }
+        : undefined,
     }
   };
 })
