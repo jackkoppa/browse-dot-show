@@ -19,7 +19,9 @@ const queryWidth = (text: string) => ({ width: `${Math.max(text.length, 6) + 1}c
 export default function HeroSearch({ sites, examples }: { sites: Site[]; examples: Site[] }) {
   const { selectedSite, selectSite, query, setQuery, inputRef, submit, canSubmit } = useUniversalSearch()
   const [touched, setTouched] = useState(false)
-  const typed = useTypewriter(examples.map(site => site.searchInputPlaceholder), { paused: touched })
+  // Hold the current example while the podcast list is open, so the podcast can't change under you
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const typed = useTypewriter(examples.map(site => site.searchInputPlaceholder), { paused: touched || pickerOpen })
   const minHeight = useTallestSentence(sites)
 
   const shownSite = touched ? selectedSite : examples[typed.index]
@@ -42,7 +44,7 @@ export default function HeroSearch({ sites, examples }: { sites: Site[]; example
       >
         <p className={SENTENCE}>
           <span>Search </span>
-          <SitePicker sites={sites} shownSite={shownSite ?? null} onSelect={takeOver} className={cn(SITE, 'hover:decoration-foreground transition-colors')} />
+          <SitePicker sites={sites} shownSite={shownSite ?? null} onSelect={takeOver} onOpenChange={setPickerOpen} className={cn(SITE, 'hover:decoration-foreground transition-colors')} />
           <span> for </span>
           <span className="whitespace-nowrap">
             <span className={cn(QUERY, 'focus-within:border-foreground transition-colors')}>

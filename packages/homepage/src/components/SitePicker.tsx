@@ -14,12 +14,18 @@ interface SitePickerProps {
   /** The site shown in the trigger */
   shownSite: Site | null
   onSelect: (site: Site) => void
+  /** Called when the list opens or closes */
+  onOpenChange?: (open: boolean) => void
   className?: string
 }
 
 /** A podcast picker that reads as part of a sentence, searchable by name or domain */
-export default function SitePicker({ sites, shownSite, onSelect, className }: SitePickerProps) {
-  const [open, setOpen] = useState(false)
+export default function SitePicker({ sites, shownSite, onSelect, onOpenChange, className }: SitePickerProps) {
+  const [open, setOpenState] = useState(false)
+  const setOpen = (next: boolean) => {
+    setOpenState(next)
+    onOpenChange?.(next)
+  }
   // After a pick, focus goes to the search input (see useUniversalSearch), not back to this trigger
   const justSelected = useRef(false)
   const isDesktop = useMediaQuery('(min-width: 768px)')
