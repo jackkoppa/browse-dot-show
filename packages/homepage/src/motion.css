@@ -1,0 +1,113 @@
+/* Motion for the homepage. Everything here is turned off under prefers-reduced-motion. */
+
+@keyframes bds-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* On load; set --i on each element to stagger */
+.bds-rise {
+  animation: bds-rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+@keyframes bds-fade-in {
+  from { opacity: 0; }
+}
+
+/* When the element is remounted (e.g. with a new `key`) */
+.bds-fade-in {
+  animation: bds-fade-in 0.35s ease-out;
+}
+
+/* On scroll (see useRevealOnScroll) */
+.bds-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 50ms);
+}
+.bds-reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes bds-blink {
+  50% { opacity: 0; }
+}
+.bds-caret {
+  display: inline-block;
+  width: 0.55ch;
+  height: 1.1em;
+  margin-left: 1px;
+  background: currentColor;
+  vertical-align: -0.18em;
+  animation: bds-blink 1s steps(1) infinite;
+}
+
+/* Hard offset shadow that grows on hover, like a key being lifted */
+.bds-lift {
+  box-shadow: 4px 4px 0 0 var(--foreground);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.bds-lift:hover,
+.group:hover .bds-lift,
+.group:focus-visible .bds-lift {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 var(--foreground);
+}
+.bds-lift:active,
+.group:active .bds-lift {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--foreground);
+}
+
+/* Underline that draws in from the left */
+.bds-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.25s ease;
+}
+.bds-underline:hover,
+a:hover .bds-underline,
+a:focus-visible .bds-underline {
+  background-size: 100% 1px;
+}
+
+/* Waveform bars */
+@keyframes bds-wave {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.bds-wave rect {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bds-wave 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * -110ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bds-rise,
+  .bds-fade-in,
+  .bds-reveal,
+  .bds-reveal.is-revealed {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+  .bds-caret,
+  .bds-wave rect {
+    animation: none;
+  }
+  .bds-lift,
+  .bds-lift:hover,
+  .bds-lift:active,
+  .group:hover .bds-lift,
+  .group:active .bds-lift {
+    transition: none;
+    transform: none;
+  }
+}

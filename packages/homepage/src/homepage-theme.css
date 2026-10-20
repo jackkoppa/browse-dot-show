@@ -1,62 +1,5 @@
 @import "../../blocks/styles/key-colors";
 
-/* Updated mobile responsiveness */
-@media (max-width: 768px) {
-    .homepage-emoji-large {
-        font-size: 1.5rem;
-    }
-}
-
-/* Modern & Sleek Styling (Applied as Default) */
-
-/* Updated emoji styling */
-.homepage-emoji-large {
-    font-size: 2rem; /* Reduced from 4rem/3rem */
-    animation: none; /* Removed bouncing animation */
-    filter: grayscale(0.3); /* Desaturated for sophistication */
-    margin-bottom: 1.5rem;
-    text-shadow: none; /* Removed text shadow */
-}
-
-/* Updated gradient text */
-.homepage-gradient-text {
-    background: linear-gradient(135deg, var(--foreground) 0%, var(--muted-foreground) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: none; /* Removed animation */
-}
-
-/* Updated search section */
-.homepage-search-section {
-    background: linear-gradient(135deg, var(--card) 0%, var(--muted) 100%);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem; /* Reduced from 1rem */
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); /* Reduced shadow */
-}
-
-/* Updated feature cards */
-.homepage-feature-card {
-    background: linear-gradient(135deg, var(--card) 0%, var(--muted) 100%);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem; /* Reduced from 1rem */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Reduced shadow */
-    transition: all 0.3s ease;
-}
-
-.homepage-feature-card:hover {
-    transform: translateY(-2px); /* Reduced from -4px */
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15); /* Reduced shadow */
-}
-
-/* Updated select styling */
-.homepage-select {
-    border-radius: 0.5rem; /* Reduced from 1rem */
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Reduced shadow */
-    background: linear-gradient(135deg, var(--background) 0%, var(--muted) 100%);
-}
-
 /* Typography improvements */
 h1 {
     font-weight: 700;
@@ -66,4 +9,9 @@ h2,
 h3 {
     font-weight: 600;
 }
-  
+
+/* Faint dot grid on the shared header (homepage only, for now) */
+.homepage-header > header {
+    background-image: radial-gradient(color-mix(in srgb, var(--foreground) 22%, transparent) 1px, transparent 1.2px);
+    background-size: 10px 10px;
+}
