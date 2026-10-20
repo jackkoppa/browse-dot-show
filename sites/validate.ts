@@ -9,10 +9,18 @@ interface ValidationResult {
     warnings: string[];
 }
 
+interface ValidationOptions {
+    /**
+     * Skip checks on gitignored, per-machine files (each site's .env.aws-sso), which don't exist
+     * in CI. `--skip-local-config` on the command line.
+     */
+    skipLocalConfig?: boolean;
+}
+
 /**
  * Validates all sites and their associated configuration files
  */
-export function validateAllSites(): {
+export function validateAllSites({ skipLocalConfig = false }: ValidationOptions = {}): {
     results: ValidationResult[];
     hasErrors: boolean;
     hasWarnings: boolean;
@@ -33,9 +41,12 @@ export function validateAllSites(): {
     const results: ValidationResult[] = [];
     
     console.log(`🔍 Validating ${sites.length} site(s)...`);
+    if (skipLocalConfig) {
+        console.log('   (skipping gitignored local config: .env.aws-sso)');
+    }
     
     for (const site of sites) {
-        const result = validateSiteConfiguration(site);
+        const result = validateSiteConfiguration(site, { skipLocalConfig });
         results.push(result);
         
         if (result.errors.length > 0) {
@@ -62,7 +73,7 @@ export function validateAllSites(): {
 /**
  * Validates a single site's configuration
  */
-function validateSiteConfiguration(site: SiteConfig): ValidationResult {
+function validateSiteConfiguration(site: SiteConfig, { skipLocalConfig = false }: ValidationOptions = {}): ValidationResult {
     const result: ValidationResult = {
         site_id: site.id,
         errors: [],
@@ -78,8 +89,10 @@ function validateSiteConfiguration(site: SiteConfig): ValidationResult {
     // 2. Validate site.config.json structure
     validateSiteConfigStructure(site, result);
     
-    // 3. Validate .env.aws-sso file
-    validateEnvAwsFile(site, result);
+    // 3. Validate .env.aws-sso file (gitignored, so not in CI)
+    if (!skipLocalConfig) {
+        validateEnvAwsFile(site, result);
+    }
     
     // 4. Validate index.css file
     validateSiteStyling(site, result);
@@ -594,7 +607,7 @@ function validateColorConsistency(site: SiteConfig, result: ValidationResult): v
  * CLI entry point for site validation
  */
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const { results, hasErrors, hasWarnings } = validateAllSites();
+    const { results, hasErrors, hasWarnings } = validateAllSites({ skipLocalConfig: process.argv.includes('--skip-local-config') });
     
     console.log('\n📊 Validation Summary:');
     console.log(`   Sites: ${results.length}`);
