@@ -1,4 +1,5 @@
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
+import { Waveform } from '@browse-dot-show/blocks'
 import { Button } from "@browse-dot-show/ui"
 import { Input } from "@browse-dot-show/ui"
 import siteConfig from '@/config/site-config'
@@ -69,16 +70,16 @@ export default function SearchInput({
           value={value}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`text-md shadow-sm ${inputClassName}`}
+          className={`text-md shadow-sm transition-shadow focus-visible:shadow-[4px_4px_0_0_var(--primary)] ${inputClassName}`}
         />
         <Button
           onClick={handleSearchClick}
           variant={showInteractiveButton ? 'default' : 'ghost'}
           disabled={!showInteractiveButton}
-          className={`p-0 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${buttonClassName}`}
+          className={`p-0 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${isLoading ? 'disabled:opacity-100' : ''} ${buttonClassName}`}
         >
           {isLoading ? (
-            <div className="border-t-transparent border-solid animate-spin rounded-full border-blue-500 border-2 h-5 w-5"></div>
+            <Waveform className="size-10 text-primary" label="Searching" />
           ) : (
             <MagnifyingGlassIcon className={`size-8 ${showInteractiveButton ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
           )}

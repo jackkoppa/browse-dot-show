@@ -3,6 +3,7 @@ import { Outlet, useSearchParams } from 'react-router'
 
 import { log } from '../utils/logging';
 import { ApiSearchResultHit, SearchResponse } from '@browse-dot-show/types'
+import { Waveform } from '@browse-dot-show/blocks'
 
 import '../App.css'
 
@@ -308,10 +309,10 @@ function HomePage() {
 
       {/* Conditionally render ColdStartLoader or SearchResults */}
       {showColdStartLoader ? (
-        <div className="p-4 bg-gray-100 animate-pulse rounded text-center">
-          <p>Initializing search...</p>
-          <br/>
-          <p>Subsequent searches will be much faster</p>
+        <div className="bds-rise flex flex-col items-center gap-3 p-6 text-center bg-muted border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)]" role="status">
+          <Waveform className="text-primary" />
+          <p className="font-bold">Starting up the search...</p>
+          <p className="text-sm text-muted-foreground">The first search takes a few seconds. After that, it's fast.</p>
         </div>
       ) : (
         <SearchResults

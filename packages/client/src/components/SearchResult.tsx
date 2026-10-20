@@ -20,9 +20,11 @@ export interface SearchResultProps {
   episodeData?: EpisodeInManifest;
   isManifestLoading: boolean;
   showManifestError: boolean;
+  /** Position in the list, to stagger the results' entrance */
+  index?: number;
 }
 
-const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isManifestLoading, showManifestError }) => {
+const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isManifestLoading, showManifestError, index = 0 }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -56,8 +58,10 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
   const shouldBeClickable = Boolean(episodeData);
 
   return (
-    <Card 
-      className={`mb-4 border-foreground border-2 gap-2 ${shouldBeClickable ? 'cursor-pointer hover:bg-muted dark:hover:bg-dark-mode-muted-highlight' : ''}`}
+    <Card
+      // Enters with a short stagger (capped, so long pages don't wait), and lifts on hover like the homepage's tiles
+      className={`bds-rise mb-4 border-foreground border-2 gap-2 rounded-none ${shouldBeClickable ? 'bds-lift cursor-pointer hover:bg-muted dark:hover:bg-dark-mode-muted-highlight' : ''}`}
+      style={{ '--i': Math.min(index, 8) } as React.CSSProperties}
       onClick={shouldBeClickable ? handleLoadHere : undefined}
     >
       <CardContent>
@@ -81,11 +85,11 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
             <div className="flex flex-col mt-2">
               {/* Badges row skeleton */}
               <div className="flex items-center gap-2">
-                <div className="h-4 w-20 bg-gray-200 animate-pulse rounded-md mr-2"></div> {/* Date badge skeleton */}
-                <div className="h-4 w-18 bg-gray-200 animate-pulse rounded-md"></div> {/* Time range badge skeleton */}
+                <div className="h-4 w-20 bg-muted-foreground/20 motion-safe:animate-pulse mr-2"></div> {/* Date badge skeleton */}
+                <div className="h-4 w-18 bg-muted-foreground/20 motion-safe:animate-pulse"></div> {/* Time range badge skeleton */}
               </div>
               {/* Episode title skeleton */}
-              <div className="h-2 w-4/5 bg-gray-200 animate-pulse rounded mt-2"></div> {/* Episode title skeleton (text-xs height) */}
+              <div className="h-2 w-4/5 bg-muted-foreground/20 motion-safe:animate-pulse mt-2"></div> {/* Episode title skeleton (text-xs height) */}
             </div>
           </>
         )}
