@@ -3,6 +3,7 @@ import { Waveform } from '@browse-dot-show/blocks'
 import { Button } from "@browse-dot-show/ui"
 import { Input } from "@browse-dot-show/ui"
 import siteConfig from '@/config/site-config'
+import { useMinimumDuration } from '@/hooks/useMinimumDuration'
 
 interface SearchInputProps {
   value: string
@@ -21,6 +22,10 @@ const { searchPlaceholderOptions } = siteConfig
 // Do this outside of React component, so that we always get the same placeholder for each page load
 const placeholderBase = searchPlaceholderOptions[Math.floor(Math.random() * searchPlaceholderOptions.length)]
 const placeholder = `e.g. "${placeholderBase}"`
+
+// The loader fades in, stays fully visible for at least 600ms (even if results are already back), then fades out
+const LOADER_FADE_MS = 100 // matches duration-100 on the icons below
+const LOADER_MIN_VISIBLE_MS = 600
 
 export default function SearchInput({ 
   value, 
@@ -44,8 +49,8 @@ export default function SearchInput({
     onSearch();
   };
 
-  
-  const showInteractiveButton = mostRecentSuccessfulSearchQuery !== value && value.trim().length >= 2 && !isLoading;
+  const showLoader = useMinimumDuration(isLoading, LOADER_FADE_MS + LOADER_MIN_VISIBLE_MS);
+  const showInteractiveButton = mostRecentSuccessfulSearchQuery !== value && value.trim().length >= 2 && !showLoader;
   
   // Show a more centered, larger search input on the first search, or when the user has cleared the search input
   const showBigSearchInput = Boolean(!mostRecentSuccessfulSearchQuery);
@@ -76,13 +81,16 @@ export default function SearchInput({
           onClick={handleSearchClick}
           variant={showInteractiveButton ? 'default' : 'ghost'}
           disabled={!showInteractiveButton}
-          className={`p-0 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${isLoading ? 'disabled:opacity-100' : ''} ${buttonClassName}`}
+          className={`relative p-0 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] ${showLoader ? 'disabled:opacity-100' : ''} ${buttonClassName}`}
         >
-          {isLoading ? (
-            <Waveform className="size-10 text-primary" label="Searching" />
-          ) : (
-            <MagnifyingGlassIcon className={`size-8 ${showInteractiveButton ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
-          )}
+          {/* Both stay mounted, so they can crossfade */}
+          <MagnifyingGlassIcon
+            className={`size-8 transition-opacity duration-100 ${showLoader ? 'opacity-0' : 'opacity-100'} ${showInteractiveButton ? 'text-primary-foreground' : 'text-muted-foreground'}`}
+          />
+          <Waveform
+            className={`absolute inset-0 m-auto size-9 text-primary transition-opacity duration-100 ${showLoader ? 'opacity-100' : 'opacity-0'}`}
+            label={showLoader ? 'Searching' : undefined}
+          />
         </Button>
       </div>
     </div>
