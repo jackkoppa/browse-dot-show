@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SearchInput from '../SearchInput';
 
@@ -55,4 +55,21 @@ describe('SearchInput', () => {
 
     expect(screen.queryByRole('img', { name: 'Searching' })).not.toBeInTheDocument();
   });
-}); 
+
+  it('keeps the loading waveform up for a minimum time after a fast search', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<SearchInput {...defaultProps} isLoading={true} />);
+      act(() => { vi.advanceTimersByTime(50); });
+      rerender(<SearchInput {...defaultProps} isLoading={false} />);
+
+      act(() => { vi.advanceTimersByTime(600); });
+      expect(screen.getByRole('img', { name: 'Searching' })).toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(100); });
+      expect(screen.queryByRole('img', { name: 'Searching' })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

@@ -106,10 +106,11 @@ export default function FullEpisodeTranscript({
     function getEntryClassName(entry: SearchEntry) {
         const baseClass = 'py-2 px-4';
 
+        // The highlight colors are light in both themes, so the text stays dark (not the theme's foreground)
         if (isUrlBasedTarget(entry)) {
-            return baseClass + ' text-background bg-yellow-100 border-l-4 border-yellow-500 font-bold';
+            return baseClass + ' text-neutral-950 bg-yellow-100 border-l-4 border-yellow-500 font-bold';
         } else if (isCurrentlyPlaying(entry)) {
-            return baseClass + ' text-background bg-blue-100 border-l-4 border-blue-500 font-semibold';
+            return baseClass + ' text-neutral-950 bg-blue-100 border-l-4 border-blue-500 font-semibold';
         } else {
             return baseClass + ' text-muted-foreground hover:bg-muted cursor-pointer';
         }
@@ -118,7 +119,7 @@ export default function FullEpisodeTranscript({
     function getBadgeClassName(entry: SearchEntry) {
         const baseClass = 'my-1';
         if (isUrlBasedTarget(entry) || isCurrentlyPlaying(entry)) {
-            return baseClass + ' dark:text-background';
+            return baseClass + ' text-neutral-950 border-neutral-950';
         }
         return baseClass;
     }
