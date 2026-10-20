@@ -116,6 +116,7 @@ export interface SiteConfig {
     /** 
      * a list of phrases that will be rotated between as the search input text,
      * to give users an idea of what they can search for. Pick fun/key phrases from the podcast history, that users might recognize.
+     * Each is at most `MAX_SEARCH_EXAMPLE_LENGTH` (24) characters.
      * 
      * @example `["gets the shot away", "no disrespect to egg"]` 
      */

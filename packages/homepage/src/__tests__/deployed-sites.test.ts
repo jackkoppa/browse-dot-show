@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { MAX_SEARCH_EXAMPLE_LENGTH } from '@browse-dot-show/sites/constants'
 import deployedSitesConfig from '../../deployed-sites.config.jsonc'
 
 /**
@@ -44,5 +45,13 @@ describe('deployed-sites.config.jsonc', () => {
     const allowed = [site.domain]
     if (site.socialAndMetadata?.canonicalUrl) allowed.push(new URL(site.socialAndMetadata.canonicalUrl).host)
     expect(allowed).toContain(listed.domain)
+  })
+
+  it('keeps every example search short enough for phones', () => {
+    const sites = { ...deployedSitesConfig.sites.externalSites, ...homepageOriginSites }
+    const tooLong = Object.entries(sites)
+      .filter(([, site]) => site.searchInputPlaceholder.length > MAX_SEARCH_EXAMPLE_LENGTH)
+      .map(([id, site]) => `${id}: "${site.searchInputPlaceholder}" (${site.searchInputPlaceholder.length})`)
+    expect(tooLong, `searchInputPlaceholder is over ${MAX_SEARCH_EXAMPLE_LENGTH} characters`).toEqual([])
   })
 })

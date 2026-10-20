@@ -5,6 +5,8 @@ import { Podcast, SiteConfig, AppHeader, SocialAndMetadata } from './types.js';
 
 export type { SiteConfig, AppHeader, SocialAndMetadata, Podcast };
 
+export { MAX_SEARCH_EXAMPLE_LENGTH } from './constants.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
