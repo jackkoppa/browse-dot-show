@@ -75,7 +75,9 @@ export default function AppHeader({ scrolled, config }: AppHeaderProps) {
   const hasPrefix = config.title.prefix;
 
   return (
-    <header className={`fixed text-foreground top-0 left-0 right-0 z-20 bg-transparent light:bg-browse-dot-show-theme-light dark:bg-browse-dot-show-theme-dark border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)]`}>
+    // right-scroll-bar-position: while a dialog or panel locks scrolling (Radix, via react-remove-scroll), it
+    // moves this fixed header in by the hidden scrollbar's width, so its content doesn't shift sideways
+    <header className={`right-scroll-bar-position fixed text-foreground top-0 left-0 right-0 z-20 bg-transparent light:bg-browse-dot-show-theme-light dark:bg-browse-dot-show-theme-dark border-b-2 border-foreground shadow-[0px_4px_0px_rgba(0,0,0,1)]`}>
       <div className={`max-w-3xl mx-auto transition-all duration-400 ease-in-out ${scrolled ? 'py-1 xs:py-2' : 'py-2 sm:py-5'} px-3 sm:px-6`}>
         {/* Mobile: Multi-row layout, Desktop: Side-by-side */}
         <div className={`flex sm:justify-between sm:items-start gap-1 sm:gap-2 ${hasPrefix ? 'flex-col sm:flex-row' : 'flex-row'}`}>
