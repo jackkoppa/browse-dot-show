@@ -21,12 +21,15 @@ export default function FullEpisodeTranscript({
     episodeData,
     startTimeMs,
     currentPlayingTimeMs,
-    onEntryClick
+    onEntryClick,
+    onScrollToUrlBasedEntry
 }: {
     episodeData: EpisodeInManifest;
     startTimeMs: number | null;
     currentPlayingTimeMs: number | null;
     onEntryClick: (entry: SearchEntry) => void;
+    /** With the row for `startTimeMs` (the search result), as it's scrolled to */
+    onScrollToUrlBasedEntry?: (element: HTMLDivElement) => void;
 }) {
     const [searchEntries, setSearchEntries] = useState<SearchEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -75,6 +78,7 @@ export default function FullEpisodeTranscript({
     // Scroll to the URL-based target entry when it's identified (initial load only)
     useEffect(() => {
         if (!isLoading && searchEntries.length > 0 && urlBasedTargetEntryId && urlBasedEntryRef.current) {
+            onScrollToUrlBasedEntry?.(urlBasedEntryRef.current);
             urlBasedEntryRef.current.scrollIntoView({
                 behavior: 'smooth',
                 block: 'center'

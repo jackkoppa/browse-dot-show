@@ -148,7 +148,15 @@ export default function EpisodeRoute() {
 
   const audioPlayerRef = useRef<AudioPlayerRef>(null)
   const playTimeLimit = usePlayTimeLimit()
-  const { collapsed: isHeaderCollapsed, expand: expandHeader, sentinel: headerCollapseSentinel, contentRef: headerContentRef, reservedHeight: headerReservedHeight } = useCollapsingHeader()
+  const {
+    collapsed: isHeaderCollapsed,
+    expand: expandHeader,
+    sentinel: headerCollapseSentinel,
+    contentRef: headerContentRef,
+    reservedHeight: headerReservedHeight,
+    setSearchResultEntry,
+    onEntryClick: onHeaderEntryClick,
+  } = useCollapsingHeader({ startsAtSearchResult: startTimeMs !== null })
 
   useEffect(() => {
     const fetchEpisodeData = async () => {
@@ -295,6 +303,7 @@ export default function EpisodeRoute() {
   const handleEntryClick = (entry: SearchEntry) => {
     // Mark that user has interacted with the audio
     setHasUserInteracted(true);
+    onHeaderEntryClick();
     // Seek the audio player to the entry's start time
     if (audioPlayerRef.current) {
       audioPlayerRef.current.seekTo(entry.startTimeMs);
@@ -381,7 +390,11 @@ export default function EpisodeRoute() {
                 />
               </div>
             </div>
-            <div className={cn('flex items-start gap-2 transition-[margin,padding]', HEADER_TRANSITION, isHeaderCollapsed ? 'mb-1 pr-10' : 'mt-2 mb-2')}>
+            {/* Collapsed, tapping the cover or title expands the header (the title is the button, for keyboards) */}
+            <div
+              className={cn('flex items-start gap-2 transition-[margin,padding]', HEADER_TRANSITION, isHeaderCollapsed ? 'mb-1 pr-10 cursor-pointer' : 'mt-2 mb-2')}
+              onClick={isHeaderCollapsed ? expandHeader : undefined}
+            >
               {podcast?.coverImageUrl && (
                 <PodcastCover src={podcast.coverImageUrl} className={cn('transition-[width,height]', HEADER_TRANSITION, isHeaderCollapsed && 'size-6')} />
               )}
@@ -395,8 +408,8 @@ export default function EpisodeRoute() {
                 )}
                 <SheetTitle className={cn('font-semibold transition-[font-size]', HEADER_TRANSITION, isHeaderCollapsed ? 'text-base/6' : 'text-lg/6')}>
                   {isHeaderCollapsed ? (
-                    // Tapping the collapsed title shows the date, summary and share link again
-                    <button type="button" onClick={expandHeader} aria-expanded={false} aria-controls="episode-details-controls" className="block w-full cursor-pointer text-left">
+                    // Shows the date, summary and share link again (the row's onClick)
+                    <button type="button" aria-expanded={false} aria-controls="episode-details-controls" className="block w-full cursor-pointer text-left">
                       <span className="line-clamp-1">{title}</span>
                     </button>
                   ) : title}
@@ -431,6 +444,7 @@ export default function EpisodeRoute() {
           startTimeMs={startTimeMs}
           currentPlayingTimeMs={hasUserInteracted ? currentPlayingTimeMs : null}
           onEntryClick={handleEntryClick}
+          onScrollToUrlBasedEntry={setSearchResultEntry}
         />
       </SheetContent>
       
