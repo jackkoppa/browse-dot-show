@@ -44,18 +44,15 @@ describe('SearchInput', () => {
     expect(mockOnChange).toHaveBeenCalledWith('test query');
   });
 
-  it('shows loading spinner when isLoading is true', () => {
+  it('shows the loading waveform when isLoading is true', () => {
     render(<SearchInput {...defaultProps} isLoading={true} />);
-    
-    // Look for the spinner element - it's a div with animate-spin class
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).toBeInTheDocument();
+
+    expect(screen.getByRole('img', { name: 'Searching' })).toBeInTheDocument();
   });
 
-  it('does not show loading spinner when isLoading is false', () => {
+  it('does not show the loading waveform when isLoading is false', () => {
     render(<SearchInput {...defaultProps} isLoading={false} />);
-    
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).not.toBeInTheDocument();
+
+    expect(screen.queryByRole('img', { name: 'Searching' })).not.toBeInTheDocument();
   });
 }); 

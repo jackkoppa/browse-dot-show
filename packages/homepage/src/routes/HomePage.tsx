@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
-import { AppHeader } from '@browse-dot-show/blocks'
+import { AppHeader, Waveform } from '@browse-dot-show/blocks'
 import ContactLinks from '../components/ContactLinks'
 import HeroSearch from '../components/HeroSearch'
 import PodcastGrid from '../components/PodcastGrid'
 import { ThemeToggle } from '../components/ThemeToggle'
-import Waveform from '../components/Waveform'
 import { deployedSites } from '../config/deployed-sites'
 import { LINKS } from '../constants'
 import { useRevealOnScroll } from '../hooks/useRevealOnScroll'
@@ -34,23 +33,21 @@ function HomePage() {
 
   return (
     <div className="bg-background text-foreground min-h-screen flex flex-col" ref={revealRef}>
-      <div className="homepage-header">
-        <AppHeader
-          scrolled={false}
-          config={{
-            title: { main: '[browse.show]' },
-            tagline: { text: 'transcribe & search any podcast' },
-            rightImageAndThemeToggle: {
-              themeToggle: <ThemeToggle />,
-              image: {
-                lowRes: '/assets/favicon-96x96.png',
-                highRes: '/assets/web-app-manifest-512x512.png',
-                altText: 'Browse.show logo',
-              },
+      <AppHeader
+        scrolled={false}
+        config={{
+          title: { main: '[browse.show]' },
+          tagline: { text: 'transcribe & search any podcast' },
+          rightImageAndThemeToggle: {
+            themeToggle: <ThemeToggle />,
+            image: {
+              lowRes: '/assets/favicon-96x96.png',
+              highRes: '/assets/web-app-manifest-512x512.png',
+              altText: 'Browse.show logo',
             },
-          }}
-        />
-      </div>
+          },
+        }}
+      />
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-28 xs:pt-32 sm:pt-40 pb-20">
         <section className="bds-rise">

@@ -12,7 +12,7 @@
 /* Homepage-specific classes */
 @import "./homepage-theme.css";
 
-@import "./motion.css";
+@import "../../blocks/styles/browse-dot-show-effects.css";
 
 /* NOTE: Could move to a different CSS system, but for now, manually import any component-specific CSS here */
 @import "./components/ThemeToggle.css";

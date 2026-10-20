@@ -57,7 +57,7 @@ const SearchTimeAndResultCount = ({
     <div className="flex flex-col gap-2 self-end">
       <span className="text-muted-foreground">
         {isLoading ? (
-          <em>Search time: <div className="h-3 w-12 bg-gray-200 animate-pulse rounded inline-block align-middle"></div></em>
+          <em>Search time: <div className="h-3 w-12 bg-muted-foreground/20 motion-safe:animate-pulse inline-block align-middle"></div></em>
         ) : (
           <em>Search time: {processingTimeSeconds}s</em>
         )}
@@ -65,7 +65,7 @@ const SearchTimeAndResultCount = ({
       <span className="text-foreground">
         <em>Showing:</em> <span className="font-bold">
           {isLoading ? (
-            <div className="h-3 w-10 bg-gray-200 animate-pulse rounded inline-block align-middle"></div>
+            <div className="h-3 w-10 bg-muted-foreground/20 motion-safe:animate-pulse inline-block align-middle"></div>
           ) : (
             <>
               {results.length > 0 && totalHits > 0 ? (
@@ -162,25 +162,25 @@ export default function SearchResults({
       )}
 
       {isLoading && !error ? (
-        <div className="loading-skeleton space-y-6">
+        <div className="loading-skeleton space-y-6" aria-busy="true" aria-label="Loading results">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-xl p-6">
+            <div key={index} className="bds-rise bg-card border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] p-6" style={{ '--i': index } as React.CSSProperties}>
               {/* Main text area (like CardContent) */}
               <div className="space-y-2 mb-4">
-                <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
-                <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
-                <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-4 w-full bg-muted-foreground/20 motion-safe:animate-pulse"></div>
+                <div className="h-4 w-full bg-muted-foreground/20 motion-safe:animate-pulse"></div>
+                <div className="h-4 w-3/4 bg-muted-foreground/20 motion-safe:animate-pulse"></div>
               </div>
 
               {/* Footer area (like CardFooter) */}
               <div className="mt-3"> {/* Adjusted margin for visual spacing */}
                 {/* Badges row */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="h-4 w-20 bg-gray-200 animate-pulse rounded-md"></div> {/* Date badge skeleton */}
-                  <div className="h-4 w-18 bg-gray-200 animate-pulse rounded-md"></div> {/* Time range badge skeleton */}
+                  <div className="h-4 w-20 bg-muted-foreground/20 motion-safe:animate-pulse"></div> {/* Date badge skeleton */}
+                  <div className="h-4 w-18 bg-muted-foreground/20 motion-safe:animate-pulse"></div> {/* Time range badge skeleton */}
                 </div>
                 {/* Episode title line */}
-                <div className="h-2 w-4/5 bg-gray-200 animate-pulse rounded"></div> {/* Episode title skeleton (text-xs height) */}
+                <div className="h-2 w-4/5 bg-muted-foreground/20 motion-safe:animate-pulse"></div> {/* Episode title skeleton (text-xs height) */}
               </div>
             </div>
           ))}
@@ -188,9 +188,10 @@ export default function SearchResults({
       ) : results.length > 0 ? (
         <>
           <ul className="results-list space-y-6">
-            {results.map((result) => (
+            {results.map((result, index) => (
               <SearchResult
                 key={result.id}
+                index={index}
                 result={result}
                 episodeData={episodeManifest?.episodes.find(ep => ep.sequentialId === parseInt(result.sequentialEpisodeIdAsString))}
                 isManifestLoading={isManifestLoading}
@@ -207,7 +208,7 @@ export default function SearchResults({
           />
         </>
       ) : searchQuery.trim().length >= 2 && !error ? (
-        <p className="no-results text-lg text-gray-600 text-center bg-gray-100 p-6 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
+        <p className="no-results bds-rise text-lg text-muted-foreground text-center bg-muted p-6 border-foreground border-2 shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-none">
           No results found for "{searchQuery}". Try a different term?
         </p>
       ) : null}

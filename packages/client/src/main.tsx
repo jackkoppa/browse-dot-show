@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
+import '@browse-dot-show/blocks/fonts'
 import './index.css'
 import App from './App.tsx'
 

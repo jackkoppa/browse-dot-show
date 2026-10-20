@@ -10,6 +10,9 @@
 
 /* Component-specific CSS is now handled via CSS modules imported directly in components */
 
+/* Motion and effects shared with the homepage */
+@import "../../blocks/styles/browse-dot-show-effects.css";
+
 /* Tailwind - https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually */
 @custom-variant dark (&:where(.dark, .dark *));
 @custom-variant light (&:where(.light, .light *));

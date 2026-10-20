@@ -1,4 +1,13 @@
-/* Motion for the homepage. Everything here is turned off under prefers-reduced-motion. */
+/*
+Shared effects for the homepage and the search sites: motion, and the header's dot grid.
+Motion is turned off under prefers-reduced-motion. Colors come from each site's theme variables.
+*/
+
+/* Faint dot grid (the shared AppHeader) */
+.bds-dot-grid {
+  background-image: radial-gradient(color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1.2px);
+  background-size: 12px 12px;
+}
 
 @keyframes bds-rise {
   from { opacity: 0; transform: translateY(10px); }
