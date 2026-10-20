@@ -32,8 +32,9 @@ jobs:
       # Packages import each other's built dist/
       - run: pnpm all:build
       - run: pnpm all:test
-      # Site configs (`pnpm bds validate sites`): required fields, lengths, theme colors, assets
-      - run: pnpm --filter @browse-dot-show/sites validate
+      # Site configs (`pnpm bds validate sites`): required fields, lengths, theme colors, assets.
+      # Skips each site's .env.aws-sso, which is gitignored
+      - run: pnpm --filter @browse-dot-show/sites validate --skip-local-config
 
   # Terraform formatting (no init, no AWS access). Fix with `terraform fmt -recursive terraform/`
   terraform-fmt:

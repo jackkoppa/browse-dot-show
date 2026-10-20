@@ -119,16 +119,11 @@ export function validateSite(siteId: string): { valid: boolean; errors: string[]
         return { valid: false, errors };
     }
 
-    // Check for required files
+    // Check that the site has a directory
     const siteDir = getSiteDirectory(siteId);
     if (!siteDir) {
         errors.push(`Site directory for "${siteId}" not found`);
         return { valid: false, errors };
-    }
-
-    const envAwsPath = path.join(siteDir, '.env.aws-sso');
-    if (!fs.existsSync(envAwsPath)) {
-        errors.push(`Missing .env.aws-sso file for site "${siteId}"`);
     }
 
     // Validate site config structure
