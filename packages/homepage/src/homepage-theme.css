@@ -12,6 +12,6 @@ h3 {
 
 /* Faint dot grid on the shared header (homepage only, for now) */
 .homepage-header > header {
-    background-image: radial-gradient(color-mix(in srgb, var(--foreground) 22%, transparent) 1px, transparent 1.2px);
-    background-size: 10px 10px;
+    background-image: radial-gradient(color-mix(in srgb, var(--foreground) 12%, transparent) 1px, transparent 1.2px);
+    background-size: 12px 12px;
 }

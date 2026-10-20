@@ -57,8 +57,9 @@ export default function HeroSearch({ sites, examples }: { sites: Site[]; example
                 className="max-w-[60vw] bg-transparent outline-none placeholder:text-muted-foreground/60"
               />
               {!touched && (
-                <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center whitespace-nowrap text-muted-foreground" aria-hidden="true">
-                  {typed.text}<span className="bds-caret" />
+                <span className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center min-w-0 text-muted-foreground" aria-hidden="true">
+                  {/* Clipped to the input's width (it's capped on small screens), keeping the cursor visible */}
+                  <span className="truncate">{typed.text}</span><span className="bds-caret shrink-0" />
                 </span>
               )}
             </span>
