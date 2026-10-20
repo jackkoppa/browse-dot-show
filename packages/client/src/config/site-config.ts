@@ -13,6 +13,8 @@ export interface SiteRuntimeConfig {
       title: string;
       url: string;
       status: 'active' | 'inactive';
+      /** e.g. `/assets/podcast-covers/<podcastId>.webp`; set on every podcast of a multi-feed site */
+      coverImageUrl?: string;
     };
   };
   themeColor: string;

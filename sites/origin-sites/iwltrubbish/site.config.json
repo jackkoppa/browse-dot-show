@@ -23,21 +23,24 @@
           "rssFeedFile": "bbc.xml",
           "title": "Elis James and John Robins on BBC Radio 5 Live",
           "status": "active",
-          "url": "https://podcasts.files.bbci.co.uk/m0005fdz.rss"
+          "url": "https://podcasts.files.bbci.co.uk/m0005fdz.rss",
+          "coverImage": "./assets/podcast-covers/elis-james-and-john-robins-bbc.webp"
       },
       {
           "id": "how-do-you-cope",
           "rssFeedFile": "hdc.xml",
           "title": "How Do You Cope …with Elis and John",
           "status": "active",
-          "url": "https://podcasts.files.bbci.co.uk/p07rq6vh.rss"
+          "url": "https://podcasts.files.bbci.co.uk/p07rq6vh.rss",
+          "coverImage": "./assets/podcast-covers/how-do-you-cope.webp"
       },
       {
           "id": "elis-and-john-podcast-radiox",
           "rssFeedFile": "radiox.xml",
           "title": "Elis James and John Robins on Radio X",
           "status": "active",
-          "url": "https://feeds.captivate.fm/elis-james-and-john-robins/"
+          "url": "https://feeds.captivate.fm/elis-james-and-john-robins/",
+          "coverImage": "./assets/podcast-covers/elis-and-john-podcast-radiox.webp"
       }
   ],
   "whisperTranscriptionPrompt": "Hi, welcome to the Elis James and John Robins podcast. We're your hosts, Elis & John. Let's jump in!",

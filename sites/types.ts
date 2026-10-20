@@ -6,6 +6,13 @@ export interface Podcast {
 
     // TODO: Rename to `rssFeedUrl`
     url: string;
+
+    /**
+     * the podcast's cover art: a small (128px square) copy of the feed's artwork, in the site's assets.
+     * Required on sites with more than one podcast, where it shows which podcast an episode is from.
+     * @example `./assets/podcast-covers/football-cliches.webp`
+     */
+    coverImage?: string;
 }
 
 export interface SocialAndMetadata {
