@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory } from './index.js';
+import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory, MAX_SEARCH_EXAMPLE_LENGTH } from './index.js';
 import { SiteConfig } from './types.js';
 
 interface ValidationResult {
@@ -211,6 +211,10 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
         result.errors.push('Missing required field: searchPlaceholderOptions');
     } else if (site.searchPlaceholderOptions.length < 1) {
         result.errors.push('searchPlaceholderOptions must have at least 1 option');
+    } else {
+        site.searchPlaceholderOptions
+            .filter(option => option.length > MAX_SEARCH_EXAMPLE_LENGTH)
+            .forEach(option => result.errors.push(`searchPlaceholderOptions: "${option}" is ${option.length} characters; the maximum is ${MAX_SEARCH_EXAMPLE_LENGTH}, to keep it readable in the search input on phones`));
     }
 
     // Validate trackingScript if present

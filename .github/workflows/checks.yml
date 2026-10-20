@@ -23,7 +23,7 @@ jobs:
       - run: pnpm all:build
       - run: pnpm all:typecheck
 
-  # Every package's tests (`pnpm all:test`); the suites take seconds, so no affected-only filtering
+  # Every package's tests (`pnpm all:test`) and the site config checks; they take seconds, so no affected-only filtering
   test:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +32,8 @@ jobs:
       # Packages import each other's built dist/
       - run: pnpm all:build
       - run: pnpm all:test
+      # Site configs (`pnpm bds validate sites`): required fields, lengths, theme colors, assets
+      - run: pnpm --filter @browse-dot-show/sites validate
 
   # Terraform formatting (no init, no AWS access). Fix with `terraform fmt -recursive terraform/`
   terraform-fmt:

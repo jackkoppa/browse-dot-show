@@ -15,7 +15,8 @@
         "tsx": "catalog:"
     },
     "exports": {
-        ".": "./dist/index.js"
+        ".": "./dist/index.js",
+        "./constants": "./dist/constants.js"
     },
     "files": [
         "dist"
