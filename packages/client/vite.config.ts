@@ -26,13 +26,15 @@ function loadSiteConfig() {
   }
 
   // Transform podcast links for client consumption
-  const podcastLinks: Record<string, { title: string; url: string; status: 'active' | 'inactive' }> = {};
+  const podcastLinks: Record<string, { title: string; url: string; status: 'active' | 'inactive'; coverImageUrl?: string }> = {};
 
   siteConfig.includedPodcasts.forEach(podcast => {
     podcastLinks[podcast.id] = {
       title: podcast.title,
       url: podcast.url,
-      status: podcast.status
+      status: podcast.status,
+      // `./assets/...` in the site's directory is served from `/assets/...` (siteAssetsPlugin)
+      coverImageUrl: podcast.coverImage?.replace(/^\.\//, '/'),
     };
   });
 
@@ -143,10 +145,37 @@ function templateReplacementPlugin() {
   };
 }
 
+const SITE_ASSET_CONTENT_TYPES: Record<string, string> = {
+  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+};
+
 // Plugin to copy site-specific assets
 function siteAssetsPlugin() {
   return {
     name: 'site-assets-plugin',
+    // In the dev server, serve the site's assets (favicons, podcast covers) from its directory, as the build does
+    configureServer(server: ViteDevServer) {
+      const siteId = process.env.SITE_ID;
+      const siteDir = siteId ? getSiteDirectory(siteId) : null;
+      if (!siteDir) return;
+
+      const sourceAssetsDir = path.join(siteDir, 'assets');
+      server.middlewares.use('/assets', (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+        const requestPath = decodeURIComponent((req.url || '').split('?')[0]);
+        const filePath = path.join(sourceAssetsDir, requestPath);
+        if (!filePath.startsWith(sourceAssetsDir + path.sep) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+          next();
+          return;
+        }
+        res.setHeader('Content-Type', SITE_ASSET_CONTENT_TYPES[path.extname(filePath)] || 'application/octet-stream');
+        fs.createReadStream(filePath).pipe(res);
+      });
+    },
     writeBundle() {
       const siteId = process.env.SITE_ID;
       if (!siteId) return;

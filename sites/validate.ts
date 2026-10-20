@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { discoverSites, validateSite, getSiteDirectory, loadSitesFromDirectory, MAX_SEARCH_EXAMPLE_LENGTH } from './index.js';
-import { SiteConfig } from './types.js';
+import { Podcast, SiteConfig } from './types.js';
 
 interface ValidationResult {
     site_id: string;
@@ -289,7 +289,31 @@ function validateSiteConfigStructure(site: SiteConfig, result: ValidationResult)
             if (!['active', 'inactive'].includes(podcast.status)) {
                 result.errors.push(`Podcast ${index}: Invalid status. Must be 'active' or 'inactive'`);
             }
+            validatePodcastCoverImage(site, podcast, index, result);
         });
+    }
+}
+
+/**
+ * Multi-feed sites show each episode's podcast with its cover art, so each podcast needs one,
+ * in the site's assets (copied into the build)
+ */
+function validatePodcastCoverImage(site: SiteConfig, podcast: Podcast, index: number, result: ValidationResult): void {
+    if (!podcast.coverImage) {
+        if (site.includedPodcasts.length > 1) {
+            result.errors.push(`Podcast ${index}: Missing coverImage, required on sites with more than one podcast. Add the feed's artwork, resized to 128px square, at ./assets/podcast-covers/${podcast.id}.webp`);
+        }
+        return;
+    }
+
+    if (!podcast.coverImage.startsWith('./assets/')) {
+        result.errors.push(`Podcast ${index}: coverImage "${podcast.coverImage}" must be in the site's assets, starting with ./assets/`);
+        return;
+    }
+
+    const siteDir = getSiteDirectory(site.id);
+    if (siteDir && !fs.existsSync(path.join(siteDir, podcast.coverImage))) {
+        result.errors.push(`Podcast ${index}: coverImage "${podcast.coverImage}" does not exist in ${siteDir}`);
     }
 }
 
@@ -367,6 +391,8 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
     
     // Define expected directories
     const expectedDirectories = ['social-cards'];
+    // Only on multi-feed sites (see validatePodcastCoverImage)
+    const optionalDirectories = ['podcast-covers'];
     
     // Check if assets directory exists
     if (!fs.existsSync(assetsDir)) {
@@ -436,7 +462,7 @@ function validateAssetsDirectory(site: SiteConfig, result: ValidationResult): vo
     // Check for unexpected files (files that exist but aren't in our expected list)
     try {
         const actualItems = fs.readdirSync(assetsDir);
-        const allowedItems = [...requiredAssetFiles, ...expectedDirectories];
+        const allowedItems = [...requiredAssetFiles, ...expectedDirectories, ...optionalDirectories];
         const unexpectedItems = actualItems.filter(item => !allowedItems.includes(item));
         
         if (unexpectedItems.length > 0) {

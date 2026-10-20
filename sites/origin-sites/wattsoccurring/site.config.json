@@ -22,14 +22,16 @@
       "rssFeedFile": "wattsoccurring.xml",
       "title": "Watts Occurring",
       "status": "active",
-      "url": "https://feeds.megaphone.fm/COMG5638744817"
+      "url": "https://feeds.megaphone.fm/COMG5638744817",
+      "coverImage": "./assets/podcast-covers/wattsoccurring-podcast.webp"
     },
     {
       "id": "old-wattsoccurring-feed",
       "rssFeedFile": "old-wattsoccurring-feed.xml",
       "title": "The Old Watts Occurring Feed",
       "status": "active",
-      "url": "https://anchor.fm/s/c9cfc50/podcast/rss"
+      "url": "https://anchor.fm/s/c9cfc50/podcast/rss",
+      "coverImage": "./assets/podcast-covers/old-wattsoccurring-feed.webp"
     }
   ],
   "whisperTranscriptionPrompt": "Hello, and welcome to Watts Occurring! Join us: Tour de France winner Geraint Thomas, best friend and long-time teammate Luke Rowe, Tom Fordyce, Olympic Gold medallist Emma Finucane and former pro Manon Lloyd for comprehensive, year-round cycling content, covering anything and everything cycling. Jump aboard!",

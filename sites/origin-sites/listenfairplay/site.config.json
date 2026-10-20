@@ -22,14 +22,16 @@
             "rssFeedFile": "football-cliches.xml",
             "title": "Football Cliches",
             "status": "active",
-            "url": "https://feeds.megaphone.fm/GLT7974369854"
+            "url": "https://feeds.megaphone.fm/GLT7974369854",
+            "coverImage": "./assets/podcast-covers/football-cliches.webp"
         },
         {
             "id": "for-our-sins-the-cliches-pod-archive",
             "rssFeedFile": "for-our-sins-the-cliches-pod-archive.xml",
             "title": "For Our Sins: The Clichés Pod Archive",
             "status": "active",
-            "url": "https://feeds.acast.com/public/shows/683740806e5b65d787520c15"
+            "url": "https://feeds.acast.com/public/shows/683740806e5b65d787520c15",
+            "coverImage": "./assets/podcast-covers/for-our-sins-the-cliches-pod-archive.webp"
         }
     ],
     "whisperTranscriptionPrompt": "Hello. Welcome to the Football Clichés podcast! We cover footballing language, primarily across the United Kingdom & Europe. I'm your host, Adam Hurrey, here with David Walker & Charlie Eccleshare. Let's begin!",

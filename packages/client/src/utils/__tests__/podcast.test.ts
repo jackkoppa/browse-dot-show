@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { multiFeedPodcastTitle } from '../podcast';
+import { multiFeedPodcast } from '../podcast';
 
-const link = (title: string) => ({ title, url: 'https://example.com', status: 'active' as const });
+const link = (title: string, coverImageUrl?: string) => ({ title, url: 'https://example.com', status: 'active' as const, coverImageUrl });
 
-describe('multiFeedPodcastTitle', () => {
-  it('returns the title on a site with several podcasts', () => {
-    const links = { a: link('Podcast A'), b: link('Podcast B') };
-    expect(multiFeedPodcastTitle('b', links)).toBe('Podcast B');
+describe('multiFeedPodcast', () => {
+  it('returns the title and cover on a site with several podcasts', () => {
+    const links = { a: link('Podcast A', '/assets/podcast-covers/a.webp'), b: link('Podcast B', '/assets/podcast-covers/b.webp') };
+    expect(multiFeedPodcast('b', links)).toEqual({ title: 'Podcast B', coverImageUrl: '/assets/podcast-covers/b.webp' });
   });
 
   it('returns nothing on a single-podcast site', () => {
-    expect(multiFeedPodcastTitle('a', { a: link('Podcast A') })).toBeUndefined();
+    expect(multiFeedPodcast('a', { a: link('Podcast A', '/assets/podcast-covers/a.webp') })).toBeUndefined();
   });
 
   it('returns nothing for an unknown podcast', () => {
-    expect(multiFeedPodcastTitle('c', { a: link('Podcast A'), b: link('Podcast B') })).toBeUndefined();
+    expect(multiFeedPodcast('c', { a: link('Podcast A'), b: link('Podcast B') })).toBeUndefined();
   });
 });

@@ -11,8 +11,9 @@ import { Badge } from "@browse-dot-show/ui";
 import { formatDate } from '@/utils/date';
 import { formatMillisecondsToMMSS } from '@/utils/time';
 import HighlightedText from './HighlightedText';
+import PodcastCover from './PodcastCover';
 import { trackEvent } from '@/utils/goatcounter';
-import { multiFeedPodcastTitle } from '@/utils/podcast';
+import { multiFeedPodcast } from '@/utils/podcast';
 import siteConfig from '@/config/site-config';
 
 export interface SearchResultProps {
@@ -31,7 +32,8 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
   const formattedStartTime = formatMillisecondsToMMSS(result.startTimeMs);
   const formattedEndTime = formatMillisecondsToMMSS(result.endTimeMs);
   const formattedDate = episodeData?.publishedAt ? formatDate(episodeData.publishedAt) : null;
-  const podcastTitle = episodeData ? multiFeedPodcastTitle(episodeData.podcastId, siteConfig.podcastLinks) : undefined;
+  const podcast = episodeData ? multiFeedPodcast(episodeData.podcastId, siteConfig.podcastLinks) : undefined;
+  const isMultiFeedSite = Object.keys(siteConfig.podcastLinks).length > 1;
 
   const handleLoadHere = () => {
     if (!episodeData) return;
@@ -75,8 +77,14 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
                 {formattedDate && <Badge variant="destructive" className="mr-2">{formattedDate}</Badge>}
                 <Badge variant="outline">{formattedStartTime} - {formattedEndTime}</Badge>
               </div>
-              {podcastTitle && <div className="text-xs font-semibold text-muted-foreground w-full block mt-2">{podcastTitle}</div>}
-              <div className={`text-xs text-muted-foreground w-full block ${podcastTitle ? 'mt-0.5' : 'mt-2'} italic`}>{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
+              {/* On multi-feed sites, the podcast's cover and title, as in the episode panel's header */}
+              <div className="flex items-start gap-2 mt-2">
+                {podcast?.coverImageUrl && <PodcastCover src={podcast.coverImageUrl} />}
+                <div className="min-w-0 flex-1">
+                  {podcast && <div className="text-xs font-semibold text-muted-foreground pb-0.5">{podcast.title}</div>}
+                  <div className="text-xs text-muted-foreground italic">{episodeData?.title || `Episode ${result.sequentialEpisodeIdAsString}`}</div>
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -88,8 +96,18 @@ const SearchResult: React.FC<SearchResultProps> = ({ result, episodeData, isMani
                 <div className="h-4 w-20 bg-muted-foreground/20 motion-safe:animate-pulse mr-2"></div> {/* Date badge skeleton */}
                 <div className="h-4 w-18 bg-muted-foreground/20 motion-safe:animate-pulse"></div> {/* Time range badge skeleton */}
               </div>
-              {/* Episode title skeleton */}
-              <div className="h-2 w-4/5 bg-muted-foreground/20 motion-safe:animate-pulse mt-2"></div> {/* Episode title skeleton (text-xs height) */}
+              {isMultiFeedSite ? (
+                // Podcast cover, podcast title and episode title skeletons, the same height as the loaded row
+                <div className="flex items-start gap-2 mt-2">
+                  <div className="size-8 shrink-0 bg-muted-foreground/20 motion-safe:animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-2 w-2/5 bg-muted-foreground/20 motion-safe:animate-pulse mt-1"></div>
+                    <div className="h-2 w-4/5 bg-muted-foreground/20 motion-safe:animate-pulse mt-2.5"></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-2 w-4/5 bg-muted-foreground/20 motion-safe:animate-pulse mt-2"></div> /* Episode title skeleton (text-xs height) */
+              )}
             </div>
           </>
         )}

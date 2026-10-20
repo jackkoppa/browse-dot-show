@@ -6,16 +6,20 @@ import { CaretSortIcon, MinusCircledIcon, Share1Icon, Share2Icon, Cross2Icon, Co
 import { log } from '../utils/logging';
 import { SearchEntry } from '@browse-dot-show/types'
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetClose, Badge, Popover, PopoverContent, PopoverTrigger, Button } from '@browse-dot-show/ui'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetClose, Badge, Popover, PopoverContent, PopoverTrigger, Button, cn } from '@browse-dot-show/ui'
 import AudioPlayer, { AudioPlayerRef } from "../components/AudioPlayer/AudioPlayer"
 import FullEpisodeTranscript from '../components/FullEpisodeTranscript'
 import PlayTimeLimitDialog from '../components/PlayTimeLimitDialog'
+import PodcastCover from '../components/PodcastCover'
 import { S3_HOSTED_FILES_BASE_URL } from '../constants'
 import { formatDate } from '@/utils/date'
 import { formatMillisecondsToRoundSeconds } from '@/utils/time'
 import { useAudioSource } from '@/hooks/useAudioSource'
 import { useEpisodeManifest } from '@/hooks/useEpisodeManifest'
 import { usePlayTimeLimit } from '@/hooks/usePlayTimeLimit'
+import { useCollapsingHeader } from '@/hooks/useCollapsingHeader'
+import { multiFeedPodcast } from '@/utils/podcast'
+import siteConfig from '@/config/site-config'
 import { trackEvent } from '@/utils/goatcounter';
 import { encodeFileKey } from '@/utils/encode';
 
@@ -90,11 +94,16 @@ function EpisodeDetailsHeaderControls({
           )}
         </PopoverContent>
       </Popover>
-      <SheetClose asChild>
-        <Button variant="ghost" size="icon" className="self-end ml-auto cursor-pointer text-foreground"><Cross2Icon className="size-6" /></Button>
-      </SheetClose>
     </div>
   )
+}
+
+/** The header's transitions as it collapses: 200ms, like the site header's, and none under prefers-reduced-motion */
+const HEADER_TRANSITION = 'duration-200 ease-out motion-reduce:transition-none'
+
+/** Collapses a row to no height (with `min-h-0 overflow-hidden` on its one child), animating its height */
+function collapsibleRowClassName(collapsed: boolean) {
+  return cn('grid transition-[grid-template-rows,opacity,visibility]', HEADER_TRANSITION, collapsed ? 'grid-rows-[0fr] opacity-0 invisible' : 'grid-rows-[1fr]')
 }
 
 // Need to use JS, because the Sheet component doesn't provide a way to hide the built-in close button.
@@ -139,6 +148,7 @@ export default function EpisodeRoute() {
 
   const audioPlayerRef = useRef<AudioPlayerRef>(null)
   const playTimeLimit = usePlayTimeLimit()
+  const { collapsed: isHeaderCollapsed, expand: expandHeader, sentinel: headerCollapseSentinel, contentRef: headerContentRef, reservedHeight: headerReservedHeight } = useCollapsingHeader()
 
   useEffect(() => {
     const fetchEpisodeData = async () => {
@@ -334,6 +344,7 @@ export default function EpisodeRoute() {
 
   const { title, summary, publishedAt, originalAudioURL, podcastId } = episodeData
   const formattedPublishedAt = publishedAt ? formatDate(publishedAt) : null
+  const podcast = multiFeedPodcast(podcastId, siteConfig.podcastLinks)
 
   let baseAudioUrl = ''
   if (audioSource === 'rssFeedURL') {
@@ -352,32 +363,68 @@ export default function EpisodeRoute() {
   return (
     <Sheet open={true} onOpenChange={handleOpenChange}>
       <SheetContent className="font-mono overflow-y-auto w-[90%] md:w-140 lg:w-180 max-w-[90%] md:max-w-140 lg:max-w-180">
-        <SheetHeader className="sticky top-0 bg-gradient-to-b from-background from-85% to-transparent pb-4">
-          <EpisodeDetailsHeaderControls
-            formattedPublishedAt={formattedPublishedAt}
-            summary={summary}
-            isDescriptionOpen={isDescriptionOpen}
-            setIsDescriptionOpen={setIsDescriptionOpen}
-          />
-          <SheetTitle className="text-lg/6 font-semibold mt-2 mb-2">
-            {title}
-          </SheetTitle>
-          <div>
-            <AudioPlayer
-              ref={audioPlayerRef}
-              src={audioUrlToLoad}
-              className="mb-4"
-              onListen={handleListen}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onSeek={handleSeek}
-              onLimitExceededClick={() => setShowLimitDialog(true)}
-              isLimitExceeded={playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
-            />
+        {headerCollapseSentinel}
+        {/* Collapses as the transcript scrolls (useCollapsingHeader). The sticky element keeps its expanded height, so
+            the transcript doesn't move; its empty part lets clicks through to the rows under it */}
+        <SheetHeader className="sticky top-0 z-10 gap-0 p-0 pointer-events-none" style={{ minHeight: headerReservedHeight }}>
+          <div
+            ref={headerContentRef}
+            className={cn('relative px-4 pointer-events-auto bg-gradient-to-b from-background from-85% to-transparent transition-[padding]', HEADER_TRANSITION, isHeaderCollapsed ? 'pt-2 pb-3' : 'pt-4 pb-4')}
+          >
+            <div id="episode-details-controls" className={collapsibleRowClassName(isHeaderCollapsed)}>
+              <div className={cn('min-h-0 pr-10', isHeaderCollapsed && 'overflow-hidden')}>
+                <EpisodeDetailsHeaderControls
+                  formattedPublishedAt={formattedPublishedAt}
+                  summary={summary}
+                  isDescriptionOpen={isDescriptionOpen}
+                  setIsDescriptionOpen={setIsDescriptionOpen}
+                />
+              </div>
+            </div>
+            <div className={cn('flex items-start gap-2 transition-[margin,padding]', HEADER_TRANSITION, isHeaderCollapsed ? 'mb-1 pr-10' : 'mt-2 mb-2')}>
+              {podcast?.coverImageUrl && (
+                <PodcastCover src={podcast.coverImageUrl} className={cn('transition-[width,height]', HEADER_TRANSITION, isHeaderCollapsed && 'size-6')} />
+              )}
+              <div className="min-w-0 flex-1">
+                {podcast && (
+                  <div className={collapsibleRowClassName(isHeaderCollapsed)}>
+                    <div className="min-h-0 overflow-hidden">
+                      <p className="pb-0.5 text-xs font-semibold text-muted-foreground">{podcast.title}</p>
+                    </div>
+                  </div>
+                )}
+                <SheetTitle className={cn('font-semibold transition-[font-size]', HEADER_TRANSITION, isHeaderCollapsed ? 'text-base/6' : 'text-lg/6')}>
+                  {isHeaderCollapsed ? (
+                    // Tapping the collapsed title shows the date, summary and share link again
+                    <button type="button" onClick={expandHeader} aria-expanded={false} aria-controls="episode-details-controls" className="block w-full cursor-pointer text-left">
+                      <span className="line-clamp-1">{title}</span>
+                    </button>
+                  ) : title}
+                </SheetTitle>
+              </div>
+            </div>
+            <div className={cn('transition-[margin]', HEADER_TRANSITION, isHeaderCollapsed ? 'mb-0' : 'mb-4')}>
+              <AudioPlayer
+                ref={audioPlayerRef}
+                src={audioUrlToLoad}
+                onListen={handleListen}
+                onPlay={handlePlay}
+                onPause={handlePause}
+                onSeek={handleSeek}
+                onLimitExceededClick={() => setShowLimitDialog(true)}
+                isLimitExceeded={playTimeLimit.isLimitExceeded(episodeData.sequentialId.toString())}
+              />
+            </div>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon" className={cn('absolute right-4 cursor-pointer text-foreground transition-[top]', HEADER_TRANSITION, isHeaderCollapsed ? 'top-0.5' : 'top-4')}>
+                <Cross2Icon className="size-6" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </SheetClose>
+            <SheetDescription className="sr-only">
+              Episode audio player and transcript for {title}{podcast ? `, from ${podcast.title}` : ''}. Published on {formattedPublishedAt}.
+            </SheetDescription>
           </div>
-          <SheetDescription className="sr-only">
-            Episode audio player and transcript for {title}. Published on {formattedPublishedAt}.
-          </SheetDescription>
         </SheetHeader>
         <FullEpisodeTranscript
           episodeData={episodeData}
